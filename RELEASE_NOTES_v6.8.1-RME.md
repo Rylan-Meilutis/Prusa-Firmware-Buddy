@@ -81,9 +81,29 @@ release tags are created.
   `./build.py --final --versions 6.8.1 --jobs 15`.
 - All 15 presets passed: CORE One, CORE One INDX, CORE One L, MINI and its
   eight language variants, MK4, MK3.5, and XL.
-- `rme_protocol_tests`: 400,145 assertions across 15 cases.
+- `rme_protocol_tests`: 400,179 assertions across 18 cases.
+- Instrumented RME parser/transfer core: 100% line coverage (172/172) and
+  100% function coverage (27/27); branch coverage is 87.3% (144/165).
+- Adjacent OctoPrint RME Compatibility serial-host suite: 103/103 tests,
+  including binary upload, NACK recovery, abort, inactivity suspension,
+  durable resume, transport fallback, and negotiated-capability checks.
 - `transfers_tests`: 514,733 assertions across 11 cases.
-- `connect_tests`: 277 assertions across 47 cases.
+- `connect_tests`: 278 assertions across 47 cases.
 - Exactly 15 versioned BBFs were staged. The tightest flash target is MINI at
   97.33% for translated builds; the highest reported RAM target is CORE One
   INDX at 82.69%.
+### Binary upload integrity follow-up
+
+- Corrected the binary upload advertisement to a 512-byte, three-frame window
+  whose complete wire backlog fits in the printer's 2048-byte CDC RX FIFO.
+  The previous 1024-byte/eight-frame advertisement could not physically be
+  buffered and caused dropped bytes, parser recovery, and corrupted uploads.
+- Release builds made from linked worktrees now embed the exact 40-character
+  commit hash in crash dumps instead of an unrelated branch ref.
+- Guarded the live RME upload state. If memory corruption is detected, firmware
+  now leaves raw mode and releases the shared transfer latch without
+  dereferencing corrupted file/hash state; durable resume metadata is retained
+  and the host receives `code=state_corrupt`.
+- Binary recovery tests now call the same rolling header scanner used by the
+  firmware. The adjacent OctoPrint RME Compatibility serial-host suite is also
+  gated against the negotiated 512-byte, three-frame transport contract.

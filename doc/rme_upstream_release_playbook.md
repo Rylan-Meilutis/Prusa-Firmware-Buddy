@@ -132,18 +132,18 @@ headroom; do not remove update UI or language coverage to make an image link.
 
 ## Current Baseline
 
-RME 6.6.3 is based on upstream tag `v6.6.3` at `ff6658da4`.
+RME 6.8.1 is based on upstream tag `v6.8.1` at `026c2ee1f`.
 
 The active release branch is:
 
 ```sh
-rme-v6.6.3
+rme-v6.8.1
 ```
 
 The release notes for the active release are:
 
 ```sh
-RELEASE_NOTES_v6.6.3-RME.md
+RELEASE_NOTES_v6.8.1-RME.md
 ```
 
 The RME patch stack was originally audited from the 6.5.3 branch. The first source commit by Rylan Meilutis is:
@@ -161,9 +161,9 @@ The audit baseline for this playbook is the parent of that commit:
 To re-audit the full RME patch surface on the active release branch:
 
 ```sh
-git diff --stat v6.6.3..rme-v6.6.3
-git diff --name-status v6.6.3..rme-v6.6.3
-git diff --dirstat=files,0 v6.6.3..rme-v6.6.3
+git diff --stat v6.8.1..rme-v6.8.1
+git diff --name-status v6.8.1..rme-v6.8.1
+git diff --dirstat=files,0 v6.8.1..rme-v6.8.1
 ```
 
 At the 2026-07-25 release audit, the RME 6.6.2 release port covered 648 files
@@ -269,6 +269,17 @@ manufacturer escaping, `/usb` path confinement, SHA-256 fields, and repeated
 host synchronization without retained parser state. Keep the transfer and
 Connect suites beside it because those paths share the same host connection
 and file-transfer lifetime constraints.
+
+Keep the adjacent OctoPrint host implementation in the release gate as well:
+
+```sh
+cd ../OctoPrint-RME-Compatibility
+../Prusa-Firmware-Buddy/.venv/bin/python -m pytest -q -p no:cacheprovider tests
+```
+
+Its fragmented serial peer must obtain the active binary payload/window values
+from `src/common/rme_file_transfer.hpp` and exercise upload, NACK recovery,
+abort, suspension, durable resume, fallback, publication, and flash selection.
 
 XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-only brightness gate. Core One and Core One L are the chamber/door/LED/resource-image gates. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
 
@@ -987,13 +998,6 @@ export, and BBF flash handoff. Never feed raw bytes through the G-code queue or
 permit unframed ASCII commands to be interleaved before raw mode completes or
 aborts.
 
-Also verify `binary_read=1 binary_read_chunk=1024`, one raw download frame per
-`READ_BINARY` request, little-endian offset/length/CRC validation, retry at the
-same offset after corruption, and return to line mode before the completion
-record and `ok`. The RME header icon must remain the indigo R with progress for
-both upload and multi-frame download ownership; legacy 48-byte Base64 reads
-must remain available.
-
 ```text
 python3 utils/build.py --preset xl --bootloader yes --final
 FLASH: 1291244 B / 1919 KB, 65.71%
@@ -1170,33 +1174,26 @@ Confirm `bbf/` contains all expected BBFs and that the build summary reports zer
 
 ## 2026-08-09 build 32 / build 4 validation
 
-The final manufacturer/configuration-stream/flash-footprint release was built
-with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. All 29 presets
-passed: 14 for 6.5.7 and 15 for 6.6.3. The output must contain only the two
-version folders, with exactly 14 and 15 BBFs respectively.
+Build with `./build.py --final --versions 6.5.7 6.6.3 --jobs 15`. All 29
+presets must pass, producing exactly 14 BBFs under `bbf/6.5.7` and 15 under
+`bbf/6.6.3`, with no root-level or unrelated BBFs.
 
-For 6.5.7, maximum MINI flash use is 96.52%, MK4 is 94.53%, MK3.5 is 89.97%,
-and XL is 69.12%. For 6.6.3, maximum MINI flash use is 98.47%, MK4 is 60.65%,
-MK3.5 is 56.02%, XL is 68.79%, and CORE One INDX is 65.37%.
+Validated maxima: 6.5.7 MINI 96.52%, MK4 94.53%, MK3.5 89.97%, XL 69.12%;
+6.6.3 MINI 98.47%, MK4 60.65%, MK3.5 56.02%, XL 68.79%, CORE One INDX
+65.37%.
 
-The standard resource image already carries immutable QOI assets, translations,
-and supported external fonts. Preserve that split. The manufacturer preset
-table is deliberately one packed immutable blob, and multi-filament menu row
-pointers are resolved once so configuration operations use runtime loops rather
-than duplicating their bodies for every compile-time tool index.
+Keep immutable QOI data, translations, and supported fonts in the managed
+external resource payload. Keep manufacturer presets in one packed blob and
+resolve heterogeneous multi-filament rows once so runtime configuration loops
+do not instantiate duplicate per-tool bodies.
 
-INDX uses eight real tool indices plus Marlin's internal `NoTool` sentinel.
-Never expose the sentinel as tool 9. Dock setup offers only the four- and
-eight-tool hardware variants; the four-tool choice clears stale calibration
-bits for tools 5-8, and RME discovery reports capacity eight plus the enabled
-four/eight count.
+INDX has eight real tools; Marlin's ninth EXTRUDERS value is `NoTool` and must
+never be advertised. Dock setup offers only four- and eight-tool variants and
+clears stale calibration bits above the selected count. Flashing status text
+must remain below the splash progress bar in the application-owned status area
+on both displays so it cannot clip the logo or reveal bootloader text.
 
-Firmware flashing status belongs below the splash progress bar in the
-application-owned status area on both MINI and large displays. It must not
-overlap the bootloader-owned logo/version region or the bar's repaint rectangle.
-
-Release tags for this validation are `v6.5.7-RME-b32` and
-`v6.6.3-RME-b4`.
+Release tags: `v6.5.7-RME-b32` and `v6.6.3-RME-b4`.
 
 ## 2026-08-10 build 33 / build 5 validation
 
@@ -1219,9 +1216,13 @@ bound low-brightness display wake to 30 seconds. RME uploads may replace only
 regular files and must retain the old destination until verified installation
 of the new sibling succeeds.
 
-Verify bounded 1024-byte CRC32 raw downloads, the legacy Base64 fallback, RME
-header ownership during both transfer directions, and full unsigned 32-bit
-transaction-ID round trips.
+Verify `binary_read=1 binary_read_chunk=1024`, one raw download frame per
+`READ_BINARY` request, little-endian offset/length/CRC validation, retry at the
+same offset after corruption, and return to line mode before the completion
+record and `ok`. The RME header icon must remain the indigo R with progress for
+both upload and multi-frame download ownership; legacy 48-byte Base64 reads
+must remain available. Transaction IDs must round-trip over the complete
+unsigned 32-bit range, including values above `2147483647`.
 
 Release tags: `v6.5.7-RME-b33` and `v6.6.3-RME-b5`.
 
@@ -1331,12 +1332,6 @@ tool-offset reach remain firmware-private motion geometry.
 Run `rme_protocol_tests`; the release gate is 400,145 assertions across 15
 cases before the complete firmware matrix.
 
-Final result: all 29 presets passed. Validated maxima were 6.5.7 MINI 96.96%,
-MK4 94.78%, MK3.5 90.21%, XL 69.31%; 6.6.3 MINI 99.07%, MK4 60.92%, MK3.5
-56.30%, XL 69.01%, and CORE One INDX 65.59%. Artifact counts were exactly 14
-and 15 respectively, with no root-level artifacts and empty per-version error
-directories.
-
 Use `transfers::Monitor::instance` as the only RME/Connect/Link storage latch.
 An RME BEGIN must acquire its move-only slot before touching durable metadata,
 partial files, or raw RX state, report committed bytes through that slot, and
@@ -1350,9 +1345,9 @@ and partial file without consuming retries, and resume after printing.
 
 For INDX M976, capture only fast/slow free-air excitation at the calibrated
 purge parking pose over the bucket. Pause capture and disable calibration mode
-before each silicone/v-blade eject cycle; return to the purge pose, synchronize,
-then resume capture for the next cycle. Unit-test that cleaner-contact samples
-are excluded while later excitation samples append to the same fixed buffer.
+before each `eject_blob` silicone-cleaner cycle, account its pellet, return to
+the purge pose, synchronize, then resume capture. Unit-test that cleaner
+samples are excluded while later excitation samples append to the same buffer.
 
 Final shared-latch rebuild: all 29 presets passed. Maxima were 6.5.7 MINI
 97.03%, MK4 94.81%, MK3.5 90.24%, XL 69.34%; 6.6.3 MINI 99.14%, MK4 60.96%,
@@ -1447,3 +1442,22 @@ The combined matrix passed
 29/29 presets with zero failures. Validated maxima were 6.5.7 MINI 97.38%, MK4
 95.01%, MK3.5 90.41%, XL 69.58%; 6.6.3 MINI 99.44%, MK4 61.14%, MK3.5 56.47%,
 XL 69.26%, and CORE One INDX 65.86%.
+
+## 6.8.1 upstream port release gate
+
+Build the persistent 6.8.1 line with
+`./build.py --final --versions 6.8.1 --jobs 15`. The canonical matrix contains
+15 presets and exactly 15 versioned BBFs, including CORE One INDX and all MINI
+language variants. Keep MINI and xBuddy bitmap fonts in the managed resource
+image; linking `font_data` into the firmware executable overflows MINI.
+
+The initial 6.8.1 matrix passed 15/15 with zero failures. Translated MINI
+builds were the tightest flash target at 97.33%; CORE One INDX was the highest
+reported RAM target at 82.69%. The current RME parser/transfer core gate passes
+400,179 assertions across 18 cases with 100% line and function coverage. The
+adjacent OctoPrint compatibility suite passes 103/103 host-transport tests.
+Transfer and Connect gates remain 514,733 assertions and 278 assertions.
+
+Use the single persistent tag and GitHub release `v6.8.1-RME`. Replace its
+notes and complete BBF asset set in place for later builds; never create a
+per-build release.

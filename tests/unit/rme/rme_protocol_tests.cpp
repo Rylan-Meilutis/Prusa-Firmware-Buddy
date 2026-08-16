@@ -66,6 +66,7 @@ TEST_CASE("RME service frames remain isolated from ordinary G-code", "[rme]") {
     CHECK_FALSE(rme_protocol::is_service_frame("@RME"sv));
     CHECK_FALSE(rme_protocol::is_service_frame("RME SESSION KEEPALIVE"sv));
     CHECK_FALSE(rme_protocol::is_service_frame("=60 visible=1 tx=3933926903"sv));
+    CHECK_FALSE(rme_protocol::is_service_frame("N-7"sv));
 }
 
 TEST_CASE("RME percent decoding is strict and fixed capacity", "[rme]") {
@@ -80,6 +81,8 @@ TEST_CASE("RME percent decoding is strict and fixed capacity", "[rme]") {
     CHECK_FALSE(rme_protocol::percent_decode<16>("bad%XZ"sv));
     CHECK_FALSE(rme_protocol::percent_decode<8>("12345678"sv));
     CHECK_FALSE(rme_protocol::percent_decode<16>("zero%00inside"sv));
+    CHECK_FALSE(rme_protocol::percent_decode<16>(""sv));
+    CHECK(rme_protocol::percent_decode<5>("a"sv).has_value());
 }
 
 TEST_CASE("RME filesystem paths are rooted and traversal safe", "[rme][file]") {
@@ -99,12 +102,16 @@ TEST_CASE("RME filesystem paths are rooted and traversal safe", "[rme][file]") {
     CHECK_FALSE(rme_protocol::usb_path<64>("safe/%2e%2e/secret"sv));
     CHECK_FALSE(rme_protocol::usb_path<64>("safe//file"sv));
     CHECK_FALSE(rme_protocol::usb_path<16>("this-name-is-too-long.gcode"sv));
+    CHECK_FALSE(rme_protocol::usb_path<5>("file"sv));
+    CHECK_FALSE(rme_protocol::usb_path<8>("abc"sv));
 }
 
 TEST_CASE("RME SHA-256 parsing is exact", "[rme][file]") {
     std::array<uint8_t, 32> digest {};
     REQUIRE(rme_protocol::parse_sha256("000102030405060708090a0b0c0d0e0f101112131415161718191A1B1C1D1E1F"sv, digest));
-    for (size_t i = 0; i < digest.size(); ++i) CHECK(digest[i] == i);
+    for (size_t i = 0; i < digest.size(); ++i) {
+        CHECK(digest[i] == i);
+    }
     CHECK_FALSE(rme_protocol::parse_sha256("00"sv, digest));
     CHECK_FALSE(rme_protocol::parse_sha256("000102030405060708090a0b0c0d0e0f101112131415161718191A1B1C1D1E1Z"sv, digest));
 }
@@ -155,6 +162,7 @@ TEST_CASE("RME binary transfer failures have stable diagnostics", "[rme][file]")
     CHECK(std::string_view(diagnostic_code(BinaryFrameError::size_exceeded)) == "size_exceeded");
     CHECK(std::string_view(diagnostic_code(BinaryFrameError::crc_mismatch)) == "crc_mismatch");
     CHECK(diagnostic_code(BinaryFrameError::none) == nullptr);
+    CHECK(std::string_view(diagnostic_code(static_cast<BinaryFrameError>(255))) == "invalid_frame");
 }
 
 TEST_CASE("RME text bulk receive backlog matches the advertised window", "[rme][file][regression]") {
@@ -163,6 +171,14 @@ TEST_CASE("RME text bulk receive backlog matches the advertised window", "[rme][
     CHECK(rme_file_transfer::bulk_base64_size == 512);
     CHECK(rme_file_transfer::bulk_receive_backlog <= 2048);
     CHECK(rme_file_transfer::bulk_receive_backlog > 512);
+}
+
+TEST_CASE("RME binary window fits completely in the target CDC FIFO", "[rme][file][stream][regression]") {
+    CHECK(rme_file_transfer::binary_header_size == 10);
+    CHECK(rme_file_transfer::binary_payload_size == 512);
+    CHECK(rme_file_transfer::binary_window_size == 3);
+    CHECK(rme_file_transfer::binary_receive_backlog == 1566);
+    CHECK(rme_file_transfer::binary_receive_backlog <= 2048);
 }
 
 TEST_CASE("RME text abort escapes malformed binary mode", "[rme][file][regression]") {
@@ -193,42 +209,98 @@ TEST_CASE("RME binary header recovery rejects untrusted lengths without blind di
     CHECK_FALSE(plausible_binary_header(12288, 65535, 12288, 4096000, 1024));
     CHECK_FALSE(plausible_binary_header(13312, 1024, 12288, 4096000, 1024));
     CHECK(plausible_binary_header(rme_file_transfer::abort_frame_offset, 0, 12288, 4096000, 1024));
+    CHECK_FALSE(plausible_binary_header(rme_file_transfer::abort_frame_offset, 1, 12288, 4096000, 1024));
     CHECK(plausible_binary_header(rme_file_transfer::control_frame_offset, 32, 12288, 4096000, 1024));
+    CHECK_FALSE(plausible_binary_header(rme_file_transfer::control_frame_offset, 0, 12288, 4096000, 1024));
     CHECK_FALSE(plausible_binary_header(rme_file_transfer::control_frame_offset, 1025, 12288, 4096000, 1024));
 }
 
 TEST_CASE("RME rolling binary header recovery finds abort after a corrupt length", "[rme][file][stream]") {
     auto append_header = [](std::vector<uint8_t> &stream, const uint32_t offset, const uint16_t length, const uint32_t crc) {
-        stream.push_back(offset); stream.push_back(offset >> 8); stream.push_back(offset >> 16); stream.push_back(offset >> 24);
-        stream.push_back(length); stream.push_back(length >> 8);
-        stream.push_back(crc); stream.push_back(crc >> 8); stream.push_back(crc >> 16); stream.push_back(crc >> 24);
+        stream.push_back(offset);
+        stream.push_back(offset >> 8);
+        stream.push_back(offset >> 16);
+        stream.push_back(offset >> 24);
+        stream.push_back(length);
+        stream.push_back(length >> 8);
+        stream.push_back(crc);
+        stream.push_back(crc >> 8);
+        stream.push_back(crc >> 16);
+        stream.push_back(crc >> 24);
     };
-    auto le16 = [](const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; };
-    auto le32 = [](const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; };
-
     std::vector<uint8_t> stream;
     append_header(stream, 12288, 65535, 0x12345678); // untrusted/corrupt
     stream.insert(stream.end(), { 0xaa, 0xbb, 0xcc, 0xdd, 0xee });
     append_header(stream, rme_file_transfer::abort_frame_offset, 0, 0);
 
-    std::array<uint8_t, 10> window {};
-    size_t filled = 0;
+    std::array<uint8_t, rme_file_transfer::binary_header_size> window {};
+    uint16_t filled = 0;
+    uint32_t offset = 0;
+    uint16_t length = 0;
+    uint32_t crc = 0;
     bool found_abort = false;
     for (const uint8_t byte : stream) {
-        if (filled < window.size()) window[filled++] = byte;
-        else {
-            std::move(window.begin() + 1, window.end(), window.begin());
-            window.back() = byte;
-        }
-        if (filled == window.size()) {
-            const uint32_t offset = le32(window.data());
-            const uint16_t length = le16(window.data() + 4);
-            if (rme_file_transfer::plausible_binary_header(offset, length, 12288, 4096000, 1024)
-                && offset == rme_file_transfer::abort_frame_offset && length == 0) {
-                found_abort = true;
-                break;
-            }
+        const auto result = rme_file_transfer::scan_binary_header_byte(
+            window, filled, byte, 12288, 4096000, 1024, offset, length, crc);
+        if (result == rme_file_transfer::HeaderScanResult::ready
+            && offset == rme_file_transfer::abort_frame_offset && length == 0) {
+            found_abort = true;
+            break;
         }
     }
     CHECK(found_abort);
+}
+
+TEST_CASE("RME production header scanner covers data and control frame states", "[rme][file][stream]") {
+    auto header = [](const uint32_t offset, const uint16_t length, const uint32_t crc) {
+        return std::array<uint8_t, rme_file_transfer::binary_header_size> {
+            uint8_t(offset),
+            uint8_t(offset >> 8),
+            uint8_t(offset >> 16),
+            uint8_t(offset >> 24),
+            uint8_t(length),
+            uint8_t(length >> 8),
+            uint8_t(crc),
+            uint8_t(crc >> 8),
+            uint8_t(crc >> 16),
+            uint8_t(crc >> 24),
+        };
+    };
+    auto scan = [](const auto &bytes, const uint32_t committed, const uint32_t expected,
+                    uint32_t &offset, uint16_t &length, uint32_t &crc) {
+        std::array<uint8_t, rme_file_transfer::binary_header_size> window {};
+        uint16_t received = 0;
+        auto result = rme_file_transfer::HeaderScanResult::incomplete;
+        for (const uint8_t byte : bytes) {
+            result = rme_file_transfer::scan_binary_header_byte(
+                window, received, byte, committed, expected,
+                rme_file_transfer::binary_payload_size, offset, length, crc);
+        }
+        return result;
+    };
+
+    uint32_t offset = 0;
+    uint16_t length = 0;
+    uint32_t crc = 0;
+    const auto data = header(1536, 512, UINT32_C(0x78563412));
+    CHECK(scan(data, 1536, 4096, offset, length, crc) == rme_file_transfer::HeaderScanResult::ready);
+    CHECK(offset == 1536);
+    CHECK(length == 512);
+    CHECK(crc == UINT32_C(0x78563412));
+
+    std::array<uint8_t, rme_file_transfer::binary_header_size> window {};
+    uint16_t received = 0;
+    for (size_t index = 0; index + 1 < data.size(); ++index) {
+        CHECK(rme_file_transfer::scan_binary_header_byte(
+                  window, received, data[index], 1536, 4096, 512,
+                  offset, length, crc)
+            == rme_file_transfer::HeaderScanResult::incomplete);
+    }
+
+    const auto wrong_offset = header(2048, 512, 0);
+    CHECK(scan(wrong_offset, 1536, 4096, offset, length, crc) == rme_file_transfer::HeaderScanResult::invalid);
+    const auto control = header(rme_file_transfer::control_frame_offset, 16, 1);
+    CHECK(scan(control, 1536, 4096, offset, length, crc) == rme_file_transfer::HeaderScanResult::ready);
+    const auto abort = header(rme_file_transfer::abort_frame_offset, 0, 0);
+    CHECK(scan(abort, 1536, 4096, offset, length, crc) == rme_file_transfer::HeaderScanResult::ready);
 }
