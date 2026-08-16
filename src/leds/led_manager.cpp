@@ -199,6 +199,11 @@ void LEDManager::init() {
     // update the LEDs in init to turn them off (in case they were set to a color before a reset)
     // except the LCD backlight, set that to 100% brightness
     set_lcd_brightness(100);
+    startup_activity_started_ms = ticks_ms();
+    startup_activity_active = true;
+#if HAS_SIDE_LEDS()
+    SideStripHandler::instance().startup_activity_ping();
+#endif
 #if HAS_LEDS()
     get_status_leds().update();
 #endif
@@ -328,9 +333,14 @@ void LEDManager::update_lcd_brightness() {
         || marlin_server::is_extended_paused_state(printer_state)
         || marlin_server::serial_print_active();
     const bool guided_activity = guided_activity_active();
+    const uint32_t now = ticks_ms();
+    if (startup_activity_active
+        && !startup_activity_within_window(startup_activity_started_ms, now, startup_activity_duration_ms)) {
+        startup_activity_active = false;
+    }
     leds::LightState state = print_active
         ? leds::LightState::printing
-        : (guided_activity
+        : (startup_activity_active || guided_activity
                 ? leds::LightState::active
                 : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
@@ -348,7 +358,6 @@ void LEDManager::update_lcd_brightness() {
         print_override_session_active = false;
     }
     bool screen_wake_active = false;
-    const uint32_t now = ticks_ms();
     if (lcd_brightness_wake_from_print_override && lcd_brightness_wake_until_ms
         && now - lcd_brightness_wake_until_ms < screen_brightness_wake_ms
         && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15) {

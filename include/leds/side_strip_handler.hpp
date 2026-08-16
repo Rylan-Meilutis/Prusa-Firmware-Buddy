@@ -44,6 +44,7 @@ public:
 
     SideStripHandler();
 
+    void startup_activity_ping();
     void activity_ping();
     void event_ping();
     void idle_ping();
@@ -152,6 +153,8 @@ private:
     uint8_t print_screen_brightness_override = 100;
     bool print_screen_brightness_overridden = false;
     bool print_override_session_active = false;
+    uint32_t startup_activity_started_ms = 0;
+    bool startup_activity_active = true;
     std::optional<CustomColorState> custom_color;
 };
 

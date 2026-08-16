@@ -389,6 +389,8 @@ When screen brightness is `Off`, supported display paths write a full black fram
 
 During first boot after flashing, bootstrap/install screens hold screen brightness at 100% until resource, bootloader, ESP, and puppy setup is complete. The firmware now paints the splash screen before starting those install steps, and the post-boot idle timer is seeded only after the first home-screen paint so the printer cannot dim immediately based on pre-display boot time.
 
+Every application startup now begins with a bounded 30-second Active lighting window. This also covers startup into the retained-crash export/error screen, so an Idle or Deep Idle saved profile cannot leave the display dark while the printer is booting or saving a crash dump. Printing still takes precedence, real user/host activity starts the normal configured activity timer, and the startup window expires automatically so it cannot hold the machine Active indefinitely.
+
 OOB setup, calibration, self-tests, MMU tests/actions, and other guided FSM screens are treated as active use. Those flows hold the active lighting and screen brightness state so the printer does not dim or turn the screen off during setup or maintenance workflows.
 
 The Lights Settings menu now exposes state-specific LED pages:
