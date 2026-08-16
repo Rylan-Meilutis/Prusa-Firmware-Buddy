@@ -1,5 +1,6 @@
 #include <Marlin/src/core/serial.h>
 #include <Marlin/src/gcode/queue.h>
+#include <Marlin/src/module/temperature.h>
 #include <USBSerial.h>
 #include <tusb.h>
 
@@ -196,6 +197,7 @@ bool hash_file(const char *path, std::array<uint8_t, 32> &digest, uint32_t &size
     mbedtls_sha256_context sha {};
     mbedtls_sha256_init(&sha);
     bool ok = mbedtls_sha256_starts_ret(&sha, false) == 0;
+    uint8_t chunks_since_service = 0;
     while (ok) {
         const size_t count = fread(binary_payload.data(), 1, binary_payload.size(), file);
         if (count && mbedtls_sha256_update_ret(&sha, binary_payload.data(), count) != 0) {
@@ -206,6 +208,13 @@ bool hash_file(const char *path, std::array<uint8_t, 32> &digest, uint32_t &size
                 ok = false;
             }
             break;
+        }
+        // Candidate queries can hash a multi-megabyte BBF on the Marlin
+        // thread. Keep temperature/watchdog servicing alive without allowing
+        // recursive serial parsing (the queue's dispatch guard owns that).
+        if (++chunks_since_service == 16) {
+            chunks_since_service = 0;
+            thermalManager.manage_heater();
         }
     }
     if (ok) {
@@ -853,7 +862,6 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             std::array<uint8_t, 32> requested_sha {};
             const bool valid_sha = parse_sha256(*sha, requested_sha);
             if (!valid_sha) {
-                reset_upload(true);
                 report_error("invalid_upload");
                 return true;
             }
@@ -937,18 +945,17 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         if (!upload.file || upload.bulk != bulk || !offset || *offset != upload.received || !data) {
             report_error("upload_state");
         } else {
-            std::array<uint8_t, bulk_chunk_size> decoded {};
             size_t count = 0;
             const char *failure = nullptr;
             if (!bulk && data->size() > 64) {
                 failure = "chunk_too_large";
-            } else if (mbedtls_base64_decode(decoded.data(), bulk ? bulk_chunk_size : transfer_chunk_size, &count, reinterpret_cast<const unsigned char *>(data->data()), data->size())) {
+            } else if (mbedtls_base64_decode(binary_payload.data(), bulk ? bulk_chunk_size : transfer_chunk_size, &count, reinterpret_cast<const unsigned char *>(data->data()), data->size())) {
                 failure = "decode_failed";
             } else if (count > upload.expected_size - upload.received) {
                 failure = "size_exceeded";
-            } else if (fwrite(decoded.data(), 1, count, upload.file) != count) {
+            } else if (fwrite(binary_payload.data(), 1, count, upload.file) != count) {
                 failure = "disk_write_failed";
-            } else if (mbedtls_sha256_update_ret(&upload.sha, decoded.data(), count)) {
+            } else if (mbedtls_sha256_update_ret(&upload.sha, binary_payload.data(), count)) {
                 failure = "hash_failed";
             }
             if (failure) {
