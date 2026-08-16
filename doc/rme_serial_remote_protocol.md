@@ -147,6 +147,13 @@ remote UI input and configuration mutation are rejected.
 
 ## Theme and lighting
 
+On every application startup, including startup into retained-crash handling,
+firmware temporarily reports/drives the lighting state as `active` for up to 30
+seconds so the display remains readable. Printing takes precedence. Explicit
+activity, idle control, or expiry hands control back to the normal saved
+lighting timers; the startup window is not RME session activity and RME query
+or keepalive commands do not extend it.
+
 ```text
 @RME THEME QUERY
 @RME THEME SET primary=#3366CC progress=#00AA55 warning=#FFAA00 error=#DD2222 image=#101018

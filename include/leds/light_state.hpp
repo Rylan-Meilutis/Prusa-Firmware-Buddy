@@ -28,4 +28,11 @@ constexpr uint8_t clamp_screen_brightness(LightState state, uint8_t value) {
     return value < minimum ? minimum : (value > 100 ? 100 : value);
 }
 
+/// True while a bounded startup-activity window is open. Unsigned subtraction
+/// keeps the comparison correct when the millisecond counter wraps.
+constexpr bool startup_activity_within_window(
+    uint32_t started_ms, uint32_t now_ms, uint32_t duration_ms) {
+    return now_ms - started_ms < duration_ms;
+}
+
 } // namespace leds
