@@ -90,8 +90,9 @@ release tags are created.
 - `transfers_tests`: 514,733 assertions across 11 cases.
 - `connect_tests`: 278 assertions across 47 cases.
 - Exactly 15 versioned BBFs were staged. The tightest flash target is MINI at
-  97.33% for translated builds; the highest reported RAM target is CORE One
-  INDX at 82.69%.
+  97.53% for the Japanese translation; the highest aggregate RAM target is XL
+  at 84.20%.
+
 ### Binary upload integrity follow-up
 
 - Corrected the binary upload advertisement to a 512-byte, three-frame window

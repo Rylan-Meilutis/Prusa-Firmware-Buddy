@@ -1451,9 +1451,9 @@ Build the persistent 6.8.1 line with
 language variants. Keep MINI and xBuddy bitmap fonts in the managed resource
 image; linking `font_data` into the firmware executable overflows MINI.
 
-The initial 6.8.1 matrix passed 15/15 with zero failures. Translated MINI
-builds were the tightest flash target at 97.33%; CORE One INDX was the highest
-reported RAM target at 82.69%. The current RME parser/transfer core gate passes
+The current 6.8.1 matrix passes 15/15 with zero failures. The Japanese MINI
+build is the tightest flash target at 97.53%; XL is the highest aggregate RAM
+target at 84.20%. The current RME parser/transfer core gate passes
 400,179 assertions across 18 cases with 100% line and function coverage. The
 adjacent OctoPrint compatibility suite passes 103/103 host-transport tests.
 Transfer and Connect gates remain 514,733 assertions and 278 assertions.
