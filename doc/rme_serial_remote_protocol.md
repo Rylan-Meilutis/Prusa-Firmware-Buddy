@@ -307,7 +307,7 @@ system partitions are rejected. Discover support with:
 @RME FILE LIST path=/
 @RME FILE STAT path=jobs/part.bgcode
 @RME FILE READ path=jobs/part.bgcode offset=0 length=48
-@RME FILE READ_BINARY path=jobs/part.bgcode offset=0 length=1024
+@RME FILE READ_BINARY path=jobs/part.bgcode offset=0 length=512
 ```
 
 `LIST` emits `RME_FILE_ENTRY` records followed by `RME_FILE_LIST_END`. `READ`
@@ -323,14 +323,14 @@ diagnosis and cleanup. Use `FIRMWARE UNSTAGE`, not generic `DELETE`, to remove
 the verified protected candidate and its associated private files atomically.
 
 For fast downloads, `CAPS` advertises
-`binary_read=1 binary_read_chunk=1024`. After `READ_BINARY`, consume the
+`binary_read=1 binary_read_chunk=512`. After `READ_BINARY`, consume the
 `RME_FILE_BINARY_READ_READY` line, then switch the receive parser for exactly
 one raw frame. Its ten-byte little-endian header contains `offset:u32`,
 `length:u16`, and `crc32:u32`, followed immediately by `length` payload bytes.
 Verify the offset and CRC, switch back to line parsing, and consume
 `RME_FILE_BINARY_READ_COMPLETE next=<offset> eof=<0|1>` plus the normal `ok`.
 Request the returned `next` offset until `eof=1`. Each request is deliberately
-bounded to 1024 bytes, so control traffic is never blocked by an entire large
+bounded to 512 bytes, so control traffic is never blocked by an entire large
 download and a failed chunk can be retried independently. Legacy Base64 reads
 remain supported unchanged.
 
@@ -365,10 +365,10 @@ bounded CDC FIFO continuously. Its RX backlog is sized for the three complete
 encoded commands that may follow the command currently being committed, while
 the cumulative ACK prevents a fifth command from entering the window. Storage
 latency therefore cannot truncate an in-flight command or disconnect the endpoint.
-Completed RME lines are snapshotted before dispatch, and the stateful serial
-line reader cannot be entered recursively while filesystem code is committing
-a chunk. Consequently, a nested scheduler pass cannot overwrite an in-flight
-command or expose its Base64 payload as ordinary G-code. Hosts may use the
+The stateful serial line reader cannot be entered recursively while filesystem
+code is committing a chunk. Consequently, a nested scheduler pass cannot
+overwrite an in-flight command or expose its Base64 payload as ordinary
+G-code. Hosts may use the
 advertised window without serializing every chunk on an individual `ok`.
 If a plugin ever sees Base64 payload reported as an unknown G-code, it must
 treat that as a firmware/transport integrity failure, stop the window, and use
@@ -382,7 +382,7 @@ maximum throughput.
 Signed BBF files use the same bulk upload followed by `@RME FILE FLASH`.
 
 For maximum throughput, `CAPS` also advertises
-`binary=1 binary_chunk=1024 binary_window=8`. Start with:
+`binary=1 binary_chunk=512 binary_window=3`. Start with:
 
 ```text
 @RME FILE WRITE_BINARY_BEGIN path=firmware/update.bbf size=<bytes> sha256=<64 hex digits>
@@ -390,14 +390,22 @@ For maximum throughput, `CAPS` also advertises
 
 After `RME_FILE_BINARY_READY`, send raw little-endian frames containing
 `offset:u32`, `length:u16`, `crc32:u32`, then `length` payload bytes. Payloads
-are at most 1024 bytes and eight sequential frames may be in flight. Firmware
-emits cumulative `RME_FILE_BINARY_ACK` offsets. A zero-length frame at the
+are at most 512 bytes and three sequential frames may be in flight. The entire
+advertised window (three 522-byte frames) fits in the 2048-byte CDC receive
+FIFO; a host may therefore pipeline it without pacing or dropped prefixes.
+Firmware emits cumulative `RME_FILE_BINARY_ACK` offsets. A zero-length frame at the
 final offset flushes, verifies SHA-256, atomically renames, and returns to line
 mode. A zero-length frame with offset `0xffffffff` suspends the partial file.
 Recoverable frame failures return `RME_FILE_BINARY_NACK` with the last
 committed offset and `reason=offset_mismatch`, `size_exceeded`, `crc_mismatch`,
 `chunk_too_large`, or `completion_offset_mismatch`. Legacy text protocols
 remain unchanged.
+
+The upload control block is guarded independently of the payload buffer. If a
+guard fails, firmware does not call filesystem or hash functions through the
+damaged state: it restores line mode, releases transfer ownership, preserves
+the durable partial/metadata for reboot recovery, and reports
+`echo:RME_ERROR workflow=file code=state_corrupt`.
 
 The ten-byte header and payload are raw bytes: do not add CR/LF, Marlin line
 numbers/checksums, or Base64. Raw mode owns the receiver until a completion or

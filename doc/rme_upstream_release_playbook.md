@@ -270,6 +270,17 @@ host synchronization without retained parser state. Keep the transfer and
 Connect suites beside it because those paths share the same host connection
 and file-transfer lifetime constraints.
 
+Keep the adjacent OctoPrint host implementation in the release gate as well:
+
+```sh
+cd ../OctoPrint-RME-Compatibility
+../Prusa-Firmware-Buddy/.venv/bin/python -m pytest -q -p no:cacheprovider tests
+```
+
+Its fragmented serial peer must obtain the active binary payload/window values
+from `src/common/rme_file_transfer.hpp` and exercise upload, NACK recovery,
+abort, suspension, durable resume, fallback, publication, and flash selection.
+
 XL is the side-LED/enclosure gate. MINI is the layout and small-display/screen-only brightness gate. Core One and Core One L are the chamber/door/LED/resource-image gates. MK4 or MK3.5 is the non-side-LED status/display brightness gate.
 
 6. Run the full release build after focused targets pass.
@@ -1442,8 +1453,10 @@ image; linking `font_data` into the firmware executable overflows MINI.
 
 The initial 6.8.1 matrix passed 15/15 with zero failures. Translated MINI
 builds were the tightest flash target at 97.33%; CORE One INDX was the highest
-reported RAM target at 82.69%. Release gates passed with 400,145 RME protocol
-assertions, 514,733 transfer assertions, and 277 Connect assertions.
+reported RAM target at 82.69%. The current RME parser/transfer core gate passes
+400,179 assertions across 18 cases with 100% line and function coverage. The
+adjacent OctoPrint compatibility suite passes 103/103 host-transport tests.
+Transfer and Connect gates remain 514,733 assertions and 278 assertions.
 
 Use the single persistent tag and GitHub release `v6.8.1-RME`. Replace its
 notes and complete BBF asset set in place for later builds; never create a

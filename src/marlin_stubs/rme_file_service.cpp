@@ -38,14 +38,14 @@ constexpr size_t rme_path_buffer_size = filename_defs::path_buffer_size;
 constexpr size_t transfer_chunk_size = 48;
 constexpr size_t bulk_chunk_size = rme_file_transfer::bulk_payload_size;
 constexpr uint8_t bulk_window_size = rme_file_transfer::bulk_window_size;
-// USB CDC is a byte stream using 64-byte full-speed endpoint packets. A 1 KiB
-// application frame keeps the endpoint busy without permanently consuming
-// several large SRAM blocks. Hosts pipeline frames using the advertised
-// window, so this changes framing overhead by less than one percent.
-constexpr size_t binary_chunk_size = 1024;
-constexpr uint8_t binary_window_size = 8;
+// USB CDC is a byte stream using 64-byte full-speed endpoint packets. Three
+// 512-byte application frames keep the endpoint busy while the complete wire
+// window still fits in the target's 2 KiB receive FIFO.
+constexpr size_t binary_chunk_size = rme_file_transfer::binary_payload_size;
+constexpr uint8_t binary_window_size = rme_file_transfer::binary_window_size;
 constexpr uint32_t maximum_file_size = 1024U * 1024U * 1024U;
 constexpr uint32_t upload_inactivity_timeout_ms = 10'000;
+constexpr uint32_t upload_state_guard = UINT32_C(0x524d4555); // "RMEU"
 constexpr const char *firmware_candidate_path = "/usb/FWUPD.RME";
 constexpr const char *firmware_marker_path = "/usb/FWUPD.UI";
 
@@ -55,8 +55,11 @@ constexpr const char *firmware_marker_path = "/usb/FWUPD.UI";
 // causing payload text to escape into the ordinary G-code parser.
 static_assert(CFG_TUD_CDC_RX_BUFSIZE >= rme_file_transfer::bulk_receive_backlog,
     "CDC RX FIFO is too small for the advertised RME text-bulk window");
+static_assert(CFG_TUD_CDC_RX_BUFSIZE >= rme_file_transfer::binary_receive_backlog,
+    "CDC RX FIFO is too small for the advertised RME binary window");
 
 struct UploadState {
+    uint32_t guard_head = upload_state_guard;
     FILE *file = nullptr;
     uint32_t expected_size = 0;
     uint32_t received = 0;
@@ -72,12 +75,13 @@ struct UploadState {
     bool cdc_connected_at_begin = false;
     uint8_t unacknowledged = 0;
     uint32_t last_activity_ms = 0;
+    uint32_t guard_tail = upload_state_guard;
 } upload;
 
 std::optional<transfers::Monitor::Slot> upload_slot;
 
 struct BinaryReceiver {
-    std::array<uint8_t, 10> header {};
+    std::array<uint8_t, rme_file_transfer::binary_header_size> header {};
     uint16_t header_received = 0;
     uint16_t payload_received = 0;
     uint16_t payload_size = 0;
@@ -117,8 +121,6 @@ std::array<char, rme_path_buffer_size> resume_partial_path {};
 std::array<char, rme_path_buffer_size> resume_metadata_path {};
 std::array<char, rme_path_buffer_size> metadata_temp_path {};
 
-uint16_t read_le16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
-uint32_t read_le32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
 void write_le16(uint8_t *p, const uint16_t value) {
     p[0] = value;
     p[1] = value >> 8;
@@ -265,6 +267,23 @@ void release_upload_slot(const transfers::Monitor::Outcome outcome) {
     }
 }
 
+bool upload_state_valid() {
+    return upload.guard_head == upload_state_guard && upload.guard_tail == upload_state_guard;
+}
+
+// Do not dereference or free anything from a state block whose canary failed:
+// the FILE/SHA members are no longer trustworthy.  Returning to line mode and
+// releasing the shared latch is safer than turning detected corruption into a
+// second fault inside fclose/fwrite.  The durable metadata remains available
+// for a clean reboot/resume and the diagnostic identifies this exact path.
+void abandon_corrupt_upload_state() {
+    upload = {};
+    binary_receiver = {};
+    release_upload_slot(transfers::Monitor::Outcome::ErrorOther);
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
+    report_error("state_corrupt");
+}
+
 bool claim_upload_slot(const char *path, const uint32_t expected_size) {
     auto slot = transfers::Monitor::instance.allocate(transfers::Monitor::Type::Link, path, expected_size);
     if (!slot) {
@@ -358,7 +377,9 @@ bool load_persistent_upload(const std::array<char, rme_path_buffer_size> &final_
     const auto read_metadata = [](const char *path) {
         metadata_scratch = {};
         FILE *file = fopen(path, "rb");
-        if (!file) return false;
+        if (!file) {
+            return false;
+        }
         setvbuf(file, nullptr, _IONBF, 0);
         const bool read = fread(&metadata_scratch, 1, sizeof(metadata_scratch), file) == sizeof(metadata_scratch);
         fclose(file);
@@ -373,10 +394,14 @@ bool load_persistent_upload(const std::array<char, rme_path_buffer_size> &final_
     };
     bool recovered_temp = false;
     if (!read_metadata(resume_metadata_path.data()) || !metadata_matches()) {
-        if (!read_metadata(metadata_temp_path.data()) || !metadata_matches()) return false;
+        if (!read_metadata(metadata_temp_path.data()) || !metadata_matches()) {
+            return false;
+        }
         recovered_temp = true;
         remove(resume_metadata_path.data());
-        if (rename(metadata_temp_path.data(), resume_metadata_path.data()) == 0) recovered_temp = false;
+        if (rename(metadata_temp_path.data(), resume_metadata_path.data()) == 0) {
+            recovered_temp = false;
+        }
     }
 
     upload = {};
@@ -532,6 +557,10 @@ bool finish_current_upload(const char *complete_prefix) {
 } // namespace
 
 extern "C" bool buddy_rme_binary_upload_active() {
+    if (!upload_state_valid()) {
+        abandon_corrupt_upload_state();
+        return false;
+    }
     if (upload.file
         && (!tud_mounted() || (upload.cdc_connected_at_begin && !tud_cdc_connected()))) {
         const bool binary = upload.binary;
@@ -551,6 +580,10 @@ extern "C" bool buddy_rme_binary_upload_active() {
 }
 
 extern "C" void buddy_rme_binary_upload_byte(const uint8_t byte) {
+    if (!upload_state_valid()) {
+        abandon_corrupt_upload_state();
+        return;
+    }
     if (!buddy_rme_binary_upload_active()) {
         return;
     }
@@ -570,28 +603,20 @@ extern "C" void buddy_rme_binary_upload_byte(const uint8_t byte) {
     }
 
     if (binary_receiver.header_received < binary_receiver.header.size()) {
-        binary_receiver.header[binary_receiver.header_received++] = byte;
-        if (binary_receiver.header_received != binary_receiver.header.size()) {
+        const auto scan = rme_file_transfer::scan_binary_header_byte(
+            binary_receiver.header, binary_receiver.header_received, byte,
+            upload.received, upload.expected_size, binary_chunk_size,
+            binary_receiver.offset, binary_receiver.payload_size,
+            binary_receiver.expected_crc);
+        if (scan == rme_file_transfer::HeaderScanResult::incomplete) {
             return;
         }
-        binary_receiver.offset = read_le32(binary_receiver.header.data());
-        binary_receiver.payload_size = read_le16(binary_receiver.header.data() + 4);
-        binary_receiver.expected_crc = read_le32(binary_receiver.header.data() + 6);
-
-        const bool plausible_header = rme_file_transfer::plausible_binary_header(
-            binary_receiver.offset, binary_receiver.payload_size, upload.received,
-            upload.expected_size, binary_chunk_size);
-        if (!plausible_header) {
+        if (scan == rme_file_transfer::HeaderScanResult::invalid) {
             if (!binary_receiver.recovering) {
                 SERIAL_ECHOPGM("RME_FILE_BINARY_NACK offset=");
                 SERIAL_ECHO(upload.received);
                 SERIAL_ECHOLNPGM(" reason=header_invalid recovering=1");
             }
-            // The length is untrusted. Slide the fixed header window by one
-            // byte and seek the next plausible frame instead of blindly
-            // discarding up to 65535 bytes (which could swallow ABORT).
-            std::move(binary_receiver.header.begin() + 1, binary_receiver.header.end(), binary_receiver.header.begin());
-            binary_receiver.header_received = binary_receiver.header.size() - 1;
             binary_receiver.payload_received = 0;
             binary_receiver.recovering = true;
             return;
@@ -708,6 +733,10 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
     const std::string_view command { raw_command, strcspn(raw_command, "*") };
     if (!command.starts_with(prefix)) {
         return false;
+    }
+    if (!upload_state_valid()) {
+        abandon_corrupt_upload_state();
+        return true;
     }
     const auto action = command.substr(prefix.size());
     const auto action_is = [](const std::string_view candidate, const std::string_view expected) {
@@ -926,7 +955,11 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 if (binary) {
                     SERIAL_ECHOPGM("RME_FILE_BINARY_READY offset=");
                     SERIAL_ECHO(upload.received);
-                    SERIAL_ECHOLNPGM(" chunk=1024 window=8 header=10 endian=little crc=crc32 resumed=1");
+                    SERIAL_ECHOPGM(" chunk=");
+                    SERIAL_ECHO(binary_chunk_size);
+                    SERIAL_ECHOPGM(" window=");
+                    SERIAL_ECHO(binary_window_size);
+                    SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32 resumed=1");
                 } else if (bulk) {
                     SERIAL_ECHOPGM("RME_FILE_BULK_READY offset=");
                     SERIAL_ECHO(upload.received);
@@ -974,7 +1007,11 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                     reset_upload(true);
                     report_error("metadata_write_failed");
                 } else if (binary) {
-                    SERIAL_ECHOLNPGM("RME_FILE_BINARY_READY offset=0 chunk=1024 window=8 header=10 endian=little crc=crc32");
+                    SERIAL_ECHOPGM("RME_FILE_BINARY_READY offset=0 chunk=");
+                    SERIAL_ECHO(binary_chunk_size);
+                    SERIAL_ECHOPGM(" window=");
+                    SERIAL_ECHO(binary_window_size);
+                    SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32");
                 } else if (bulk) {
                     SERIAL_ECHOLNPGM("RME_FILE_BULK_READY offset=0 chunk=384 window=4");
                 } else {

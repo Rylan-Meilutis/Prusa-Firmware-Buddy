@@ -78,6 +78,24 @@ function(resolve_version_variables)
 
   # FW_COMMIT_HASH
   get_git_head_revision(COMMIT_REFSPEC COMMIT_HASH)
+  # GetGitRevisionDescription follows the common repository HEAD in linked worktrees.  Multi-version
+  # RME builds use linked worktrees, so that can put another branch name in the firmware BUILDID and
+  # make a crash dump impossible to match to its ELF.  rev-parse is authoritative for the working
+  # tree being configured.
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" rev-parse --verify HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    RESULT_VARIABLE COMMIT_HASH_RESULT
+    OUTPUT_VARIABLE WORKTREE_COMMIT_HASH
+    ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+  string(LENGTH "${WORKTREE_COMMIT_HASH}" WORKTREE_COMMIT_HASH_LENGTH)
+  if(COMMIT_HASH_RESULT EQUAL 0
+     AND WORKTREE_COMMIT_HASH_LENGTH EQUAL 40
+     AND WORKTREE_COMMIT_HASH MATCHES "^[0-9a-fA-F]+$"
+     )
+    set(COMMIT_HASH "${WORKTREE_COMMIT_HASH}")
+  endif()
   set(FW_COMMIT_HASH
       ${COMMIT_HASH}
       PARENT_SCOPE
