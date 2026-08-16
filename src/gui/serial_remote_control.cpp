@@ -109,7 +109,7 @@ void reload_theme() {
 }
 
 LightStatus light_status() {
-    const uint32_t screen = config_store().screen_brightness_by_state.get();
+    const uint32_t screen = leds::sanitize_screen_brightness_by_state(config_store().screen_brightness_by_state.get());
     LightStatus result {
         .print_screen = -1,
         .print_chamber = -1,
@@ -210,7 +210,7 @@ void set_persistent_lights(const uint32_t screen, const uint32_t chamber, const 
         }
 #endif
     }
-    config_store().screen_brightness_by_state.set(screen);
+    config_store().screen_brightness_by_state.set(leds::sanitize_screen_brightness_by_state(screen));
 }
 
 void open_session(const uint8_t subscriptions, const bool legacy_notifications) {

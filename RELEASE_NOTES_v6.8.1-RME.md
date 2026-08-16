@@ -27,7 +27,10 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   transfer badge, external light-bar support, configurable timeouts, and
   corrected active/idle state reporting. Every application boot, including
   retained-crash export/error handling, starts with a bounded 30-second Active
-  window so an idle profile cannot leave the startup screen dark.
+  window using the saved Active brightness (subject only to its existing 15%
+  readability floor), so an idle profile cannot leave the startup screen dark.
+  RME writes, settings restore, and startup normalization enforce the same
+  per-state screen limits as the printer UI.
 - Cause-specific recovery workflows for filament runout, filament movement not
   detected, extrusion flow limit, stuck filament, MMU, purge-bin, calibration,
   firmware update, and native load/unload operations.

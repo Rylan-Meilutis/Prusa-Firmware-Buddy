@@ -169,6 +169,12 @@ overrides and does not change saved settings. Sending an ordinary chamber-light
 brightness command retains RME's wake-only behavior; plugin configuration uses
 the explicit frames above.
 
+Persistent screen values use the same validation as the printer UI and settings
+restore path. Deep Idle and Idle accept 0 through 100; Active and Printing are
+clamped to the readable 15 through 100 range. Values above 100 are clamped to
+100. `LIGHT QUERY` therefore never reports an invalid saved screen matrix, and
+startup also repairs invalid values retained by older firmware.
+
 `LIGHT QUERY` is a versioned, complete snapshot. Its first `RME_LIGHT` record
 retains the legacy `screen_persistent`, `chamber_print`, `screen_print`, and
 `status_print` fields, and adds `schema=2`, channel support flags, and the saved
