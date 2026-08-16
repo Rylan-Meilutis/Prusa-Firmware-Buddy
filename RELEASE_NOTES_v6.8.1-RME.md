@@ -25,7 +25,9 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   idle lighting and deep-idle transitions continue normally.
 - Complete saved four-state lighting matrix, temporary print overrides, RME
   transfer badge, external light-bar support, configurable timeouts, and
-  corrected active/idle state reporting.
+  corrected active/idle state reporting. Every application boot, including
+  retained-crash export/error handling, starts with a bounded 30-second Active
+  window so an idle profile cannot leave the startup screen dark.
 - Cause-specific recovery workflows for filament runout, filament movement not
   detected, extrusion flow limit, stuck filament, MMU, purge-bin, calibration,
   firmware update, and native load/unload operations.
