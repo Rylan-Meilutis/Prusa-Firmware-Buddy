@@ -1418,3 +1418,30 @@ Build 14 firmware continuation:
 ```
 
 Published release tag: `v6.6.3-RME`.
+
+## Binary transfer hardening update
+
+Binary uploads now use the same production rolling-header scanner validated on
+the maintained 6.8.1 line. Corrupt lengths or offsets slide the ten-byte window
+one byte at a time, keeping framed abort and control recovery reachable without
+trusting an unvalidated payload length. Abort frames require a zero-length
+payload and control frames require a non-empty payload.
+
+The negotiated upload window is now three 512-byte frames. Its complete
+1,566-byte wire backlog fits the configured 2 KiB TinyUSB CDC RX FIFO and is
+enforced by a compile-time assertion, retaining continuous pipelining without
+the packet loss that allowed binary payload bytes to escape into line parsing.
+Chunk and window values come from the shared transfer contract used by the
+receiver, capability report, resume response, tests, and host compatibility
+suite.
+
+Upload state has head and tail guards. A detected overwrite restores line
+mode, releases the shared transfer latch, and preserves durable resume metadata
+instead of dereferencing damaged FILE or SHA state. New stream tests exercise
+ordinary frames, abort/control validation, arbitrary corrupt prefixes, byte
+loss, duplication, CRC failure, and recovery using the production scanner.
+
+Release gates pass 400,179 RME assertions across 18 cases, 514,733 transfer
+assertions across 11 cases, 278 Connect assertions across 47 cases, and all
+103 adjacent OctoPrint compatibility tests. The shared parser/transfer headers
+retain 100% line and function coverage and 87.3% branch coverage.

@@ -964,7 +964,8 @@ retain 250000, 230400, and 115200 as compatible fallbacks, and keep 57600 as
 diagnostic logging mode; line coding does not change the USB wire clock.
 Preserve the 512-byte CDC RX/TX FIFOs for multi-packet upload bursts. Retest
 numbered legacy G-code, resend handling, M20-M32, M998, the 48-byte RME upload,
-four-frame 384-byte bulk windows, and eight-frame 1024-byte raw binary windows.
+four-frame 384-byte bulk windows, and three-frame 512-byte raw binary upload
+windows. Raw downloads retain their independently negotiated 1024-byte frame.
 Do not enlarge both CDC FIFOs to a complete host window: they consume ordinary
 SRAM and directly reduce runtime heap headroom. Keep binary upload/download on
 one shared static payload buffer, keep the legacy M998 staging stream open for
@@ -1401,8 +1402,8 @@ RX FIFO is compile-time checked against the shared protocol constants. Do not
 reduce it or enlarge `bulk_chunk`/`bulk_window` independently. A full-speed USB
 stress upload must complete without duplicated/truncated lines, `Unknown
 command` payload fragments, `upload_state`, per-chunk delays, or a reduced
-window. Run `rme_protocol_tests` and require the current 400,145 assertions
-across 15 cases.
+window. Run `rme_protocol_tests` and require the current 400,179 assertions
+across 18 cases.
 
 The CDC-backlog and usable-envelope release advances the tags to
 `v6.5.7-RME-b40` and `v6.6.3-RME-b12`. The final matrix must contain exactly
@@ -1431,3 +1432,23 @@ The combined matrix passed
 29/29 presets with zero failures. Validated maxima were 6.5.7 MINI 97.38%, MK4
 95.01%, MK3.5 90.41%, XL 69.58%; 6.6.3 MINI 99.44%, MK4 61.14%, MK3.5 56.47%,
 XL 69.26%, and CORE One INDX 65.86%.
+
+## Binary receiver and host compatibility release gate
+
+Both maintained firmware lines advertise a 512-byte, three-frame binary
+upload window. The shared constants must prove the complete 1,566-byte wire
+backlog fits the 2 KiB CDC RX FIFO. Invalid lengths and offsets must slide the
+production ten-byte scanner by one byte; they must never initiate an unbounded
+discard. Abort and control frames remain discoverable during recovery.
+
+Run `rme_protocol_tests`, `transfers_tests`, and `connect_tests`, then run the
+adjacent OctoPrint RME compatibility suite against both maintained firmware
+refs. The current gates are respectively 400,179 assertions in 18 cases,
+514,733 assertions in 11 cases, 278 assertions in 47 cases, and 103 host tests.
+The parser/transfer headers retain 100% line and function coverage; record
+branch coverage separately rather than describing the hardware/filesystem
+service as fully covered.
+
+Use the persistent `v6.6.3-RME` tag and release. Replace all 15 BBFs and the
+complete release notes in place after the exact tagged commit passes the final
+matrix.
