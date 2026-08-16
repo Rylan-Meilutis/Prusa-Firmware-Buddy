@@ -16,6 +16,7 @@
 #include <common/filename_type.hpp>
 #include <common/gcode/gcode_reader_restore_info.hpp>
 #include <common/path_utils.h>
+#include <transfers/monitor.hpp>
 
 namespace {
 
@@ -409,6 +410,10 @@ void GcodeSuite::M27() {
  *
  */
 void GcodeSuite::M32() {
+    if (transfers::Monitor::instance.id().has_value()) {
+        SERIAL_ERROR_MSG("M32 blocked: transfer in progress");
+        return;
+    }
     M23();
     M24();
 }

@@ -57,6 +57,12 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   rehashing encounters a transient storage error instead of silently erasing
   it and restarting at zero. Restored bytes are also credited to the shared
   transfer monitor before new chunks are accepted.
+- Resume metadata and path scratch no longer consume more than 800 bytes of
+  Marlin task stack. Metadata is fsynced through a recoverable private
+  `.rme-tmp` publication file, switching manifest jobs preserves unrelated
+  durable checkpoints, and malformed action prefixes cannot execute commands.
+- Crash-dump writes own the shared transfer latch, while queued M32/M997
+  operations recheck it at execution to close Connect/Link overtaking races.
 - Hosts should negotiate capabilities and follow
   [the protocol reference](doc/rme_serial_remote_protocol.md) and
   [the integration guide](doc/rme_serial_handler_integration.md). RME partial

@@ -52,6 +52,7 @@ bool filename_is_rme_private(const char *fname) {
         || strcasecmp(basename, "FWUPD.UI") == 0
         || filename_has_ext(basename, len, ".rme-part")
         || filename_has_ext(basename, len, ".rme-meta")
+        || filename_has_ext(basename, len, ".rme-tmp")
         || filename_has_ext(basename, len, ".rme-old");
 }
 

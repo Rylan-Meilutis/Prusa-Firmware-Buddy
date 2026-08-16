@@ -440,6 +440,11 @@ If reopening or re-hashing a matching durable partial fails, firmware reports
 resumable=1`, restores line mode, releases the shared transfer latch, and
 preserves the partial and metadata. A host must retry the identical BEGIN or
 explicitly ABORT; it must not infer an offset-zero restart from this error.
+Selecting a different BEGIN only changes the checkpoint currently held in RAM;
+it does not delete sidecars belonging to another durable host manifest.
+Metadata is written and synced through a private `.rme-tmp` file before atomic
+publication. Startup/resume accepts a complete temporary record if power was
+lost during publication; hosts and Connect must treat it as private metadata.
 
 Binary mode also reserves `offset=0xfffffffe` for an out-of-band control frame.
 Its nonzero payload is one complete ASCII `@RME` command without CR/LF, and its

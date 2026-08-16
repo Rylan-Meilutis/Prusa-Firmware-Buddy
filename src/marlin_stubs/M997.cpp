@@ -8,6 +8,7 @@
 #include "data_exchange.hpp"
 #include "serial_printing.hpp"
 #include "serial_remote_control.hpp"
+#include <transfers/monitor.hpp>
 #include "core/serial.h"
 #include <option/has_usb_device.h>
 #if HAS_USB_DEVICE()
@@ -117,6 +118,11 @@ static void M997_no_parser(unsigned int module_number, [[maybe_unused]] unsigned
  * Default values are used for omitted arguments.
  */
 void PrusaGcodeSuite::M997() {
+
+    if (transfers::Monitor::instance.id().has_value()) {
+        SERIAL_ERROR_MSG("M997 blocked: transfer in progress");
+        return;
+    }
 
     char sfn[13] = { '\0' };
     const char *file_path_ptr = nullptr;
