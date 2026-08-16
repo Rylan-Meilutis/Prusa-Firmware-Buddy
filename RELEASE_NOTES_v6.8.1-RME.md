@@ -53,6 +53,10 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
 - Connection-time RME frames remain zero-copy under the parser's recursion
   guard. This removes a 640-byte automatic Marlin-stack snapshot that could
   overflow immediately during the 6.8.1 session/query handshake.
+- Durable upload resume preserves the partial and metadata when reopening or
+  rehashing encounters a transient storage error instead of silently erasing
+  it and restarting at zero. Restored bytes are also credited to the shared
+  transfer monitor before new chunks are accepted.
 - Hosts should negotiate capabilities and follow
   [the protocol reference](doc/rme_serial_remote_protocol.md) and
   [the integration guide](doc/rme_serial_handler_integration.md). RME partial

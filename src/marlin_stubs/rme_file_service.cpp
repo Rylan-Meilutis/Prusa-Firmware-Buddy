@@ -402,6 +402,9 @@ bool resume_suspended_upload(const bool bulk, const bool binary) {
     upload.unacknowledged = 0;
     upload.last_activity_ms = ticks_ms();
     binary_receiver = {};
+    if (upload_slot && upload.received) {
+        upload_slot->progress(upload.received);
+    }
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, upload.received, upload.expected_size);
     return true;
 }
@@ -881,6 +884,15 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                     SERIAL_ECHO(upload.received);
                     SERIAL_ECHOLNPGM(" chunk=48 resumed=1");
                 }
+                return true;
+            }
+            if (matching_resume) {
+                // A matching durable partial is authoritative. A transient
+                // media/open/read/hash failure must not erase it or silently
+                // restart at offset zero; leave line mode restored and let a
+                // later matching BEGIN retry from the committed file size.
+                suspend_upload(transfers::Monitor::Outcome::ErrorStorage);
+                report_upload_error("resume_failed", true);
                 return true;
             }
             // Replace a corrupt/stale resume candidate while retaining this

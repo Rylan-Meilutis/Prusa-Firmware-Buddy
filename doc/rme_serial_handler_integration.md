@@ -133,6 +133,10 @@ If `CAPS` advertises `durable_resume=1`, reconnect and send the identical BEGIN
 after USB loss or firmware restart. The `.rme-meta` sidecar persists path,
 declared size, and SHA-256, while firmware derives the committed offset from
 the partial file and re-hashes that prefix before returning `resumed=1`.
+If reopen or re-hash encounters a transient storage error, firmware returns
+`code=resume_failed offset=<committed> resumable=1`, releases the transfer
+latch, and preserves both sidecars. Retry the identical BEGIN later; do not
+restart at zero unless the user explicitly discards the durable partial.
 
 Persist an OctoPrint-side manifest before BEGIN containing the exact final
 path, size, and SHA-256. Hidden RME artifacts cannot and must not be rediscovered
