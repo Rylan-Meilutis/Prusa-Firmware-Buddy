@@ -17,6 +17,14 @@
 
 using namespace std::string_view_literals;
 
+TEST_CASE("RME action names are complete tokens", "[rme][regression]") {
+    CHECK(rme_protocol::action_is("ABORT"sv, "ABORT"sv));
+    CHECK(rme_protocol::action_is("READ offset=0"sv, "READ"sv));
+    CHECK_FALSE(rme_protocol::action_is("ABORTgarbage"sv, "ABORT"sv));
+    CHECK_FALSE(rme_protocol::action_is("READ_BINARY"sv, "READ"sv));
+    CHECK_FALSE(rme_protocol::action_is("READ\toffset=0"sv, "READ"sv));
+}
+
 TEST_CASE("RME parameters are token bounded", "[rme]") {
     constexpr auto command = "@RME FILAMENT SET slot=7 name=NEW nozzle=215 visible=1 tx=3933926906*42"sv;
     CHECK(rme_protocol::value(command, "slot") == "7");
