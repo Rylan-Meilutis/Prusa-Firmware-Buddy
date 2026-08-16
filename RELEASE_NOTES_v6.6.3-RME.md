@@ -68,6 +68,10 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     of consuming more than 800 bytes of Marlin task stack during BEGIN.
   * Long firmware-candidate verification periodically services thermal safety
     and the task watchdog while retaining streaming I/O and transfer speed.
+  * RME actions now require complete tokens, crash-dump writes retain the
+    shared transfer latch, and queued M32/M997 operations recheck the latch at
+    execution so malformed lines or Connect/Link overtaking cannot start an
+    unintended command or overlapping storage operation.
   * Moved complete bitmap font assets for MINI and all xBuddy targets into the
     signed managed resource image using compressed random-access glyph records
     and one shared cache. This preserves the complete UI/language feature set
