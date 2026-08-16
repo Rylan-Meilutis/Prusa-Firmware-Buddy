@@ -1452,3 +1452,7 @@ service as fully covered.
 Use the persistent `v6.6.3-RME` tag and release. Replace all 15 BBFs and the
 complete release notes in place after the exact tagged commit passes the final
 matrix.
+
+The hardened 6.6.3 matrix passes 15/15 presets and stages exactly 15 BBFs.
+Translated MINI is the tightest flash target at 99.68%; XL is the highest
+aggregate RAM target at 84.45%.

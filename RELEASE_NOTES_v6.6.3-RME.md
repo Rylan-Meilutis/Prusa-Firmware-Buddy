@@ -1445,3 +1445,8 @@ Release gates pass 400,179 RME assertions across 18 cases, 514,733 transfer
 assertions across 11 cases, 278 Connect assertions across 47 cases, and all
 103 adjacent OctoPrint compatibility tests. The shared parser/transfer headers
 retain 100% line and function coverage and 87.3% branch coverage.
+
+The canonical `./build.py --final --versions 6.6.3 --jobs 15` matrix passes
+15/15 presets and stages exactly 15 BBFs. Maximum flash use is translated MINI
+at 99.68%; MK4 uses 61.24%, MK3.5 uses 56.57%, XL uses 69.36%, and CORE One
+INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
