@@ -435,6 +435,16 @@ path, size, and SHA-256 to resume. Firmware reopens and re-hashes the partial,
 then replies with `*_READY offset=<n> resumed=1`. The resumed transport may
 differ from the failed one, so binary can fall back to bulk or legacy text
 without retransmitting the verified prefix.
+If reopening or re-hashing a matching durable partial fails, firmware reports
+`echo:RME_ERROR workflow=file code=resume_failed offset=<committed>
+resumable=1`, restores line mode, releases the shared transfer latch, and
+preserves the partial and metadata. A host must retry the identical BEGIN or
+explicitly ABORT; it must not infer an offset-zero restart from this error.
+Selecting a different BEGIN only changes the checkpoint currently held in RAM;
+it does not delete sidecars belonging to another durable host manifest.
+Metadata is written and synced through a private `.rme-tmp` file before atomic
+publication. Startup/resume accepts a complete temporary record if power was
+lost during publication; hosts and Connect must treat it as private metadata.
 
 Binary mode also reserves `offset=0xfffffffe` for an out-of-band control frame.
 Its nonzero payload is one complete ASCII `@RME` command without CR/LF, and its

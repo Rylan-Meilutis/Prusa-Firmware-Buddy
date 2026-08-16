@@ -56,6 +56,18 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     expiry restores legacy notifications and disables remote UI input.
   * Unknown `@RME` commands return a protocol error without entering the G-code
     queue or disrupting OctoPrint's numbered-line state.
+  * Removed a 640-byte automatic Marlin-stack snapshot from connection-time
+    RME dispatch and reused the static transfer payload for text-bulk decoding.
+    Durable resume now preserves its partial and metadata on transient reopen
+    or re-hash failures, restores shared-monitor progress, and an invalid new
+    SHA cannot erase an unrelated suspended upload.
+    Selecting a different durable job likewise preserves the prior job's
+    partial and metadata for later manifest-driven resume or explicit cleanup.
+    Resume metadata is now fsynced through a private recoverable temporary
+    record, and its formerly large path/record scratch state is static instead
+    of consuming more than 800 bytes of Marlin task stack during BEGIN.
+  * Long firmware-candidate verification periodically services thermal safety
+    and the task watchdog while retaining streaming I/O and transfer speed.
   * Moved complete bitmap font assets for MINI and all xBuddy targets into the
     signed managed resource image using compressed random-access glyph records
     and one shared cache. This preserves the complete UI/language feature set

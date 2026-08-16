@@ -53,6 +53,7 @@ TEST_CASE("RME private storage artifacts are classified for hiding") {
     CHECK(filename_is_rme_private("/usb/fwupd.ui"));
     CHECK(filename_is_rme_private("FWUPD.RME.rme-part"));
     CHECK(filename_is_rme_private("upload.rme-meta"));
+    CHECK(filename_is_rme_private("upload.rme-tmp"));
     CHECK(filename_is_rme_private("upload.RME-OLD"));
     // FAT may pair an unrelated 8.3 alias with a private long filename. The
     // Connect directory renderer must classify its published long name.

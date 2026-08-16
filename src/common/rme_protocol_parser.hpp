@@ -11,6 +11,12 @@
 
 namespace rme_protocol {
 
+inline bool action_is(const std::string_view action, const std::string_view expected) {
+    return action == expected
+        || (action.size() > expected.size() && action.starts_with(expected)
+            && action[expected.size()] == ' ');
+}
+
 // Serial command dispatch may indirectly service the main loop while a file
 // operation blocks.  Use this small non-owning guard around stateful byte
 // stream consumers to reject recursive dispatch without heap allocation.

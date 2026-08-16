@@ -1244,27 +1244,13 @@ void GCodeQueue::get_serial_commands() {
 
         serial_line_buffer[i][serial_count[i]] = 0;       // Terminate string
 
-        // RME file commands can synchronously enter filesystem code.  Some of
-        // those paths service the main loop while waiting for media and may
-        // re-enter serial draining.  Do not dispatch an RME command through
-        // the live receive buffer after resetting its write index: a nested
-        // reader could overwrite the command (and the string_views held by
-        // the RME parser) with the next pipelined line.  That previously made
-        // a Base64 suffix escape as an ordinary G-code, for example:
-        //   echo:Unknown command: "KEUIfwj..."
-        //
-        // A private completed-line snapshot also leaves the receive buffer
-        // available for nested draining without corrupting the frame being
-        // committed.  Normal G-code keeps the existing zero-copy path.
-        std::array<char, rme_serial_line_size> completed_rme_line {};
+        // RME file commands can synchronously enter filesystem code which
+        // services the main loop. serial_drain_guard prevents such a nested
+        // call from reading into this live buffer, so the completed frame can
+        // remain zero-copy. In particular, do not put a 640-byte snapshot on
+        // the deliberately small Marlin task stack.
         char *command = serial_line_buffer[i];
         while (*command == ' ') command++;
-        const bool is_rme_line = strncmp(command, "@RME ", 5) == 0;
-        if (is_rme_line) {
-          const size_t command_size = strlen(command) + 1;
-          memcpy(completed_rme_line.data(), command, command_size);
-          command = completed_rme_line.data();
-        }
         serial_count[i] = 0;                              // Reset live buffer
 
         while (*command == ' ') command++;                // Skip leading spaces

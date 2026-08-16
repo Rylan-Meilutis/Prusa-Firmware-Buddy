@@ -1,5 +1,6 @@
 #include <Marlin/src/core/serial.h>
 #include <Marlin/src/gcode/queue.h>
+#include <Marlin/src/module/temperature.h>
 #include <USBSerial.h>
 #include <tusb.h>
 
@@ -109,6 +110,14 @@ struct PersistentUploadMetadata {
     std::array<char, FILE_PATH_BUFFER_LEN> final_path;
 };
 
+// Metadata creation/resume runs on the already constrained Marlin task. Keep
+// its path and record scratch space static: the former implementation placed
+// more than 800 bytes of resume state on that task's stack.
+PersistentUploadMetadata metadata_scratch {};
+std::array<char, FILE_PATH_BUFFER_LEN> resume_partial_path {};
+std::array<char, FILE_PATH_BUFFER_LEN> resume_metadata_path {};
+std::array<char, FILE_PATH_BUFFER_LEN> metadata_temp_path {};
+
 uint16_t read_le16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
 uint32_t read_le32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
 void write_le16(uint8_t *p, const uint16_t value) {
@@ -183,9 +192,17 @@ bool hash_file(const char *path, std::array<uint8_t, 32> &digest, uint32_t &size
     mbedtls_sha256_context sha {};
     mbedtls_sha256_init(&sha);
     bool ok = mbedtls_sha256_starts_ret(&sha, false) == 0;
+    uint8_t service_countdown = 16;
     while (ok) {
         const size_t count = fread(binary_payload.data(), 1, binary_payload.size(), file);
         if (count && mbedtls_sha256_update_ret(&sha, binary_payload.data(), count) != 0) ok = false;
+        // FIRMWARE QUERY verifies multi-megabyte candidates synchronously on
+        // the Marlin task. Keep thermal safety and the task watchdog serviced
+        // without adding another transfer buffer or materially reducing I/O.
+        if (!--service_countdown) {
+            thermalManager.manage_heater();
+            service_countdown = 16;
+        }
         if (count < binary_payload.size()) {
             if (ferror(file)) ok = false;
             break;
@@ -245,9 +262,21 @@ void reset_upload(const bool remove_partial,
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
 }
 
+// Stop tracking the selected durable checkpoint without deleting it. Hosts
+// may have manifests for more than one interrupted job; beginning another job
+// must not silently discard the previously selected job's sidecars.
+void forget_upload_state(const bool release_slot = true) {
+    if (upload.file) fclose(upload.file);
+    if (upload.sha_initialized) mbedtls_sha256_free(&upload.sha);
+    if (release_slot) release_upload_slot(transfers::Monitor::Outcome::Stopped);
+    upload = {};
+    binary_receiver = {};
+    serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
+}
+
 bool persist_upload_metadata() {
     if (!upload.metadata_path[0]) return false;
-    PersistentUploadMetadata metadata {
+    metadata_scratch = PersistentUploadMetadata {
         .magic = upload_metadata_magic,
         .version = upload_metadata_version,
         .reserved = 0,
@@ -255,38 +284,61 @@ bool persist_upload_metadata() {
         .expected_sha = upload.expected_sha,
         .final_path = upload.final_path,
     };
-    FILE *file = fopen(upload.metadata_path.data(), "wb");
+    if (snprintf(metadata_temp_path.data(), metadata_temp_path.size(), "%s.rme-tmp", upload.final_path.data())
+        >= static_cast<int>(metadata_temp_path.size())) return false;
+    remove(metadata_temp_path.data());
+    FILE *file = fopen(metadata_temp_path.data(), "wb");
     if (!file) return false;
     setvbuf(file, nullptr, _IONBF, 0);
-    const bool ok = fwrite(&metadata, 1, sizeof(metadata), file) == sizeof(metadata)
+    bool ok = fwrite(&metadata_scratch, 1, sizeof(metadata_scratch), file) == sizeof(metadata_scratch)
         && fflush(file) == 0 && fsync(fileno(file)) == 0;
-    fclose(file);
+    ok = fclose(file) == 0 && ok;
+    // The complete fsynced temporary is itself a recoverable metadata source
+    // across the short replace interval.
+    if (ok) {
+        remove(upload.metadata_path.data());
+        ok = rename(metadata_temp_path.data(), upload.metadata_path.data()) == 0;
+    }
+    if (!ok) remove(metadata_temp_path.data());
     return ok;
 }
 
 bool load_persistent_upload(const std::array<char, FILE_PATH_BUFFER_LEN> &final_path,
     const uint32_t expected_size, const std::array<uint8_t, 32> &expected_sha) {
-    std::array<char, FILE_PATH_BUFFER_LEN> partial_path {};
-    std::array<char, FILE_PATH_BUFFER_LEN> metadata_path {};
-    if (snprintf(partial_path.data(), partial_path.size(), "%s.rme-part", final_path.data()) >= static_cast<int>(partial_path.size())
-        || snprintf(metadata_path.data(), metadata_path.size(), "%s.rme-meta", final_path.data()) >= static_cast<int>(metadata_path.size())) return false;
+    if (snprintf(resume_partial_path.data(), resume_partial_path.size(), "%s.rme-part", final_path.data()) >= static_cast<int>(resume_partial_path.size())
+        || snprintf(resume_metadata_path.data(), resume_metadata_path.size(), "%s.rme-meta", final_path.data()) >= static_cast<int>(resume_metadata_path.size())
+        || snprintf(metadata_temp_path.data(), metadata_temp_path.size(), "%s.rme-tmp", final_path.data()) >= static_cast<int>(metadata_temp_path.size())) return false;
 
-    PersistentUploadMetadata metadata {};
-    FILE *file = fopen(metadata_path.data(), "rb");
-    if (!file) return false;
-    setvbuf(file, nullptr, _IONBF, 0);
-    const bool read = fread(&metadata, 1, sizeof(metadata), file) == sizeof(metadata);
-    fclose(file);
-    if (!read || metadata.magic != upload_metadata_magic || metadata.version != upload_metadata_version
-        || metadata.expected_size != expected_size || metadata.expected_sha != expected_sha
-        || metadata.final_path != final_path) return false;
+    const auto read_metadata = [](const char *path) {
+        metadata_scratch = {};
+        FILE *file = fopen(path, "rb");
+        if (!file) return false;
+        setvbuf(file, nullptr, _IONBF, 0);
+        const bool read = fread(&metadata_scratch, 1, sizeof(metadata_scratch), file) == sizeof(metadata_scratch);
+        fclose(file);
+        return read;
+    };
+    const auto metadata_matches = [&] {
+        return metadata_scratch.magic == upload_metadata_magic
+            && metadata_scratch.version == upload_metadata_version
+            && metadata_scratch.expected_size == expected_size
+            && metadata_scratch.expected_sha == expected_sha
+            && metadata_scratch.final_path == final_path;
+    };
+    bool recovered_temp = false;
+    if (!read_metadata(resume_metadata_path.data()) || !metadata_matches()) {
+        if (!read_metadata(metadata_temp_path.data()) || !metadata_matches()) return false;
+        recovered_temp = true;
+        remove(resume_metadata_path.data());
+        if (rename(metadata_temp_path.data(), resume_metadata_path.data()) == 0) recovered_temp = false;
+    }
 
     upload = {};
     upload.expected_size = expected_size;
     upload.expected_sha = expected_sha;
     upload.final_path = final_path;
-    upload.partial_path = partial_path;
-    upload.metadata_path = metadata_path;
+    upload.partial_path = resume_partial_path;
+    upload.metadata_path = recovered_temp ? metadata_temp_path : resume_metadata_path;
     upload.suspended = true;
     return true;
 }
@@ -349,11 +401,15 @@ bool resume_suspended_upload(const bool bulk, const bool binary) {
     upload.last_activity_ms = ticks_ms();
     binary_receiver = {};
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::file, upload.received, upload.expected_size);
+    // A resumed transfer receives a fresh monitor slot. Restore its absolute
+    // progress before accepting more bytes so Connect/UI status does not jump
+    // backwards to zero.
+    if (upload_slot && upload.received) upload_slot->progress(upload.received);
     return true;
 }
 
 bool root_allowed(const std::array<char, FILE_PATH_BUFFER_LEN> &path, const std::string_view action) {
-    return path[5] != '\0' || action.starts_with("LIST") || action.starts_with("STAT");
+    return path[5] != '\0' || rme_protocol::action_is(action, "LIST") || rme_protocol::action_is(action, "STAT");
 }
 
 bool is_firmware_candidate(const std::array<char, FILE_PATH_BUFFER_LEN> &path) {
@@ -580,8 +636,11 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
     const std::string_view command { raw_command, strcspn(raw_command, "*") };
     if (!command.starts_with(prefix)) return false;
     const auto action = command.substr(prefix.size());
+    const auto action_is = [](const std::string_view candidate, const std::string_view expected) {
+        return rme_protocol::action_is(candidate, expected);
+    };
 
-    if (action.starts_with("CAPS")) {
+    if (action_is(action, "CAPS")) {
         SERIAL_ECHOPGM("RME_FILE_CAPS root=/usb chunk="); SERIAL_ECHO(transfer_chunk_size);
         SERIAL_ECHOPGM(" bulk=1 bulk_chunk="); SERIAL_ECHO(bulk_chunk_size);
         SERIAL_ECHOPGM(" bulk_window="); SERIAL_ECHO(bulk_window_size);
@@ -595,21 +654,21 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         SERIAL_ECHOLNPGM(" list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1 firmware_status=1 firmware_unstage=1 crash_dump=1 durable_resume=1 shared_transfer_latch=1");
         return true;
     }
-    if (action.starts_with("ABORT")) {
+    if (action_is(action, "ABORT")) {
         reset_upload(true, transfers::Monitor::Outcome::Stopped);
         SERIAL_ECHOLNPGM("RME_FILE_ABORTED");
         return true;
     }
 
-    const bool state_only = action.starts_with("WRITE_CHUNK") || action.starts_with("WRITE_END")
-        || action.starts_with("WRITE_BULK_CHUNK") || action.starts_with("WRITE_BULK_END");
+    const bool state_only = action_is(action, "WRITE_CHUNK") || action_is(action, "WRITE_END")
+        || action_is(action, "WRITE_BULK_CHUNK") || action_is(action, "WRITE_BULK_END");
     const auto path = state_only ? std::optional<std::array<char, FILE_PATH_BUFFER_LEN>> {} : path_value(command);
     if (!state_only && (!path || !root_allowed(*path, action))) {
         report_error(path ? "root_protected" : "invalid_path");
         return true;
     }
 
-    if (action.starts_with("STAT")) {
+    if (action_is(action, "STAT")) {
         struct stat st {};
         if (stat(path->data(), &st)) report_error("not_found");
         else {
@@ -618,7 +677,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             SERIAL_ECHOPGM(" size="); SERIAL_ECHO(static_cast<uint32_t>(st.st_size));
             SERIAL_ECHOPGM(" mtime="); SERIAL_ECHOLN(static_cast<uint32_t>(st.st_mtime));
         }
-    } else if (action.starts_with("LIST")) {
+    } else if (action_is(action, "LIST")) {
         Directory directory(path->data());
         if (!directory) report_error("not_directory");
         else {
@@ -636,7 +695,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             }
             SERIAL_ECHOLNPGM("RME_FILE_LIST_END");
         }
-    } else if (action.starts_with("READ_BINARY")) {
+    } else if (action_is(action, "READ_BINARY")) {
         const uint32_t offset = number(command, "offset").value_or(0);
         const uint32_t length = number(command, "length").value_or(binary_chunk_size);
         struct stat st {};
@@ -672,7 +731,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             SERIAL_ECHOPGM(" eof="); SERIAL_ECHOLN(eof ? 1 : 0);
             if (eof) serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
         } else report_error("read_failed");
-    } else if (action.starts_with("READ")) {
+    } else if (action_is(action, "READ")) {
         const uint32_t offset = number(command, "offset").value_or(0);
         const uint32_t length = number(command, "length").value_or(transfer_chunk_size);
         if (transfers::Monitor::instance.id().has_value()) report_error("transfer_busy");
@@ -696,9 +755,9 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 SERIAL_ECHOPGM(" data="); SERIAL_ECHOLN(reinterpret_cast<char *>(encoded.data()));
             }
         } else report_error("read_failed");
-    } else if (action.starts_with("WRITE_BEGIN") || action.starts_with("WRITE_BULK_BEGIN") || action.starts_with("WRITE_BINARY_BEGIN")) {
-        const bool bulk = action.starts_with("WRITE_BULK_BEGIN");
-        const bool binary = action.starts_with("WRITE_BINARY_BEGIN");
+    } else if (action_is(action, "WRITE_BEGIN") || action_is(action, "WRITE_BULK_BEGIN") || action_is(action, "WRITE_BINARY_BEGIN")) {
+        const bool bulk = action_is(action, "WRITE_BULK_BEGIN");
+        const bool binary = action_is(action, "WRITE_BINARY_BEGIN");
         const auto size = number(command, "size");
         const auto sha = value(command, "sha256");
         if (upload.file) report_error("upload_state");
@@ -708,7 +767,6 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             std::array<uint8_t, 32> requested_sha {};
             const bool valid_sha = parse_sha256(*sha, requested_sha);
             if (!valid_sha) {
-                reset_upload(true);
                 report_error("invalid_upload");
                 return true;
             }
@@ -729,9 +787,18 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 else { SERIAL_ECHOPGM("RME_FILE_WRITE_READY offset="); SERIAL_ECHO(upload.received); SERIAL_ECHOLNPGM(" chunk=48 resumed=1"); }
                 return true;
             }
-            // Replace a corrupt/stale resume candidate while retaining this
-            // transfer's ownership so no other producer can overtake it.
-            reset_upload(true, transfers::Monitor::Outcome::ErrorOther, false);
+            if (matching_resume) {
+                // A transient reopen/read/hash failure must not destroy the
+                // durable checkpoint. Release ownership and leave it available
+                // for a later retry or explicit ABORT/DELETE workflow.
+                suspend_upload(transfers::Monitor::Outcome::ErrorStorage);
+                report_upload_error("resume_failed", true);
+                return true;
+            }
+            // Select the new job while retaining this transfer's ownership.
+            // A different suspended job remains durable and discoverable via
+            // its host manifest; only this requested path may be replaced.
+            forget_upload_state(false);
             upload.final_path = *path;
             if (snprintf(upload.partial_path.data(), upload.partial_path.size(), "%s.rme-part", path->data()) >= static_cast<int>(upload.partial_path.size())
                 || snprintf(upload.metadata_path.data(), upload.metadata_path.size(), "%s.rme-meta", path->data()) >= static_cast<int>(upload.metadata_path.size())
@@ -755,20 +822,19 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 else SERIAL_ECHOLNPGM("RME_FILE_WRITE_READY offset=0 chunk=48");
             }
         }
-    } else if (action.starts_with("WRITE_CHUNK") || action.starts_with("WRITE_BULK_CHUNK")) {
-        const bool bulk = action.starts_with("WRITE_BULK_CHUNK");
+    } else if (action_is(action, "WRITE_CHUNK") || action_is(action, "WRITE_BULK_CHUNK")) {
+        const bool bulk = action_is(action, "WRITE_BULK_CHUNK");
         const auto offset = number(command, "offset");
         const auto data = value(command, "data");
         if (!upload.file || upload.bulk != bulk || !offset || *offset != upload.received || !data) report_error("upload_state");
         else {
-            std::array<uint8_t, bulk_chunk_size> decoded {};
             size_t count = 0;
             const char *failure = nullptr;
             if (!bulk && data->size() > 64) failure = "chunk_too_large";
-            else if (mbedtls_base64_decode(decoded.data(), bulk ? bulk_chunk_size : transfer_chunk_size, &count, reinterpret_cast<const unsigned char *>(data->data()), data->size())) failure = "decode_failed";
+            else if (mbedtls_base64_decode(binary_payload.data(), bulk ? bulk_chunk_size : transfer_chunk_size, &count, reinterpret_cast<const unsigned char *>(data->data()), data->size())) failure = "decode_failed";
             else if (count > upload.expected_size - upload.received) failure = "size_exceeded";
-            else if (fwrite(decoded.data(), 1, count, upload.file) != count) failure = "disk_write_failed";
-            else if (mbedtls_sha256_update_ret(&upload.sha, decoded.data(), count)) failure = "hash_failed";
+            else if (fwrite(binary_payload.data(), 1, count, upload.file) != count) failure = "disk_write_failed";
+            else if (mbedtls_sha256_update_ret(&upload.sha, binary_payload.data(), count)) failure = "hash_failed";
             if (failure) {
                 suspend_upload(failure == std::string_view("disk_write_failed")
                         ? transfers::Monitor::Outcome::ErrorStorage
@@ -787,8 +853,8 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 }
             }
         }
-    } else if (action.starts_with("WRITE_END") || action.starts_with("WRITE_BULK_END")) {
-        const bool bulk = action.starts_with("WRITE_BULK_END");
+    } else if (action_is(action, "WRITE_END") || action_is(action, "WRITE_BULK_END")) {
+        const bool bulk = action_is(action, "WRITE_BULK_END");
         if (!upload.file || upload.bulk != bulk || upload.received != upload.expected_size) report_error("size_mismatch");
         else {
             std::array<uint8_t, 32> actual {};
@@ -803,29 +869,34 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 reset_upload(false, transfers::Monitor::Outcome::Finished);
             }
         }
-    } else if (action.starts_with("CRASH_DUMP")) {
-        if (transfers::Monitor::instance.id().has_value()) report_error("transfer_busy");
-        else if (!marlin_server::printer_idle()) report_error("printer_busy");
+    } else if (action_is(action, "CRASH_DUMP")) {
+        if (!marlin_server::printer_idle()) report_error("printer_busy");
         else if (!crash_dump::dump_is_valid()) report_error("no_crash_dump");
-        else if (!crash_dump::save_dump_to_usb(path->data())) report_error("crash_dump_write_failed");
-        else { SERIAL_ECHOPGM("RME_FILE_CRASH_DUMP_SAVED path="); SERIAL_ECHOLN(path->data() + 5); }
-    } else if (action.starts_with("DELETE")) {
+        else if (auto slot = transfers::Monitor::instance.allocate(
+                     transfers::Monitor::Type::Link, path->data(), 0)) {
+            const bool saved = crash_dump::save_dump_to_usb(path->data());
+            slot->done(saved ? transfers::Monitor::Outcome::Finished
+                             : transfers::Monitor::Outcome::ErrorStorage);
+            if (!saved) report_error("crash_dump_write_failed");
+            else { SERIAL_ECHOPGM("RME_FILE_CRASH_DUMP_SAVED path="); SERIAL_ECHOLN(path->data() + 5); }
+        } else report_error("transfer_busy");
+    } else if (action_is(action, "DELETE")) {
         if (transfers::Monitor::instance.id().has_value()) report_error("transfer_busy");
         else if (is_firmware_candidate(*path)) report_error("protected_firmware");
         else if (!marlin_server::printer_idle() || remove(path->data())) report_error("delete_failed");
         else SERIAL_ECHOLNPGM("RME_FILE_DELETED");
-    } else if (action.starts_with("RENAME")) {
+    } else if (action_is(action, "RENAME")) {
         const auto destination = path_value(command, "dest");
         if (transfers::Monitor::instance.id().has_value()) report_error("transfer_busy");
         else if (is_firmware_candidate(*path) || (destination && is_firmware_candidate(*destination))) report_error("protected_firmware");
         else if (!destination || !root_allowed(*destination, action) || !marlin_server::printer_idle() || rename(path->data(), destination->data())) report_error("rename_failed");
         else SERIAL_ECHOLNPGM("RME_FILE_RENAMED");
-    } else if (action.starts_with("MKDIR")) {
+    } else if (action_is(action, "MKDIR")) {
         if (transfers::Monitor::instance.id().has_value()) report_error("transfer_busy");
         else if (!marlin_server::printer_idle() || mkdir(path->data(), 0777)) report_error("mkdir_failed");
         else SERIAL_ECHOLNPGM("RME_FILE_DIRECTORY_CREATED");
-    } else if (action.starts_with("PRINT") || action.starts_with("FLASH")) {
-        const bool flash = action.starts_with("FLASH");
+    } else if (action_is(action, "PRINT") || action_is(action, "FLASH")) {
+        const bool flash = action_is(action, "FLASH");
         const char *extension = strrchr(path->data(), '.');
         if (transfers::Monitor::instance.id().has_value()) report_error("transfer_busy");
         else if (!marlin_server::printer_idle()) report_error("printer_busy");
@@ -845,8 +916,11 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
     const std::string_view command { raw_command, strcspn(raw_command, "*") };
     if (!command.starts_with(prefix)) return false;
     const auto action = command.substr(prefix.size());
+    const auto action_is = [](const std::string_view candidate, const std::string_view expected) {
+        return rme_protocol::action_is(candidate, expected);
+    };
 
-    if (action.starts_with("QUERY")) {
+    if (action_is(action, "QUERY")) {
         if (upload.file || transfers::Monitor::instance.id().has_value()) {
             SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=transfer_busy");
         } else {
@@ -854,7 +928,7 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
         }
         return true;
     }
-    if (action.starts_with("UNSTAGE")) {
+    if (action_is(action, "UNSTAGE")) {
         if (firmware_armed()) {
             SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=firmware_armed");
             return true;
@@ -874,7 +948,8 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
         }
         constexpr const char *paths[] = {
             "/usb/FWUPD.RME", "/usb/FWUPD.RME.rme-part",
-            "/usb/FWUPD.RME.rme-meta", "/usb/FWUPD.RME.rme-old",
+            "/usb/FWUPD.RME.rme-meta", "/usb/FWUPD.RME.rme-tmp",
+            "/usb/FWUPD.RME.rme-old",
             "/usb/FWUPD.UI",
         };
         bool ok = true;
