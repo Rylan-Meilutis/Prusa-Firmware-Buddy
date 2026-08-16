@@ -62,7 +62,7 @@ struct ChamberDoorLedState {
 };
 
 ChamberDoorLedState chamber_door_state_for_leds() {
-#if HAS_DOOR_SENSOR()
+    #if HAS_DOOR_SENSOR()
     // Deliberately read the raw door sensor state here, independent from the UI
     // safety toggle that controls whether an open door pauses/stops printing.
     const auto detailed_state = buddy::door_sensor().detailed_state();
@@ -70,12 +70,12 @@ ChamberDoorLedState chamber_door_state_for_leds() {
         detailed_state.state == buddy::DoorSensor::State::door_open,
         detailed_state.raw_data,
     };
-#else
+    #else
     return { false, 0 };
-#endif
+    #endif
 }
 
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 void acknowledge_aborted_after_door_cycle(bool door_open) {
     static bool aborted_seen_door_open = false;
 
@@ -93,7 +93,7 @@ void acknowledge_aborted_after_door_cycle(bool door_open) {
 }
 
 void acknowledge_filtering_after_door_cycle(bool door_open) {
-#if HAS_CHAMBER_FILTRATION_API()
+        #if HAS_CHAMBER_FILTRATION_API()
     static bool filtering_seen_door_open = false;
 
     if (marlin_vars().print_state != marlin_server::State::Finished
@@ -108,11 +108,11 @@ void acknowledge_filtering_after_door_cycle(bool door_open) {
         leds::StatusLedsHandler::instance().acknowledge_finished();
         filtering_seen_door_open = false;
     }
-#else
+        #else
     static_cast<void>(door_open);
-#endif
+        #endif
 }
-#endif
+    #endif
 
 } // namespace
 #endif
@@ -199,6 +199,11 @@ void LEDManager::init() {
     // update the LEDs in init to turn them off (in case they were set to a color before a reset)
     // except the LCD backlight, set that to 100% brightness
     set_lcd_brightness(100);
+    startup_activity_started_ms = ticks_ms();
+    startup_activity_active = true;
+#if HAS_SIDE_LEDS()
+    SideStripHandler::instance().startup_activity_ping();
+#endif
 #if HAS_LEDS()
     get_status_leds().update();
 #endif
@@ -230,10 +235,10 @@ void LEDManager::update() {
 #if HAS_SIDE_LEDS()
     auto &side_strip_handler = SideStripHandler::instance();
     side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
-#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     acknowledge_aborted_after_door_cycle(chamber_door_state.open);
     acknowledge_filtering_after_door_cycle(chamber_door_state.open);
-#endif
+    #endif
 
     side_strip_handler.update();
     status_leds_handler.set_idle_light_state(side_strip_handler.current_light_state());
@@ -284,7 +289,7 @@ void LEDManager::update() {
     #if HAS_SIDE_LED_DRIVER()
     auto color = side_strip_handler.color();
     auto &side_leds = get_side_leds();
-#if PRINTER_IS_PRUSA_XL()
+        #if PRINTER_IS_PRUSA_XL()
     const uint8_t second_led_green = static_cast<CFanCtlEnclosure &>(Fans::enclosure()).output_pwm();
 
     // On XL, there are two neopixel drivers, the first one controls RGB of
@@ -296,11 +301,11 @@ void LEDManager::update() {
     // as the Neopixel driver expects.
     side_leds.set(ColorRGBW(color.g, color.r, color.b).data, 0);
     side_leds.set(ColorRGBW(second_led_green, color.w, 0).data, 1);
-#else
+        #else
     for (uint8_t i = 0; i < side_led_driver_count; ++i) {
         side_leds.set(color.data, i);
     }
-#endif
+        #endif
 
     side_leds.update();
     #endif // HAS_SIDE_LED_DRIVER
@@ -328,11 +333,16 @@ void LEDManager::update_lcd_brightness() {
         || marlin_server::is_extended_paused_state(printer_state)
         || marlin_server::serial_print_active();
     const bool guided_activity = guided_activity_active();
+    const uint32_t now = ticks_ms();
+    if (startup_activity_active
+        && !startup_activity_within_window(startup_activity_started_ms, now, startup_activity_duration_ms)) {
+        startup_activity_active = false;
+    }
     leds::LightState state = print_active
         ? leds::LightState::printing
-        : (guided_activity
+        : (startup_activity_active || guided_activity
                 ? leds::LightState::active
-            : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
     const bool terminal_print_state = printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Exit;
@@ -348,7 +358,6 @@ void LEDManager::update_lcd_brightness() {
         print_override_session_active = false;
     }
     bool screen_wake_active = false;
-    const uint32_t now = ticks_ms();
     if (lcd_brightness_wake_from_print_override && lcd_brightness_wake_until_ms
         && now - lcd_brightness_wake_until_ms < screen_brightness_wake_ms
         && print_active && print_screen_brightness_overridden && print_screen_brightness_override < 15) {
@@ -370,7 +379,7 @@ void LEDManager::update_lcd_brightness() {
         : (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(state)) & 0xff;
     set_lcd_brightness(screen_wake_active
             ? brightness
-        : print_active && print_screen_brightness_overridden
+            : print_active && print_screen_brightness_overridden
             ? std::min<uint8_t>(brightness, 100)
             : leds::clamp_screen_brightness(state, brightness));
 #endif
@@ -400,7 +409,7 @@ bool LEDManager::wake_lcd_from_dim_idle() {
         ? leds::LightState::printing
         : (guided_activity
                 ? leds::LightState::active
-            : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
     const uint8_t brightness = print_active && print_screen_brightness_overridden
@@ -412,7 +421,7 @@ bool LEDManager::wake_lcd_from_dim_idle() {
     lcd_brightness_wake_from_print_override = state == leds::LightState::printing;
     lcd_brightness_wake_until_ms = ticks_ms();
     lcd_brightness_wake_percent = lcd_brightness_wake_from_print_override ? leds::minimum_screen_brightness(leds::LightState::active)
-                                                                           : active_screen_brightness();
+                                                                          : active_screen_brightness();
     set_lcd_brightness(lcd_brightness_wake_percent);
     return true;
 }

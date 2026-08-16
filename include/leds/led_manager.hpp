@@ -42,6 +42,7 @@ public:
 
 private:
     static constexpr uint32_t gui_delay_redraw = 40; // 40 ms => 25 fps
+    static constexpr uint32_t startup_activity_duration_ms = 30000;
     RateLimiter<uint32_t> rate_limiter { gui_delay_redraw };
     freertos::Mutex power_panic_mutex;
 #if !HAS_SIDE_LEDS()
@@ -54,6 +55,8 @@ private:
 #endif
     bool power_panic { false };
     bool lcd_brightness_off { false };
+    uint32_t startup_activity_started_ms { 0 };
+    bool startup_activity_active { true };
 };
 
 }; // namespace leds

@@ -13,6 +13,7 @@
 namespace leds {
 
 static constexpr uint32_t screen_brightness_wake_ms = 30000;
+static constexpr uint32_t startup_activity_duration_ms = 30000;
 
 static uint8_t active_screen_brightness() {
     return clamp_screen_brightness(
@@ -74,20 +75,30 @@ SideStripHandler::SideStripHandler() {
     load_config();
 }
 
+void SideStripHandler::startup_activity_ping() {
+    std::lock_guard lock(mutex);
+    startup_activity_started_ms = ticks_ms();
+    startup_activity_active = true;
+    host_idle_override = false;
+}
+
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    startup_activity_active = false;
     host_idle_override = false;
     active_timestamp_ms = ticks_ms();
 }
 
 void SideStripHandler::event_ping() {
     std::lock_guard lock(mutex);
+    startup_activity_active = false;
     host_idle_override = false;
     active_timestamp_ms = ticks_ms();
 }
 
 void SideStripHandler::idle_ping() {
     std::lock_guard lock(mutex);
+    startup_activity_active = false;
     host_idle_override = true;
     if (!door_open_for_leds) {
         post_print_hold = false;
@@ -173,6 +184,10 @@ void SideStripHandler::update() {
         custom_color.reset();
 
         const bool print_active = print_active_for_leds() && !host_idle_override;
+        if (startup_activity_active
+            && !startup_activity_within_window(startup_activity_started_ms, time_ms, startup_activity_duration_ms)) {
+            startup_activity_active = false;
+        }
         // A finished-print screen may remain open while post-print filtration runs.
         // It must not keep the chamber lights and LCD awake indefinitely.
         const bool guided_activity = guided_activity_active() && !host_idle_override && !marlin_server::finishing_or_finished();
@@ -218,7 +233,9 @@ void SideStripHandler::update() {
                 active_timestamp_ms = time_ms;
             }
 
-            if (guided_activity) {
+            if (startup_activity_active) {
+                change_state(SideStripState::active);
+            } else if (guided_activity) {
                 active_timestamp_ms = time_ms;
                 change_state(SideStripState::active);
             } else if (door_open_for_leds && door_holds_active) {
