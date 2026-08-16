@@ -132,13 +132,11 @@ extern osThreadId displayTaskHandle;
 
 static constexpr uint32_t screen_brightness_wake_ms = 30000;
 
-#if !HAS_SIDE_LEDS()
 static uint8_t active_screen_brightness() {
     return leds::clamp_screen_brightness(
         leds::LightState::active,
         (config_store().screen_brightness_by_state.get() >> leds::light_state_shift(leds::LightState::active)) & 0xff);
 }
-#endif
 
 using StatusLeds = neopixel::LedsSPI10M5Hz<4, GuiLedsWriter::write>;
 
@@ -196,9 +194,14 @@ void LEDManager::acknowledge_finished() {
 }
 
 void LEDManager::init() {
+    const uint32_t stored_screen_brightness = config_store().screen_brightness_by_state.get();
+    const uint32_t valid_screen_brightness = sanitize_screen_brightness_by_state(stored_screen_brightness);
+    if (stored_screen_brightness != valid_screen_brightness) {
+        config_store().screen_brightness_by_state.set(valid_screen_brightness);
+    }
     // update the LEDs in init to turn them off (in case they were set to a color before a reset)
-    // except the LCD backlight, set that to 100% brightness
-    set_lcd_brightness(100);
+    // except the LCD backlight, set that to the configured readable Active brightness
+    set_lcd_brightness(active_screen_brightness());
     startup_activity_started_ms = ticks_ms();
     startup_activity_active = true;
 #if HAS_SIDE_LEDS()
@@ -319,7 +322,7 @@ void LEDManager::update() {
 
 void LEDManager::update_lcd_brightness() {
     if (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done)) {
-        set_lcd_brightness(100);
+        set_lcd_brightness(active_screen_brightness());
         return;
     }
 

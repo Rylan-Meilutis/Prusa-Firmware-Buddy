@@ -24,10 +24,10 @@
 namespace serial_remote_control {
 
 namespace {
-std::atomic<TransferKind> remote_transfer_kind { TransferKind::none };
-std::atomic<uint8_t> remote_transfer_progress { 0 };
-std::atomic<uint32_t> remote_transfer_expires_ms { 0 };
-}
+    std::atomic<TransferKind> remote_transfer_kind { TransferKind::none };
+    std::atomic<uint8_t> remote_transfer_progress { 0 };
+    std::atomic<uint32_t> remote_transfer_expires_ms { 0 };
+} // namespace
 
 void set_transfer(const TransferKind kind, const uint32_t completed, const uint32_t total) {
     remote_transfer_progress.store(total ? static_cast<uint8_t>(std::min<uint32_t>(100, completed * 100ULL / total)) : 0, std::memory_order_release);
@@ -44,33 +44,33 @@ TransferStatus transfer_status() {
 }
 namespace {
 
-struct Command {
-    Action action;
-    int16_t value;
-};
+    struct Command {
+        Action action;
+        int16_t value;
+    };
 
-constexpr uint8_t queue_size = 8;
-std::array<Command, queue_size> commands {};
-std::atomic<uint8_t> read_index { 0 };
-std::atomic<uint8_t> write_index { 0 };
-std::atomic<bool> control_enabled { false };
-std::atomic<bool> refresh_requested { false };
-std::atomic<bool> protocol_session_active { false };
-std::atomic<uint8_t> protocol_subscriptions { 0 };
-std::atomic<bool> protocol_legacy_notifications { true };
-std::atomic<uint32_t> protocol_event_sequence { 0 };
-std::atomic<uint32_t> protocol_configuration_revision { 0 };
-std::atomic<uint32_t> protocol_session_activity_ms { 0 };
-constexpr uint32_t protocol_session_timeout_ms = 30'000;
+    constexpr uint8_t queue_size = 8;
+    std::array<Command, queue_size> commands {};
+    std::atomic<uint8_t> read_index { 0 };
+    std::atomic<uint8_t> write_index { 0 };
+    std::atomic<bool> control_enabled { false };
+    std::atomic<bool> refresh_requested { false };
+    std::atomic<bool> protocol_session_active { false };
+    std::atomic<uint8_t> protocol_subscriptions { 0 };
+    std::atomic<bool> protocol_legacy_notifications { true };
+    std::atomic<uint32_t> protocol_event_sequence { 0 };
+    std::atomic<uint32_t> protocol_configuration_revision { 0 };
+    std::atomic<uint32_t> protocol_session_activity_ms { 0 };
+    constexpr uint32_t protocol_session_timeout_ms = 30'000;
 
-uint8_t advance(uint8_t index) {
-    return static_cast<uint8_t>((index + 1) % queue_size);
-}
+    uint8_t advance(uint8_t index) {
+        return static_cast<uint8_t>((index + 1) % queue_size);
+    }
 
-void clear_queue() {
-    const auto write = write_index.load(std::memory_order_acquire);
-    read_index.store(write, std::memory_order_release);
-}
+    void clear_queue() {
+        const auto write = write_index.load(std::memory_order_acquire);
+        read_index.store(write, std::memory_order_release);
+    }
 
 } // namespace
 
@@ -109,7 +109,7 @@ void reload_theme() {
 }
 
 LightStatus light_status() {
-    const uint32_t screen = config_store().screen_brightness_by_state.get();
+    const uint32_t screen = leds::sanitize_screen_brightness_by_state(config_store().screen_brightness_by_state.get());
     LightStatus result {
         .print_screen = -1,
         .print_chamber = -1,
@@ -147,8 +147,10 @@ LightStatus light_status() {
     result.door_holds_active = side.get_door_holds_active();
     result.post_print_hold_enabled = side.get_post_print_hold_enabled();
     constexpr std::array<leds::LightState, 4> states {
-        leds::LightState::deep_idle, leds::LightState::idle,
-        leds::LightState::active, leds::LightState::printing,
+        leds::LightState::deep_idle,
+        leds::LightState::idle,
+        leds::LightState::active,
+        leds::LightState::printing,
     };
     for (const auto state : states) {
         result.chamber_by_state |= static_cast<uint32_t>(pwm_to_percent(side.get_brightness(state))) << leds::light_state_shift(state);
@@ -175,34 +177,40 @@ void set_temporary_lights(const int16_t screen, const int16_t chamber, const int
 #endif
     }
 #if HAS_SIDE_LEDS()
-    if (chamber >= 0 && chamber <= 100)
+    if (chamber >= 0 && chamber <= 100) {
         leds::SideStripHandler::instance().set_print_light_brightness(chamber == 100 ? 255 : chamber * 255 / 100);
+    }
 #endif
 #if HAS_LEDS()
-    if (status >= 0 && status <= 100)
+    if (status >= 0 && status <= 100) {
         leds::StatusLedsHandler::instance().set_print_status_brightness(status);
+    }
 #endif
 }
 
 void set_persistent_lights(const uint32_t screen, const uint32_t chamber, const uint32_t status) {
     constexpr std::array<leds::LightState, 4> states {
-        leds::LightState::deep_idle, leds::LightState::idle,
-        leds::LightState::active, leds::LightState::printing,
+        leds::LightState::deep_idle,
+        leds::LightState::idle,
+        leds::LightState::active,
+        leds::LightState::printing,
     };
     for (size_t i = 0; i < states.size(); ++i) {
         const uint8_t shift = leds::light_state_shift(states[i]);
         const uint8_t chamber_value = chamber >> shift;
         const uint8_t status_value = status >> shift;
 #if HAS_SIDE_LEDS()
-        if (chamber_value <= 100)
+        if (chamber_value <= 100) {
             leds::SideStripHandler::instance().set_brightness(states[i], chamber_value == 100 ? 255 : chamber_value * 255 / 100);
+        }
 #endif
 #if HAS_LEDS()
-        if (status_value <= 100)
+        if (status_value <= 100) {
             leds::StatusLedsHandler::instance().set_brightness(states[i], status_value);
+        }
 #endif
     }
-    config_store().screen_brightness_by_state.set(screen);
+    config_store().screen_brightness_by_state.set(leds::sanitize_screen_brightness_by_state(screen));
 }
 
 void open_session(const uint8_t subscriptions, const bool legacy_notifications) {
