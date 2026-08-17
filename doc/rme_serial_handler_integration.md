@@ -208,6 +208,16 @@ promote an arbitrary `.BBF` returned by LIST into staged state. Use
 `firmware_armed`, `printer_busy`, and `transfer_busy` as non-destructive
 rejections. Repeating UNSTAGE after success is valid.
 
+The query uses firmware-owned verified metadata and normally returns without
+reading the candidate body. For a legacy candidate without that metadata, a
+`state=validating` status is intermediate: keep the request pending, continue
+normal serial processing, and accept the later unsolicited `state=ready`
+record as its terminal result. Extend the host deadline whenever structured
+progress advances or `echo:busy: processing` arrives. Treat
+`query_read_failed`, `query_timeout`, and `invalid_candidate` as explicit
+status failures; do not disconnect merely because recovery validation is in
+progress, and retry only after the reported storage condition is resolved.
+
 When `crash_dump=1`, export a retained machine dump while the printer is idle
 with `@RME FILE CRASH_DUMP
 path=dump_buddy.bin`. Treat `RME_FILE_CRASH_DUMP_SAVED` as completion and then

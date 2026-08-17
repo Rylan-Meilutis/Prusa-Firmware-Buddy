@@ -1,6 +1,5 @@
 #include <Marlin/src/core/serial.h>
 #include <Marlin/src/gcode/queue.h>
-#include <Marlin/src/module/temperature.h>
 #include <USBSerial.h>
 #include <tusb.h>
 
@@ -13,6 +12,7 @@
 #include <serial_remote_control.hpp>
 #include <rme_protocol_parser.hpp>
 #include <rme_file_transfer.hpp>
+#include <rme_firmware_status.hpp>
 #include <transfers/monitor.hpp>
 #include <crc32.h>
 
@@ -48,6 +48,8 @@ constexpr uint32_t upload_inactivity_timeout_ms = 10'000;
 constexpr uint32_t upload_state_guard = UINT32_C(0x524d4555); // "RMEU"
 constexpr const char *firmware_candidate_path = "/usb/FWUPD.RME";
 constexpr const char *firmware_marker_path = "/usb/FWUPD.UI";
+constexpr const char *firmware_verified_path = "/usb/FWUPD.RME.rme-verified";
+constexpr const char *firmware_verified_temp_path = "/usb/FWUPD.RME.rme-verified-tmp";
 
 // A completed bulk command is removed from the CDC FIFO before its storage
 // write begins, so the FIFO must retain the other commands in the advertised
@@ -120,6 +122,8 @@ PersistentUploadMetadata metadata_scratch {};
 std::array<char, rme_path_buffer_size> resume_partial_path {};
 std::array<char, rme_path_buffer_size> resume_metadata_path {};
 std::array<char, rme_path_buffer_size> metadata_temp_path {};
+rme_firmware_status::VerifiedMetadata verified_firmware_cache {};
+bool verified_firmware_cache_loaded = false;
 
 void write_le16(uint8_t *p, const uint16_t value) {
     p[0] = value;
@@ -190,56 +194,133 @@ bool firmware_armed() {
         && stat(firmware_marker_path, &marker) == 0 && S_ISREG(marker.st_mode);
 }
 
-bool hash_file(const char *path, std::array<uint8_t, 32> &digest, uint32_t &size) {
-    struct stat st {};
-    if (stat(path, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size <= 0
-        || static_cast<uint64_t>(st.st_size) > maximum_file_size) {
-        return false;
+struct FirmwareValidationState {
+    FILE *file = nullptr;
+    mbedtls_sha256_context sha {};
+    uint32_t size = 0;
+    uint32_t processed = 0;
+    uint32_t started = 0;
+    uint32_t last_progress = 0;
+    bool sha_initialized = false;
+} firmware_validation;
+
+void stop_firmware_validation() {
+    if (firmware_validation.file) {
+        fclose(firmware_validation.file);
     }
-    FILE *file = fopen(path, "rb");
+    if (firmware_validation.sha_initialized) {
+        mbedtls_sha256_free(&firmware_validation.sha);
+    }
+    firmware_validation = {};
+}
+
+void report_firmware_validating(const bool armed) {
+    SERIAL_ECHOPGM("RME_FIRMWARE candidate=1 armed=");
+    SERIAL_ECHO(armed ? 1 : 0);
+    SERIAL_ECHOPGM(" state=validating path=FWUPD.RME size=");
+    SERIAL_ECHO(firmware_validation.size);
+    SERIAL_ECHOPGM(" progress=");
+    SERIAL_ECHOLN(firmware_validation.processed);
+}
+
+bool read_verified_firmware_metadata(const uint32_t candidate_size,
+    rme_firmware_status::VerifiedMetadata &metadata) {
+    if (verified_firmware_cache_loaded
+        && rme_firmware_status::valid(verified_firmware_cache, candidate_size)) {
+        metadata = verified_firmware_cache;
+        return true;
+    }
+    FILE *file = fopen(firmware_verified_path, "rb");
     if (!file) {
         return false;
     }
     setvbuf(file, nullptr, _IONBF, 0);
-    mbedtls_sha256_context sha {};
-    mbedtls_sha256_init(&sha);
-    bool ok = mbedtls_sha256_starts_ret(&sha, false) == 0;
-    uint8_t chunks_since_service = 0;
-    while (ok) {
-        const size_t count = fread(binary_payload.data(), 1, binary_payload.size(), file);
-        if (count && mbedtls_sha256_update_ret(&sha, binary_payload.data(), count) != 0) {
-            ok = false;
-        }
-        if (count < binary_payload.size()) {
-            if (ferror(file)) {
-                ok = false;
-            }
-            break;
-        }
-        // Candidate queries can hash a multi-megabyte BBF on the Marlin
-        // thread. Keep temperature/watchdog servicing alive without allowing
-        // recursive serial parsing (the queue's dispatch guard owns that).
-        if (++chunks_since_service == 16) {
-            chunks_since_service = 0;
-            thermalManager.manage_heater();
-        }
-    }
-    if (ok) {
-        ok = mbedtls_sha256_finish_ret(&sha, digest.data()) == 0;
-    }
-    mbedtls_sha256_free(&sha);
+    metadata = {};
+    const bool read = fread(&metadata, 1, sizeof(metadata), file) == sizeof(metadata);
     fclose(file);
-    if (ok) {
-        size = static_cast<uint32_t>(st.st_size);
+    if (!read || !rme_firmware_status::valid(metadata, candidate_size)) {
+        return false;
     }
-    return ok;
+    verified_firmware_cache = metadata;
+    verified_firmware_cache_loaded = true;
+    return true;
 }
 
-void report_firmware_status() {
+bool write_verified_firmware_metadata(const uint32_t size, const std::array<uint8_t, 32> &sha256) {
+    rme_firmware_status::VerifiedMetadata metadata {};
+    metadata.size = size;
+    metadata.sha256 = sha256;
+    remove(firmware_verified_temp_path);
+    FILE *file = fopen(firmware_verified_temp_path, "wb");
+    if (!file) {
+        return false;
+    }
+    setvbuf(file, nullptr, _IONBF, 0);
+    bool ok = fwrite(&metadata, 1, sizeof(metadata), file) == sizeof(metadata)
+        && fflush(file) == 0 && fsync(fileno(file)) == 0;
+    ok = fclose(file) == 0 && ok;
+    if (ok) {
+        remove(firmware_verified_path);
+        ok = rename(firmware_verified_temp_path, firmware_verified_path) == 0;
+    }
+    if (!ok) {
+        remove(firmware_verified_temp_path);
+        return false;
+    }
+    verified_firmware_cache = metadata;
+    verified_firmware_cache_loaded = true;
+    return true;
+}
+
+void cache_completed_firmware_upload() {
+    if (strcasecmp(upload.final_path.data(), firmware_candidate_path) == 0) {
+        // The candidate has already been SHA-verified and atomically
+        // published. Preserve that authoritative digest so status queries do
+        // not synchronously scan a multi-megabyte BBF.
+        write_verified_firmware_metadata(upload.expected_size, upload.expected_sha);
+    }
+}
+
+bool report_firmware_status() {
     const bool armed = firmware_armed();
     std::array<uint8_t, 32> digest {};
     uint32_t size = 0;
-    const bool candidate = !upload.file && hash_file(firmware_candidate_path, digest, size);
+    struct stat candidate_stat {};
+    const bool candidate = !upload.file && stat(firmware_candidate_path, &candidate_stat) == 0
+        && S_ISREG(candidate_stat.st_mode) && candidate_stat.st_size > 0
+        && static_cast<uint64_t>(candidate_stat.st_size) <= maximum_file_size;
+    if (candidate) {
+        size = static_cast<uint32_t>(candidate_stat.st_size);
+        rme_firmware_status::VerifiedMetadata metadata {};
+        if (read_verified_firmware_metadata(size, metadata)) {
+            digest = metadata.sha256;
+        } else if (firmware_validation.file) {
+            report_firmware_validating(armed);
+            return true;
+        } else {
+            firmware_validation.file = fopen(firmware_candidate_path, "rb");
+            if (!firmware_validation.file) {
+                SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=query_read_failed");
+                return false;
+            }
+            setvbuf(firmware_validation.file, nullptr, _IONBF, 0);
+            firmware_validation.size = size;
+            firmware_validation.started = ticks_ms();
+            firmware_validation.last_progress = firmware_validation.started;
+            mbedtls_sha256_init(&firmware_validation.sha);
+            firmware_validation.sha_initialized = true;
+            if (mbedtls_sha256_starts_ret(&firmware_validation.sha, false) != 0) {
+                stop_firmware_validation();
+                SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=query_hash_failed");
+                return false;
+            }
+            report_firmware_validating(armed);
+            return true;
+        }
+    } else if (candidate_stat.st_mode != 0) {
+        SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=invalid_candidate");
+        return false;
+    }
     SERIAL_ECHOPGM("RME_FIRMWARE candidate=");
     SERIAL_ECHO(candidate ? 1 : 0);
     SERIAL_ECHOPGM(" armed=");
@@ -258,6 +339,7 @@ void report_firmware_status() {
         }
     }
     SERIAL_EOL();
+    return true;
 }
 
 void release_upload_slot(const transfers::Monitor::Outcome outcome) {
@@ -549,6 +631,7 @@ bool finish_current_upload(const char *complete_prefix) {
         report_error("finalize_failed");
         return false;
     }
+    cache_completed_firmware_upload();
     SERIAL_ECHOPGM(complete_prefix);
     SERIAL_ECHOLN(upload.final_path.data() + 5);
     reset_upload(false, transfers::Monitor::Outcome::Finished);
@@ -577,6 +660,76 @@ extern "C" bool buddy_rme_binary_upload_active() {
         SERIAL_ECHOLNPGM(" resumable=1 reason=inactivity_timeout");
     }
     return upload.file && upload.binary;
+}
+
+// Advance legacy candidate validation in one bounded storage slice. This runs
+// once per serial scheduler pass, outside command dispatch, so G-code and RME
+// commands remain responsive while the candidate is being hashed.
+extern "C" void buddy_rme_firmware_service_tick() {
+    if (!firmware_validation.file) {
+        return;
+    }
+
+    constexpr uint8_t chunks_per_slice = 4;
+    bool complete = false;
+    bool failed = false;
+    for (uint8_t chunk = 0; chunk < chunks_per_slice && !complete; ++chunk) {
+        const size_t count = fread(binary_payload.data(), 1, binary_payload.size(), firmware_validation.file);
+        if (count && mbedtls_sha256_update_ret(&firmware_validation.sha, binary_payload.data(), count) != 0) {
+            failed = true;
+            break;
+        }
+        firmware_validation.processed += count;
+        if (count < binary_payload.size()) {
+            const bool read_error = ferror(firmware_validation.file);
+            complete = rme_firmware_status::complete_read_valid(
+                firmware_validation.processed, firmware_validation.size, true, read_error);
+            failed = !complete;
+        }
+        const uint32_t now = ticks_ms();
+        if (rme_firmware_status::elapsed(now, firmware_validation.started, rme_firmware_status::query_hash_timeout_ms)) {
+            stop_firmware_validation();
+            SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=query_timeout");
+            return;
+        }
+    }
+
+    const uint32_t now = ticks_ms();
+    if (!complete && !failed
+        && rme_firmware_status::elapsed(now, firmware_validation.last_progress, rme_firmware_status::query_busy_interval_ms)) {
+        firmware_validation.last_progress = now;
+        SERIAL_ECHOLNPGM("echo:busy: processing");
+        report_firmware_validating(firmware_armed());
+    }
+    if (!complete && !failed) {
+        return;
+    }
+    if (failed) {
+        stop_firmware_validation();
+        SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=query_read_failed");
+        return;
+    }
+
+    std::array<uint8_t, 32> digest {};
+    const uint32_t size = firmware_validation.size;
+    if (mbedtls_sha256_finish_ret(&firmware_validation.sha, digest.data()) != 0) {
+        stop_firmware_validation();
+        SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=query_hash_failed");
+        return;
+    }
+    stop_firmware_validation();
+    write_verified_firmware_metadata(size, digest);
+    SERIAL_ECHOPGM("RME_FIRMWARE candidate=1 armed=");
+    SERIAL_ECHO(firmware_armed() ? 1 : 0);
+    SERIAL_ECHOPGM(" state=ready path=FWUPD.RME size=");
+    SERIAL_ECHO(size);
+    SERIAL_ECHOPGM(" sha256=");
+    constexpr char hex[] = "0123456789abcdef";
+    for (const uint8_t byte : digest) {
+        SERIAL_CHAR(hex[byte >> 4]);
+        SERIAL_CHAR(hex[byte & 0x0f]);
+    }
+    SERIAL_EOL();
 }
 
 extern "C" void buddy_rme_binary_upload_byte(const uint8_t byte) {
@@ -946,6 +1099,9 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 report_error("transfer_busy");
                 return true;
             }
+            if (is_firmware_candidate(*path)) {
+                stop_firmware_validation();
+            }
             bool matching_resume = upload.suspended && upload.expected_size == *size
                 && upload.final_path == *path && upload.expected_sha == requested_sha;
             if (!matching_resume) {
@@ -1080,6 +1236,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 reset_upload(true);
                 report_error("finalize_failed");
             } else {
+                cache_completed_firmware_upload();
                 SERIAL_ECHOPGM("RME_FILE_WRITE_COMPLETE path=");
                 SERIAL_ECHOLN(upload.final_path.data() + 5);
                 reset_upload(false, transfers::Monitor::Outcome::Finished);
@@ -1191,6 +1348,7 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
             SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=transfer_busy");
             return true;
         }
+        stop_firmware_validation();
         if (upload.suspended && strcmp(upload.final_path.data(), firmware_candidate_path) == 0) {
             reset_upload(true, transfers::Monitor::Outcome::Stopped, false);
         }
@@ -1200,6 +1358,8 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
             "/usb/FWUPD.RME.rme-meta",
             "/usb/FWUPD.RME.rme-tmp",
             "/usb/FWUPD.RME.rme-old",
+            "/usb/FWUPD.RME.rme-verified",
+            "/usb/FWUPD.RME.rme-verified-tmp",
             "/usb/FWUPD.UI",
         };
         bool ok = true;
@@ -1211,6 +1371,8 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
         }
         slot->done(ok ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
         if (ok) {
+            verified_firmware_cache = {};
+            verified_firmware_cache_loaded = false;
             SERIAL_ECHOLNPGM("RME_FIRMWARE_UNSTAGED candidate=0 armed=0");
         } else {
             SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=unstage_failed");
