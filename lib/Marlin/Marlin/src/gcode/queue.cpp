@@ -86,6 +86,7 @@ extern "C" bool buddy_rme_file_service(const char *command);
 extern "C" bool buddy_rme_firmware_service(const char *command);
 extern "C" bool buddy_rme_binary_upload_active();
 extern "C" void buddy_rme_binary_upload_byte(uint8_t byte);
+extern "C" void buddy_rme_firmware_service_tick();
 
 /**
  * GCode line number handling. Hosts may opt to include line numbers when
@@ -1185,6 +1186,8 @@ void GCodeQueue::get_serial_commands() {
   static bool serial_drain_active = false;
   rme_protocol::ScopedDispatchGuard serial_drain_guard { serial_drain_active };
   if (!serial_drain_guard) return;
+
+  buddy_rme_firmware_service_tick();
 
   // RME bulk frames are consumed out-of-band and never copied into the
   // MAX_CMD_SIZE G-code queue.

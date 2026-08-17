@@ -1598,9 +1598,9 @@ void serial_print_start() {
     // streamed startup command executes so the serial UI cannot present an
     // old heater/probing message as the state of this new print.
     SerialPrinting::set_status_message_baseline(print_status_message().latest_id());
-#if !PRINTER_IS_PRUSA_MINI()
+    #if !PRINTER_IS_PRUSA_MINI()
     SerialPrinting::reset_status_notifications();
-#endif
+    #endif
 
     switch (server.print_state) {
     case State::Finished:
@@ -3904,6 +3904,8 @@ static void _server_update_vars() {
             errno = 0;
             const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
             if (safe_stage_removed && legacy_stage_removed) {
+                remove("/usb/FWUPD.RME.rme-verified");
+                remove("/usb/FWUPD.RME.rme-verified-tmp");
                 remove("/usb/FWUPD.UI");
             }
         }

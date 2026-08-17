@@ -23,6 +23,8 @@ static void update_main_board(bool update_older, const char *sfn) {
         // bootloader cannot auto-discover the staged file on a later reboot.
         if (strcasecmp(selected_sfn, "FWUPD.BBF") == 0) {
             remove("/usb/FWUPD.RME");
+            remove("/usb/FWUPD.RME.rme-verified");
+            remove("/usb/FWUPD.RME.rme-verified-tmp");
             if (rename("/usb/FWUPD.BBF", "/usb/FWUPD.RME") != 0) {
                 SERIAL_ERROR_MSG("M997 could not secure staged firmware");
                 return;

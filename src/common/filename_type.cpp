@@ -53,7 +53,9 @@ bool filename_is_rme_private(const char *fname) {
         || filename_has_ext(basename, len, ".rme-part")
         || filename_has_ext(basename, len, ".rme-meta")
         || filename_has_ext(basename, len, ".rme-tmp")
-        || filename_has_ext(basename, len, ".rme-old");
+        || filename_has_ext(basename, len, ".rme-old")
+        || filename_has_ext(basename, len, ".rme-verified")
+        || filename_has_ext(basename, len, ".rme-verified-tmp");
 }
 
 const char *file_type_by_ext(const char *fname) {
