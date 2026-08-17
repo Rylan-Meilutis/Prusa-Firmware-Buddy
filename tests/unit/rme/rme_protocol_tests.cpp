@@ -1,5 +1,6 @@
 #include <rme_protocol_parser.hpp>
 #include <rme_file_transfer.hpp>
+#include <m976_material.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -16,6 +17,20 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("M976 validates material family independently of custom profile name", "[rme][m976][regression]") {
+    using buddy::m976_material::fallback;
+    using buddy::m976_material::matches;
+
+    CHECK(matches("PETG"sv, "PET-00L"sv, "PETG"sv));
+    CHECK_FALSE(matches("PLA"sv, "PET-00L"sv, "PETG"sv));
+    CHECK(matches("PETG"sv, "PETG"sv, "PETG"sv));
+    CHECK(matches("PET-00L"sv, "PET-00L"sv, "PETG"sv));
+    CHECK(fallback("PET-00L"sv, "PETG"sv) == 0.045f);
+    CHECK(matches("PETG-CF"sv, "PETG-CF"sv, {}));
+    CHECK_FALSE(matches("PETG"sv, "PETG-CF"sv, {}));
+    CHECK(fallback("PETG-CF"sv, {}) == 0.045f);
+}
 
 TEST_CASE("RME action names are complete tokens", "[rme][regression]") {
     CHECK(rme_protocol::action_is("ABORT"sv, "ABORT"sv));

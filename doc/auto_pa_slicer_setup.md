@@ -134,7 +134,9 @@ empty manifest remain. Confirm that:
 
 - every entry corresponds to a tool or MMU filament actually used by the job;
 - temperatures match the intended first-layer filament profiles;
-- material names exactly match `M865 Q` and the printer's Filament menu;
+- material names match the profile's reported `base` family (for example,
+  `PETG` for custom profile `PET-00L` with `base=PETG`); use the exact profile
+  name only as a compatibility fallback when no base is available;
 - the normal full mesh and prime sequence still follows the calibration;
 - the generated first-layer objects do not occupy the documented front-edge
   anchor service area on machines without a purge bin.
