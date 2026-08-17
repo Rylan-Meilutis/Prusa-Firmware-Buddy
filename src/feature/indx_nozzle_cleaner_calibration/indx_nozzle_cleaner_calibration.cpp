@@ -23,6 +23,7 @@
 #include <common/mapi/calibration_preamble.hpp>
 #include <common/mapi/parking.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
+#include <nozzle_cleaner.hpp>
 #include <tool/hotend/hotend.hpp>
 #include <utils/variant_utils.hpp>
 #include <selftest/selftest_invocation.hpp>

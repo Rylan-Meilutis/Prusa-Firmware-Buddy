@@ -33,6 +33,7 @@
 #include <bsod/bsod.h>
 #if HAS_INDX()
     #include <Marlin/src/module/tool_change.h>
+    #include <nozzle_cleaner.hpp>
 #endif
 
 uint filament_gcodes::InProgress::lock = 0;

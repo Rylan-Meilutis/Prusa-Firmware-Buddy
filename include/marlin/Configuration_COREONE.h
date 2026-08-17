@@ -835,7 +835,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Z_MIN_POS (0 - Z_MAX_OFFSET)
     #define X_MAX_POS (X_BED_SIZE - X_MIN_OFFSET + 11)
     #define X_MIN_PRINT_POS X_MIN_POS
-    #define X_MAX_PRINT_POS X_WASTEBIN_SAFE_POINT // maximal print area X position (excluding nozzle cleaner area)
+    #define X_MAX_PRINT_POS X_WASTEBIN_SAFE_POINT // maximal print area X position (excluding nozzle cleaner area); X_WASTEBIN_SAFE_POINT is defined in nozzle_cleaner.hpp
     #define Y_MAX_PRINT_POS (Y_BED_SIZE - Y_MIN_OFFSET) // maximal print area Y position (excluding toolchanger area)
     #define Y_MAX_POS (Y_MAX_PRINT_POS) // extra distance in Y to reach toolchanger
     #define PROBE_MAX_Y Y_BED_SIZE // limit maximal Y probe position (so that tool doesn't hit toolchanger with high tool offsets)
@@ -1117,51 +1117,11 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define X_NOZZLE_CLEANER_ORIGIN 260.35f
     #define Y_NOZZLE_CLEANER_ORIGIN 63.5f // master Y reference
 
-    // Y calibration indent positions [mm] for the manual fallback (the two wastebin variants). Both bins
-    // share the cleaner coordinate system; only where the manual Y indent sits differs. The standard
-    // (longer) bin's indent is at the origin; the extended (shorter) bin's is 40 mm closer (+Y). The
-    // matched point also selects the bin's capacity.
-    #define Y_NOZZLE_CLEANER_CALIB_POINT_STANDARD Y_NOZZLE_CLEANER_ORIGIN
-    #define Y_NOZZLE_CLEANER_CALIB_POINT_EXTENDED (Y_NOZZLE_CLEANER_ORIGIN + 40.f)
-
-    // Anchor for the cleaner tray Y geometry; the wastebin point, tray back edge and entry derive from
-    // it. INDX_TODO: tune.
-    #define Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL (Y_NOZZLE_CLEANER_ORIGIN + 90.f)
-
-    #define X_WASTEBIN_SAFE_POINT (X_NOZZLE_CLEANER_ORIGIN - 10.35f) //INDX_TODO: Refine
-    #define Y_WASTEBIN_SAFE_POINT (Y_NOZZLE_CLEANER_ORIGIN - 8.f) //INDX_TODO: Refine
-    #define Y_BRUSH_AVOID_POINT (Y_NOZZLE_CLEANER_ORIGIN + 101.f) //INDX_TODO: Refine
-
-    #define X_WASTEBIN_POINT X_NOZZLE_CLEANER_ORIGIN
-    #define Y_WASTEBIN_POINT (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL - 4.f) // derived from the tray anchor
-
-    // Loadcell Y calibration touches the tray back edge (drive to the measured wall middle at
-    // PURGE_ENTRY, move -Y); stored offset = contact - effective nozzle radius - BACK_NOMINAL.
-    // BACK_NOMINAL is the physical edge face, radius-free.
-    #define Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL + 5.f)
-    #define Y_NOZZLE_CLEANER_PURGE_PROBE_MIN (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL - 3.f) // probe ceiling past the edge
-    // Entry sits clear of the edge by more than the offset tolerance so the X align move never bumps the
-    // tray even on a max-tolerance +Y misaligned bin.
-    #define Y_NOZZLE_CLEANER_PURGE_ENTRY (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL + 4.f)
-
-    // Loadcell X calibration touches the outer wall face (from WALL_ENTRY, move +X) and the inner face
-    // (move -X from the V-groove lane at X_NOZZLE_CLEANER_ORIGIN, reached around the wall's +Y end via
-    // the purge-entry lane). Wall middle = mean of the two contacts (the nozzle radius cancels out);
-    // effective nozzle radius = (contact distance - THICKNESS) / 2. Stored offset = middle -
-    // MIDDLE_NOMINAL; the face nominal is radius-free part geometry.
-    #define X_NOZZLE_CLEANER_WALL_TOUCH_Y (Y_NOZZLE_CLEANER_ORIGIN + 77.f)
-    #define X_NOZZLE_CLEANER_WALL_ENTRY (X_NOZZLE_CLEANER_ORIGIN - 12.f)
-    #define X_NOZZLE_CLEANER_WALL_PROBE_MAX (X_NOZZLE_CLEANER_ORIGIN - 2.f)
-    #define X_NOZZLE_CLEANER_WALL_THICKNESS 1.69f
-    // V-groove center to wall middle; the stored offset's zero point. 6.03 = two-sided middle anchored
-    // to a manual (V-groove homing) measurement, 1 C1L unit (shared part). INDX_TODO: refine on more
-    // units.
-    #define X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL (X_NOZZLE_CLEANER_ORIGIN - 6.03f)
-    // Derived; only estimates the outer contact before the two-sided measurement completes.
-    #define X_NOZZLE_CLEANER_WALL_OUTER_FACE_NOMINAL (X_NOZZLE_CLEANER_WALL_MIDDLE_NOMINAL - X_NOZZLE_CLEANER_WALL_THICKNESS / 2.f)
-
-    #define X_NOZZLE_PARK_POINT X_WASTEBIN_POINT
-    #define Y_NOZZLE_PARK_POINT Y_WASTEBIN_POINT + 5.f
+    // Cleaner geometry (wastebin, purge tray, wall, calibration points) is in nozzle_cleaner.hpp,
+    // anchored to the origins above. The park point must stay here: Marlin's SanityCheck.h expands
+    // XYZ_NOZZLE_PARK_POINT in every TU.
+    #define X_NOZZLE_PARK_POINT X_NOZZLE_CLEANER_ORIGIN // = X_WASTEBIN_POINT
+    #define Y_NOZZLE_PARK_POINT (Y_NOZZLE_CLEANER_ORIGIN + 91.f) // = Y_WASTEBIN_POINT + 5.f, kept in sync by a static_assert in nozzle_cleaner.cpp
 #else
     #define X_NOZZLE_PARK_POINT (X_MAX_POS - 50.0f)
     #define Y_NOZZLE_PARK_POINT (Y_MIN_POS + 6.0f)

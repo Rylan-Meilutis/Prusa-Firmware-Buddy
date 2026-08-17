@@ -10,6 +10,13 @@
 #include <option/has_indx.h>
 #include <feature/print_status_message/print_status_message_guard.hpp>
 
+#if HAS_INDX()
+// The config folds the park point into self-contained constants (SanityCheck.h expands it in every TU);
+// keep them tracking the wastebin geometry.
+static_assert(X_NOZZLE_PARK_POINT == X_WASTEBIN_POINT);
+static_assert(Y_NOZZLE_PARK_POINT == Y_WASTEBIN_POINT + 5.f);
+#endif
+
 namespace nozzle_cleaner {
 
 constexpr ConstexprString directory { "nozzle_cleaner" };

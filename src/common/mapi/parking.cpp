@@ -10,6 +10,11 @@
 #include <option/has_wastebin.h>
 #include <option/has_wastebin_fill_tracking.h>
 
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <nozzle_cleaner.hpp>
+#endif
+
 #include <option/has_toolchanger.h>
 #include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
