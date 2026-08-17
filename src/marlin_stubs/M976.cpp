@@ -20,6 +20,7 @@
 #include <common/mapi/parking.hpp>
 #include <common/marlin_server.hpp>
 #include <common/marlin_server_types/client_response.hpp>
+#include <common/m976_material.hpp>
 #include <config_store/store_instance.hpp>
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
@@ -355,6 +356,17 @@ bool parse_manual_temperatures(const char *command, std::array<int, buddy::extru
     return true;
 }
 
+std::string_view base_material_name(const FilamentTypeParameters &params) {
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+    if (params.base_preset.has_value()) {
+        return preset_filament_parameters[*params.base_preset].name.data();
+    }
+#else
+    (void)params;
+#endif
+    return {};
+}
+
 bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
     uint8_t logical_mask = 0;
     for (size_t i = 0; i < count; ++i) {
@@ -370,8 +382,8 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
         }
 #endif
         logical_mask |= 1u << entry.logical_filament;
-        const auto &configured = config_store().get_filament_type(entry.logical_filament).parameters().name;
-        if (strncmp(configured.data(), entry.material.data(), entry.material.size()) != 0) {
+        const auto params = config_store().get_filament_type(entry.logical_filament).parameters();
+        if (!buddy::m976_material::matches(entry.material.data(), params.name.data(), base_material_name(params))) {
             return false;
         }
     }
@@ -483,17 +495,8 @@ static_assert(MESH_MIN_Y + mesh_y_spacing * GRID_BORDER > 7.0f,
 #endif
 
 float material_fallback(const uint8_t logical_filament) {
-    const auto &name = config_store().get_filament_type(logical_filament).parameters().name;
-    if (!strncmp(name.data(), "FLEX", 4)) {
-        return 0.08f;
-    }
-    if (!strncmp(name.data(), "PETG", 4)) {
-        return 0.045f;
-    }
-    if (!strncmp(name.data(), "PA", 2)) {
-        return 0.05f;
-    }
-    return 0.04f;
+    const auto params = config_store().get_filament_type(logical_filament).parameters();
+    return buddy::m976_material::fallback(params.name.data(), base_material_name(params));
 }
 
 void extrude_flow(const float flow_mm3_s, const float seconds) {
@@ -768,7 +771,8 @@ void PrusaGcodeSuite::M976() {
                 entry.temperature = tool_temperature
                     ? std::clamp(tool_temperature, std::max(170, profile_temperature - 15), std::min(300, profile_temperature + 15))
                     : profile_temperature;
-                strncpy(entry.material.data(), params.name.data(), entry.material.size() - 1);
+                const auto material = buddy::m976_material::authoritative_name(params.name.data(), base_material_name(params));
+                strncpy(entry.material.data(), material.data(), entry.material.size() - 1);
             }
         }
         if (!validate_batch(entries, count)) {

@@ -8,6 +8,11 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
 
 ## RME integration
 
+- Fixed M976 batch validation and default PA fallback selection for custom
+  filament profiles: slicer material fields now match the configured base
+  material family (such as `PETG`) instead of the custom preset identifier.
+  Exact custom names remain accepted as compatibility aliases.
+
 - Out-of-band `@RME` sessions, structured events, workflows, dialogs, printer
   state, topology, usable build area, statistics, settings, themes, lighting,
   filament profiles, colors, manufacturers, tool mapping, and printer lock.
