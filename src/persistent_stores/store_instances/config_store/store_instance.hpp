@@ -15,6 +15,9 @@ enum class InitResult {
 
 /// Lightweight access to the items of the config store.
 /// Use this unless you absolutely need config_store_journal()
+///
+/// If you want to read values from the config store in gdb, do:
+/// p 'config_store_journal()::instance'.item_name
 config_store_ns::CurrentStore &config_store();
 
 // has to be done this way because it's used before global constructors are run
