@@ -554,6 +554,22 @@ protected candidate is reported:
 RME_FIRMWARE candidate=1 armed=0 state=ready path=FWUPD.RME size=<bytes> sha256=<64-lowercase-hex>
 ```
 
+Successful upload finalization atomically stores the verified size and digest
+in a private sidecar. `FIRMWARE QUERY` normally returns that cached metadata
+immediately and does not re-hash the BBF. A candidate created by older firmware
+starts cooperative background validation and immediately returns
+`RME_FIRMWARE candidate=1 state=validating size=<bytes> progress=<bytes>`.
+The serial scheduler reads only a small bounded slice per pass, so ordinary
+G-code and other RME commands continue to run. It emits structured progress and
+`echo:busy: processing` at least once per second, then asynchronously emits the
+final `state=ready` record with SHA-256. A media read failure returns
+`workflow=firmware code=query_read_failed`, and a scan exceeding 15 seconds
+returns `workflow=firmware code=query_timeout`; neither condition may leave the
+serial interface or transfer latch occupied. After successful recovery the
+metadata is cached, so later queries are constant-time. The private
+`.rme-verified` and `.rme-verified-tmp` files are hidden from Connect and file
+listings and are removed by `FIRMWARE UNSTAGE`.
+
 `candidate=1` is never inferred from another `.BBF` file. Immediately before
 the explicit `FLASH`/`M997` handoff resets the machine, both the cleanup marker
 and exact retained bootloader filename have been set and firmware emits:

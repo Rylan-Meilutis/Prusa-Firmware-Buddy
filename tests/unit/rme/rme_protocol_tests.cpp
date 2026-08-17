@@ -1,5 +1,6 @@
 #include <rme_protocol_parser.hpp>
 #include <rme_file_transfer.hpp>
+#include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
@@ -17,6 +18,34 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("RME firmware status accepts only matching verified metadata", "[rme][firmware][regression]") {
+    rme_firmware_status::VerifiedMetadata metadata {};
+    metadata.size = 4'000'000;
+    metadata.sha256[0] = 0x42;
+
+    CHECK(rme_firmware_status::valid(metadata, 4'000'000));
+    CHECK_FALSE(rme_firmware_status::valid(metadata, 3'999'999));
+    metadata.magic = 0;
+    CHECK_FALSE(rme_firmware_status::valid(metadata, 4'000'000));
+    metadata.magic = rme_firmware_status::verified_metadata_magic;
+    metadata.version++;
+    CHECK_FALSE(rme_firmware_status::valid(metadata, 4'000'000));
+}
+
+TEST_CASE("RME firmware query deadlines are wrap-safe", "[rme][firmware][regression]") {
+    CHECK_FALSE(rme_firmware_status::elapsed(999, 0, 1'000));
+    CHECK(rme_firmware_status::elapsed(1'000, 0, 1'000));
+    CHECK(rme_firmware_status::elapsed(5, UINT32_MAX - 5, 10));
+    CHECK_FALSE(rme_firmware_status::elapsed(5, UINT32_MAX - 5, 12));
+}
+
+TEST_CASE("RME firmware validation rejects truncated and failed reads", "[rme][firmware][regression]") {
+    CHECK(rme_firmware_status::complete_read_valid(4096, 4096, true, false));
+    CHECK_FALSE(rme_firmware_status::complete_read_valid(2048, 4096, true, false));
+    CHECK_FALSE(rme_firmware_status::complete_read_valid(4096, 4096, false, false));
+    CHECK_FALSE(rme_firmware_status::complete_read_valid(4096, 4096, true, true));
+}
 
 TEST_CASE("M976 validates material family independently of custom profile name", "[rme][m976][regression]") {
     using buddy::m976_material::fallback;

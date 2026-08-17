@@ -4004,6 +4004,8 @@ static void _server_update_vars() {
             errno = 0;
             const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
             if (safe_stage_removed && legacy_stage_removed) {
+                remove("/usb/FWUPD.RME.rme-verified");
+                remove("/usb/FWUPD.RME.rme-verified-tmp");
                 remove("/usb/FWUPD.UI");
             }
         }

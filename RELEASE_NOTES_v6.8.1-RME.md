@@ -12,6 +12,11 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   filament profiles: slicer material fields now match the configured base
   material family (such as `PETG`) instead of the custom preset identifier.
   Exact custom names remain accepted as compatibility aliases.
+- Made firmware-candidate status non-blocking. Verified uploads now persist a
+  private size/SHA cache, while legacy candidates are hashed in bounded
+  scheduler slices with `state=validating` progress, a 15-second storage-read
+  deadline, and explicit read/hash/timeout errors. Serial G-code and RME
+  traffic remain responsive throughout validation.
 
 - Out-of-band `@RME` sessions, structured events, workflows, dialogs, printer
   state, topology, usable build area, statistics, settings, themes, lighting,
