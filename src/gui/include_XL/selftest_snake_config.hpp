@@ -18,11 +18,11 @@ enum class Action {
 #if HAS_PRECISE_HOMING_COREXY()
     PreciseHoming,
 #endif
-    ZAlign, // also known as z_calib
     DockCalibration,
     Gears,
     Loadcell,
     FilamentSensorCalibration,
+    ZAlign,
     ZCheck,
     ToolOffsetsCalibration,
     BedHeaters,
@@ -42,7 +42,6 @@ constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
     case Action::Fans:
     case Action::YCheck:
     case Action::XCheck:
-    case Action::ZAlign:
         break;
     case Action::Heaters:
     case Action::NozzleHeaters:
@@ -60,6 +59,7 @@ constexpr EnumBitset<Action, Action::_count> get_dependencies(Action action) {
         break;
     case Action::Gears:
     case Action::Loadcell:
+    case Action::ZAlign:
         deps.set(Action::DockCalibration);
         break;
     case Action::ZCheck:
