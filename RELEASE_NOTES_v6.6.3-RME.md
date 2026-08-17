@@ -7,6 +7,11 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
 
 ### Additions since 6.6.2-RME
 
+  * Fixed M976 batch validation and default PA fallback selection for custom
+    filament profiles: slicer material fields now match the configured base
+    material family (such as `PETG`) instead of the custom preset identifier.
+    Exact custom names remain accepted as compatibility aliases.
+
   * Added independent filament-manufacturer tracking with 50 common built-ins,
     eight persistent keyboard/RME-created names, case-insensitive host matching,
     and selection alongside material and color during load and preload.
