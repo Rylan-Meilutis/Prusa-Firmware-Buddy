@@ -9,6 +9,7 @@
 #include "calibration_z.hpp"
 #include "client_response.hpp"
 #include "printers.h"
+#include <mapi/parking.hpp>
 #include <marlin_server.hpp>
 #include <raii/auto_restore.hpp>
 #include <utils/progress.hpp>
@@ -42,35 +43,45 @@ static constexpr float safe_clearance = 10.f; // mm
 
 #if PRINTER_IS_PRUSA_XL()
 
+static void ensure_tool_is_in_dock_area() {
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (!tool.has_value()) {
+        return;
+    }
+    if (prusa_toolchanger.is_toolchanger_enabled()) {
+        if (!prusa_toolchanger.tool_change(NoTool {}, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+            fatal_error(ErrCode::ERR_MECHANICAL_TOOLCHANGER);
+        }
+    } else {
+        // single-tool have no docks, just move to the dock area
+        // WARN: the bed may be at the top position, we need to ensure safe moves in X, Y
+        const auto dock_pos = mapi::ParkingPosition {
+            .x = 20.f, // arbitrary position not colliding with steppers
+            .y = static_cast<float>(Y_MAX_POS - 1),
+            .z = mapi::ParkingPosition::AtLeast { .absolute = extra_height }
+        };
+        GcodeSuite::G28_no_parser(true, true, false, { .only_if_needed = true, .z_raise = extra_height, .precise = false });
+        mapi::park(dock_pos);
+    }
+}
+
 void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     marlin_server::fsm_change(PhasesSelftest::CalibZ);
 
     // backup original acceleration/feedrates and reset defaults for calibration
     Temporary_Reset_Motion_Parameters mp;
 
-    // Home XY first
-    if (!GcodeSuite::G28_no_parser(true, true, false, { .only_if_needed = true, .z_raise = 0, .precise = false })) {
-        return; // This can happen only during print, homing recovery should follow
-    }
-
     // mark test as failed (so it will be failed after reset - disconnected cables can cause rsod)
     auto result = config_store().selftest_result.get();
     result.set_zalign(TestResult::failed);
     config_store().selftest_result.set(result);
 
-    // Move the nozzle up and away from the bed
-    do_homing_move(Z_AXIS, extra_height, HOMING_FEEDRATE_INVERTED_Z, false, false);
-    current_position.z = 0;
-    sync_plan_position();
-    // Needs to avoid nozzle cleaner, tool offset sensor, and whatever else can be mounted on the XL
-    current_position.x = X_BED_SIZE / 2;
-    current_position.y = Y_MIN_POS + 2;
-    line_to_current_position();
-    planner.synchronize();
+    // prevent collision with tool
+    ensure_tool_is_in_dock_area();
 
-    // The nozzle is parked off the bed, so the loadcell would never trigger here even with
-    // a tool picked. Approach the top position over the whole travel on the stall endstop.
-    if (!do_homing_move(Z_AXIS, -(Z_MAX_POS - Z_MIN_POS) - extra_height, HOMING_FEEDRATE_INVERTED_Z, false, false)
+    // move bed up to the end of Z axis
+    const auto z_axis_length = Z_MAX_POS - Z_MIN_POS;
+    if (!do_homing_move(Z_AXIS, -(z_axis_length + extra_height), HOMING_FEEDRATE_INVERTED_Z, false, false)
         && !planner.draining()) {
         fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z);
     }
