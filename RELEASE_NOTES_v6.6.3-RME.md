@@ -11,7 +11,8 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     the selected profile. Connect and Link expose `material=PLA` with a
     separate `profile=PLA-00D`, and loaded-filament serial reports use
     `S"PLA"` plus `P"PLA-00D"`; profile identifiers no longer masquerade as
-    filament types.
+    filament types. Base-preset storage and M865 `J` handling are enabled for
+    every supported printer, rather than only the INDX variants.
 
   * Fixed M976 batch validation and default PA fallback selection for custom
     filament profiles: slicer material fields now match the configured base
