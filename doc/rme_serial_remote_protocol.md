@@ -226,11 +226,14 @@ their profile name as the material fallback for legacy compatibility.
 
 `CREATE` and `SET` both update a persistent firmware user profile; `CREATE` is
 provided for clearer host workflows. `QUERY` reports each built-in and user
-slot with its complete supported parameter set. On firmware with upstream base
-preset support, `base` selects the preset material family whose hidden machine
-parameters are inherited. `brand` is accepted as a compatibility alias for
-`base` because some hosts use that label, but it must contain a built-in family
-such as `PLA`, `PETG`, or `ASA`, not arbitrary vendor metadata.
+slot with its complete supported parameter set. RME firmware enables base
+preset support on every printer model: `base` selects the authoritative preset
+material family and any hidden machine parameters it supplies. The equivalent
+M865 field is `J`, for example `M865 U0 N"PET-00L" J"PETG"`. `brand` is
+accepted as a compatibility alias for `base` because some hosts use that
+label, but it must contain a built-in family such as `PLA`, `PETG`, or `ASA`,
+not arbitrary vendor metadata. Hosts must not infer the material family from a
+custom profile name.
 `slot` is 0 through 7. Names are at most seven characters and contain no spaces.
 Temperatures are degrees Celsius; use `-1` for an unset optional chamber bound.
 Synchronized visible presets appear in the same local material selectors used
