@@ -1516,3 +1516,7 @@ INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
   restores the caller's target, and returns immediately. It no longer holds
   M976 open while cooling from the calibration temperature; the slicer's
   following M109 owns that standard long-running wait.
+- Automatic PA now verifies that the requested calibration temperature was
+  actually reached and that the requested MMU slot is physically loaded
+  before any measured extrusion can begin. A failed heat or load stops with
+  an explicit M976 error instead of attempting empty/cold calibration moves.
