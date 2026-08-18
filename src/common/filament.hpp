@@ -114,7 +114,7 @@ static constexpr size_t preset_filament_type_count = static_cast<size_t>(PresetF
 
 inline FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
     FilamentTypeParameters::Name result {};
-    const auto material = buddy::filament_material::authoritative_name(params.name.data());
+    const auto material = buddy::filament_material::authoritative_name(params.name.data(), {});
     snprintf(result.data(), result.size(), "%.*s", static_cast<int>(material.size()), material.data());
     return result;
 }

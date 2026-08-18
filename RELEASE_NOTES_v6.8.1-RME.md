@@ -12,6 +12,8 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   the selected profile. Connect and Link expose `material=PLA` with a separate
   `profile=PLA-00D`, and loaded-filament serial reports use `S"PLA"` plus
   `P"PLA-00D"`; profile identifiers no longer masquerade as filament types.
+  Base-preset storage and M865 `J` handling are enabled for every supported
+  printer, rather than only the INDX variants.
 
 - Fixed M976 batch validation and default PA fallback selection for custom
   filament profiles: slicer material fields now match the configured base
