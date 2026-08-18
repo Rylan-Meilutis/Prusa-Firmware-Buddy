@@ -9,8 +9,6 @@
 #endif
 
 static uint32_t current_tick = 0;
-static uint32_t current_loop_counter = 0;
-
 static uint32_t loop_start_tick = 0;
 static uint32_t worst_duration = 0;
 
@@ -19,7 +17,6 @@ static RateLimiter<uint32_t> report_timer(REPORT_DELAY);
 
 void gui::TickLoop() {
     current_tick = ticks_ms();
-    current_loop_counter += 1;
 }
 
 void gui::StartLoop() {
@@ -39,10 +36,6 @@ void gui::EndLoop() {
 #endif
         worst_duration = 0;
     }
-}
-
-uint32_t gui::GetLoopCounter() {
-    return current_loop_counter;
 }
 
 uint32_t gui::GetTick() {
