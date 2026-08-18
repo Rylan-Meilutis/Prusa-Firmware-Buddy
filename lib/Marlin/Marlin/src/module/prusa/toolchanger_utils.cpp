@@ -2,6 +2,7 @@
 #include "tool_offset.hpp"
 #include "dock_position.hpp"
 #include "utils/variant_utils.hpp"
+#include <feature/gcode_exception/gcode_exception.hpp>
 #include <option/has_crash_detection.h>
 #include <option/has_toolchanger.h>
 #include <tool_index.hpp>
@@ -135,6 +136,12 @@ void PrusaToolChangerUtils::request_active_switch(Dwarf *new_dwarf) {
     request_toolchange_dwarf = new_dwarf;
     request_toolchange = true;
     if (wait([this]() { return !this->request_toolchange.load(); }, WAIT_TIME_TOOL_SELECT) == false) {
+        // wait() bails out as soon as the planner starts draining, which is what a failed wait
+        // means here far more often than a puppy task that failed to answer. No error may be
+        // raised while draining - the request stays pending and the puppy task still applies it.
+        if (gcode_exceptions().is_unwinding()) {
+            return;
+        }
     #if HAS_CRASH_DETECTION()
         if (crash_s.get_state() == Crash_s::TRIGGERED_AC_FAULT) {
             return; // Fail silently, so powerpanic can work

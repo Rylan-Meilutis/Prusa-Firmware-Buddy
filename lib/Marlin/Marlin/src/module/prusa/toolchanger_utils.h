@@ -156,10 +156,11 @@ public:
     #else // !HAS_INDX()
 
     /**
-     * @brief Request change of active dwarf.
-     * This is only to be used in crash recovery, otherwise it could mess up marlin.
+     * @brief Request change of active dwarf and wait for the puppy task to apply it.
+     * Outside of tool_change()'s own sequencing this belongs to crash recovery only - on its own
+     * it leaves marlin's active_extruder disagreeing with the selected dwarf.
+     * Throws a redscreen if the puppy task does not pick the request up in time.
      * @param new_dwarf pointer to dwarf that will be selected as active, nullptr to select no dwarf
-     * If it fails, it throws redscreen.
      */
     void request_active_switch(buddy::puppies::Dwarf *new_dwarf);
 
