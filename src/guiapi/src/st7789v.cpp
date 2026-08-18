@@ -101,7 +101,10 @@ uint16_t st7789v_y = 0; // current y coordinate (RASET)
 uint16_t st7789v_cx = 0; //
 uint16_t st7789v_cy = 0; //
 
-osThreadId st7789v_task_handle = 0;
+static osThreadId st7789v_task_handle = 0;
+static void debug_assert_correct_task() {
+    debug_assert(st7789v_task_handle == osThreadGetId() && "Must be called only from one task");
+}
 
 static const uint32_t ST7789V_SIG_SPI_TX = 0x08;
 
@@ -112,13 +115,14 @@ bool st7789v_buff_borrowed = false; ///< True if buffer is borrowed by someone e
 
 uint8_t *st7789v_borrow_buffer() {
     debug_assert(!st7789v_buff_borrowed && "Already lent");
-    debug_assert(st7789v_task_handle == osThreadGetId() && "Must be called only from one task");
+    debug_assert_correct_task();
     st7789v_buff_borrowed = true;
     return st7789v_buff;
 }
 
 void st7789v_return_buffer() {
     debug_assert(st7789v_buff_borrowed);
+    debug_assert_correct_task();
     st7789v_buff_borrowed = false;
 }
 
@@ -209,6 +213,7 @@ void st7789v_spi_wr_byte(uint8_t b) {
 
 void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
     if ((st7789v_flg & (uint8_t)ST7789V_FLG_DMA) && !(st7789v_flg & (uint8_t)ST7789V_FLG_SAFE) && (size > 4)) {
+        debug_assert_correct_task();
         osSignalSet(st7789v_task_handle, ST7789V_SIG_SPI_TX);
         osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
         debug_assert(can_be_used_by_dma(pb));
@@ -370,6 +375,7 @@ void st7789v_init_ctl_pins(void) {
  */
 void st7789v_init(void) {
     st7789v_task_handle = osThreadGetId();
+    debug_assert_correct_task();
     if (st7789v_flg & (uint8_t)ST7789V_FLG_SAFE) {
         st7789v_flg &= ~(uint8_t)ST7789V_FLG_DMA;
     } else {

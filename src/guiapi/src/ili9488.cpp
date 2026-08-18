@@ -105,7 +105,10 @@ bool do_complete_lcd_reinit = false;
 
 static bool reduce_display_baudrate = false;
 
-osThreadId ili9488_task_handle = 0;
+static osThreadId ili9488_task_handle = 0;
+static void debug_assert_correct_task() {
+    debug_assert(ili9488_task_handle == osThreadGetId() && "Must be called only from one task");
+}
 
 #define ILI9488_SIG_SPI_TX 0x0008
 
@@ -114,13 +117,14 @@ bool ili9488_buff_borrowed = false; ///< True if buffer is borrowed by someone e
 
 uint8_t *ili9488_borrow_buffer() {
     debug_assert(!ili9488_buff_borrowed && "Already lent");
-    debug_assert(ili9488_task_handle == osThreadGetId() && "Must be called only from one task");
+    debug_assert_correct_task();
     ili9488_buff_borrowed = true;
     return ili9488_buff;
 }
 
 void ili9488_return_buffer() {
     debug_assert(ili9488_buff_borrowed);
+    debug_assert_correct_task();
     ili9488_buff_borrowed = false;
 }
 
@@ -193,6 +197,7 @@ void ili9488_spi_wr_byte(uint8_t b) {
 
 void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size) {
     if ((ili9488_flg & ILI9488_FLG_DMA) && !(ili9488_flg & ILI9488_FLG_SAFE) && (size > 4)) {
+        debug_assert_correct_task();
         osSignalSet(ili9488_task_handle, ILI9488_SIG_SPI_TX);
         osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
         debug_assert(can_be_used_by_dma(pb));
@@ -440,6 +445,7 @@ static void startup_new_manufacturer() {
 void ili9488_init(void) {
     displayCs.write(Pin::State::low);
     ili9488_task_handle = osThreadGetId();
+    debug_assert_correct_task();
     if (ili9488_flg & ILI9488_FLG_SAFE) {
         ili9488_flg &= ~ILI9488_FLG_DMA;
     } else {
