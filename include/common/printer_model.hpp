@@ -38,7 +38,7 @@ enum class PrinterModelCompatibilityGroup : uint8_t {
     mk4,
     mk4s,
     xl,
-    xlp,
+    xls,
     ix,
     mini,
     coreone,
