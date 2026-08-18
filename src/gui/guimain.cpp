@@ -114,7 +114,7 @@ void gui_error_run(void) {
 #endif
 
     while (true) {
-        gui::StartLoop();
+        gui::TickLoop();
 
 #if HAS_LEDS()
         leds::LEDManager::instance().update();
@@ -122,7 +122,6 @@ void gui_error_run(void) {
 
         Screens::Access()->Loop();
         gui_bare_loop();
-        gui::EndLoop();
     }
 }
 
@@ -264,12 +263,11 @@ void gui_run(void) {
 
     // TODO make some kind of registration
     while (1) {
-        gui::StartLoop();
+        gui::TickLoop();
 
         Screens::Access()->Loop();
         DialogHandler::Access().Loop();
 
         gui_loop();
-        gui::EndLoop();
     }
 }

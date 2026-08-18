@@ -10,7 +10,5 @@
 
 namespace gui {
 void TickLoop(); // call this function in loop
-void StartLoop(); // call this function in the beginning of the GUI loop
-void EndLoop(); // call this function in the beginning of the GUI loop
 uint32_t GetTick(); // current loop tick value, every call in current loop returns same value
 }; // namespace gui
