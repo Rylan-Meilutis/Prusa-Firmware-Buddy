@@ -22,6 +22,7 @@
     #include <mapi/motion.hpp>
     #include <mapi/feedrates/standard_feedrates.hpp>
     #include <raii/scope_guard.hpp>
+    #include <feature/gcode_exception/gcode_exception.hpp>
 
     #if HAS_CRASH_DETECTION()
         #include "../../feature/prusa/crash_recovery.hpp"
@@ -204,6 +205,14 @@ bool PrusaToolChanger::check_emergency_stop() {
 
 bool PrusaToolChanger::tool_change(const std::variant<PhysicalToolIndex, NoTool> new_tool, tool_return_t return_type, xyz_pos_t return_position, tool_change_lift_t z_lift, bool z_return) {
     // WARNING: called from default(marlin) task
+
+    // While a gcode is being unwound, every move is discarded instead of executed, so the tool
+    // can neither be parked nor picked. Going through the motions anyway would leave marlin
+    // believing in a tool change that never physically happened.
+    if (gcode_exceptions().is_unwinding()) {
+        return false;
+    }
+
     uint8_t raw_new_tool = match(
         new_tool,
         [](PhysicalToolIndex physical_tool) { return physical_tool.to_raw(); },
@@ -454,6 +463,13 @@ void PrusaToolChanger::toolcheck_enable() {
 }
 
 void PrusaToolChanger::toolcrash() {
+    // A gcode cancelled mid-toolchange has its park/pick moves discarded, so the dock sensors
+    // rightly report a tool that never moved. That is the cancellation working, not a crash, and
+    // it must not start a crash recovery that would fight the unwinding either.
+    if (gcode_exceptions().is_unwinding()) {
+        return;
+    }
+
     #if HAS_CRASH_DETECTION()
     if (crash_s.is_active() && (crash_s.get_state() == Crash_s::PRINTING)) {
         crash_s.set_state(Crash_s::TRIGGERED_TOOLCRASH); // Trigger recovery process
