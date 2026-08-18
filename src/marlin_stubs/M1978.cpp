@@ -55,19 +55,9 @@
     #include <puppies/ac_controller.hpp>
 #endif
 
-#if PRINTER_IS_PRUSA_XL()
-    #include <common/printer_model.hpp>
-#endif
-
+#include <common/printer_model.hpp>
 #include <option/has_cpu_fan.h>
-#if HAS_CPU_FAN()
-    #include <common/printer_model.hpp>
-#endif
-
 #include <option/has_xl_can.h>
-#if HAS_XL_CAN()
-    #include <puppies/xl_can.hpp>
-#endif
 
 LOG_COMPONENT_REF(Selftest);
 
@@ -514,16 +504,18 @@ void M1978() {
     // pin is unconnected and the controller never spins it. Construct unconditionally
     // (HAS_CPU_FAN is master-board-level) but include in the test only on XLS.
     CommonFanHandler cpu_fan(FanType::cpu, 0, cpu_fan_range, &Fans::cpu());
-    if (PrinterModelInfo::current().model == PrinterModel::xls) {
+    if (has_board_fans()) {
         fan_container[container_index++] = &cpu_fan;
     }
 #endif
 #if HAS_XL_CAN()
     // Modular Bed cooling fan lives on the XL-CAN bridge, present only on XLS.
-    // Construct unconditionally (HAS_XL_CAN is master-board-level) but include
-    // in the test only when the bridge is actually up.
+    // Construct unconditionally (HAS_XL_CAN is master-board-level) but include in
+    // the test only on XLS. A bridge that failed to enumerate (MbResetCheck::
+    // uncontrolled - boot continues with only the XlCanWiringSuspected warning)
+    // then fails the test on zero RPM samples rather than dropping the fan from it.
     BedMcuFanHandler bed_mcu_fan(bed_mcu_fan_range, benevolent_fan_range);
-    if (buddy::puppies::xl_can.is_enabled()) {
+    if (has_board_fans()) {
         fan_container[container_index++] = &bed_mcu_fan;
     }
 #endif
