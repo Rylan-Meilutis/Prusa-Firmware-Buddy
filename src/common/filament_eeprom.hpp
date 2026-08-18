@@ -1,6 +1,7 @@
 #pragma once
 
 #include "filament.hpp"
+#include "filament_material_family_storage.hpp"
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
@@ -23,6 +24,25 @@ public:
 
     // Keeping the remaining bits of the bitfield unused, but zero initialized, for future proofing
     uint8_t _unused : 5 = 0;
+
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+    // Keep the original EEPROM1 layout intact on printers which gained base
+    // presets after release. Zero was historically written into these spare
+    // bits, so it remains the "no base" representation; presets are stored as
+    // one-based values. INDX retains its existing EEPROM4 storage.
+    FilamentTypeParameters::BasePreset decode_inline_base_preset() const {
+        const auto decoded = buddy::filament_material_family_storage::decode(_unused, static_cast<uint8_t>(PresetFilamentType::_count));
+        if (!decoded.has_value()) {
+            return std::nullopt;
+        }
+        return static_cast<PresetFilamentType>(*decoded);
+    }
+
+    static uint8_t encode_inline_base_preset(FilamentTypeParameters::BasePreset preset) {
+        return buddy::filament_material_family_storage::encode(
+            preset.has_value() ? std::optional<uint8_t> { static_cast<uint8_t>(*preset) } : std::nullopt);
+    }
+#endif
 
 public:
     constexpr bool operator==(const FilamentTypeParameters_EEPROM1 &) const = default;

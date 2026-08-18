@@ -151,6 +151,20 @@ void PrusaGcodeSuite::M865() {
     p.store_option('A', params.is_abrasive);
     p.store_option('G', params.do_not_auto_retract);
 
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+    std::array<char, filament_name_buffer_size> base_name {};
+    if (const auto name = p.option<std::string_view>('J', base_name)) {
+        const auto type = FilamentType::from_name(*name);
+        if (name->empty()) {
+            params.base_preset = std::nullopt;
+        } else if (const auto preset = std::get_if<PresetFilamentType>(&type)) {
+            params.base_preset = *preset;
+        } else {
+            p.report_option_error('J', "Needs to be a preset filament type");
+        }
+    }
+#endif
+
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     p.store_option('H', params.heatbreak_temperature);
 #endif

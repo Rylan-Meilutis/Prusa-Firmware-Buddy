@@ -12,6 +12,9 @@
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
 #include <filament_material.hpp>
+#include <option/has_filament_material_family_param.h>
+
+enum class PresetFilamentType : uint8_t;
 
 class StringBuilder;
 
@@ -51,6 +54,11 @@ public:
 
     /// Bed temperature for the filament, in degrees Celsius
     uint16_t heatbed_temperature = 60;
+
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+    using BasePreset = std::optional<PresetFilamentType>;
+    BasePreset base_preset = std::nullopt;
+#endif
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     /// Target heatbreak temperature for the filament
@@ -112,12 +120,7 @@ enum class PresetFilamentType : uint8_t {
 
 static constexpr size_t preset_filament_type_count = static_cast<size_t>(PresetFilamentType::_count);
 
-inline FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
-    FilamentTypeParameters::Name result {};
-    const auto material = buddy::filament_material::authoritative_name(params.name.data(), {});
-    snprintf(result.data(), result.size(), "%.*s", static_cast<int>(material.size()), material.data());
-    return result;
-}
+FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params);
 
 /// User-configurable "presets" for filaments
 struct UserFilamentType {

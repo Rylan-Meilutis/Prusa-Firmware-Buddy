@@ -3,6 +3,7 @@
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
 #include <filament_material.hpp>
+#include <filament_material_family_storage.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -68,6 +69,24 @@ TEST_CASE("External filament material never exposes the custom profile name", "[
     CHECK(authoritative_name("PLA-00D", "PLA") == "PLA");
     CHECK(authoritative_name("PET-00L", "PETG") == "PETG");
     CHECK(authoritative_name("PA-CF", {}) == "PA-CF");
+}
+
+TEST_CASE("New base presets preserve the deployed EEPROM1 layout", "[rme][filament][eeprom][boot]") {
+    using buddy::filament_material_family_storage::decode;
+    using buddy::filament_material_family_storage::encode;
+    constexpr uint8_t preset_count = 10;
+
+    CHECK_FALSE(decode(0, preset_count).has_value());
+    for (uint8_t preset = 0; preset < preset_count; ++preset) {
+        const uint8_t persisted = encode(preset);
+        REQUIRE(decode(persisted, preset_count).has_value());
+        CHECK(*decode(persisted, preset_count) == preset);
+    }
+
+    // Old firmware always wrote zero. Any otherwise invalid spare-bit value
+    // must fail closed instead of indexing the preset table during startup.
+    CHECK_FALSE(decode(0, preset_count).has_value());
+    CHECK_FALSE(decode(31, preset_count).has_value());
 }
 
 TEST_CASE("RME action names are complete tokens", "[rme][regression]") {

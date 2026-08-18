@@ -298,6 +298,16 @@ void FilamentType::build_name_with_info(StringBuilder &builder) const {
     }
 }
 
+FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
+    auto result = params.name;
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+    if (params.base_preset) {
+        result = preset_filament_parameters[*params.base_preset].name;
+    }
+#endif
+    return result;
+}
+
 FilamentTypeParameters FilamentType::parameters() const {
     static const auto build_eeprom = [](const FilamentTypeParameters_EEPROM1 &e1,
 #if HAS_CHAMBER_API()
@@ -312,6 +322,9 @@ FilamentTypeParameters FilamentType::parameters() const {
             .nozzle_temperature = e1.nozzle_temperature,
             .nozzle_preheat_temperature = e1.nozzle_preheat_temperature,
             .heatbed_temperature = e1.heatbed_temperature,
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+            .base_preset = e1.decode_inline_base_preset(),
+#endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
             .heatbreak_temperature = e3.heatbreak_temperature,
 #endif
@@ -324,7 +337,7 @@ FilamentTypeParameters FilamentType::parameters() const {
             .is_abrasive = e1.is_abrasive,
             .do_not_auto_retract = e1.do_not_auto_retract,
         };
-        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4, "Revise the initializer");
+        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM(), "Revise the initializer");
     };
 
     return std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
@@ -376,6 +389,9 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #endif
         .is_abrasive = set.is_abrasive,
         .do_not_auto_retract = set.do_not_auto_retract,
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+        ._unused = FilamentTypeParameters_EEPROM1::encode_inline_base_preset(set.base_preset),
+#endif
     };
     // Note - even though we're not setting requires_filtration without HAS_CHAMBER_API, it is still in the EEPROM struct to provide binary compatibility
     static_assert(aggregate_arity<FilamentTypeParameters_EEPROM1>() == 7 + 1 /* _unused */, "Revise the initializer");
