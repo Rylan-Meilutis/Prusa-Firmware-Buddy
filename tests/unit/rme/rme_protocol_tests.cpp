@@ -79,6 +79,11 @@ TEST_CASE("M976 MMU service temperature stays above cold extrusion cutoff", "[rm
 
     CHECK(probe_temperature(170) == 175);
     CHECK(probe_temperature(170) > 170);
+    CHECK(calibration_temperature_ready(250.0f, 255, 170));
+    CHECK(calibration_temperature_ready(255.0f, 255, 170));
+    CHECK_FALSE(calibration_temperature_ready(249.9f, 255, 170));
+    CHECK_FALSE(calibration_temperature_ready(169.9f, 170, 170));
+    CHECK_FALSE(calibration_temperature_ready(255.0f, 160, 170));
     CHECK_FALSE(wait_for_restored_target);
 }
 

@@ -5,9 +5,16 @@
 namespace buddy::m976_temperature_policy {
 
 inline constexpr int16_t probe_margin_celsius = 5;
+inline constexpr int16_t calibration_temperature_tolerance_celsius = 5;
 
 constexpr int16_t probe_temperature(const int16_t extrusion_minimum) {
     return extrusion_minimum + probe_margin_celsius;
+}
+
+constexpr bool calibration_temperature_ready(const float actual, const int16_t requested, const int16_t extrusion_minimum) {
+    return requested >= extrusion_minimum
+        && actual >= extrusion_minimum
+        && actual >= requested - calibration_temperature_tolerance_celsius;
 }
 
 // M976 restores its caller's target immediately. A following M109 owns any
