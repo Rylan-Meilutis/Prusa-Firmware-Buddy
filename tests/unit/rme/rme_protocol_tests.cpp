@@ -2,6 +2,7 @@
 #include <rme_file_transfer.hpp>
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
+#include <m976_temperature_policy.hpp>
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
@@ -71,6 +72,14 @@ TEST_CASE("M976 validates material family independently of custom profile name",
     CHECK(matches("PETG-CF"sv, "PETG-CF"sv, {}));
     CHECK_FALSE(matches("PETG"sv, "PETG-CF"sv, {}));
     CHECK(fallback("PETG-CF"sv, {}) == 0.045f);
+}
+
+TEST_CASE("M976 MMU service temperature stays above cold extrusion cutoff", "[rme][m976][temperature][regression]") {
+    using namespace buddy::m976_temperature_policy;
+
+    CHECK(probe_temperature(170) == 175);
+    CHECK(probe_temperature(170) > 170);
+    CHECK_FALSE(wait_for_restored_target);
 }
 
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {

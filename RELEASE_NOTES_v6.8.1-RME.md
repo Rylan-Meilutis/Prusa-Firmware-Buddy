@@ -160,3 +160,14 @@ release tags are created.
 - Fixed focused numeric spinner values, including custom-preheat temperatures,
   rendering white-on-white while being edited. Edited values now use the
   active menu color scheme's contrasting foreground color.
+
+### M976 MMU temperature and serial-timeout fix
+
+- M976 now performs MMU service unloads at 175 C and waits for that safe
+  margin before moving filament. The former exact 170 C cutoff could read as
+  169 C during normal control undershoot, reject every unload segment, and
+  flood serial with `cold extrusion prevented` until OctoPrint timed out.
+- Calibration target restoration now synchronizes every queued service move,
+  restores the caller's target, and returns immediately. It no longer holds
+  M976 open while cooling from the calibration temperature; the slicer's
+  following M109 owns that standard long-running wait.

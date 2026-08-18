@@ -21,6 +21,7 @@
 #include <common/marlin_server.hpp>
 #include <common/marlin_server_types/client_response.hpp>
 #include <common/m976_material.hpp>
+#include <common/m976_temperature_policy.hpp>
 #include <config_store/store_instance.hpp>
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
@@ -86,7 +87,13 @@ float probe_anchor_slot(uint8_t slot);
 
 constexpr float mmu_cleaning_width = 32.0f;
 constexpr float mmu_cleaning_right_margin = 10.0f;
-constexpr int16_t pa_probe_temperature = 170;
+// Do not perform MMU unloads at the exact cold-extrusion boundary. Hotend
+// temperatures are truncated to whole degrees by tooColdToExtrude(), so a
+// normal 169.9 C control undershoot at a 170 C target rejects every unload
+// segment. Keep a small control margin and wait for it before asking the MMU
+// to move filament.
+constexpr int16_t pa_probe_temperature = buddy::m976_temperature_policy::probe_temperature(EXTRUDE_MINTEMP);
+static_assert(pa_probe_temperature > EXTRUDE_MINTEMP);
 // CORE One's vent lever occupies the deep-front strip around X=11..37.
 constexpr float pa_anchor_x_base = 50.0f;
 constexpr float pa_anchor_spacing = 11.0f;
@@ -243,6 +250,10 @@ public:
     }
 
     void restore(const bool wait_for_reachable_targets = false) {
+        // A calibration caller may have queued service extrusion immediately
+        // before unwinding this guard. Never lower a target until those moves
+        // have physically completed.
+        planner.synchronize();
         for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
             Temperature::setTargetHotend(targets_[hotend], PhysicalToolIndex::from_raw(hotend));
         }
@@ -413,6 +424,11 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             // height.
             create_hotend_clearance();
             begin_pa_probe_preheat(PhysicalToolIndex::from_raw(0));
+            // unload() queues extrusion moves and does not wait for the
+            // hotend itself. Waiting here prevents a target-boundary
+            // undershoot from turning its retry loop into an unbounded
+            // "cold extrusion prevented" serial flood.
+            wait_for_pa_probe_temperature(PhysicalToolIndex::from_raw(0));
             const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
             if (!path_was_empty) {
                 park_before_mmu_unload(entry.logical_filament);
@@ -424,9 +440,6 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             // filament path does not prove that the nozzle exterior is clean.
             clean_before_pa_probe();
             create_hotend_clearance();
-            // Homing and MMU cleanup overlap the warm-up. Block only here so
-            // every loadcell touch occurs at the known low-ooze temperature.
-            wait_for_pa_probe_temperature(PhysicalToolIndex::from_raw(0));
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
             if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) {
                 return false;
@@ -798,11 +811,11 @@ void PrusaGcodeSuite::M976() {
         // MMU batches finish by unloading. Leave the nozzle clear of the
         // anchor before restoring (and potentially cooling to) the previous
         // target so a strand cannot settle back onto the calibration point.
-        // Slicer-driven calibration returns at the exact pre-command targets,
-        // including waiting for cooldown to the probing temperature selected
-        // by start G-code before its following MBL.
+        // Restore the target but do not hold the serial command open during a
+        // long cooldown. The slicer's following M109 owns that wait and is a
+        // standard host-recognized long-running command.
         if (!manual) {
-            restore_hotend_targets.restore(true);
+            restore_hotend_targets.restore(buddy::m976_temperature_policy::wait_for_restored_target);
         }
         if (manual) {
             present_manual_batch_results(entries, count);
