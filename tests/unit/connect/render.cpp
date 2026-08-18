@@ -51,6 +51,7 @@ Printer::Params params_printing() {
 TEST_CASE("RME private storage artifacts are classified for hiding") {
     CHECK(filename_is_rme_private("FWUPD.RME"));
     CHECK(filename_is_rme_private("/usb/fwupd.ui"));
+    CHECK(filename_is_rme_private("/usb/FWUPD.UI.tmp"));
     CHECK(filename_is_rme_private("FWUPD.RME.rme-part"));
     CHECK(filename_is_rme_private("upload.rme-meta"));
     CHECK(filename_is_rme_private("upload.rme-tmp"));

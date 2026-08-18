@@ -4,6 +4,7 @@
 #include <m976_material.hpp>
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
+#include <firmware_update_handoff.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -375,4 +376,8 @@ TEST_CASE("RME production header scanner covers data and control frame states", 
     CHECK(scan(control, 1536, 4096, offset, length, crc) == rme_file_transfer::HeaderScanResult::ready);
     const auto abort = header(rme_file_transfer::abort_frame_offset, 0, 0);
     CHECK(scan(abort, 1536, 4096, offset, length, crc) == rme_file_transfer::HeaderScanResult::ready);
+}
+TEST_CASE("firmware candidate cleanup waits for bootloader handoff") {
+    CHECK_FALSE(firmware_update_handoff::candidate_cleanup_allowed(true));
+    CHECK(firmware_update_handoff::candidate_cleanup_allowed(false));
 }

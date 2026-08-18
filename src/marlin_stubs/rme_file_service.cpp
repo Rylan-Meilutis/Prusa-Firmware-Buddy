@@ -1361,6 +1361,7 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
             "/usb/FWUPD.RME.rme-verified",
             "/usb/FWUPD.RME.rme-verified-tmp",
             "/usb/FWUPD.UI",
+            "/usb/FWUPD.UI.tmp",
         };
         bool ok = true;
         for (const char *path : paths) {
