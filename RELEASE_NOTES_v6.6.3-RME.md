@@ -1499,3 +1499,9 @@ INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
   additional bytes while remaining inside the existing CCMRAM budget.
 - Centralized the allocation requirement and added a regression invariant that
   preserves at least 1024 bytes of crash-derived guard space.
+
+### Numeric editor contrast fix
+
+- Fixed focused numeric spinner values, including custom-preheat temperatures,
+  rendering white-on-white while being edited. Edited values now use the
+  active menu color scheme's contrasting foreground color.
