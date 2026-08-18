@@ -2,6 +2,7 @@
 #include <rme_file_transfer.hpp>
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
+#include <filament_material.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -59,6 +60,14 @@ TEST_CASE("M976 validates material family independently of custom profile name",
     CHECK(matches("PETG-CF"sv, "PETG-CF"sv, {}));
     CHECK_FALSE(matches("PETG"sv, "PETG-CF"sv, {}));
     CHECK(fallback("PETG-CF"sv, {}) == 0.045f);
+}
+
+TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {
+    using buddy::filament_material::authoritative_name;
+
+    CHECK(authoritative_name("PLA-00D", "PLA") == "PLA");
+    CHECK(authoritative_name("PET-00L", "PETG") == "PETG");
+    CHECK(authoritative_name("PA-CF", {}) == "PA-CF");
 }
 
 TEST_CASE("RME action names are complete tokens", "[rme][regression]") {

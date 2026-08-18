@@ -53,6 +53,7 @@ uint32_t Printer::Params::telemetry_fingerprint(bool include_xy_axes) const {
     for (size_t i = 0; i < slots.size(); i++) {
         if (slot_mask & (1 << i)) {
             crc.add_str(slots[i].material.data())
+                .add_str(slots[i].profile.data())
                 .add(int(slots[i].temp_nozzle))
 #if PRINTER_IS_PRUSA_iX()
                 .add(int(slots[i].temp_heatbreak))
@@ -139,7 +140,8 @@ uint32_t Printer::info_fingerprint() const {
                 .add(slot.nozzle_diameter)
                 .add(slot.hardened)
                 .add(slot.high_flow)
-                .add_str(slot.material.data());
+                .add_str(slot.material.data())
+                .add_str(slot.profile.data());
         }
     }
 

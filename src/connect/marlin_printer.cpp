@@ -248,7 +248,9 @@ namespace {
                 auto &hotend = marlin_vars().active_hotend();
                 const size_t nozzle = 0;
 #endif
-                params.slots[i].material = config_store().get_filament_type(i).parameters().name;
+                const auto filament = config_store().get_filament_type(i).parameters();
+                params.slots[i].material = filament_material_name(filament);
+                params.slots[i].profile = filament.name;
                 params.slots[i].temp_nozzle = hotend.temp_nozzle;
 #if PRINTER_IS_PRUSA_iX()
                 params.slots[i].temp_heatbreak = hotend.temp_heatbreak;
