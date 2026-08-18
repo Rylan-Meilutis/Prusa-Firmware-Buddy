@@ -17,6 +17,17 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   filament UI or calibration features on ordinary printers. Non-INDX models
   use spare bits in the existing filament-profile record, preserving the
   deployed config-store schema and startup layout.
+  The new `@RME FILAMENT ASSIGN` operation independently changes a loaded
+  tool's `material` and `profile`; omitted fields are preserved, preventing
+  profile aliases such as `PLA-00D` from overwriting the `S"PLA"` material.
+  `FILAMENT SET` and `CREATE` also accept the explicit `material=` spelling.
+
+- Fixed a cross-task firmware-update race where the application could observe
+  `FWUPD.UI` and delete the verified `FWUPD.RME` candidate before the pending
+  reset let the bootloader open it. The exact-file request is now armed before
+  the marker is atomically published, and cleanup is forbidden while that
+  request remains armed. Failed marker publication cancels the retained
+  request and preserves the candidate for retry.
 
 - Fixed M976 batch validation and default PA fallback selection for custom
   filament profiles: slicer material fields now match the configured base

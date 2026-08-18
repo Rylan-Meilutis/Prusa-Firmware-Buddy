@@ -238,6 +238,24 @@ accepted as a compatibility alias for `base` because some hosts use that
 label, but it must contain a built-in family such as `PLA`, `PETG`, or `ASA`,
 not arbitrary vendor metadata. Hosts must not infer the material family from a
 custom profile name.
+
+Loaded profile and material can also be assigned independently:
+
+```text
+@RME FILAMENT ASSIGN tool=2 profile=PET-00L material=PETG tx=42
+RME_FILAMENT_ASSIGNED tool=2 material=PETG profile=PET-00L
+RME_CHANGE domain=filament key=loaded origin=host tx=42
+ok
+```
+
+Either `profile` or `material` may be omitted. Omitting `profile` updates the
+family of the currently loaded customizable profile; omitting `material`
+changes the selected profile without rewriting its stored family. A family
+must name a built-in polymer preset, and assigning a conflicting family to an
+immutable built-in profile is rejected. `SET`/`CREATE` accept `material` as the
+preferred spelling and retain `base` and `brand` as compatibility aliases.
+Consequently the response fields remain independent: `S`/`material` is never
+filled from `P`/`profile` when an explicit family is stored.
 `slot` is 0 through 7. Names are at most seven characters and contain no spaces.
 Temperatures are degrees Celsius; use `-1` for an unset optional chamber bound.
 Synchronized visible presets appear in the same local material selectors used
@@ -600,9 +618,14 @@ RME_FIRMWARE_RESTART reconnect=1
 ```
 
 `armed=1` requires both the retained one-shot selection for `FWUPD.RME` and its
-cleanup marker; directory contents alone cannot arm it. The bootloader clears
-the retained request before the next application startup. Candidate cleanup is
-retried on startup until the protected file is gone.
+cleanup marker; directory contents alone cannot arm it. The application arms
+the retained exact-file request first and then atomically publishes the marker.
+While that request still selects `FWUPD.RME`, the application must preserve the
+candidate even if its normal server task observes the marker before reset. The
+bootloader clears the retained request before the next application startup;
+only then may marker-driven cleanup remove the candidate. Cleanup is retried
+until the protected file is gone. A private `FWUPD.UI.tmp` used for atomic
+marker publication is hidden from listings and removed by `FIRMWARE UNSTAGE`.
 
 An idle host can discard a candidate idempotently:
 

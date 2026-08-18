@@ -39,6 +39,10 @@ bool is_bootloader_valid();
 
 void set_reflash_bbf_sfn(const char *sfn);
 
+/// Cancel a specified-file request that has not yet been handed to a reset.
+/// Used when persisting the accompanying durable marker fails.
+void clear_reflash_bbf_sfn();
+
 /// True only while the retained, one-shot bootloader request selects this
 /// exact short filename. Directory contents are intentionally not consulted.
 bool is_reflash_bbf_sfn(const char *sfn);
