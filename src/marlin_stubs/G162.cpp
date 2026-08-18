@@ -23,16 +23,24 @@
     #include <module/prusa/toolchanger.h>
 #endif
 
-static constexpr feedRate_t Z_CALIB_ALIGN_AXIS_FEEDRATE = 15.f; // mm/s
-static constexpr float Z_CALIB_EXTRA_HIGHT = 5.f; // mm
+namespace {
+
+static constexpr feedRate_t align_axis_feedrate = 15.f; // mm/s
+static constexpr float extra_height = 5.f; // mm
 
 #if PRINTER_IS_PRUSA_XL()
 
 /// Feedrate of the final push into the top hard stop, on which the motors skip to align themselves
-static constexpr feedRate_t Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE = 4.f; // mm/s
+static constexpr feedRate_t align_axis_slow_feedrate = 4.f; // mm/s
 
 /// Nozzle clearance left behind, dock calibration crosses the bed right after this
-static constexpr float Z_CALIB_SAFE_CLEARANCE = 10.f; // mm
+static constexpr float safe_clearance = 10.f; // mm
+
+#endif
+
+}; // namespace
+
+#if PRINTER_IS_PRUSA_XL()
 
 void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     marlin_server::fsm_change(PhasesSelftest::CalibZ);
@@ -51,7 +59,7 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     config_store().selftest_result.set(result);
 
     // Move the nozzle up and away from the bed
-    do_homing_move(Z_AXIS, Z_CALIB_EXTRA_HIGHT, HOMING_FEEDRATE_INVERTED_Z, false, false);
+    do_homing_move(Z_AXIS, extra_height, HOMING_FEEDRATE_INVERTED_Z, false, false);
     current_position.z = 0;
     sync_plan_position();
     // Needs to avoid nozzle cleaner, tool offset sensor, and whatever else can be mounted on the XL
@@ -62,7 +70,7 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
 
     // The nozzle is parked off the bed, so the loadcell would never trigger here even with
     // a tool picked. Approach the top position over the whole travel on the stall endstop.
-    if (!do_homing_move(Z_AXIS, -(Z_MAX_POS - Z_MIN_POS) - Z_CALIB_EXTRA_HIGHT, HOMING_FEEDRATE_INVERTED_Z, false, false)
+    if (!do_homing_move(Z_AXIS, -(Z_MAX_POS - Z_MIN_POS) - extra_height, HOMING_FEEDRATE_INVERTED_Z, false, false)
         && !planner.draining()) {
         fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z);
     }
@@ -74,11 +82,11 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     set_axis_is_not_at_home(Z_AXIS);
 
     // Lower the bed and repeat the push slowly to align the motors
-    do_blocking_move_to_z(Z_MIN_POS + Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_FEEDRATE);
-    do_blocking_move_to_z(Z_MIN_POS - Z_CALIB_EXTRA_HIGHT, Z_CALIB_ALIGN_AXIS_SLOW_FEEDRATE);
+    do_blocking_move_to_z(Z_MIN_POS + extra_height, align_axis_feedrate);
+    do_blocking_move_to_z(Z_MIN_POS - extra_height, align_axis_slow_feedrate);
 
     // Back off the hard stop, the axis is left unhomed and Z_MIN_POS is past nozzle contact
-    do_blocking_move_to_z(Z_MIN_POS + Z_CALIB_SAFE_CLEARANCE, Z_CALIB_ALIGN_AXIS_FEEDRATE);
+    do_blocking_move_to_z(Z_MIN_POS + safe_clearance, align_axis_feedrate);
 
     // Store Z aligned
     result.set_zalign(TestResult::passed);
@@ -131,15 +139,15 @@ void selftest::calib_Z(bool move_down_after) {
     endstops.not_homing();
 
     // push both Z axis few mm over HW limit to align motors
-    const float target_Z = Z_MAX_POS + Z_CALIB_EXTRA_HIGHT;
+    const float target_Z = Z_MAX_POS + extra_height;
     current_position.z = Z_MAX_POS;
     sync_plan_position();
-    do_blocking_move_to_z(target_Z, Z_CALIB_ALIGN_AXIS_FEEDRATE);
+    do_blocking_move_to_z(target_Z, align_axis_feedrate);
     current_position.z = Z_MAX_POS;
     sync_plan_position();
 
     // move a little bit back to stabilize the motors
-    do_blocking_move_to_z(Z_MAX_POS - 1, Z_CALIB_ALIGN_AXIS_FEEDRATE);
+    do_blocking_move_to_z(Z_MAX_POS - 1, align_axis_feedrate);
 
     if (move_down_after) {
         safe_move_down();
