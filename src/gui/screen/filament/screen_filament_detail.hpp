@@ -44,7 +44,7 @@ protected:
     FilamentType filament_type_;
 };
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
 class MI_FILAMENT_BASE_PRESET final : public MenuItemSelectMenu {
 public:
     using T = FilamentTypeParameters::BasePreset;
@@ -183,7 +183,7 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
     MI_RETURN,
     MI_FILAMENT_NAME,
     MI_FILAMENT_VISIBLE,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
     MI_FILAMENT_BASE_PRESET,
 #endif
     MI_FILAMENT_NOZZLE_TEMPERATURE,
