@@ -446,11 +446,21 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             }
             create_hotend_clearance();
             M109_no_parser(PhysicalToolIndex::from_raw(0), { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
+            if (!buddy::m976_temperature_policy::calibration_temperature_ready(
+                    Temperature::degHotend(PhysicalToolIndex::from_raw(0)), entry.temperature, thermalManager.extrude_min_temp)) {
+                SERIAL_ERROR_MSG("M976 calibration temperature not reached");
+                return false;
+            }
             // Keep the PA-specific MMU load at the same off-bed location used
             // by its free-air excitation. The loader deliberately preserves
             // this position rather than entering the normal MMU park path.
             park_for_free_air_calibration(entry.logical_filament, prepared_anchor_z);
             if (!MMU2::mmu2.tool_change_for_pa_calibration(entry.logical_filament)) {
+                return false;
+            }
+            planner.synchronize();
+            if (MMU2::mmu2.get_current_tool() != entry.logical_filament || MMU2::mmu2.filament_path_empty_for_pa()) {
+                SERIAL_ERROR_MSG("M976 requested MMU filament was not loaded");
                 return false;
             }
             prepared_anchor = true;
