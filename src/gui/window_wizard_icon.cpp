@@ -2,6 +2,7 @@
  * @file window_wizard_icon.cpp
  */
 
+#include "gui_time.hpp"
 #include <window_wizard_icon.hpp>
 #include <img_resources.hpp>
 #include <display_helper.h>

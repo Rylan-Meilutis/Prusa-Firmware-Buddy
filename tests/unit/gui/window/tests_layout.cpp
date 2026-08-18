@@ -2,7 +2,7 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include "ScreenHandler.hpp"
-#include "gui_time.hpp" //gui::GetTick
+#include "gui_time.hpp"
 #include "mock_windows.hpp"
 #include "mock_display.hpp"
 #include <guiconfig/GuiDefaults.hpp>

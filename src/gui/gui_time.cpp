@@ -1,5 +1,7 @@
+/// @file
 #include "gui_time.hpp"
-#include "timing.h"
+
+#include <common/timing.h>
 
 static uint32_t current_tick = 0;
 
