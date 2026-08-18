@@ -108,8 +108,17 @@ public:
     /// String identifying the model for GCode checks
     const char *id_str;
 
+    /// String identifying the model for the user
+    /// Defaults to id_str if not set
+    const char *display_str_override = nullptr;
+
     inline uint16_t error_code_prefix() const {
         return usb_pid;
+    }
+
+    /// String identifying the model for the user
+    inline const char *display_str() const {
+        return display_str_override ?: id_str;
     }
 
 public:

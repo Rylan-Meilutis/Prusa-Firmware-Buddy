@@ -104,7 +104,7 @@ ScreenPrinterTypeChanged::ScreenPrinterTypeChanged()
     , model_from {
         this,
         model_from_rect,
-        string_view_utf8::MakeCPUFLASH(PrinterModelInfo::get(config_store().last_boot_base_printer_model.get()).id_str),
+        string_view_utf8::MakeCPUFLASH(PrinterModelInfo::get(config_store().last_boot_base_printer_model.get()).display_str()),
         is_multiline::no,
     }
     , arrow {
@@ -115,7 +115,7 @@ ScreenPrinterTypeChanged::ScreenPrinterTypeChanged()
     , model_to {
         this,
         model_to_rect,
-        string_view_utf8::MakeCPUFLASH(PrinterModelInfo::firmware_base().id_str),
+        string_view_utf8::MakeCPUFLASH(PrinterModelInfo::firmware_base().display_str()),
         is_multiline::no,
     }
     , description {

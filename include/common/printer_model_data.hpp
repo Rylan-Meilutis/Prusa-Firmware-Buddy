@@ -168,7 +168,8 @@ inline constexpr std::array printer_model_info {
         .help_url = "xlp",
         .usb_pid = 41,
         .gcode_check_code = 410,
-        .id_str = "XL+",
+        .id_str = "XLP",
+        .display_str_override = "XL+",
     },
 };
 

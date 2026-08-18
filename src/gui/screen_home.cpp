@@ -237,7 +237,7 @@ screen_home_data_t::screen_home_data_t()
         sb.append_string("SIGNATURE OAK ");
 #else
         sb.append_string("PRUSA ");
-        sb.append_string(PrinterModelInfo::current().id_str);
+        sb.append_string(PrinterModelInfo::current().display_str());
         sb.append_string(" ");
 #endif
         sb.append_string(version::project_version);
