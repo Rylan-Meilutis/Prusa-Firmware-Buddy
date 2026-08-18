@@ -16,6 +16,10 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     not enable INDX-only filament UI or calibration features on ordinary
     printers. Non-INDX models use spare bits in the existing filament-profile
     record, preserving the deployed config-store schema and startup layout.
+    The new `@RME FILAMENT ASSIGN` operation independently changes a loaded
+    tool's `material` and `profile`; omitted fields are preserved, preventing
+    profile aliases such as `PLA-00D` from overwriting the `S"PLA"` material.
+    `FILAMENT SET` and `CREATE` also accept the explicit `material=` spelling.
 
   * Fixed M976 batch validation and default PA fallback selection for custom
     filament profiles: slicer material fields now match the configured base
@@ -1473,3 +1477,15 @@ The canonical `./build.py --final --versions 6.6.3 --jobs 15` matrix passes
 15/15 presets and stages exactly 15 BBFs. Maximum flash use is translated MINI
 at 99.68%; MK4 uses 61.24%, MK3.5 uses 56.57%, XL uses 69.36%, and CORE One
 INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
+### Firmware-update handoff race fix
+
+- Fixed a cross-task race where `M997 /usb/FWUPD.RME` published the cleanup
+  marker before reset, allowing the running application to delete the verified
+  candidate while the bootloader was about to open it.
+- The retained exact-file request is now armed before the cleanup marker is
+  atomically published. Application cleanup explicitly preserves the candidate
+  while that retained request still selects `FWUPD.RME`.
+- Marker-publication failures cancel the retained request and leave the
+  candidate available for a safe retry instead of rebooting into a missing
+  image. The private temporary marker is hidden from Connect and removable by
+  `@RME FIRMWARE UNSTAGE`.

@@ -102,6 +102,8 @@
 #include <option/has_leds.h>
 
 #include "fanctl.hpp"
+#include "data_exchange.hpp"
+#include "firmware_update_handoff.hpp"
 #include "lcd/extensible_ui/ui_api.h"
 
 #include <option/has_gui.h>
@@ -3896,17 +3898,24 @@ static void _server_update_vars() {
         // already present when Marlin starts observing media state.
         if (FILE *marker = fopen("/usb/FWUPD.UI", "rb")) {
             fclose(marker);
-            // Keep the marker until the staged image is definitely gone. This
-            // makes cleanup retryable and prevents a failed unlink from
-            // turning a one-shot UI/serial update into a boot-time reflash.
-            errno = 0;
-            const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
-            errno = 0;
-            const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
-            if (safe_stage_removed && legacy_stage_removed) {
-                remove("/usb/FWUPD.RME.rme-verified");
-                remove("/usb/FWUPD.RME.rme-verified-tmp");
-                remove("/usb/FWUPD.UI");
+            // M997 publishes the marker before its deliberate USB detach and
+            // reset.  The server loop runs concurrently, so never interpret
+            // the marker as a completed bootloader attempt while the retained
+            // request still selects the candidate.
+            if (firmware_update_handoff::candidate_cleanup_allowed(
+                    data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
+                // Keep the marker until the staged image is definitely gone.
+                // This makes cleanup retryable and prevents a failed unlink
+                // from turning a one-shot update into a boot-time reflash.
+                errno = 0;
+                const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
+                errno = 0;
+                const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
+                if (safe_stage_removed && legacy_stage_removed) {
+                    remove("/usb/FWUPD.RME.rme-verified");
+                    remove("/usb/FWUPD.RME.rme-verified-tmp");
+                    remove("/usb/FWUPD.UI");
+                }
             }
         }
     }

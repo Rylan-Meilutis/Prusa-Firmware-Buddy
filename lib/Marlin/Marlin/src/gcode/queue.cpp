@@ -744,7 +744,58 @@ static bool handle_remote_filament_service(const std::string_view command) {
   const auto action = command.substr(prefix.size());
   if (action.starts_with("QUERY")) {
     report_remote_filaments();
-  } else if (action.starts_with("SET") || action.starts_with("CREATE")) {
+  }
+  else if (action.starts_with("ASSIGN")) {
+    if (printer_lock::locked()) return true;
+    const auto tool = remote_number(command, "tool");
+    if (!tool || *tool < 0 || static_cast<size_t>(*tool) >= VirtualToolIndex::count) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR code=filament");
+      return true;
+    }
+
+    FilamentType type = config_store().get_filament_type(VirtualToolIndex::from_raw(static_cast<uint8_t>(*tool)));
+    if (const auto profile = remote_value(command, "profile")) {
+      type = FilamentType::from_name(*profile);
+      if (type == FilamentType::none) {
+        SERIAL_ECHOLNPGM("echo:RME_ERROR code=filament");
+        return true;
+      }
+    }
+
+    if (const auto material = remote_value(command, "material")) {
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+      auto params = type.parameters();
+      if (*material == "none") {
+        if (!type.is_customizable()) {
+          SERIAL_ECHOLNPGM("echo:RME_ERROR code=filament");
+          return true;
+        }
+        params.base_preset = std::nullopt;
+      } else {
+        const auto material_type = FilamentType::from_name(*material);
+        const auto preset = std::get_if<PresetFilamentType>(&material_type);
+        if (!preset) {
+          SERIAL_ECHOLNPGM("echo:RME_ERROR code=filament");
+          return true;
+        }
+        if (type.is_customizable()) {
+          params.base_preset = *preset;
+        } else if (type != material_type) {
+          SERIAL_ECHOLNPGM("echo:RME_ERROR code=filament");
+          return true;
+        }
+      }
+      if (type.is_customizable()) type.set_parameters(params);
+#else
+      SERIAL_ECHOLNPGM("echo:RME_ERROR code=filament");
+      return true;
+#endif
+    }
+
+    config_store().set_filament_type(VirtualToolIndex::from_raw(static_cast<uint8_t>(*tool)), type);
+    SerialPrinting::notify_configuration("filament", "loaded", true, remote_transaction(command).value_or(0));
+  }
+  else if (action.starts_with("SET") || action.starts_with("CREATE")) {
     if (printer_lock::locked()) {
       return true;
     }
@@ -767,6 +818,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
     // Some upstream hosts call this material family a brand. Accept both wire
     // names, but persist it in the upstream base_preset field used by the UI.
     auto base = remote_value(command, "base");
+    if (!base) base = remote_value(command, "material");
     if (!base) base = remote_value(command, "brand");
     if (base) {
       if (*base == "none") {

@@ -50,6 +50,7 @@ bool filename_is_rme_private(const char *fname) {
     const size_t len = strlen(basename);
     return strcasecmp(basename, "FWUPD.RME") == 0
         || strcasecmp(basename, "FWUPD.UI") == 0
+        || strcasecmp(basename, "FWUPD.UI.tmp") == 0
         || filename_has_ext(basename, len, ".rme-part")
         || filename_has_ext(basename, len, ".rme-meta")
         || filename_has_ext(basename, len, ".rme-tmp")

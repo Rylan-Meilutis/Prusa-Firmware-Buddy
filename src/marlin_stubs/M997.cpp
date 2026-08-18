@@ -36,7 +36,10 @@ static void update_main_board(bool update_older, const char *sfn) {
         // Create the cleanup marker here, in the same operation that arms the
         // reboot, rather than while a file is merely being staged.
         if (strcasecmp(selected_sfn, "FWUPD.RME") == 0) {
-            FILE *marker = fopen("/usb/FWUPD.UI", "wb");
+            static constexpr const char *marker_path = "/usb/FWUPD.UI";
+            static constexpr const char *marker_temp_path = "/usb/FWUPD.UI.tmp";
+            remove(marker_temp_path);
+            FILE *marker = fopen(marker_temp_path, "wb");
             if (!marker) {
                 SERIAL_ERROR_MSG("M997 could not arm one-shot firmware cleanup");
                 return;
@@ -45,12 +48,25 @@ static void update_main_board(bool update_older, const char *sfn) {
             bool marker_ready = fflush(marker) == 0 && fsync(fileno(marker)) == 0;
             marker_ready = fclose(marker) == 0 && marker_ready;
             if (!marker_ready) {
-                remove("/usb/FWUPD.UI");
+                remove(marker_temp_path);
                 SERIAL_ERROR_MSG("M997 could not persist one-shot firmware cleanup");
                 return;
             }
+
+            // Arm RAM first, then atomically publish the marker.  The Marlin
+            // server watches the marker from another task; publishing it
+            // before the retained request allowed that task to delete the
+            // candidate during the pre-reset TX drain.
+            data_exchange::set_reflash_bbf_sfn(selected_sfn);
+            if (rename(marker_temp_path, marker_path) != 0) {
+                data_exchange::clear_reflash_bbf_sfn();
+                remove(marker_temp_path);
+                SERIAL_ERROR_MSG("M997 could not publish one-shot firmware cleanup");
+                return;
+            }
+        } else {
+            data_exchange::set_reflash_bbf_sfn(selected_sfn);
         }
-        data_exchange::set_reflash_bbf_sfn(selected_sfn);
         if (strcasecmp(selected_sfn, "FWUPD.RME") == 0 && serial_remote_control::session_active()) {
             SERIAL_ECHOLNPGM("RME_FIRMWARE candidate=1 armed=1 state=restarting path=FWUPD.RME");
         }
