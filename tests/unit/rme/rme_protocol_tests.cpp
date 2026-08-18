@@ -5,6 +5,7 @@
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
+#include <task_stack_requirements.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -32,6 +33,14 @@ TEST_CASE("Material families preserve the deployed EEPROM1 representation", "[rm
         CHECK(decode(stored, 10) == preset);
     }
     CHECK_FALSE(decode(31, 10).has_value());
+}
+
+TEST_CASE("RME Marlin task stack retains crash-derived guard space", "[rme][stack][regression]") {
+    using namespace buddy::task_stack_requirements;
+
+    CHECK(marlin_words == 1664);
+    CHECK(marlin_guard_bytes >= required_guard_bytes);
+    CHECK(marlin_guard_bytes >= observed_rme_overrun_bytes * 4);
 }
 
 TEST_CASE("RME firmware status accepts only matching verified metadata", "[rme][firmware][regression]") {

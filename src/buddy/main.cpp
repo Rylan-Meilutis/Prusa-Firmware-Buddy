@@ -35,6 +35,7 @@
 #include <common/sys.hpp>
 #include <common/spi_flash_bus.hpp>
 #include <common/w25x.hpp>
+#include <task_stack_requirements.hpp>
 #include "timing.h"
 #include <buddy/filesystem.h>
 #include "adc.hpp"
@@ -174,7 +175,7 @@ static TaskControlBlock task_control_block;
 
 /// Keep task stacks together and in the CCMRAM.
 struct TaskStack {
-    uint32_t marlin[1360];
+    uint32_t marlin[buddy::task_stack_requirements::marlin_words];
 #if HAS_POWER_PANIC()
     // The complete AC-fault logging/notification path needs more than the
     // historical 80 words. An overflow here corrupts the adjacent task TCB.
@@ -547,7 +548,7 @@ extern "C" void main_cpp(void) {
 
 #if HAS_I2C_EXPANDER()
     #if BOARD_IS_XBUDDY()
-        leds::external_light_bar::reset_persistent_state();
+    leds::external_light_bar::reset_persistent_state();
     #endif
     // I2C IO Expander have to be initialized after Configuration Store
     buddy::hw::io_expander2.initialize();

@@ -1489,3 +1489,13 @@ INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
   candidate available for a safe retry instead of rebooting into a missing
   image. The private temporary marker is hidden from Connect and removable by
   `@RME FIRMWARE UNSTAGE`.
+
+### Marlin task stack crash fix
+
+- Decoded a field crash as `vApplicationStackOverflowHook` for the Marlin task,
+  with its saved stack pointer 84 bytes beyond the former allocation after an
+  RME session/query sequence.
+- Increased the Marlin task stack from 1360 to 1664 words, providing 1216
+  additional bytes while remaining inside the existing CCMRAM budget.
+- Centralized the allocation requirement and added a regression invariant that
+  preserves at least 1024 bytes of crash-derived guard space.
