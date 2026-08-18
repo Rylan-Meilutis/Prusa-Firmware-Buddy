@@ -62,7 +62,7 @@ void MI_FILAMENT_NAME::click(IWindowMenu &) {
     update_text();
 }
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
 
 MI_FILAMENT_BASE_PRESET::MI_FILAMENT_BASE_PRESET()
     : MenuItemSelectMenu(_("Base Preset")) {
@@ -204,7 +204,7 @@ void ScreenFilamentDetail::setup(FilamentType filament_type, const FilamentTypeP
         }
 #endif
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
         if constexpr (std::is_same_v<T, MI_FILAMENT_BASE_PRESET>) {
             // Presets have the base_preset set as identity. No point in showing it
             item.set_is_hidden(std::holds_alternative<PresetFilamentType>(filament_type));

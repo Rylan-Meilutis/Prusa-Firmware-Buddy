@@ -234,6 +234,8 @@ accepted as a compatibility alias for `base` because some hosts use that
 label, but it must contain a built-in family such as `PLA`, `PETG`, or `ASA`,
 not arbitrary vendor metadata. Hosts must not infer the material family from a
 custom profile name.
+On MINI, the base family remains persistent and fully available through RME and
+M865, but is omitted from the local detail screen to preserve firmware space.
 `slot` is 0 through 7. Names are at most seven characters and contain no spaces.
 Temperatures are degrees Celsius; use `-1` for an unset optional chamber bound.
 Synchronized visible presets appear in the same local material selectors used
