@@ -226,16 +226,18 @@ their profile name as the material fallback for legacy compatibility.
 
 `CREATE` and `SET` both update a persistent firmware user profile; `CREATE` is
 provided for clearer host workflows. `QUERY` reports each built-in and user
-slot with its complete supported parameter set. RME firmware enables base
-preset support on every printer model: `base` selects the authoritative preset
-material family and any hidden machine parameters it supplies. The equivalent
-M865 field is `J`, for example `M865 U0 N"PET-00L" J"PETG"`. `brand` is
+slot with its complete supported parameter set. Every printer persists the
+profile's authoritative material family: `base` selects a built-in family such
+as `PLA` or `PETG`. The equivalent M865 field is `J`, for example
+`M865 U0 N"PET-00L" J"PETG"`. This global support is deliberately limited to
+material-family parsing, persistence, reporting, and material matching; it
+does not enable INDX-only filament UI or calibration behavior on other models.
+Non-INDX printers store the family in the existing filament-profile record, so
+the config-store schema and startup layout remain unchanged. `brand` is
 accepted as a compatibility alias for `base` because some hosts use that
 label, but it must contain a built-in family such as `PLA`, `PETG`, or `ASA`,
 not arbitrary vendor metadata. Hosts must not infer the material family from a
 custom profile name.
-On MINI, the base family remains persistent and fully available through RME and
-M865, but is omitted from the local detail screen to preserve firmware space.
 `slot` is 0 through 7. Names are at most seven characters and contain no spaces.
 Temperatures are degrees Celsius; use `-1` for an unset optional chamber bound.
 Synchronized visible presets appear in the same local material selectors used

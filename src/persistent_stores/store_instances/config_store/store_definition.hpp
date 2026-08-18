@@ -512,7 +512,7 @@ struct CurrentStore
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("User Filament Parameters 3"), 32, user_filament_type_count> user_filament_parameters_3;
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
     StoreItemArray<FilamentTypeParameters_EEPROM4, FilamentTypeParameters_EEPROM4 {}, ItemFlag::user_presets, journal::hash("User Filament Parameters 4"), 32, user_filament_type_count> user_filament_parameters_4;
 #endif
 
@@ -523,7 +523,7 @@ struct CurrentStore
 #if HAS_FILAMENT_HEATBREAK_PARAM()
     StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 3"), 16, adhoc_filament_type_count> adhoc_filament_parameters_3;
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
     StoreItemArray<FilamentTypeParameters_EEPROM4, FilamentTypeParameters_EEPROM4 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 4"), 16, adhoc_filament_type_count> adhoc_filament_parameters_4;
 #endif
 #if HAS_ANFC()

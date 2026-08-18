@@ -112,7 +112,7 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
             == 7
                 + HAS_CHAMBER_API() * 4
                 + HAS_FILAMENT_HEATBREAK_PARAM() * 1
-                + HAS_FILAMENT_BASE_PRESET_PARAM() * 1
+                + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1
                 // requires_ht_idler_door is a preset-only hack
                 + HAS_HT_HOTEND() * 1
         //

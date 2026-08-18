@@ -12,10 +12,11 @@ conflicts against its newer filament, GUI, storage, Connect, and INDX code.
   the selected profile. Connect and Link expose `material=PLA` with a separate
   `profile=PLA-00D`, and loaded-filament serial reports use `S"PLA"` plus
   `P"PLA-00D"`; profile identifiers no longer masquerade as filament types.
-  Base-preset storage and M865 `J` handling are enabled for every supported
-  printer, rather than only the INDX variants. MINI exposes the setting through
-  RME/M865 while omitting the local selector to remain within its firmware
-  partition.
+  Material-family storage and M865 `J` handling are enabled for every supported
+  printer, rather than only the INDX variants. This does not enable INDX-only
+  filament UI or calibration features on ordinary printers. Non-INDX models
+  use spare bits in the existing filament-profile record, preserving the
+  deployed config-store schema and startup layout.
 
 - Fixed M976 batch validation and default PA fallback selection for custom
   filament profiles: slicer material fields now match the configured base

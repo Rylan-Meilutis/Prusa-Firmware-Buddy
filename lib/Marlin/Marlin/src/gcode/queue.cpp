@@ -719,7 +719,7 @@ static void report_remote_filaments() {
     SERIAL_ECHO(" nozzle="); SERIAL_ECHO(params.nozzle_temperature);
     SERIAL_ECHO(" preheat="); SERIAL_ECHO(params.nozzle_preheat_temperature);
     SERIAL_ECHO(" bed="); SERIAL_ECHO(params.heatbed_temperature);
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     SERIAL_ECHO(" base=");
     if (params.base_preset) SERIAL_ECHO(FilamentType { *params.base_preset }.parameters().name.data());
     else SERIAL_ECHO("none");
@@ -763,7 +763,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
     if (const auto value = remote_number(command, "nozzle")) params.nozzle_temperature = *value;
     if (const auto value = remote_number(command, "preheat")) params.nozzle_preheat_temperature = *value;
     if (const auto value = remote_number(command, "bed")) params.heatbed_temperature = *value;
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     // Some upstream hosts call this material family a brand. Accept both wire
     // names, but persist it in the upstream base_preset field used by the UI.
     auto base = remote_value(command, "base");

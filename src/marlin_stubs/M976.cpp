@@ -357,7 +357,7 @@ bool parse_manual_temperatures(const char *command, std::array<int, buddy::extru
 }
 
 std::string_view base_material_name(const FilamentTypeParameters &params) {
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     if (params.base_preset.has_value()) {
         return preset_filament_parameters[*params.base_preset].name.data();
     }
