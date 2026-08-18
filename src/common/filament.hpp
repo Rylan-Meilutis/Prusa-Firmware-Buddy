@@ -20,6 +20,7 @@
 #include <option/has_filament_base_preset_param.h>
 #include <option/has_anfc.h>
 #include <option/has_ht_hotend.h>
+#include <filament_material.hpp>
 
 class StringBuilder;
 
@@ -141,6 +142,19 @@ public:
 static constexpr size_t preset_filament_type_count = static_cast<size_t>(PresetFilamentType::_count);
 
 extern constinit const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentType::_count> preset_filament_parameters;
+
+/// Returns the polymer/material family independently of the selected profile.
+/// A user profile such as PLA-00D can inherit PLA through base_preset; external
+/// APIs that label a value as "material" must use this value, not params.name.
+inline FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
+    std::string_view base_name;
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+    if (params.base_preset.has_value()) {
+        base_name = preset_filament_parameters[*params.base_preset].name;
+    }
+#endif
+    return { buddy::filament_material::authoritative_name(params.name, base_name) };
+}
 
 /// User-configurable "presets" for filaments
 struct UserFilamentType {

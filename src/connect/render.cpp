@@ -196,6 +196,7 @@ namespace {
                 JSON_FIELD_INT("flow", params.flow_factor) JSON_COMMA;
                 if (!params.slots[params.preferred_slot()].material.empty()) {
                     JSON_FIELD_STR("material", params.slots[params.preferred_slot()].material.data()) JSON_COMMA;
+                    JSON_FIELD_STR("profile", params.slots[params.preferred_slot()].profile.data()) JSON_COMMA;
                 }
 #if XL_ENCLOSURE_SUPPORT()
                 if (params.enclosure_info.present) {
@@ -235,6 +236,7 @@ namespace {
                             if (params.slot_mask & (1 << state.iter)) {
                                 JSON_CUSTOM("\"%zu\":{", state.iter + 1);
                                     JSON_FIELD_STR("material", params.slots[state.iter].material.data()) JSON_COMMA;
+                                    JSON_FIELD_STR("profile", params.slots[state.iter].profile.data()) JSON_COMMA;
                                     JSON_FIELD_FFIXED("temp", params.slots[state.iter].temp_nozzle, 1) JSON_COMMA;
                                     JSON_FIELD_FFIXED("fan_hotend", params.slots[state.iter].heatbreak_fan_rpm, 1) JSON_COMMA;
                                     JSON_FIELD_FFIXED("fan_print", params.slots[state.iter].print_fan_rpm, 1);
@@ -394,7 +396,8 @@ namespace {
                                     JSON_FIELD_FFIXED("nozzle_diameter", params.slots[state.iter].nozzle_diameter, 2) JSON_COMMA;
                                     JSON_FIELD_BOOL("high_flow", params.slots[state.iter].high_flow) JSON_COMMA;
                                     JSON_FIELD_BOOL("hardened", params.slots[state.iter].hardened) JSON_COMMA;
-                                    JSON_FIELD_STR("material", !params.slots[state.iter].material.empty() ? params.slots[state.iter].material.data() : "---");
+                                    JSON_FIELD_STR("material", !params.slots[state.iter].material.empty() ? params.slots[state.iter].material.data() : "---") JSON_COMMA;
+                                    JSON_FIELD_STR("profile", !params.slots[state.iter].profile.empty() ? params.slots[state.iter].profile.data() : "---");
                                 JSON_OBJ_END;
 
                                 state.need_comma = true;

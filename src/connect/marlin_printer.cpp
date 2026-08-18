@@ -239,7 +239,9 @@ namespace {
             params.slot_mask |= (1 << vt.to_raw());
 
             auto &slot = params.slots[vt];
-            slot.material = config_store().get_filament_type(vt).parameters().name;
+            const auto filament = config_store().get_filament_type(vt).parameters();
+            slot.material = filament_material_name(filament);
+            slot.profile = filament.name;
             slot.temp_nozzle = hotend.temp_nozzle;
 #if PRINTER_IS_PRUSA_iX()
             slot.temp_heatbreak = hotend.temp_heatbreak;

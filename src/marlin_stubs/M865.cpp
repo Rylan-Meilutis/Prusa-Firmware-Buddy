@@ -19,6 +19,8 @@ void report_loaded_filaments() {
         SERIAL_ECHO("loaded_filament T");
         SERIAL_ECHO(tool.to_raw());
         SERIAL_ECHO(" S\"");
+        SERIAL_ECHO(filament_material_name(params).data());
+        SERIAL_ECHO("\" P\"");
         SERIAL_ECHO(params.name.data());
         SERIAL_ECHO("\" O\"");
         if (const auto color = filament_color::loaded(tool.to_raw())) {
