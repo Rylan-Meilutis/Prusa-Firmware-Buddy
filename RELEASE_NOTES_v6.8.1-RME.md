@@ -144,3 +144,13 @@ release tags are created.
 - Binary recovery tests now call the same rolling header scanner used by the
   firmware. The adjacent OctoPrint RME Compatibility serial-host suite is also
   gated against the negotiated 512-byte, three-frame transport contract.
+
+### Marlin task stack crash fix
+
+- Decoded a field crash as `vApplicationStackOverflowHook` for the Marlin task,
+  with its saved stack pointer 84 bytes beyond the former allocation after an
+  RME session/query sequence.
+- Increased the Marlin task stack from 1360 to 1664 words, providing 1216
+  additional bytes while remaining inside the existing CCMRAM budget.
+- Centralized the allocation requirement and added a regression invariant that
+  preserves at least 1024 bytes of crash-derived guard space.
