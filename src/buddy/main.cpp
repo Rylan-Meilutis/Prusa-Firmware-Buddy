@@ -34,6 +34,7 @@
 #include "crc32.h"
 #include <common/sys.hpp>
 #include <common/w25x.hpp>
+#include <task_stack_requirements.hpp>
 #include "timing.h"
 #include <buddy/filesystem.h>
 #include "adc.hpp"
@@ -497,7 +498,7 @@ extern "C" void main_cpp(void) {
     buddy::hw::io_expander2.initialize();
 #endif
 
-    osThreadCCMDef(defaultTask, StartDefaultTask, TASK_PRIORITY_DEFAULT_TASK, 0, 1160);
+    osThreadCCMDef(defaultTask, StartDefaultTask, TASK_PRIORITY_DEFAULT_TASK, 0, buddy::task_stack_requirements::marlin_words);
     defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
 #if ENABLED(POWER_PANIC)
