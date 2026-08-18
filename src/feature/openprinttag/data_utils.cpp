@@ -66,7 +66,7 @@ FilamentParametersInfo::FilamentParametersInfo(const RequestRef &req) {
     /// If you want to set a parameter, use the @p set function that also clears missing_parameters
     [[maybe_unused]] const auto &parameters = parameters_unsafe;
 
-    static_assert(filament_type_parameter_count == 6 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "We probably need to implement something here");
+    static_assert(filament_type_parameter_count == 6 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1, "We probably need to implement something here");
 
     // Abbreviation
     {

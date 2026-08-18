@@ -163,7 +163,7 @@ void PrusaGcodeSuite::M865() {
     p.store_option_if_present('H', params.heatbreak_temperature);
 #endif
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     FilamentTypeParameters::Name base_preset_name;
     if (auto str = p.option<std::string_view>('J', base_preset_name)) {
         const auto base_filament_type = FilamentType::from_name(*str);
@@ -187,7 +187,7 @@ void PrusaGcodeSuite::M865() {
     p.store_option_if_present('F', params.requires_filtration);
 #endif
 
-    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise M865 parameters");
+    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1, "Revise M865 parameters");
 
     std::array<char, filament_name_buffer_size - 1> name_buf;
     if (const auto opt = p.option<std::string_view>('N', name_buf)) {

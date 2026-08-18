@@ -475,8 +475,9 @@ set_feature_for_printers_master_board(
   "COREONEL"
   )
 set_feature_for_printers_master_board(HAS_FILAMENT_HEATBREAK_PARAM "iX")
+set_feature_for_printers_master_board(HAS_FILAMENT_BASE_PRESET_PARAM "COREONE_INDX" "COREONEL_INDX")
 set_feature_for_printers_master_board(
-  HAS_FILAMENT_BASE_PRESET_PARAM
+  HAS_FILAMENT_MATERIAL_FAMILY_PARAM
   "COREONE"
   "COREONE_INDX"
   "COREONEL"

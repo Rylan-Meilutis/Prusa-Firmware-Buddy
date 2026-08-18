@@ -3,6 +3,7 @@
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
 #include <filament_material.hpp>
+#include <filament_material_family_storage.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -19,6 +20,18 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("Material families preserve the deployed EEPROM1 representation", "[rme][filament][regression]") {
+    using namespace buddy::filament_material_family_storage;
+
+    CHECK_FALSE(decode(0, 10).has_value());
+    for (uint8_t preset = 0; preset < 10; ++preset) {
+        const auto stored = encode(preset);
+        CHECK(stored == preset + 1);
+        CHECK(decode(stored, 10) == preset);
+    }
+    CHECK_FALSE(decode(31, 10).has_value());
+}
 
 TEST_CASE("RME firmware status accepts only matching verified metadata", "[rme][firmware][regression]") {
     rme_firmware_status::VerifiedMetadata metadata {};

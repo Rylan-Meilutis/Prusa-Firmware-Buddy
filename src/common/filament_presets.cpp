@@ -17,7 +17,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "PLA",
             .nozzle_temperature = 215,
             .heatbed_temperature = 60,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::PLA,
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
@@ -36,7 +36,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "PETG",
             .nozzle_temperature = 230,
             .heatbed_temperature = 85,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::PETG,
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
@@ -55,7 +55,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "ASA",
             .nozzle_temperature = 260,
             .heatbed_temperature = 100,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::ASA,
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
@@ -76,7 +76,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .nozzle_temperature = 275,
             .nozzle_preheat_temperature = HAS_LOADCELL() ? (HAS_INDX() ? 230 : 275 - 25) : 170,
             .heatbed_temperature = 100,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::PC,
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
@@ -96,7 +96,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "PVB",
             .nozzle_temperature = 215,
             .heatbed_temperature = 75,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::PVB,
 #endif
 #if HAS_CHAMBER_API()
@@ -112,7 +112,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "ABS",
             .nozzle_temperature = 255,
             .heatbed_temperature = 100,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::ABS,
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
@@ -132,7 +132,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "HIPS",
             .nozzle_temperature = 220,
             .heatbed_temperature = 100,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::HIPS,
 #endif
 #if HAS_CHAMBER_API()
@@ -149,7 +149,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .name = "PP",
             .nozzle_temperature = 240,
             .heatbed_temperature = 100,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::PP,
 #endif
 #if HAS_CHAMBER_API()
@@ -167,7 +167,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .nozzle_temperature = 240,
             .nozzle_preheat_temperature = HAS_LOADCELL() ? (HAS_INDX() ? 170 : 210) : 170,
             .heatbed_temperature = 50,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::FLEX,
 #endif
 #if HAS_CHAMBER_API()
@@ -187,7 +187,7 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             .nozzle_temperature = PRINTER_IS_PRUSA_MINI() ? 280 : 285,
             .nozzle_preheat_temperature = PRINTER_IS_PRUSA_MINI() ? 280 - 25 : 285 - 25,
             .heatbed_temperature = 100,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset = PresetFilamentType::PA,
 #endif
 #if HAS_CHAMBER_API()
@@ -225,7 +225,7 @@ constexpr bool chamber_temperatures_are_within_spec(const FilamentTypeParameters
 static_assert(std::ranges::all_of(preset_filament_parameters_constexpr, chamber_temperatures_are_within_spec));
     #endif
 
-    #if HAS_FILAMENT_BASE_PRESET_PARAM()
+    #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
 constexpr bool presets_base_preset_matches() {
     for (size_t i = 0; i < static_cast<size_t>(PresetFilamentType::_count); i++) {
         if (preset_filament_parameters_constexpr[i].base_preset != static_cast<PresetFilamentType>(i)) {

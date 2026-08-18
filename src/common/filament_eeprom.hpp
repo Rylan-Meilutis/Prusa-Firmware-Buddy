@@ -1,11 +1,14 @@
 #pragma once
 
 #include "filament.hpp"
+#include "filament_material_family_storage.hpp"
 #include <utils/string/inplace_string.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
 #include <option/has_filament_base_preset_param.h>
+#include <option/has_filament_material_family_param.h>
+#include <option/has_indx.h>
 
 // For historic reasons, the FilamentTypeParameters is split across multiple structures in the EEPROM
 
@@ -25,6 +28,21 @@ public:
 
     // Keeping the remaining bits of the bitfield unused, but zero initialized, for future proofing
     uint8_t _unused : 5 = 0;
+
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+    FilamentTypeParameters::BasePreset decode_inline_base_preset() const {
+        const auto decoded = buddy::filament_material_family_storage::decode(_unused, static_cast<uint8_t>(PresetFilamentType::_count));
+        if (!decoded.has_value()) {
+            return std::nullopt;
+        }
+        return static_cast<PresetFilamentType>(*decoded);
+    }
+
+    static uint8_t encode_inline_base_preset(FilamentTypeParameters::BasePreset preset) {
+        return buddy::filament_material_family_storage::encode(
+            preset.has_value() ? std::optional<uint8_t> { static_cast<uint8_t>(*preset) } : std::nullopt);
+    }
+#endif
 
 public:
     constexpr bool operator==(const FilamentTypeParameters_EEPROM1 &) const = default;
@@ -75,7 +93,9 @@ public:
     uint8_t base_preset = none_base_preset;
 
     FilamentTypeParameters::BasePreset decode_base_preset() const {
-        return base_preset == none_base_preset ? FilamentTypeParameters::BasePreset { std::nullopt } : static_cast<PresetFilamentType>(base_preset);
+        return base_preset < static_cast<uint8_t>(PresetFilamentType::_count)
+            ? FilamentTypeParameters::BasePreset { static_cast<PresetFilamentType>(base_preset) }
+            : FilamentTypeParameters::BasePreset { std::nullopt };
     }
 
     static uint8_t encode_base_preset(FilamentTypeParameters::BasePreset preset) {

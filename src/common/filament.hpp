@@ -16,6 +16,7 @@
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
 #include <option/has_filament_base_preset_param.h>
+#include <option/has_filament_material_family_param.h>
 #include <tool_index.hpp>
 #include <filament_material.hpp>
 
@@ -75,7 +76,7 @@ public:
     /// Bed temperature for the filament, in degrees Celsius
     int16_t heatbed_temperature = 60;
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     using BasePreset = CompactOptional<PresetFilamentType, static_cast<PresetFilamentType>(0xff)>;
     static_assert(PresetFilamentType::_count < BasePreset::nullopt_value);
 
@@ -127,7 +128,7 @@ extern constinit const EnumArray<PresetFilamentType, FilamentTypeParameters, Pre
 /// APIs that label a value as "material" must use this value, not params.name.
 inline FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
     std::string_view base_name;
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     if (params.base_preset.has_value()) {
         base_name = preset_filament_parameters[*params.base_preset].name;
     }

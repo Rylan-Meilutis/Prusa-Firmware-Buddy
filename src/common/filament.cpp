@@ -118,7 +118,7 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_FILAMENT_HEATBREAK_PARAM()
                                          const FilamentTypeParameters_EEPROM3 &e3,
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
                                          const FilamentTypeParameters_EEPROM4 &e4,
 #endif
                                          std::monostate) {
@@ -127,8 +127,13 @@ FilamentTypeParameters FilamentType::parameters() const {
             .nozzle_temperature = static_cast<int16_t>(e1.nozzle_temperature),
             .nozzle_preheat_temperature = static_cast<int16_t>(e1.nozzle_preheat_temperature),
             .heatbed_temperature = e1.heatbed_temperature,
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
-            .base_preset = e4.decode_base_preset(),
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+            .base_preset =
+    #if HAS_INDX()
+                e4.decode_base_preset(),
+    #else
+                e1.decode_inline_base_preset(),
+    #endif
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
             .heatbreak_temperature = e3.heatbreak_temperature,
@@ -142,7 +147,7 @@ FilamentTypeParameters FilamentType::parameters() const {
             .is_abrasive = e1.is_abrasive,
             .is_flexible = e1.is_flexible,
         };
-        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise the initializer");
+        static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1, "Revise the initializer");
     };
 
     return std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
@@ -158,7 +163,7 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_FILAMENT_HEATBREAK_PARAM()
                 config_store().user_filament_parameters_3.get(v.index),
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
                 config_store().user_filament_parameters_4.get(v.index),
 #endif
                 std::monostate());
@@ -172,7 +177,7 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_FILAMENT_HEATBREAK_PARAM()
                 config_store().adhoc_filament_parameters_3.get(v.tool),
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
                 config_store().adhoc_filament_parameters_4.get(v.tool),
 #endif
                 std::monostate());
@@ -189,7 +194,7 @@ FilamentTypeParameters FilamentType::parameters() const {
 
 void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
     assert(can_be_renamed_to(set.name));
-    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_BASE_PRESET_PARAM() * 1, "Revise FilamentType::set_parameters");
+    static_assert(aggregate_arity<FilamentTypeParameters>() == 6 + HAS_FILAMENT_HEATBREAK_PARAM() * 1 + HAS_CHAMBER_API() * 4 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1, "Revise FilamentType::set_parameters");
 
     const FilamentTypeParameters_EEPROM1 e1 {
         .name = set.name,
@@ -201,6 +206,9 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #endif
         .is_abrasive = set.is_abrasive,
         .is_flexible = set.is_flexible,
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM() && !HAS_INDX()
+        ._unused = FilamentTypeParameters_EEPROM1::encode_inline_base_preset(set.base_preset),
+#endif
     };
     // Note - even though we're not setting requires_filtration without HAS_CHAMBER_API, it is still in the EEPROM struct to provide binary compatibility
     static_assert(aggregate_arity<FilamentTypeParameters_EEPROM1>() == 7 + 1 /* _unused */, "Revise the initializer");
@@ -222,7 +230,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
     static_assert(aggregate_arity<FilamentTypeParameters_EEPROM3>() == 1, "Revise the initializer");
 #endif
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
     const FilamentTypeParameters_EEPROM4 e4 {
         .base_preset = FilamentTypeParameters_EEPROM4::encode_base_preset(set.base_preset),
     };
@@ -241,7 +249,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #if HAS_FILAMENT_HEATBREAK_PARAM()
             config_store().user_filament_parameters_3.set(v.index, e3);
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
             config_store().user_filament_parameters_4.set(v.index, e4);
 #endif
 
@@ -253,7 +261,7 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #if HAS_FILAMENT_HEATBREAK_PARAM()
             config_store().adhoc_filament_parameters_3.set(v.tool, e3);
 #endif
-#if HAS_FILAMENT_BASE_PRESET_PARAM()
+#if HAS_INDX()
             config_store().adhoc_filament_parameters_4.set(v.tool, e4);
 #endif
 
