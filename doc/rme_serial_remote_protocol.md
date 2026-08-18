@@ -206,6 +206,19 @@ loop.
 
 ## Filament preset synchronization
 
+Loaded-filament reports keep material family and profile identity separate:
+
+```text
+loaded_filament T0 S"PLA" P"PLA-00D" O"grey" H"#808080" M"Polymaker"
+```
+
+`S` is always the authoritative polymer/material family (`PLA`, `PETG`, and
+so on). It must never contain a custom profile identifier when that profile
+has a base preset. `P` is the selected profile name and may therefore contain
+an identifier such as `PLA-00D`. Connect and Link use the equivalent
+`material` and `profile` JSON fields. Profiles without a configured base use
+their profile name as the material fallback for legacy compatibility.
+
 ```text
 @RME FILAMENT QUERY
 @RME FILAMENT CREATE slot=0 name=PLAplus base=PLA nozzle=215 preheat=170 bed=60 heatbreak=45 chamber_min=15 chamber_max=38 chamber_target=20 filtration=0 abrasive=0 flexible=0 visible=1

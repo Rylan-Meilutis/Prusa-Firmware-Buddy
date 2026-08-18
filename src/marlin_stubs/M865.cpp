@@ -18,6 +18,8 @@ void report_loaded_filaments() {
         SERIAL_ECHO("loaded_filament T");
         SERIAL_ECHO(tool.to_raw());
         SERIAL_ECHO(" S\"");
+        SERIAL_ECHO(filament_material_name(params).data());
+        SERIAL_ECHO("\" P\"");
         SERIAL_ECHO(params.name.data());
         SERIAL_ECHO("\" O\"");
         if (const auto color = filament_color::loaded(tool.to_raw())) {
@@ -30,8 +32,11 @@ void report_loaded_filaments() {
             SERIAL_ECHO("None\" H\"none");
         }
         SERIAL_ECHO("\" M\"");
-        if (const auto manufacturer = filament_manufacturer::loaded(tool.to_raw())) SERIAL_ECHO(manufacturer->name.data());
-        else SERIAL_ECHO("None");
+        if (const auto manufacturer = filament_manufacturer::loaded(tool.to_raw())) {
+            SERIAL_ECHO(manufacturer->name.data());
+        } else {
+            SERIAL_ECHO("None");
+        }
         SERIAL_ECHOLN("\"");
     }
 }
@@ -94,15 +99,23 @@ void PrusaGcodeSuite::M865() {
     if (const auto custom_slot = p.option<uint8_t, uint8_t, uint8_t>('Y', 0, filament_manufacturer::custom_slot_count - 1)) {
         std::array<char, filament_manufacturer::name_capacity> manufacturer_name {};
         const auto name = p.option<std::string_view>('N', manufacturer_name);
-        if (!name || !filament_manufacturer::set_custom(*custom_slot, *name)) SERIAL_ERROR_MSG("Manufacturer requires Y0..7 and unique N\"name\".");
+        if (!name || !filament_manufacturer::set_custom(*custom_slot, *name)) {
+            SERIAL_ERROR_MSG("Manufacturer requires Y0..7 and unique N\"name\".");
+        }
         return;
     }
     if (const auto tool = p.option<uint8_t, uint8_t, uint8_t>('K', 0, VirtualToolIndex::count - 1)) {
         std::array<char, filament_manufacturer::name_capacity> manufacturer_name {};
         const auto name = p.option<std::string_view>('N', manufacturer_name);
-        if (!name || name->empty()) { filament_manufacturer::set_loaded(*tool, std::nullopt); return; }
-        if (const auto manufacturer = filament_manufacturer::find(*name)) filament_manufacturer::set_loaded(*tool, manufacturer->id);
-        else SERIAL_ERROR_MSG("Unknown manufacturer.");
+        if (!name || name->empty()) {
+            filament_manufacturer::set_loaded(*tool, std::nullopt);
+            return;
+        }
+        if (const auto manufacturer = filament_manufacturer::find(*name)) {
+            filament_manufacturer::set_loaded(*tool, manufacturer->id);
+        } else {
+            SERIAL_ERROR_MSG("Unknown manufacturer.");
+        }
         return;
     }
     if (const auto custom_slot = p.option<uint8_t, uint8_t, uint8_t>('V', 0, filament_color::custom_slot_count - 1)) {
@@ -196,7 +209,9 @@ void PrusaGcodeSuite::M865() {
 
     if (auto load = p.option<uint8_t, uint8_t, uint8_t>('L', 0, VirtualToolIndex::count - 1)) {
         config_store().set_filament_type(VirtualToolIndex::from_raw(*load), filament_type);
-        if (requested_color) filament_color::set_loaded(*load, requested_color);
+        if (requested_color) {
+            filament_color::set_loaded(*load, requested_color);
+        }
     }
 
     if (filament_type != FilamentType::none) {

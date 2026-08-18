@@ -7,6 +7,12 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
 
 ### Additions since 6.6.2-RME
 
+  * Material telemetry now reports the base polymer family independently from
+    the selected profile. Connect and Link expose `material=PLA` with a
+    separate `profile=PLA-00D`, and loaded-filament serial reports use
+    `S"PLA"` plus `P"PLA-00D"`; profile identifiers no longer masquerade as
+    filament types.
+
   * Fixed M976 batch validation and default PA fallback selection for custom
     filament profiles: slicer material fields now match the configured base
     material family (such as `PETG`) instead of the custom preset identifier.

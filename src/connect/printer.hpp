@@ -57,6 +57,7 @@ public:
 
     struct SlotInfo {
         FilamentTypeParameters::Name material;
+        FilamentTypeParameters::Name profile;
         float temp_nozzle = 0;
 #if PRINTER_IS_PRUSA_iX()
         float temp_heatbreak = 0;

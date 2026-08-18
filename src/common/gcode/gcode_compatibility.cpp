@@ -441,7 +441,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
 
             // Check filament type
             // Don't report errors if the gcode did not provide the filament type
-            if (const auto &fn = extruder_info.filament_name; !fn.empty() && fn != "---" && fn != loaded_filament_params.name) {
+            if (const auto &fn = extruder_info.filament_name; !fn.empty() && fn != "---" && fn != filament_material_name(loaded_filament_params)) {
                 virtual_tool_fails.set(VirtualToolCheck::filament_type);
             }
 
