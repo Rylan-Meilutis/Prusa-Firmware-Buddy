@@ -875,8 +875,8 @@ void PrusaToolChanger::final_tool_change_moves(const FinalToolChangeMoves &args)
         backoff_pos.y += DOCK_BACKOFF_Y_OFFSET;
         unpark_to(backoff_pos);
     } else if (args.return_type > tool_return_t::no_return) {
-        // Move back to the original (or adjusted) position
-        unpark_to(return_position.xy()); // schedule a smooth XY transition to return_position
+        // Move back to the original (or adjusted) position.
+        mapi::park({ .x = return_position.x, .y = return_position.y });
     }
 
     // Now move down in Z
