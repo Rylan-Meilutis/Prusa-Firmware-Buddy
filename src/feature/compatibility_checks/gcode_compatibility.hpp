@@ -11,6 +11,7 @@
 #include <option/has_indx.h>
 #include <option/has_mmu2.h>
 #include <option/has_anfc.h>
+#include <option/has_toolchanger.h>
 
 #include "compatibility_checks_common.hpp"
 #include "filament_compatibility.hpp"
@@ -118,6 +119,11 @@ enum class VirtualToolCheck : uint8_t {
 #if HAS_INDX()
     /// Fails if the filament parameters are not calibrated (should happen during the load procedure)
     filament_calibrated,
+#endif
+
+#if HAS_TOOLCHANGER()
+    /// Fails if the print is trying to use a tool that is not calibrated
+    dock_position_calibrated,
 #endif
 
     _cnt
