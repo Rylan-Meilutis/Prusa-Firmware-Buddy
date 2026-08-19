@@ -62,6 +62,9 @@ std::atomic<uint8_t> heatbreak_fan_pwm = 0;
 std::atomic<uint32_t> printfan_start_ms = 0;
 std::atomic<uint32_t> heatbreak_fan_start_ms = 0;
 
+std::atomic<uint8_t> hotend_pwm_averaged { 0 };
+fpm::fixed_16_16 hotend_pwm_ema_buffer { 0 };
+
 struct LedsConfig : public indx_head::leds::LedConfig {
     using indx_head::leds::LedConfig::operator=;
     bool leds_changed = true;
@@ -176,6 +179,12 @@ void step_hotend() {
     temps_valid |= nozzle_temp_reading.valid;
 
     inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nozzle_temp_compensated_c100);
+
+    // computing averaged pwm value to show in gui
+    const fpm::fixed_16_16 pwm { inductionHeater.current_pwm() };
+    constexpr fpm::fixed_16_16 ema_weight { 0.02f };
+    hotend_pwm_ema_buffer = hotend_pwm_ema_buffer * (1 - ema_weight) + pwm * ema_weight;
+    hotend_pwm_averaged.store(static_cast<uint8_t>(hotend_pwm_ema_buffer));
 
     step_hotend_energy(dt_us);
 }
@@ -435,6 +444,10 @@ int16_t get_nozzle_temp_compensated_c100() {
 
 int16_t get_hotend_temp_raw_c100_dt_s() {
     return hotend_temp_raw_c100_dt_s.load();
+}
+
+uint8_t get_hotend_pwm_averaged() {
+    return hotend_pwm_averaged.load();
 }
 
 uint32_t get_hotend_energy_consumed_uJ() {

@@ -41,6 +41,8 @@ public:
 
     void heater_control(int32_t target_centideg, int32_t current_centideg);
 
+    uint8_t current_pwm() const;
+
 private:
     RingdownAnalysis last_analysis;
     uint16_t dcOffset;
