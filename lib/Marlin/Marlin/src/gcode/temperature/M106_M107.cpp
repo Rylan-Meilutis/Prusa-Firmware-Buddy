@@ -53,6 +53,7 @@
 #include <utils/variant_utils.hpp>
 #include <option/xbuddy_extension_variant.h>
 #include <pwm_utils.hpp>
+#include <algorithm_scale.hpp>
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
@@ -244,8 +245,14 @@ void GcodeSuite::M106() {
             if (gcode.compatibility.mk4_compatibility_mode) {
                 s = (s * 7) / 10; // Converts speed to 70% of its values
             }
-            if (gcode.compatibility.xl_compatibility_mode) {
-                s = (s * 7) / 10; // XL gcode on XLS: LDO fan needs ~70% PWM for equivalent airflow
+            if (gcode.compatibility.xl_compatibility_mode && s != 0) {
+                // Interpolate PWM values in case XL gcode is executed on XLS printer
+                // 0 means off, so keep it off - no remapping
+                // Remapping explained in BFW-8540
+                // XLS fan has at 33% PWM the same airflow as GOM at 40% PWM
+                // XLS fan has at 60% PWM the same airflow as Delta at 100% PWM (Delta has a bit higher airflow than GOM)
+                // Clamping applied outside of 20% - 100% of the original value
+                s = scale<uint32_t>(s, 20 * 255 / 100, 100 * 255 / 100, 33 * 255 / 100, 60 * 255 / 100);
             }
 #endif
 

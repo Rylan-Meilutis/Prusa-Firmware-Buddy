@@ -32,7 +32,7 @@ uint16_t print_fan_remap_pwm(PrintFanType pft, uint16_t original_pwm) {
         return remapped_pwm;
     }
     case PrintFanType::LDO_D5015G08B05X71: {
-        // LDO blower for XLS -- placeholder 1:1 mapping, pending fan characterization BFW-8618
+        // LDO blower for XLS - no need for remapping, XLS has its own print profiles
         return original_pwm;
     }
     case PrintFanType::_cnt: {
