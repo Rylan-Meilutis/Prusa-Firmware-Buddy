@@ -288,12 +288,9 @@ bool SelftestFSensors::prepare() {
 }
 
 bool SelftestFSensors::check_sensors_connected() {
-    while (std::ranges::any_of(calibrators_, [](auto *c) { return c->sensor().get_state() == FilamentSensorState::NotConnected; })) {
+    if (std::ranges::any_of(calibrators_, [](auto *c) { return c->sensor().get_state() == FilamentSensorState::NotConnected; })) {
         fsm_change_with_tool(Phase::not_connected);
         switch (marlin_server::wait_for_response(Phase::not_connected)) {
-
-        case Response::Retry:
-            break;
 
         case Response::Abort:
             return false;

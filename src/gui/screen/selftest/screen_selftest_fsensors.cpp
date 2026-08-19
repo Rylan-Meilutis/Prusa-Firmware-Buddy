@@ -160,7 +160,7 @@ class FrameNotConnected : public FramePrompt {
 
 public:
     FrameNotConnected(window_frame_t *parent, Phase phase, PhysicalToolIndex)
-        : FramePrompt(parent, phase, _("Filament sensor not connected"), _("Check if filament sensor cables are wired correctly.")) {}
+        : FramePrompt(parent, phase, _("Filament sensor not connected"), _("Turn off the printer and check that the filament sensor cables are wired correctly.")) {}
 };
 
 using FrameOfferUnload = WithConstructorArgs<FrameSpoolAndText,
