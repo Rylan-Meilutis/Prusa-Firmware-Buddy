@@ -33,6 +33,9 @@ struct Status {
     /// !!! Does not correspond to the compensated readings
     int16_t hotend_temp_raw_c100_dt_s = 0;
 
+    /// PWM (0-255) representing power flowing to nozzle
+    uint16_t hotend_pwm_averaged = 0;
+
     /// Integral of measured V × I power over time [mW × ms]
     /// Expect overflows. At 60W, overflows once in 4294967295 / 60000 / 1000000 ≈ 71 s
     uint16_t hotend_energy_consumed_uJ_lo = 0;

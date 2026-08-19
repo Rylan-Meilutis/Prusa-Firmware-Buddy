@@ -115,6 +115,9 @@ public:
         return temps_valid.load();
     }
 
+    /// PWM (0-255) representing power flowing to nozzle
+    [[nodiscard]] uint8_t get_hotend_pwm_averaged() const;
+
     /// Integral of measured V × I power [uJ]
     /// !!! Overflows periodically (~71s at 60W)
     [[nodiscard]] uint32_t get_hotend_energy_consumed_uJ() const;
@@ -190,6 +193,7 @@ private:
     std::atomic<int16_t> hotend_temp_compensated_c100 { indx_head::modbus::default_hotend_temperature_c100 };
     std::atomic<int16_t> hotend_temp_uncompensated_c100 { indx_head::modbus::default_hotend_temperature_c100 };
     std::atomic<int16_t> hotend_temp_raw_c100_dt_s { 0 };
+    std::atomic<uint8_t> hotend_pwm_averaged { 0 };
     std::atomic<uint32_t> hotend_energy_consumed_uJ { 0 };
     std::atomic<bool> temps_valid { false };
 

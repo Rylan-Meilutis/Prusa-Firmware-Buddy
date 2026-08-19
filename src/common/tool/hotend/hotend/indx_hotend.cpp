@@ -176,6 +176,7 @@ void IndxHotend::manage() {
     last_head_reset_count_ = reset_count;
 
     nozzle_temp_ = buddy::puppies::indx.get_hotend_temp_compensated();
+    nozzle_heater_pwm_ = buddy::puppies::indx.get_hotend_pwm_averaged();
 
     if (head_got_reset) {
         // Act as if nozzle target temp changed
