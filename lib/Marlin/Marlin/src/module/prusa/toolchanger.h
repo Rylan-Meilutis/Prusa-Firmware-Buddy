@@ -454,8 +454,6 @@ private:
      */
     void toolfall();
 
-    #endif
-
     /**
      * @brief Plan a smooth unparking move towards destination
      * unpark_to() should only be called after pickup() in order to plan a smooth unpark move,
@@ -464,6 +462,8 @@ private:
      * @param destination
      */
     void unpark_to(const xy_pos_t &destination);
+
+    #endif
 
     /**
      * @brief Compensate the Z offset by the specified amount
