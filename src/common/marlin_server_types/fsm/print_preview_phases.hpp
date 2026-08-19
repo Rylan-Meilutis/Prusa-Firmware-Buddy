@@ -30,6 +30,8 @@ enum class PhasesPrintPreview : PhaseUnderlyingType {
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
     wastebin_overfill_warning, ///< The print is likely to overfill the nozzle-cleaner wastebin
+    wastebin_emptying, ///< Parking and dropping the bed so the nozzle cleaner can be emptied
+    wastebin_emptied_returning, ///< The nozzle cleaner has been emptied, the printer is moving back
 #endif
     file_error, ///< Something is wrong with the gcode file
     _last = file_error
@@ -96,6 +98,8 @@ inline constexpr EnumArray<PhasesPrintPreview, PhaseResponses, CountPhases<Phase
                                                              Response::Ignore,
                                                              Response::Empty,
                                                          } },
+        { PhasesPrintPreview::wastebin_emptying, {} }, //
+        { PhasesPrintPreview::wastebin_emptied_returning, {} }, //
 #endif
         { PhasesPrintPreview::file_error, {
                                               Response::Abort,
