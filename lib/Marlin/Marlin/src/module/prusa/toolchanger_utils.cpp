@@ -300,8 +300,8 @@ void PrusaToolChangerUtils::load_tool_offsets() {
     }
 }
 
-const PrusaToolInfo &PrusaToolChangerUtils::get_tool_info(const Dwarf &dwarf, bool check_calibrated) const {
-    const PrusaToolInfo &info = tool_info[dwarf.dwarf_index()];
+const PrusaToolInfo &PrusaToolChangerUtils::get_tool_info(PhysicalToolIndex tool, bool check_calibrated) const {
+    const PrusaToolInfo &info = tool_info[tool.to_raw()];
 
     if (check_calibrated && (std::isnan(info.dock_x) || std::isnan(info.dock_y) || info.dock_x == 0 || info.dock_y == 0)) {
         toolchanger_error("Dock Position not calibrated");
@@ -310,19 +310,15 @@ const PrusaToolInfo &PrusaToolChangerUtils::get_tool_info(const Dwarf &dwarf, bo
     return info;
 }
 
-bool PrusaToolChangerUtils::is_tool_info_valid(const Dwarf &dwarf) const {
-    return is_tool_info_valid(dwarf, get_tool_info(dwarf));
-}
-
-bool PrusaToolChangerUtils::is_tool_info_valid(const Dwarf &dwarf, const PrusaToolInfo &info) const {
-    const PrusaToolInfo synthetic = compute_synthetic_tool_info(dwarf);
+bool PrusaToolChangerUtils::is_tool_info_valid(PhysicalToolIndex tool, const PrusaToolInfo &info) const {
+    const PrusaToolInfo synthetic = create_default_tool_info(tool);
     const auto dx = info.dock_x - synthetic.dock_x;
     const auto dy = info.dock_y - synthetic.dock_y;
     return sqrt(pow(dx, 2) + pow(dy, 2)) < DOCK_INVALID_OFFSET_MM;
 }
 
-void PrusaToolChangerUtils::set_tool_info(const buddy::puppies::Dwarf &dwarf, const PrusaToolInfo &info) {
-    tool_info[dwarf.dwarf_index()] = info;
+void PrusaToolChangerUtils::set_tool_info(PhysicalToolIndex tool, const PrusaToolInfo &info) {
+    tool_info[tool.to_raw()] = info;
 }
 
 void PrusaToolChangerUtils::toolchanger_error(const char *message) const {
@@ -347,9 +343,11 @@ PrusaToolChangerUtils::StepperConfigGuard::~StepperConfigGuard() {
     stepperY.stall_sensitivity(y_stall_sensitivity);
 }
 
-PrusaToolInfo PrusaToolChangerUtils::compute_synthetic_tool_info(const Dwarf &dwarf) const {
-    return PrusaToolInfo({ .dock_x = DOCK_DEFAULT_FIRST_X_MM + DOCK_OFFSET_X_MM * (dwarf.dwarf_index()),
-        .dock_y = DOCK_DEFAULT_Y_MM });
+PrusaToolInfo PrusaToolChangerUtils::create_default_tool_info(PhysicalToolIndex tool) const {
+    return PrusaToolInfo({
+        .dock_x = DOCK_DEFAULT_FIRST_X_MM + DOCK_OFFSET_X_MM * tool.to_raw(),
+        .dock_y = DOCK_DEFAULT_Y_MM,
+    });
 }
 
 void PrusaToolChangerUtils::ConfRestorer::sample() {

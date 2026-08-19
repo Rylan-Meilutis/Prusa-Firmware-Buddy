@@ -147,12 +147,6 @@ public:
         return true;
     }
 
-    const PrusaToolInfo &get_tool_info(PhysicalToolIndex tool_index, bool check_calibrated = false) const;
-    bool is_tool_info_valid(PhysicalToolIndex tool_index, const PrusaToolInfo &info) const;
-    void set_tool_info(PhysicalToolIndex tool_index, const PrusaToolInfo &info);
-
-    [[nodiscard]] PrusaToolInfo create_default_tool_info(PhysicalToolIndex tool_index) const;
-
     #else // !HAS_INDX()
 
     /**
@@ -195,11 +189,6 @@ public:
 
     buddy::puppies::Dwarf &getTool(PhysicalToolIndex tool);
 
-    const PrusaToolInfo &get_tool_info(const buddy::puppies::Dwarf &dwarf, bool check_calibrated = false) const;
-    bool is_tool_info_valid(const buddy::puppies::Dwarf &dwarf, const PrusaToolInfo &info) const;
-    bool is_tool_info_valid(const buddy::puppies::Dwarf &dwarf) const;
-    void set_tool_info(const buddy::puppies::Dwarf &dwarf, const PrusaToolInfo &info);
-
     /**
      * @brief Get binary mask of all enabled dwarfs.
      * @return high bits for dwarfs that is_enabled()
@@ -222,7 +211,6 @@ public:
         return false;
     }
 
-    [[nodiscard]] PrusaToolInfo compute_synthetic_tool_info(const buddy::puppies::Dwarf &dwarf) const;
     bool autodetect_toolchanger_enabled();
     /**
      * @brief Get picked and parked states and detect which tool is active.
@@ -256,6 +244,16 @@ public:
     /// Should be used only by PhysicalToolIndex class.
     /// Use tool.is_enabled() instead.
     bool is_tool_enabled(PhysicalToolIndex tool, Badge<PhysicalToolIndex>);
+
+    const PrusaToolInfo &get_tool_info(PhysicalToolIndex tool, bool check_calibrated = false) const;
+    [[nodiscard]] PrusaToolInfo create_default_tool_info(PhysicalToolIndex tool_index) const;
+
+    [[nodiscard]] bool is_tool_info_valid(PhysicalToolIndex tool, const PrusaToolInfo &info) const;
+    [[nodiscard]] bool is_tool_info_valid(PhysicalToolIndex tool) const {
+        return is_tool_info_valid(tool, get_tool_info(tool, false));
+    }
+
+    void set_tool_info(PhysicalToolIndex tool, const PrusaToolInfo &info);
 
     [[nodiscard]] uint8_t get_num_enabled_tools() const;
 

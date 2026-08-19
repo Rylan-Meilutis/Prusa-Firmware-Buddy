@@ -525,7 +525,7 @@ bool PrusaToolChanger::purge_tool(PhysicalToolIndex tool) {
     Fans::print(tool).set_pwm(255);
 
     // go to purge location
-    const PrusaToolInfo &info = get_tool_info(dwarf, /*check_calibrated=*/true);
+    const PrusaToolInfo &info = get_tool_info(tool, /*check_calibrated=*/true);
     move(info.dock_x - 9.9f, PURGE_Y_POSITION, feedrate_mm_s);
 
     planner.synchronize();
@@ -646,13 +646,12 @@ void PrusaToolChanger::move(const float x, const float y, const feedRate_t feedr
 }
 
 const xy_float_t PrusaToolChanger::get_tool_dock_position(PhysicalToolIndex tool, bool check_calibrated) {
-    const auto &dwarf = dwarfs[tool];
-    const auto info = PrusaToolChangerUtils::get_tool_info(dwarf, check_calibrated);
+    const auto info = PrusaToolChangerUtils::get_tool_info(tool, check_calibrated);
     return xy_float_t { info.dock_x, SAFE_Y_WITH_TOOL };
 }
 
 xy_pos_t PrusaToolChanger::tool_park_position(PhysicalToolIndex tool) {
-    const PrusaToolInfo &info = get_tool_info(dwarfs[tool], /*check_calibrated=*/false);
+    const PrusaToolInfo &info = get_tool_info(tool, /*check_calibrated=*/false);
 
     // This position should 1:1 match the initial position for tool parking
     return xy_pos_t { .x = info.dock_x + PARK_X_OFFSET_1, .y = SAFE_Y_WITH_TOOL };
@@ -673,7 +672,7 @@ bool PrusaToolChanger::park(Dwarf &dwarf) {
         return !dwarf.is_picked();
     };
 
-    const PrusaToolInfo &info = get_tool_info(dwarf, /*check_calibrated=*/true);
+    const PrusaToolInfo &info = get_tool_info(dwarf.tool_index(), /*check_calibrated=*/true);
 
     // safe target dock position
     const xy_pos_t target_pos = tool_park_position(dwarf.tool_index());
@@ -823,7 +822,7 @@ bool PrusaToolChanger::pickup(Dwarf &dwarf) {
         return !dwarf.is_parked();
     };
 
-    const PrusaToolInfo &info = get_tool_info(dwarf, /*check_calibrated=*/true);
+    const PrusaToolInfo &info = get_tool_info(dwarf.tool_index(), /*check_calibrated=*/true);
 
     const auto limited_feedrate = limit_stealth_feedrate(feedrate_mm_s);
 
