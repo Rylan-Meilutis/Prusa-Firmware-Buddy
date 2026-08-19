@@ -41,9 +41,6 @@ public:
 
     void heater_control(int32_t target_centideg, int32_t current_centideg);
 
-    /// @returns current square of the duty cycle (0-1)
-    fpm::fixed_16_16 current_duty_cycle_sq() const;
-
 private:
     RingdownAnalysis last_analysis;
     uint16_t dcOffset;

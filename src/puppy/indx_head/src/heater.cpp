@@ -196,10 +196,6 @@ void InductionHeater::heater_control(int32_t target_centideg, int32_t current_ce
     update(pwr_i);
 }
 
-fpm::fixed_16_16 InductionHeater::current_duty_cycle_sq() const {
-    return current_power == 0 ? fpm::fixed_16_16 { 0 } : intervalLUT[current_power - 1].duty_cycle_sq;
-}
-
 bool InductionHeater::should_measure() const {
     if (last_analysis.status == RingdownAnalysisStatus::VALID) {
         // When heating, we don't want to lose power to measurement.

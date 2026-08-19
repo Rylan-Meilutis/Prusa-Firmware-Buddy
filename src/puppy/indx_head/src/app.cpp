@@ -72,9 +72,6 @@ LedsConfig leds_config;
 
 std::atomic<bool> selftest_mode = false;
 
-/// Integrates (hotend duty cycle 0-1)^2 over time - in us units
-/// Overflows are expected
-std::atomic<uint32_t> hotend_duty_cycle_sq_integral_us { 0 };
 std::atomic<uint32_t> hotend_energy_consumed_uJ { 0 };
 
 /// Internally used by step_hotend_energy
@@ -179,9 +176,6 @@ void step_hotend() {
     temps_valid |= nozzle_temp_reading.valid;
 
     inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nozzle_temp_compensated_c100);
-
-    // Integrate duty cycle
-    hotend_duty_cycle_sq_integral_us += uint32_t(inductionHeater.current_duty_cycle_sq() * dt_us);
 
     step_hotend_energy(dt_us);
 }
@@ -441,10 +435,6 @@ int16_t get_nozzle_temp_compensated_c100() {
 
 int16_t get_hotend_temp_raw_c100_dt_s() {
     return hotend_temp_raw_c100_dt_s.load();
-}
-
-uint32_t get_hotend_duty_cycle_sq_integral_us() {
-    return hotend_duty_cycle_sq_integral_us.load();
 }
 
 uint32_t get_hotend_energy_consumed_uJ() {

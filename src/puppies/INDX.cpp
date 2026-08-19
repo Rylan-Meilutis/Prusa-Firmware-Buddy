@@ -114,9 +114,6 @@ CommunicationStatus Indx::read_general_status(PuppyModbus &bus) {
         hotend_temp_compensated_c100.store(block.value.hotend_measured_temperature_compensated_c100);
         hotend_temp_uncompensated_c100.store(block.value.hotend_measured_temperature_uncompensated_c100);
         hotend_temp_raw_c100_dt_s.store(block.value.hotend_temp_raw_c100_dt_s);
-        hotend_duty_cycle_sq_integral_us.store(
-            block.value.hotend_duty_cycle_sq_integral_us_lo
-            | (uint32_t(block.value.hotend_duty_cycle_sq_integral_us_hi) << 16));
         hotend_energy_consumed_uJ.store(
             block.value.hotend_energy_consumed_uJ_lo
             | (uint32_t(block.value.hotend_energy_consumed_uJ_hi) << 16));
@@ -309,10 +306,6 @@ float Indx::get_hotend_temp_uncompensated() const {
 float Indx::get_hotend_temp_raw_c_dt_s() const {
     // Sent in centiDeg (deg * 100) for precision on 2 decimal places
     return static_cast<float>(hotend_temp_raw_c100_dt_s.load()) / 100.f;
-}
-
-uint32_t Indx::get_hotend_duty_cycle_sq_integral_us() const {
-    return hotend_duty_cycle_sq_integral_us.load();
 }
 
 uint32_t Indx::get_hotend_energy_consumed_uJ() const {
