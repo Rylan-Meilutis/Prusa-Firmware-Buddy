@@ -1520,3 +1520,18 @@ INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
   actually reached and that the requested MMU slot is physically loaded
   before any measured extrusion can begin. A failed heat or load stops with
   an explicit M976 error instead of attempting empty/cold calibration moves.
+
+### Session-scoped chamber-light hold
+
+- Added `@RME LIGHT HOLD active=1|0`, allowing a connected host to hold the
+  chamber lighting controller in its saved Active profile without changing
+  persistent brightness or timeout settings.
+- Physical UI or door activity, printing, session close/replacement/timeout,
+  remote-control shutdown, emergency handling, and restart release the hold.
+  Printing takes precedence and the hold never resumes by itself.
+- `RME_LIGHT_LIVE` reports `hold=0|1`; host changes and automatic releases
+  emit the corresponding `RME_CHANGE domain=light key=hold` event. Unsupported
+  machines return a structured feature error.
+- Unit coverage exercises activation, print rejection, one-shot local events,
+  session cleanup, and non-mutating queries. The release matrix compiles both
+  side-light and no-side-light configurations.

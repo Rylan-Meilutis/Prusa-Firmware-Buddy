@@ -30,10 +30,22 @@ struct LightStatus {
     bool status_supported;
     bool door_holds_active;
     bool post_print_hold_enabled;
+    bool active_hold;
 };
 
-enum class TransferKind : uint8_t { none, file, firmware };
-struct TransferStatus { TransferKind kind; uint8_t progress; };
+enum class LightHoldResult : uint8_t { unchanged,
+    changed,
+    printer_busy,
+    unsupported };
+LightHoldResult set_light_hold(bool active);
+
+enum class TransferKind : uint8_t { none,
+    file,
+    firmware };
+struct TransferStatus {
+    TransferKind kind;
+    uint8_t progress;
+};
 void set_transfer(TransferKind kind, uint32_t completed = 0, uint32_t total = 0);
 TransferStatus transfer_status();
 

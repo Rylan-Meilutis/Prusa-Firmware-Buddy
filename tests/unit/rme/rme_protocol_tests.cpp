@@ -6,6 +6,7 @@
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
+#include <rme_light_hold.hpp>
 #include <task_stack_requirements.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
@@ -397,4 +398,65 @@ TEST_CASE("RME production header scanner covers data and control frame states", 
 TEST_CASE("firmware candidate cleanup waits for bootloader handoff") {
     CHECK_FALSE(firmware_update_handoff::candidate_cleanup_allowed(true));
     CHECK(firmware_update_handoff::candidate_cleanup_allowed(false));
+}
+
+TEST_CASE("RME light hold is transient and print-safe", "[rme][light]") {
+    rme_light_hold::State hold;
+    CHECK_FALSE(hold.active());
+    CHECK(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    CHECK(hold.active());
+    CHECK(hold.set_from_host(true, false) == rme_light_hold::SetResult::unchanged);
+    CHECK_FALSE(hold.consume_automatic_release());
+
+    hold.release_automatically();
+    CHECK_FALSE(hold.active());
+    CHECK(hold.consume_automatic_release());
+    CHECK_FALSE(hold.consume_automatic_release());
+
+    CHECK(hold.set_from_host(true, true) == rme_light_hold::SetResult::printer_busy);
+    CHECK_FALSE(hold.active());
+}
+
+TEST_CASE("RME light hold session release cannot resume", "[rme][light]") {
+    rme_light_hold::State hold;
+    REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    hold.release_with_session();
+    CHECK_FALSE(hold.active());
+    CHECK_FALSE(hold.consume_automatic_release());
+
+    REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    hold.release_automatically();
+    CHECK_FALSE(hold.active());
+    CHECK(hold.consume_automatic_release());
+    CHECK_FALSE(hold.active());
+}
+
+TEST_CASE("RME light hold automatic release is edge triggered", "[rme][light]") {
+    rme_light_hold::State hold;
+    hold.release_automatically();
+    CHECK_FALSE(hold.consume_automatic_release());
+
+    REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    hold.release_automatically();
+    hold.release_automatically();
+    CHECK(hold.consume_automatic_release());
+    CHECK_FALSE(hold.consume_automatic_release());
+
+    REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    hold.release_with_session();
+    CHECK_FALSE(hold.consume_automatic_release());
+}
+
+TEST_CASE("RME light hold queries cannot mutate or revive state", "[rme][light]") {
+    rme_light_hold::State hold;
+    REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    CHECK(hold.active());
+    CHECK(hold.active());
+    CHECK_FALSE(hold.consume_automatic_release());
+
+    hold.release_automatically();
+    CHECK_FALSE(hold.active());
+    CHECK_FALSE(hold.active());
+    CHECK(hold.consume_automatic_release());
+    CHECK_FALSE(hold.active());
 }
