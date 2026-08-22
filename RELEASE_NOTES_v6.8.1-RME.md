@@ -175,3 +175,19 @@ release tags are created.
   actually reached and that the requested MMU slot is physically loaded
   before any measured extrusion can begin. A failed heat or load stops with
   an explicit M976 error instead of attempting empty/cold calibration moves.
+
+### Session-scoped chamber-light hold
+
+- Added `@RME LIGHT HOLD active=1|0`, allowing a connected host to hold the
+  chamber lighting controller in its saved Active profile without changing
+  any persistent lighting or timeout setting.
+- Physical UI or door activity, printing, session close/replacement/timeout,
+  remote-control shutdown, emergency handling, and restart release the hold.
+  Printing always takes precedence and a released hold never resumes by
+  itself.
+- `RME_LIGHT_LIVE` reports `hold=0|1`; host changes and automatic releases
+  emit `RME_CHANGE domain=light key=hold` with the appropriate origin.
+- Unsupported machines return the structured `unsupported` light-feature
+  response. Unit coverage exercises activation, print rejection, one-shot
+  local notification, session cleanup, and non-mutating query behavior, while
+  the release matrix compiles both side-light and no-side-light targets.

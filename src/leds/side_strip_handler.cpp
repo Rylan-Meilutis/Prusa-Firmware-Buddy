@@ -84,6 +84,7 @@ void SideStripHandler::startup_activity_ping() {
 
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    rme_hold.release_automatically();
     startup_activity_active = false;
     host_idle_override = false;
     active_timestamp_ms = ticks_ms();
@@ -91,6 +92,7 @@ void SideStripHandler::activity_ping() {
 
 void SideStripHandler::event_ping() {
     std::lock_guard lock(mutex);
+    rme_hold.release_automatically();
     startup_activity_active = false;
     host_idle_override = false;
     active_timestamp_ms = ticks_ms();
@@ -98,6 +100,7 @@ void SideStripHandler::event_ping() {
 
 void SideStripHandler::idle_ping() {
     std::lock_guard lock(mutex);
+    rme_hold.release_automatically();
     startup_activity_active = false;
     host_idle_override = true;
     if (!door_open_for_leds) {
@@ -134,6 +137,7 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     }
 
     const bool was_open = door_open_for_leds;
+    rme_hold.release_automatically();
     door_open_for_leds = open;
     door_raw_data = raw_data;
 
@@ -176,14 +180,17 @@ void SideStripHandler::update() {
     std::lock_guard lock(mutex);
     const uint32_t time_ms = ticks_ms();
     const auto printer_state = marlin_vars().print_state.get();
+    const bool print_active = print_active_for_leds() && !host_idle_override;
+    if (print_active) {
+        rme_hold.release_automatically();
+    }
 
     auto &controller = controller_instance();
-    if (custom_color && (custom_color->duration_ms == 0 || time_ms - custom_color->start_ms < custom_color->duration_ms)) {
+    if (!print_active && !rme_hold.active() && custom_color && (custom_color->duration_ms == 0 || time_ms - custom_color->start_ms < custom_color->duration_ms)) {
         change_state(SideStripState::custom_color);
     } else {
         custom_color.reset();
 
-        const bool print_active = print_active_for_leds() && !host_idle_override;
         if (startup_activity_active
             && !startup_activity_within_window(startup_activity_started_ms, time_ms, startup_activity_duration_ms)) {
             startup_activity_active = false;
@@ -233,7 +240,9 @@ void SideStripHandler::update() {
                 active_timestamp_ms = time_ms;
             }
 
-            if (startup_activity_active) {
+            if (rme_hold.active()) {
+                change_state(SideStripState::active);
+            } else if (startup_activity_active) {
                 change_state(SideStripState::active);
             } else if (guided_activity) {
                 active_timestamp_ms = time_ms;
@@ -262,6 +271,43 @@ void SideStripHandler::update() {
     }
 
     controller.update();
+}
+
+rme_light_hold::SetResult SideStripHandler::set_rme_active_hold(const bool active) {
+    std::lock_guard lock(mutex);
+    const auto result = rme_hold.set_from_host(active, print_active_for_leds());
+    if (result == rme_light_hold::SetResult::changed) {
+        state = SideStripState::unknown;
+    }
+    return result;
+}
+
+void SideStripHandler::release_rme_active_hold_automatically() {
+    std::lock_guard lock(mutex);
+    if (rme_hold.active()) {
+        rme_hold.release_automatically();
+        state = SideStripState::unknown;
+    }
+}
+
+void SideStripHandler::release_rme_active_hold_with_session() {
+    std::lock_guard lock(mutex);
+    if (rme_hold.active()) {
+        rme_hold.release_with_session();
+        state = SideStripState::unknown;
+    } else {
+        rme_hold.release_with_session();
+    }
+}
+
+bool SideStripHandler::rme_active_hold() const {
+    std::lock_guard lock(mutex);
+    return rme_hold.active();
+}
+
+bool SideStripHandler::consume_rme_hold_automatic_release() {
+    std::lock_guard lock(mutex);
+    return rme_hold.consume_automatic_release();
 }
 
 void SideStripHandler::load_config() {

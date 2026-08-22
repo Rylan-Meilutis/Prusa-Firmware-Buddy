@@ -4,6 +4,7 @@
 #include "printers.h"
 #include "dimming_enabled.hpp"
 #include "light_state.hpp"
+#include <rme_light_hold.hpp>
 
 #include <freertos/mutex.hpp>
 #include <optional>
@@ -104,6 +105,11 @@ public:
     LightState current_light_state() const;
     bool chamber_light_on() const;
     SideStripState current_state() const;
+    rme_light_hold::SetResult set_rme_active_hold(bool active);
+    void release_rme_active_hold_automatically();
+    void release_rme_active_hold_with_session();
+    bool rme_active_hold() const;
+    bool consume_rme_hold_automatic_release();
 
     leds::ColorRGBW color() const;
     /// Brightest currently driven RGBW channel, including off/dim/transition state.
@@ -156,6 +162,7 @@ private:
     uint32_t startup_activity_started_ms = 0;
     bool startup_activity_active = true;
     std::optional<CustomColorState> custom_color;
+    rme_light_hold::State rme_hold;
 };
 
 } // namespace leds

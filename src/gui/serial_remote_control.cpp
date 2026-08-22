@@ -9,6 +9,7 @@
 #include <option/has_side_leds.h>
 #include <timing.h>
 #include <state/printer_state.hpp>
+#include <serial_printing.hpp>
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
     #include <leds/status_leds_handler.hpp>
@@ -77,6 +78,9 @@ namespace {
 void set_enabled(const bool enabled) {
     control_enabled.store(enabled, std::memory_order_release);
     if (!enabled) {
+#if HAS_SIDE_LEDS()
+        leds::SideStripHandler::instance().release_rme_active_hold_automatically();
+#endif
         clear_queue();
     }
 }
@@ -129,6 +133,7 @@ LightStatus light_status() {
         .status_supported = false,
         .door_holds_active = false,
         .post_print_hold_enabled = false,
+        .active_hold = false,
     };
 #if HAS_SIDE_LEDS()
     auto &side = leds::SideStripHandler::instance();
@@ -146,6 +151,7 @@ LightStatus light_status() {
     result.off_timeout_s = side.get_off_timeout_s();
     result.door_holds_active = side.get_door_holds_active();
     result.post_print_hold_enabled = side.get_post_print_hold_enabled();
+    result.active_hold = side.rme_active_hold();
     constexpr std::array<leds::LightState, 4> states {
         leds::LightState::deep_idle,
         leds::LightState::idle,
@@ -166,6 +172,20 @@ LightStatus light_status() {
     result.status_supported = true;
 #endif
     return result;
+}
+
+LightHoldResult set_light_hold(const bool active) {
+#if HAS_SIDE_LEDS()
+    switch (leds::SideStripHandler::instance().set_rme_active_hold(active)) {
+    case rme_light_hold::SetResult::unchanged:
+        return LightHoldResult::unchanged;
+    case rme_light_hold::SetResult::changed:
+        return LightHoldResult::changed;
+    case rme_light_hold::SetResult::printer_busy:
+        return LightHoldResult::printer_busy;
+    }
+#endif
+    return LightHoldResult::unsupported;
 }
 
 void set_temporary_lights(const int16_t screen, const int16_t chamber, const int16_t status) {
@@ -214,6 +234,9 @@ void set_persistent_lights(const uint32_t screen, const uint32_t chamber, const 
 }
 
 void open_session(const uint8_t subscriptions, const bool legacy_notifications) {
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().release_rme_active_hold_with_session();
+#endif
     protocol_subscriptions.store(subscriptions, std::memory_order_release);
     protocol_legacy_notifications.store(legacy_notifications, std::memory_order_release);
     protocol_event_sequence.store(0, std::memory_order_release);
@@ -228,6 +251,9 @@ void keepalive_session() {
 }
 
 void close_session() {
+#if HAS_SIDE_LEDS()
+    leds::SideStripHandler::instance().release_rme_active_hold_with_session();
+#endif
     protocol_session_active.store(false, std::memory_order_release);
     protocol_subscriptions.store(0, std::memory_order_release);
     protocol_legacy_notifications.store(true, std::memory_order_release);
@@ -267,6 +293,12 @@ uint32_t next_configuration_revision() {
 }
 
 void process_gui() {
+    (void)session_active();
+#if HAS_SIDE_LEDS()
+    if (leds::SideStripHandler::instance().consume_rme_hold_automatic_release()) {
+        SerialPrinting::notify_configuration("light", "hold", false);
+    }
+#endif
     if (refresh_requested.exchange(false, std::memory_order_acq_rel)) {
         if (auto *screen = Screens::Access()->Get()) {
             screen->Invalidate();

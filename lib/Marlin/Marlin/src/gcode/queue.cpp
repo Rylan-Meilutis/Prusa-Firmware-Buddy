@@ -683,7 +683,26 @@ static bool handle_remote_light_service(const std::string_view command) {
     SERIAL_ECHOPGM(" print_screen="); SERIAL_ECHO(lights.print_screen);
     SERIAL_ECHOPGM(" print_chamber="); SERIAL_ECHO(lights.print_chamber);
     SERIAL_ECHOPGM(" print_status="); SERIAL_ECHO(lights.print_status);
+    SERIAL_ECHOPGM(" hold="); SERIAL_ECHO(lights.active_hold ? 1 : 0);
     SERIAL_EOL();
+  } else if (action.starts_with("HOLD")) {
+    if (!serial_remote_control::session_active()) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=session_required");
+      return true;
+    }
+    const auto active = remote_number(command, "active");
+    if (!active || (*active != 0 && *active != 1)) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=invalid_argument field=active");
+      return true;
+    }
+    const auto result = serial_remote_control::set_light_hold(*active == 1);
+    if (result == serial_remote_control::LightHoldResult::unsupported) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=unsupported feature=light_hold");
+    } else if (result == serial_remote_control::LightHoldResult::printer_busy) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=printer_busy");
+    } else if (result == serial_remote_control::LightHoldResult::changed) {
+      SerialPrinting::notify_configuration("light", "hold", true, remote_transaction(command).value_or(0));
+    }
   } else if (action.starts_with("TEMP")) {
     const auto screen = remote_number(command, "screen").value_or(-1);
     const auto chamber = remote_number(command, "chamber").value_or(-1);
