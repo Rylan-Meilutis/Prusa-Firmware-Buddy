@@ -36,6 +36,10 @@ publishing the refreshed `v6.6.3-RME` and `v6.8.1-RME` releases.
 - `.rme-part`, `.rme-meta`, `.rme-tmp`, `.rme-old`, `FWUPD.RME`, and `FWUPD.UI`
   remain hidden from Connect and ordinary RME listings while explicit,
   manifest-driven RME resume/abort/unstage can manage them.
+- The volatile RME light hold is owned by the current session and never enters
+  config-store persistence. Print detection, local activity, door changes,
+  session teardown, and remote-control shutdown all converge on tested,
+  idempotent release paths.
 
 ## Preserved protocol and performance properties
 
@@ -65,6 +69,9 @@ handler integration guide for the complete state machine.
 - RME parser/unit tests cover token-bounded parameters, full-width transaction
   IDs, strict numeric/path decoding, complete action tokens, binary byte-loss,
   duplicate/corrupt/oversized frames, recovery controls, and abort states.
+- Light-hold tests cover supported state transitions independently of hardware
+  and the combined firmware matrix compiles both `HAS_SIDE_LEDS` branches,
+  including the structured unsupported response on MINI-class machines.
 - Connect tests cover private-file classification including `.rme-tmp`.
 - Both branches are built with the canonical multi-version release command:
   `./build.py --final --versions 6.6.3 6.8.1 --jobs 15`.
