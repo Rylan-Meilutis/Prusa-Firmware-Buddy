@@ -65,6 +65,7 @@ GCodeQueue queue;
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <option/has_chamber_filtration_api.h>
+#include <option/has_side_leds.h>
 #if __has_include(<option/has_wastebin_fill_tracking.h>)
   #include <option/has_wastebin_fill_tracking.h>
   #define RME_HAS_WASTEBIN_FILL_TRACKING() HAS_WASTEBIN_FILL_TRACKING()
@@ -683,9 +684,12 @@ static bool handle_remote_light_service(const std::string_view command) {
     SERIAL_ECHOPGM(" print_screen="); SERIAL_ECHO(lights.print_screen);
     SERIAL_ECHOPGM(" print_chamber="); SERIAL_ECHO(lights.print_chamber);
     SERIAL_ECHOPGM(" print_status="); SERIAL_ECHO(lights.print_status);
+#if HAS_SIDE_LEDS()
     SERIAL_ECHOPGM(" hold="); SERIAL_ECHO(lights.active_hold ? 1 : 0);
+#endif
     SERIAL_EOL();
   } else if (action.starts_with("HOLD")) {
+#if HAS_SIDE_LEDS()
     if (!serial_remote_control::session_active()) {
       SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=session_required");
       return true;
@@ -703,6 +707,9 @@ static bool handle_remote_light_service(const std::string_view command) {
     } else if (result == serial_remote_control::LightHoldResult::changed) {
       SerialPrinting::notify_configuration("light", "hold", true, remote_transaction(command).value_or(0));
     }
+#else
+    SERIAL_ECHOLNPGM("echo:RME_ERROR code=unsupported feature=hold");
+#endif
   } else if (action.starts_with("TEMP")) {
     const auto screen = remote_number(command, "screen").value_or(-1);
     const auto chamber = remote_number(command, "chamber").value_or(-1);

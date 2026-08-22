@@ -198,7 +198,8 @@ RME_LIGHT_POLICY activity_timeout_s=120 event_timeout_s=300 off_timeout_s=120 do
 RME_LIGHT_LIVE state=idle screen=20 chamber=20 print_screen=60 print_chamber=100 print_status=100 hold=0
 ```
 
-`LIGHT HOLD active=1` is a volatile, session-owned request to keep the lighting
+On supported machines, `LIGHT HOLD active=1` is a volatile, session-owned
+request to keep the lighting
 controller in its saved Active state. It changes no saved brightness, timeout,
 print-light, or external-light setting. `active=0` releases it immediately.
 Physical UI or door activity, session close/replacement/timeout, disconnect,
@@ -207,8 +208,7 @@ always takes precedence and the hold does not return when a print finishes.
 Queries and keepalives do not create or extend a hold. A changed host request
 emits `RME_CHANGE domain=light key=hold origin=host tx=<transaction>`; an
 automatic release emits the same change with `origin=local`. Machines without
-side/chamber lighting return `workflow=light code=unsupported
-feature=light_hold`.
+side/chamber lighting return `code=unsupported feature=hold`.
 
 Unsupported channels are identified by the `*_supported=0` fields and use
 zero for their saved matrix and `-1` for unavailable live/override values.

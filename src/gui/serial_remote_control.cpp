@@ -174,8 +174,8 @@ LightStatus light_status() {
     return result;
 }
 
-LightHoldResult set_light_hold(const bool active) {
 #if HAS_SIDE_LEDS()
+LightHoldResult set_light_hold(const bool active) {
     switch (leds::SideStripHandler::instance().set_rme_active_hold(active)) {
     case rme_light_hold::SetResult::unchanged:
         return LightHoldResult::unchanged;
@@ -184,9 +184,9 @@ LightHoldResult set_light_hold(const bool active) {
     case rme_light_hold::SetResult::printer_busy:
         return LightHoldResult::printer_busy;
     }
-#endif
     return LightHoldResult::unsupported;
 }
+#endif
 
 void set_temporary_lights(const int16_t screen, const int16_t chamber, const int16_t status) {
     if (screen >= 0 && screen <= 100) {
