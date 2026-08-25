@@ -1,9 +1,8 @@
-#
 #: src/gui/screen/screen_filament_change.cpp:92
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-13 09:24+0200\n"
+"POT-Creation-Date: 2026-08-26 14:52+0200\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,7 +29,7 @@ msgstr ""
 "%d\n"
 "%s"
 
-#: src/gui/MItem_tools.cpp:806
+#: src/gui/MItem_tools.cpp:807
 msgid ""
 "\n"
 "Loading settings finished.\n"
@@ -199,7 +198,7 @@ msgstr ""
 msgid "4 DOCKS"
 msgstr "4 DOCKS"
 
-#: src/gui/MItem_tools.cpp:663
+#: src/gui/MItem_tools.cpp:664
 msgid "5V Voltage"
 msgstr "Tension 5V"
 
@@ -207,12 +206,11 @@ msgstr "Tension 5V"
 msgid "8 DOCKS"
 msgstr "8 DOCKS"
 
-#. window_menu
-#: src/gui/MItem_tools.cpp:345
+#: src/gui/MItem_tools.cpp:344
 msgid "A crash dump is being saved."
 msgstr "Une copie de la mémoire vive est en cours d'enregistrement."
 
-#: src/gui/MItem_tools.cpp:349
+#: src/gui/MItem_tools.cpp:350
 msgid "A crash dump report (file dump.bin) has been saved to the USB drive."
 msgstr ""
 "Un rapport de vidage de mémoire suite à une panne (file dump.bin) a été "
@@ -315,7 +313,7 @@ msgstr "Annulé."
 msgid "Absorbing heat"
 msgstr "Absorption de chaleur"
 
-#: src/gui/frame_calibration_common.cpp:16
+#: src/gui/frame_calibration_common.cpp:18
 msgid ""
 "Accelerometer is not responding. Turn off the printer and make sure the "
 "accelerometer cable is connected to the main board. You can also abort the "
@@ -392,7 +390,7 @@ msgstr "Outil d'alignement"
 msgid "Alignment issue detected"
 msgstr "Problème d'alignement détecté"
 
-#: src/gui/MItem_tools.cpp:744
+#: src/gui/MItem_tools.cpp:745
 msgid "All"
 msgstr "Tous"
 
@@ -416,7 +414,7 @@ msgstr "Tous les tests ont été réussis avec succès."
 msgid "Alt fan correction"
 msgstr "Correction du ventilateur alt."
 
-#: src/gui/MItem_tools.cpp:876
+#: src/gui/MItem_tools.cpp:877
 msgid "Always"
 msgstr "Toujours"
 
@@ -437,10 +435,8 @@ msgstr ""
 "le dock sélectionné est le bon et vide, puis réessayez."
 
 #: tmp_error_headers/error_list.hpp:219
-msgid "An unexpected obstruction was detected in the vent control area."
-msgstr ""
-"Un obstacle inattendu a été détecté dans la zone de contrôle de la "
-"ventilation."
+msgid "An unexpected obstruction was detected in the dock area."
+msgstr "Un obstacle inattendu a été détecté dans la zone du dock."
 
 #: src/gui/wizard/selftest_frame_dock.cpp:43
 #, c-format
@@ -480,7 +476,7 @@ msgstr ""
 msgid "Ask"
 msgstr "Demander"
 
-#: src/gui/MItem_tools.cpp:374
+#: src/gui/MItem_tools.cpp:375
 msgid "Assist"
 msgstr "Aider"
 
@@ -515,7 +511,7 @@ msgstr ""
 msgid "Auto"
 msgstr "Auto"
 
-#: src/gui/MItem_tools.cpp:204
+#: src/gui/MItem_tools.cpp:197
 msgid "Auto Home"
 msgstr "Prise d'origine Auto"
 
@@ -586,7 +582,7 @@ msgstr ""
 msgid "BED LEVEL CORRECTION"
 msgstr "CORRECTION DU NIVELLEMENT DU PLATEAU"
 
-#: src/gui/screen_menu_board_info.cpp:111
+#: src/gui/screen_menu_board_info.cpp:128
 msgid "BOARD INFO"
 msgstr "INFOS DE LA CARTE"
 
@@ -646,11 +642,11 @@ msgid "Bed Temp"
 msgstr "Température du plateau"
 
 #: src/gui/screen/filament/screen_filament_detail.cpp:109
-#: src/gui/MItem_tools.cpp:540
+#: src/gui/MItem_tools.cpp:541
 msgid "Bed Temperature"
 msgstr "Température du Plateau"
 
-#: src/gui/MItem_tools.cpp:634
+#: src/gui/MItem_tools.cpp:635
 msgid "Bed Voltage"
 msgstr "Tension du plateau"
 
@@ -727,7 +723,7 @@ msgstr ""
 "Avant de continuer, déchargez le filament. Appuyez ensuite sur la pièce "
 "bleue du raccord et retirez le tube PTFE de la tête de l'outil."
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:39
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:56
 msgid "Before you proceed, make sure filament is unloaded from the Nextruder."
 msgstr ""
 "Avant de continuer, assurez-vous que le filament est déchargé du Nextruder."
@@ -749,7 +745,7 @@ msgstr "Noire"
 msgid "Board Info"
 msgstr "Infos de la carte"
 
-#: src/gui/MItem_tools.cpp:679
+#: src/gui/MItem_tools.cpp:680
 msgid "Board Temperature"
 msgstr "Température de la Carte"
 
@@ -878,7 +874,7 @@ msgstr "PARAMÈTRES PERSONNALISÉS"
 msgid "Calibrate"
 msgstr "Calibrer"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:75
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:68
 msgid "Calibrate Dock Position"
 msgstr "Calibrer la Position du Dock"
 
@@ -999,7 +995,7 @@ msgstr "Annuler Objet"
 msgid "Canceled"
 msgstr "Annulé"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:530
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:550
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -1128,13 +1124,13 @@ msgstr ""
 "Température de la chambre critique. Interruption de l'impression pour éviter "
 "d'endommager l'imprimante."
 
+#: src/gui/MItem_filament.hpp:36
+msgid "Change All"
+msgstr "Tout modifier"
+
 #: src/gui/MItem_filament.hpp:28
 msgid "Change Filament"
 msgstr "Changer le Filament"
-
-#: src/gui/MItem_filament.hpp:36
-msgid "Change Filament in All Tools"
-msgstr "Changer le filament de Tous les Outils"
 
 #: src/gui/menu_item/specific/menu_items_chamber_filtration.cpp:149
 msgid "Change Filter"
@@ -1193,11 +1189,6 @@ msgstr "Vérifiez tous les outils s'ils sont correctement stationnés ou saisis.
 #: src/feature/compatibility_checks/filament_compatibility.cpp:40
 msgid "Check idler door"
 msgstr "Vérifiez la porte de l'idler"
-
-#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
-msgid "Check if filament sensor cables are wired correctly."
-msgstr ""
-"Vérifiez si les câbles du capteur de filament sont correctement connectés."
 
 #: tmp_error_headers/error_list.hpp:786
 msgid "Check that the accelerometer cable is plugged in and not damaged."
@@ -1303,7 +1294,7 @@ msgstr ""
 "Fermez la porte pour éviter les courants d'air, les brulures et autres "
 "effets indésirables."
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:85
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:106
 msgid ""
 "Close the idler door and secure it with the swivel. The calibration is done!"
 msgstr ""
@@ -1374,7 +1365,7 @@ msgstr "Calcul du meilleur shaper..."
 msgid "Confirm"
 msgstr "Confirmer"
 
-#: src/gui/MItem_tools.cpp:815
+#: src/gui/MItem_tools.cpp:816
 msgid "Connect"
 msgstr "Connecter"
 
@@ -1433,7 +1424,7 @@ msgstr "Ventilateurs de refroidissement"
 msgid "Cooling the nozzle"
 msgstr "Refroidissement de la buse"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:103
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:96
 msgid "Could not park the tool. Calibration preserved."
 msgstr "Impossible de stationner l'outil. Calibration conservée."
 
@@ -1560,7 +1551,7 @@ msgstr "Erreur DNS"
 msgid "DOCK CALIBRATION"
 msgstr "CALIBRATION DU DOCK"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:116
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:109
 msgid "DOCK POSITION"
 msgstr "POSITION DU DOCK"
 
@@ -1576,7 +1567,7 @@ msgstr "FINI"
 msgid "DOOR OPEN"
 msgstr "PORTE OUVERTE"
 
-#: src/feature/door_sensor_calibration/screen_door_sensor_calibration.cpp:70
+#: src/feature/door_sensor_calibration/screen_door_sensor_calibration.cpp:66
 msgid "DOOR SENSOR CALIBRATION"
 msgstr "CALIBRATION DU CAPTEUR DE PORTE"
 
@@ -1618,7 +1609,7 @@ msgstr "Détection de la plaque en acier"
 msgid "Device Hash In QR"
 msgstr "Hachage de l'appareil dans le QR"
 
-#: src/gui/MItem_tools.cpp:327
+#: src/gui/MItem_tools.cpp:320
 msgid "Disable Motors"
 msgstr "Désactiver les Moteurs"
 
@@ -1648,7 +1639,7 @@ msgstr "Déconnecter"
 msgid "Disengaging idler"
 msgstr "Désengagement de l'idler"
 
-#: src/gui/MItem_tools.cpp:950
+#: src/gui/MItem_tools.cpp:951
 msgid "Display Refresh Speed"
 msgstr "Vitesse de rafraîchissement de l'écran"
 
@@ -1814,6 +1805,10 @@ msgstr "Dock %i"
 msgid "Dock %u"
 msgstr "Dock %u"
 
+#: tmp_error_headers/error_list.hpp:218
+msgid "Dock Area Obstruction"
+msgstr "Obstruction de la zone du dock"
+
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:22
 #: src/gui/selftest_action_helpers.cpp:105
 #: src/gui/wizard/selftest_frame_dock.cpp:22
@@ -1836,7 +1831,7 @@ msgstr "Calibration de la position du dock"
 msgid "Dock X"
 msgstr "Dock X"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:57
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:50
 msgid "Dock Y"
 msgstr "Dock Y"
 
@@ -1849,6 +1844,17 @@ msgid "Dock fan is not spinning. Check for debris and inspect the wiring."
 msgstr ""
 "Le ventilateur du dock ne tourne pas. Vérifiez la présence de débris et "
 "inspectez le câblage."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:219
+msgid ""
+"Dock position calibration needs to be performed before the tool can be used."
+msgstr ""
+"La calibration de la position du dock doit être effectuée avant d'utiliser "
+"l'outil."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+msgid "Dock position not calibrated"
+msgstr "Position du dock non calibrée"
 
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:30
 msgid "Dock positions have been successfully calibrated and saved."
@@ -1870,7 +1876,7 @@ msgstr "Ne touchez pas l'extrudeur."
 msgid "Done"
 msgstr "Fini"
 
-#: src/gui/selftest_action_helpers.cpp:80 src/gui/MItem_tools.cpp:687
+#: src/gui/selftest_action_helpers.cpp:80 src/gui/MItem_tools.cpp:688
 #: src/gui/MItem_hardware.hpp:101
 msgid "Door Sensor"
 msgstr "Capteur de porte"
@@ -2136,7 +2142,7 @@ msgstr ""
 msgid "Error invalid selftest state"
 msgstr "Erreur état de selftest non valide"
 
-#: src/gui/MItem_tools.cpp:351
+#: src/gui/MItem_tools.cpp:352
 msgid ""
 "Error saving crash dump report to the USB drive. Please reinsert the USB "
 "drive and try again."
@@ -2172,7 +2178,7 @@ msgstr "Joints d'expansion Gen 2"
 msgid "Export Public Key"
 msgstr "Exporter la clé publique"
 
-#: src/gui/MItem_tools.cpp:257
+#: src/gui/MItem_tools.cpp:250
 msgid "Extended"
 msgstr "Étendu"
 
@@ -2232,7 +2238,7 @@ msgstr "INFOS VENTILATEUR"
 msgid "FIL. ALREADY LOADED"
 msgstr "FIL. DÉJÀ CHARGÉ"
 
-#: src/common/client_response_texts.hpp:44 src/gui/screen_menu_filament.hpp:38
+#: src/common/client_response_texts.hpp:44 src/gui/screen_menu_filament.hpp:39
 msgid "FILAMENT"
 msgstr "FILAMENT"
 
@@ -2257,7 +2263,7 @@ msgstr "ALERTE CHARGEMENT DU FILAMENT"
 msgid "FILAMENT MANAGEMENT"
 msgstr "GESTION DES FILAMENTS"
 
-#: src/gui/screen/screen_print_preview.cpp:177
+#: src/gui/screen/screen_print_preview.cpp:183
 msgid "FILAMENT MAPPING"
 msgstr "ATTRIBUTION DE FILAMENT"
 
@@ -2413,7 +2419,7 @@ msgstr ""
 msgid "Fail Stats"
 msgstr "Statistiques Échec"
 
-#: src/gui/MItem_tools.cpp:801
+#: src/gui/MItem_tools.cpp:802
 msgid "Failed"
 msgstr "Échoué"
 
@@ -2514,7 +2520,7 @@ msgstr ""
 msgid "Failed to open file"
 msgstr "Échec de l'ouverture du fichier"
 
-#: src/gui/MItem_tools.cpp:979
+#: src/gui/MItem_tools.cpp:980
 #, c-format
 msgid "Failed to open file '%s' for writing."
 msgstr "Échec de l'ouverture du fichier '%s' pour l'écriture."
@@ -2625,7 +2631,7 @@ msgstr "Changement de Filament"
 msgid "Filament Sensing"
 msgstr "Détection de filament"
 
-#: src/gui/MItem_tools.hpp:42 src/gui/MItem_tools.cpp:597
+#: src/gui/MItem_tools.hpp:42 src/gui/MItem_tools.cpp:598
 msgid "Filament Sensor"
 msgstr "Capteur de Filament"
 
@@ -2696,7 +2702,7 @@ msgid "Filament is abrasive, but tool does not have hardened nozzle installed."
 msgstr ""
 "Le filament est abrasif, mais l'outil n'a pas de buse renforcée installée."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:205
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:209
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2716,7 +2722,7 @@ msgstr "Le chargement du filament a expiré."
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "Le filament doit être chauffé et repoussé vers la buse."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:204
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:208
 msgid "Filament not calibrated"
 msgstr "Filament non calibré"
 
@@ -2731,7 +2737,7 @@ msgstr ""
 "Sélectionnez DÉSACTIVER CF pour désactiver le capteur de filament et "
 "continuer l'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:177
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:181
 msgid "Filament not loaded"
 msgstr "Filament non chargé"
 
@@ -2790,7 +2796,7 @@ msgid "Filament sensor not ready: perform calibration first."
 msgstr ""
 "Le capteur de filament n'est pas prêt : procédez d'abord à la calibration."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:195
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:199
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -2899,7 +2905,7 @@ msgstr "Finalisation des gcodes en mémoire tampon"
 msgid "Finishing moves"
 msgstr "Fin des mouvements"
 
-#: src/gui/frame_calibration_common.cpp:41
+#: src/gui/frame_calibration_common.cpp:43
 msgid ""
 "Firmly attach the accelerometer to the extruder (remove silicone sock if "
 "necessary). In the next step, extruder will start moving and calibration "
@@ -2909,7 +2915,7 @@ msgstr ""
 "silicone si nécessaire). À l'étape suivante, l'extrudeur commencera à se "
 "déplacer et les données de calibration seront collectées."
 
-#: src/gui/frame_calibration_common.cpp:51
+#: src/gui/frame_calibration_common.cpp:53
 msgid ""
 "Firmly attach the accelerometer to the heatbed. In the next step, heatbed "
 "will start moving and calibration data will be collected."
@@ -3011,7 +3017,7 @@ msgstr ""
 "Échec de la vérification de la signature du firmware !\n"
 "Seul le firmware officiel signé peut être flashé."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:71
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:75
 msgid "Firmware update required"
 msgstr "Mise à jour du firmware requise"
 
@@ -3072,7 +3078,7 @@ msgstr "Err de flashage"
 msgid "Flow Factor"
 msgstr "Facteur de Débit"
 
-#: src/gui/screen_menu_tune.hpp:92
+#: src/gui/screen_menu_tune.hpp:74
 msgid "Flow Factors"
 msgstr "Facteurs de débit"
 
@@ -3080,7 +3086,7 @@ msgstr "Facteurs de débit"
 msgid "Footer"
 msgstr "Pied de page"
 
-#: src/gui/MItem_tools.cpp:748
+#: src/gui/MItem_tools.cpp:749
 msgid "For Filament Change, Preheat"
 msgstr "Pour le changement de filament, Préchauffez"
 
@@ -3138,7 +3144,7 @@ msgstr "Compatibilité du G-Code"
 msgid "G-Code Level"
 msgstr "Niveau de G-code"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:54
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:58
 msgid "G-Code compatibility mode"
 msgstr "Mode de compatibilité du G-code"
 
@@ -3152,7 +3158,7 @@ msgstr "Filaments du G-Code (%i)"
 msgid "G-Code incompatibilities detected"
 msgstr "Incompatibilités de G-code détectées"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:80
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:84
 msgid ""
 "G-Code is not sliced with Input Shaping support. Slicing with IS "
 "significantly shortens printing time."
@@ -3160,7 +3166,7 @@ msgstr ""
 "Le G-code n'est pas découpé avec la prise en charge de l'Input Shaping. Le "
 "découpage avec IS réduit considérablement le temps d'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:89
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:93
 msgid ""
 "G-Code is not sliced with newest INDX profiles. There will be some issues "
 "with the print."
@@ -3168,7 +3174,7 @@ msgstr ""
 "Le G-code n'est pas découpé avec les profils INDX les plus récents. Il y "
 "aura quelques problèmes avec l'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:99
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:103
 msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
@@ -3176,7 +3182,7 @@ msgstr ""
 "Le G-code est découpé pour le MMU, mais le MMU n'est pas activé sur "
 "l'imprimante. Impossible d'imprimer."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:186
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:190
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3184,21 +3190,21 @@ msgstr ""
 "Le G-code est découpé pour un type de filament différent de celui "
 "actuellement chargé dans l'outil assigné."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:46
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:50
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr ""
 "Le G-code est découpé pour une imprimante différente et n'est pas compatible."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:146
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:150
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "Le G-code est découpé pour un diamètre d'outil différent."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:55
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:59
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr ""
 "Le G-code est découpé pour un modèle d'imprimante différent, mais compatible."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:154
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:158
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3206,7 +3212,7 @@ msgstr ""
 "Le G-code est découpé pour une buse durcie. Les buses non durcies peuvent "
 "être endommagées par l'abrasivité du matériau."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:162
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:166
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3214,7 +3220,7 @@ msgstr ""
 "Le G-code est découpé pour une buse à haut débit. L'impression avec une buse "
 "standard peut entraîner une sous-extrusion et des sauts de l'extrudeur."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:170
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:174
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3225,18 +3231,18 @@ msgstr ""
 "d'une impression MMU avec une buse à haut débit peut entraîner une dérive de "
 "couleur."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:72
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:76
 msgid ""
 "G-Code requires features from a newer firmare version to function properly."
 msgstr ""
 "Le G-Code nécessite des fonctionnalités d'une version plus récente du "
 "firmware pour fonctionner correctement."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:116
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:120
 msgid "G-Code requires more tools than are currently enabled."
 msgstr "Le G-code nécessite plus d'outils que ceux actuellement activés."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:108
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:112
 msgid "G-Code requires some features the printer does not have."
 msgstr ""
 "Le G-code nécessite certaines fonctionnalités dont l'imprimante ne dispose "
@@ -3257,7 +3263,7 @@ msgstr ""
 "Nom d'identité : %s\n"
 "Hachage de la clé d'identité : %s"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:232
 msgid "G-Code tool is not mapped."
 msgstr "L'outil du G-Code n'est pas attribué."
 
@@ -3270,7 +3276,7 @@ msgstr ""
 "tout problème ou utilisez une clé USB différente. Appuyez sur Continuer pour "
 "reprendre l'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:63
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:67
 msgid "G-Code version mismatch"
 msgstr "Incompatibilité de version du G-code"
 
@@ -3288,7 +3294,7 @@ msgstr ""
 msgid "GCode Tool %i"
 msgstr "Outil du GCode %i"
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:11
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:14
 msgid "GEARBOX ALIGNMENT"
 msgstr "ALIGNEMENT DU RÉDUCTEUR"
 
@@ -3324,7 +3330,11 @@ msgstr ""
 msgid "Gearbox Alignment"
 msgstr "Alignement du réducteur"
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:61
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:23
+msgid "Gearbox alignment"
+msgstr "Alignement du réducteur"
+
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:80
 msgid "Gearbox alignment in progress, please wait (approx. 20 seconds)"
 msgstr ""
 "Alignement du réducteur en cours, veuillez patienter (environ 20 secondes)"
@@ -3349,7 +3359,7 @@ msgstr "Génération de la clé de chiffrement..."
 msgid "Gone"
 msgstr "Disparu"
 
-#: src/feature/door_sensor_calibration/screen_door_sensor_calibration.cpp:41
+#: src/feature/door_sensor_calibration/screen_door_sensor_calibration.cpp:42
 msgid ""
 "Grab the door in the middle, place your fingers behind it, and close it as "
 "shown in the picture. Then confirm."
@@ -3397,7 +3407,7 @@ msgstr ""
 "La HAL a détecté une erreur I2C non définie lors de l'envoi de données via "
 "I2C."
 
-#: src/feature/factory_reset/factory_reset.cpp:116
+#: src/feature/factory_reset/factory_reset.cpp:113
 msgid "HARD RESET"
 msgstr "RÉINITIALISATION TOTALE"
 
@@ -3651,7 +3661,7 @@ msgstr ""
 msgid "Heated bed is operating outside of specification."
 msgstr "Le plateau chauffant fonctionne en dehors des spécifications."
 
-#: src/gui/MItem_tools.cpp:645
+#: src/gui/MItem_tools.cpp:646
 msgid "Heater Current"
 msgstr "Courant de l'élément de chauffe"
 
@@ -3659,7 +3669,7 @@ msgstr "Courant de l'élément de chauffe"
 msgid "Heater Test"
 msgstr "Test de l'élément chauffant"
 
-#: src/gui/MItem_tools.cpp:640
+#: src/gui/MItem_tools.cpp:641
 msgid "Heater Voltage"
 msgstr "Tension de l'élément de chauffe"
 
@@ -3790,7 +3800,7 @@ msgstr ""
 "Bonjour, je suis votre imprimante Prusa CORE One.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/MItem_tools.cpp:946
+#: src/gui/MItem_tools.cpp:947
 msgid "High"
 msgstr "Élevé"
 
@@ -3805,7 +3815,7 @@ msgstr "Accueil"
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
 #: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:22
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:23
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:29
 #: src/gui/screen_phase_stepping_calibration.cpp:42
 #: src/gui/screen/screen_filament_change.cpp:80
 #: src/gui/screen_crash_recovery.cpp:94 src/gui/screen_crash_recovery.cpp:262
@@ -4042,7 +4052,7 @@ msgstr "Inactif"
 msgid "Incompatible filament"
 msgstr "Filament incompatible"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:45
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:49
 msgid "Incompatible printer model"
 msgstr "Modèle d'imprimante incompatible"
 
@@ -4054,7 +4064,7 @@ msgstr "Augmention de la distance jusqu'au plateau"
 msgid "Info"
 msgstr "Info"
 
-#: src/guiapi/src/window_msgbox.cpp:314 src/gui/MItem_tools.cpp:90
+#: src/guiapi/src/window_msgbox.cpp:314
 msgid "Information"
 msgstr "Information"
 
@@ -4062,7 +4072,7 @@ msgstr "Information"
 msgid "Initialized"
 msgstr "Initialisé"
 
-#: src/gui/MItem_tools.cpp:651
+#: src/gui/MItem_tools.cpp:652
 msgid "Input Current"
 msgstr "Courant d'entrée"
 
@@ -4159,7 +4169,7 @@ msgstr "En-tête de fichier BGCODE invalide"
 msgid "Invalidate"
 msgstr "Invalider"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:79
 msgid "Invalidate Calibration"
 msgstr "Invalider la calibration"
 
@@ -4216,7 +4226,7 @@ msgid "Joining spool"
 msgstr "Jointement de bobine"
 
 #: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
-#: src/feature/factory_reset/factory_reset.cpp:127
+#: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:53
 msgid "Keep"
 msgstr "Conserver"
@@ -4502,7 +4512,7 @@ msgstr "Chargement..."
 msgid "Lock the tool"
 msgstr "Verrouillez l'outil"
 
-#: src/gui/MItem_tools.cpp:965
+#: src/gui/MItem_tools.cpp:966
 msgid "Logging has been turned off. You can now safely remove the USB drive."
 msgstr ""
 "La journalisation a été désactivée. Vous pouvez maintenant retirer la clé "
@@ -4538,11 +4548,11 @@ msgstr ""
 "Desserrez les deux vis sur le côté droit du pilier du dock (marquées en "
 "orange) à l'aide de la clé universelle."
 
-#: src/gui/MItem_tools.cpp:372
+#: src/gui/MItem_tools.cpp:373
 msgid "Loud"
 msgstr "Fort"
 
-#: src/gui/MItem_tools.cpp:946
+#: src/gui/MItem_tools.cpp:947
 msgid "Low"
 msgstr "Faible"
 
@@ -4555,9 +4565,9 @@ msgstr "T. basse"
 msgid "Lower belt actual frequency"
 msgstr "Fréquence réelle de la courroie inférieure"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:21
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:26
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:28
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:27
 msgid "Lowering bed for clearance"
 msgstr "Abaissement du plateau pour dégager de la place"
 
@@ -4590,7 +4600,7 @@ msgstr "ERREUR MAXTEMP DU MCU"
 msgid "MCU OVERHEAT"
 msgstr "SURCHAUFFE DU MCU"
 
-#: src/gui/MItem_tools.cpp:707
+#: src/gui/MItem_tools.cpp:708
 msgid "MCU Temperature"
 msgstr "Température du MCU"
 
@@ -4648,7 +4658,7 @@ msgstr "ERREUR MINTEMP"
 msgid "MMU BL Status"
 msgstr "Statut BL MMU"
 
-#: src/gui/MItem_tools.cpp:656
+#: src/gui/MItem_tools.cpp:657
 msgid "MMU Current"
 msgstr "Courant du MMU"
 
@@ -4800,7 +4810,7 @@ msgstr ""
 "vie de la main-plate. Inspectez la pièce et assurez-vous d'avoir une plaque "
 "de rechange disponible. Visitez prusa.io/mmu-care"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:20
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:25
 msgid "Make sure all the nozzles are clean, then press Continue."
 msgstr ""
 "Assurez-vous que toutes les buses sont propres, puis appuyez sur Continuer."
@@ -5121,7 +5131,7 @@ msgstr "PAS MAINTENANT"
 msgid "NOW"
 msgstr "MAINTENANT"
 
-#: src/gui/screen_menu_wastebin.hpp:17
+#: src/gui/screen_menu_wastebin.hpp:22
 msgid "NOZZLE CLEANER"
 msgstr "NETTOYEUR DE BUSE"
 
@@ -5138,7 +5148,7 @@ msgid "NOZZLE OFFSET"
 msgstr "DÉCALAGE DE LA BUSE"
 
 #: src/gui/screen/filament/screen_filament_detail.cpp:22
-#: src/gui/MItem_tools.cpp:408 src/gui/standard_frame/frame_opt_prompt.cpp:30
+#: src/gui/MItem_tools.cpp:409 src/gui/standard_frame/frame_opt_prompt.cpp:30
 msgid "Name"
 msgstr "Nom"
 
@@ -5158,7 +5168,7 @@ msgstr "Le nom ne doit pas être vide"
 msgid "Net fail"
 msgstr "Échec réseau"
 
-#: src/gui/MItem_menus.hpp:121 src/gui/MItem_tools.cpp:812
+#: src/gui/MItem_menus.hpp:121 src/gui/MItem_tools.cpp:813
 msgid "Network"
 msgstr "Réseau"
 
@@ -5170,7 +5180,7 @@ msgstr "Paramètres Réseau"
 msgid "Network Status"
 msgstr "État du Réseau"
 
-#: src/gui/MItem_hardware.cpp:191 src/gui/MItem_tools.cpp:875
+#: src/gui/MItem_hardware.cpp:191 src/gui/MItem_tools.cpp:876
 msgid "Never"
 msgstr "Jamais"
 
@@ -5223,7 +5233,7 @@ msgstr ""
 "Aucun XL-CAN bridge trouvé. Le type d'imprimante a été défini sur Original "
 "Prusa XL. Les réglages ont été mis à jour."
 
-#: src/gui/MItem_tools.cpp:347
+#: src/gui/MItem_tools.cpp:339
 msgid "No crash dump to save."
 msgstr "Aucun dump de crash à sauvegarder."
 
@@ -5272,7 +5282,7 @@ msgstr "Température nominale de la chambre"
 msgid "None"
 msgstr "Aucun"
 
-#: src/gui/MItem_tools.cpp:256
+#: src/gui/MItem_tools.cpp:249
 msgid "Normal"
 msgstr "Normal"
 
@@ -5309,15 +5319,15 @@ msgstr ""
 "problème avec l'électronique. Vérifiez le câblage et les connecteurs."
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:226
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:240
 msgid "Not enough filament"
 msgstr "Pas assez de filament"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:115
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:119
 msgid "Not enough tools"
 msgstr "Pas assez d'outils"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:79
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:83
 msgid "Not sliced for Input Shaping"
 msgstr "Non découpé pour l'Input Shaping"
 
@@ -5347,7 +5357,7 @@ msgstr ""
 "d'impression."
 
 #: src/common/footer_def.cpp:12 src/common/hw_check.cpp:4
-#: src/gui/MItem_print.cpp:40 src/gui/MItem_tools.cpp:743
+#: src/gui/MItem_print.cpp:40 src/gui/MItem_tools.cpp:744
 #: src/gui/wizard/selftest_result_heaters.cpp:13
 msgid "Nozzle"
 msgstr "Buse"
@@ -5387,7 +5397,7 @@ msgstr "Décalage en X du nettoyeur de buse"
 msgid "Nozzle Cleaner Y Offset"
 msgstr "Décalage en Y du nettoyeur de buse"
 
-#: src/gui/MItem_tools.cpp:993
+#: src/gui/MItem_tools.cpp:994
 msgid "Nozzle Cleaning Retraction"
 msgstr "Rétraction pour nettoyage buse"
 
@@ -5440,7 +5450,6 @@ msgstr "Température de la Buse"
 #. Multi-tool: additional submenu to set target temp for all tools, not just the active one.
 #: src/gui/screen_menu_sensor_info.hpp:101
 #: src/gui/screen_menu_temperature_and_fans.hpp:30
-#: src/gui/screen_menu_tune.hpp:68
 msgid "Nozzle Temperatures"
 msgstr "Températures des buses"
 
@@ -5462,11 +5471,11 @@ msgstr ""
 "Le nettoyeur de buse est plein.\n"
 "Changements d'outils restants : %u."
 
-#: src/gui/screen/screen_print_preview.cpp:119
+#: src/gui/screen/screen_print_preview.cpp:123
 msgid "Nozzle cleaner may overflow"
 msgstr "Le nettoyeur de buse peut déborder"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:124
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:128
 msgid "Nozzle cleaner not calibrated"
 msgstr "Nettoyeur de buse non calibré"
 
@@ -5571,17 +5580,26 @@ msgstr ""
 "\n"
 "Température atteinte : %u°C"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:169
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:173
 msgid "Nozzle high-flow mismatch"
 msgstr "Incompatibilité buse haut-débit"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:153
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:157
 msgid "Nozzle not hardened"
 msgstr "Buse non durcie"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:161
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:165
 msgid "Nozzle not high-flow"
 msgstr "Buse pas haut débit"
+
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:23
+msgid ""
+"Nozzles have to be perfectly clean for good calibration results.\n"
+"Manually pick each tool and clean its nozzle. Press Continue when done."
+msgstr ""
+"Les buses doivent être parfaitement propres pour un bon étalonnage.\n"
+"Prenez manuellement chaque outil et nettoyez sa buse. Appuyez sur Continuer "
+"une fois terminé."
 
 #: src/gui/footer/footer_item_fsensor.cpp:61
 #: src/gui/footer/footer_item_multitool.cpp:29
@@ -5652,7 +5670,7 @@ msgstr "Décalage"
 msgid "Offset %c"
 msgstr "Décalage %c"
 
-#: src/gui/MItem_tools.cpp:801
+#: src/gui/MItem_tools.cpp:802
 msgid "Ok"
 msgstr "Ok"
 
@@ -5660,11 +5678,11 @@ msgstr "Ok"
 msgid "On Filament Load"
 msgstr "Sur chargement du filament"
 
-#: src/gui/MItem_tools.cpp:877
+#: src/gui/MItem_tools.cpp:878
 msgid "On Idle"
 msgstr "Au repos"
 
-#: src/gui/MItem_tools.cpp:371
+#: src/gui/MItem_tools.cpp:372
 msgid "Once"
 msgstr "Une fois"
 
@@ -5677,7 +5695,7 @@ msgstr ""
 "buse en faisant tourner le bouton jusqu'à ce que le filament adhère à la "
 "plaque d'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:178
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:182
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5819,7 +5837,7 @@ msgstr "ÉCHEC DU HOMING PRÉCIS"
 msgid "PREHEAT ERROR"
 msgstr "ERREUR DE PRÉCHAUFFAGE"
 
-#: src/gui/screen/screen_menu_mmu_preload_all.cpp:70
+#: src/gui/screen/screen_menu_mmu_preload_all.cpp:71
 msgid "PRELOAD ALL"
 msgstr "TOUT PRÉCHARGER"
 
@@ -5882,7 +5900,7 @@ msgstr "Le mouvement de balayage paramétrique a échoué."
 msgid "Park Current Tool"
 msgstr "Stationner l'Outil Actuel"
 
-#: src/gui/MItem_tools.cpp:718
+#: src/gui/MItem_tools.cpp:719
 msgid "Park Fails"
 msgstr "Échec du stationnement"
 
@@ -5896,6 +5914,7 @@ msgstr "Stationner l'Outil"
 msgid "Park Tool %i"
 msgstr "Stationner outil %i"
 
+#: src/gui/screen/screen_print_preview.cpp:49
 #: src/gui/screen/screen_filament_change.cpp:26
 #: src/gui/screen_input_shaper_calibration.cpp:108
 msgid "Parking"
@@ -5969,7 +5988,7 @@ msgstr ""
 msgid "Performing cut"
 msgstr "Coupe en cours"
 
-#: src/feature/factory_reset/factory_reset.cpp:96
+#: src/feature/factory_reset/factory_reset.cpp:93
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -6007,14 +6026,14 @@ msgstr "Saisir l'Outil %i"
 msgid "Pick/Park Tool"
 msgstr "Saisir/Stationner l'Outil"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:22
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:28
 #: src/gui/wizard/selftest_frame_temp.cpp:71
 #: src/gui/wizard/screen_heaters_selftest.cpp:73
 msgid "Picking up tool"
 msgstr "Saisie de l'Outil"
 
-#: src/gui/MItem_tools.cpp:714
+#: src/gui/MItem_tools.cpp:715
 msgid "Pickup Fails"
 msgstr "Échecs de saisie"
 
@@ -6029,11 +6048,11 @@ msgstr ""
 "Veuillez calibrer le nettoyeur de buse avant de charger/décharger les "
 "filaments."
 
-#: src/gui/MItem_tools.cpp:928
+#: src/gui/MItem_tools.cpp:929
 msgid "Please calibrate the docks first."
 msgstr "Veuillez d'abord calibrer les docks."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:125
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:129
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "Veuillez d'abord calibrer le nettoyeur de buse."
 
@@ -6356,7 +6375,7 @@ msgstr ""
 "filament. Nous vous recommandons de vérifier l'extrudeur. Visitez prusa.io/"
 "mmu-care."
 
-#: src/gui/MItem_tools.cpp:97
+#: src/gui/MItem_tools.cpp:90
 msgid "Printer is busy. Please try repeating the action later."
 msgstr ""
 "L'imprimante est occupée. Veuillez essayer de répéter l'action plus tard."
@@ -6365,10 +6384,6 @@ msgstr ""
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:31
 msgid "Printer is homing, please wait."
 msgstr "L'imprimante est en cours de prise d'origine, veuillez patienter."
-
-#: src/gui/MItem_tools.cpp:96
-msgid "Printer may vibrate and be noisier during homing."
-msgstr "L'imprimante peut vibrer pendant l'initialisation."
 
 #: tmp_error_headers/error_list.hpp:135
 msgid ""
@@ -6635,6 +6650,10 @@ msgstr "Barre d'état RGB"
 msgid "RIGHT"
 msgstr "DROITE"
 
+#: src/gui/screen/screen_print_preview.cpp:50
+msgid "Raising the bed"
+msgstr "Montée du plateau"
+
 #: src/gui/screen/screen_filament_change.cpp:29
 msgid "Ramming"
 msgstr "Expulsion"
@@ -6791,7 +6810,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "Nécessite une filtration"
 
-#: src/feature/factory_reset/factory_reset.cpp:127 src/gui/MItem_tools.hpp:424
+#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:424
 #: src/gui/screen/screen_factory_reset.cpp:52
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6882,7 +6901,7 @@ msgstr "Côté droit [um]"
 msgid "Ringdown Decay"
 msgstr "Décroissance de l'amplitude"
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:49
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:67
 msgid ""
 "Rotate each screw counter-clockwise by 1.5 turns. The screw heads should be "
 "flush with the cover. Unlock and open the idler."
@@ -7015,7 +7034,7 @@ msgstr "Réinitialisation SW"
 msgid "SYSTEM"
 msgstr "SYSTÈME"
 
-#: src/gui/MItem_tools.cpp:668
+#: src/gui/MItem_tools.cpp:669
 msgid "Sandwich 5V Current"
 msgstr "Courant du 5V de la Sandwich"
 
@@ -7028,7 +7047,7 @@ msgstr "sam"
 msgid "Save Crash Dump"
 msgstr "Sauv. Suppression Mémoire"
 
-#: src/gui/MItem_tools.cpp:960
+#: src/gui/MItem_tools.cpp:961
 msgid "Save Logs To File"
 msgstr "Enregistrer les journaux dans un fichier"
 
@@ -7209,7 +7228,7 @@ msgid "Side FSensor Remap"
 msgstr "Remappage du FSensor latéral"
 
 #: src/feature/filament_sensor/filament_sensors_handler_remap.cpp:50
-#: src/gui/MItem_tools.cpp:621 src/gui/screen_menu_filament_sensors.hpp:60
+#: src/gui/MItem_tools.cpp:622 src/gui/screen_menu_filament_sensors.hpp:60
 msgid "Side Filament Sensor"
 msgstr "Capteur de Filament Latéral"
 
@@ -7227,7 +7246,7 @@ msgstr "Capteur de filament latéral non connecté, vérifiez le câblage."
 msgid "Signal"
 msgstr "Signaler"
 
-#: src/gui/MItem_tools.cpp:373
+#: src/gui/MItem_tools.cpp:374
 msgid "Silent"
 msgstr "Silencieux"
 
@@ -7243,11 +7262,11 @@ msgstr "Sauter"
 msgid "Skip Network Setup"
 msgstr "Ignorer la configuration du réseau"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:98
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:102
 msgid "Sliced for MMU"
 msgstr "Découpé pour le MMU"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:88
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:92
 msgid "Sliced with old INDX profiles"
 msgstr "Découpé avec d'anciens profils INDX"
 
@@ -7268,11 +7287,11 @@ msgstr ""
 "Certains paramètres de l'OpenPrintTag étaient manquants ou invalides. "
 "Veuillez corriger les champs mis en évidence."
 
-#: src/gui/MItem_tools.cpp:412
+#: src/gui/MItem_tools.cpp:413
 msgid "Sort Files"
 msgstr "Trier les Fichiers"
 
-#: src/gui/MItem_tools.hpp:210 src/gui/MItem_tools.cpp:382
+#: src/gui/MItem_tools.hpp:210 src/gui/MItem_tools.cpp:383
 msgid "Sound Mode"
 msgstr "Mode Sonore"
 
@@ -7296,7 +7315,7 @@ msgstr "Vitesse"
 msgid "Speed sweep movement failed."
 msgstr "Le mouvement de balayage rapide a échoué."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:194
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:198
 msgid "Spool join sensor not ready"
 msgstr "Capteur de jonction de bobine non prêt"
 
@@ -7590,7 +7609,7 @@ msgstr "INCOMPATIBILITÉ D'OUTIL"
 msgid "TOOL OFFSET OUT OF BOUNDS"
 msgstr "DÉCALAGE DE L'OUTIL HORS LIMITES"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:70
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:87
 msgid "TOOL OFFSETS CALIBRATION"
 msgstr "CALIBRATION DU DÉCALAGE DES OUTILS"
 
@@ -7610,7 +7629,7 @@ msgstr "TÊTE D'OUTIL"
 msgid "TOOLS SETTINGS"
 msgstr "RÉGLAGES DES OUTILS"
 
-#: src/gui/screen_menu_tune.hpp:139
+#: src/gui/screen_menu_tune.hpp:120
 msgid "TUNE"
 msgstr "RÉGLER"
 
@@ -7890,8 +7909,8 @@ msgid "The file disappeared"
 msgstr "Le fichier a disparu"
 
 #. This is a bit hacky way, but the error reporting is done through gcode_info, so we gotta put the error there.
-#: src/common/marlin_print_preview.cpp:443
-#: src/common/marlin_print_preview.cpp:485
+#: src/common/marlin_print_preview.cpp:445
+#: src/common/marlin_print_preview.cpp:487
 msgid "The file is corrupt."
 msgstr "Le fichier est corrompu."
 
@@ -7903,7 +7922,7 @@ msgstr ""
 "La calibration de première couche n'a pu aboutir. Vérifiez bien le câblage "
 "de l'imprimante, la buse et les axes, puis relancez la calibration."
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:19
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:24
 msgid ""
 "The gearbox alignment is only necessary for user-assembled or serviced "
 "gearboxes. In all other cases, you can skip this step."
@@ -7991,7 +8010,7 @@ msgstr "Le chemin est trop long."
 msgid "The previous tests must be completed before this one."
 msgstr "Les tests précédents doivent être complétés avant celui-ci."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:19
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:21
 msgid ""
 "The printer will calibrate the XY/Z offsets of all tools using the tool "
 "offset sensor. This may take several minutes."
@@ -8016,7 +8035,7 @@ msgstr ""
 "L'imprimante vous guidera tout au long de la calibration du nettoyeur de "
 "buse. Vous devrez régler la vis de hauteur."
 
-#: src/gui/MItem_tools.cpp:987
+#: src/gui/MItem_tools.cpp:988
 #, c-format
 msgid ""
 "The printer will now save all logs to file until restart.\n"
@@ -8108,7 +8127,7 @@ msgstr ""
 "Les données relatives à la consommation de filament doivent être écrites "
 "dans l'OpenPrintTag. Assurez-vous que la bobine soit proche du lecteur NFC."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:227
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:241
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr ""
@@ -8203,7 +8222,7 @@ msgstr ""
 "Cette opération ne peut pas être annulée. Vos données seront perdues !\n"
 "Voulez-vous procéder à la réinitialisation d'usine ?"
 
-#: src/gui/screen/screen_print_preview.cpp:120
+#: src/gui/screen/screen_print_preview.cpp:124
 #, c-format
 msgid ""
 "This print may overfill the nozzle cleaner.\n"
@@ -8236,7 +8255,7 @@ msgstr ""
 "Cela modifiera le comportement du capteur de filament. Voulez-vous "
 "continuer ?"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:90
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:83
 msgid ""
 "This will invalidate the calibration for this tool. The tool will not be "
 "available for printing until its dock is calibrated again. Proceed?"
@@ -8262,7 +8281,7 @@ msgstr ""
 msgid "Tighten screw"
 msgstr "Serrez la vis"
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:73
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:93
 msgid ""
 "Tighten the M3 screws firmly in the correct order, they should be slightly "
 "below the surface. Do not over-tighten."
@@ -8288,11 +8307,11 @@ msgstr ""
 "\n"
 "Faites attention à l'étape suivante, l'imprimante bougera"
 
-#: src/gui/MItem_tools.cpp:407 src/gui/MItem_tools.cpp:484
+#: src/gui/MItem_tools.cpp:408 src/gui/MItem_tools.cpp:485
 msgid "Time"
 msgstr "Temps"
 
-#: src/gui/MItem_tools.cpp:472
+#: src/gui/MItem_tools.cpp:473
 msgid "Time Format"
 msgstr "Format Heure"
 
@@ -8300,7 +8319,7 @@ msgstr "Format Heure"
 msgid "Time Zone Hour Offset"
 msgstr "Décalage horaire du fuseau horaire"
 
-#: src/gui/MItem_tools.cpp:446
+#: src/gui/MItem_tools.cpp:447
 msgid "Time Zone Minute Offset"
 msgstr "Décalage des minutes du fuseau horaire"
 
@@ -8382,8 +8401,13 @@ msgstr "Outil %d décalage sur %c : %.3f est hors des limites [%.3f, %.3f]"
 msgid "Tool %i"
 msgstr "Outil %i"
 
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:31
+#, c-format
+msgid "Tool %i gearbox alignment"
+msgstr "Alignement du réducteur de l'outil %i"
+
 #. %u placeholders are filled with the 1-based current tool and the total tool count.
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:25
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:31
 #, c-format
 msgid "Tool %u of %u"
 msgstr "Outil %u sur %u"
@@ -8392,7 +8416,7 @@ msgstr "Outil %u sur %u"
 msgid "Tool Changes"
 msgstr "Changements d'outils"
 
-#: src/gui/MItem_tools.cpp:595
+#: src/gui/MItem_tools.cpp:596
 msgid "Tool Filament Sensor"
 msgstr "Capteur de filament de l'Outil"
 
@@ -8408,13 +8432,13 @@ msgstr "Calibration du Décalage des Outils"
 msgid "Tool Offset Failed"
 msgstr "Échec du décalage d'outil"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:18
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:20
 #: src/gui/selftest_action_helpers.cpp:114
 #: src/gui/wizard/selftest_frame_tool_offsets.cpp:15
 msgid "Tool Offsets Calibration"
 msgstr "Calibration des Décalage de l'Outil"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:138
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:142
 msgid "Tool is disabled or of a different type."
 msgstr "L'outil est désactivé ou d'un type différent."
 
@@ -8440,11 +8464,11 @@ msgstr ""
 "le capteur sont propres.\n"
 "Attention : la buse peut être chaude."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:27
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:33
 msgid "Tool offsets calibration failed."
 msgstr "La calibration des décalages des outils a échoué."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:32
 msgid "Tool offsets have been successfully calibrated and saved."
 msgstr "Les décalages d'outils ont été calibrés et enregistrés avec succès."
 
@@ -8552,6 +8576,14 @@ msgstr ""
 "\n"
 "Appuyez sur Continuer lorsque vous avez terminé."
 
+#: src/gui/screen/selftest/screen_selftest_fsensors.cpp:163
+msgid ""
+"Turn off the printer and check that the filament sensor cables are wired "
+"correctly."
+msgstr ""
+"Éteignez l'imprimante et vérifiez que les câbles du capteur de filament sont "
+"correctement branchés."
+
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:37
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:40
 msgid ""
@@ -8570,7 +8602,7 @@ msgstr "Tournez le bouton pour déplacer le plateau chauffant"
 msgid "Turn the knob to move Z-axis"
 msgstr "Tournez le bouton pour déplacer l'axe Z"
 
-#: src/gui/MItem_tools.cpp:988
+#: src/gui/MItem_tools.cpp:989
 msgid ""
 "Turn the logging off before disconnecting the USB drive, or you risk "
 "damaging the filesystem!"
@@ -8778,7 +8810,7 @@ msgstr "Déchargement vers la FINDA"
 msgid "Unloading to pulley"
 msgstr "Déchargement vers la poulie"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:217
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:231
 msgid "Unmapped tool"
 msgstr "Outil désattribué"
 
@@ -8798,7 +8830,7 @@ msgstr "Décalage d'outil en XY dangereux"
 msgid "Unsafe Z Tool Offset"
 msgstr "Décalage d'outil en Z dangereux"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:107
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:111
 msgid "Unsupported features"
 msgstr "Fonctionnalités non prises en charge"
 
@@ -8860,10 +8892,6 @@ msgstr "INFOS VERSION"
 #: src/gui/wizard/selftest_frame_loadcell.cpp:89
 msgid "Validity check"
 msgstr "Contrôle de validité"
-
-#: tmp_error_headers/error_list.hpp:218
-msgid "Vent Area Obstruction"
-msgstr "Obstruction de la zone de ventilation"
 
 #: src/gui/MItem_tools.hpp:468
 msgid "Verify GCode"
@@ -8941,7 +8969,7 @@ msgstr "Attente de stabilisation des hotends à la température de calibration :
 msgid "Waiting for nozzle temperature..."
 msgstr "En attente de la température de la buse..."
 
-#: src/gui/frame_calibration_common.cpp:22
+#: src/gui/frame_calibration_common.cpp:24
 msgid "Waiting for nozzle to cool down"
 msgstr "Attente du refroidissement de la buse"
 
@@ -9010,7 +9038,7 @@ msgstr ""
 "Nous devons commencer sans filament dans l'extrudeur. Veuillez vous assurer "
 "qu'il n'y a pas de filament dans le capteur de filament."
 
-#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:29
+#: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:45
 msgid ""
 "We need to start without the filament in the extruder. Please unload it."
 msgstr ""
@@ -9130,15 +9158,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "Faux"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:185
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:189
 msgid "Wrong filament type"
 msgstr "Type de filament incorrect"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:145
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:149
 msgid "Wrong nozzle diameter"
 msgstr "Diamètre de buse incorrect"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:137
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:141
 msgid "Wrong tool"
 msgstr "Outil incorrect"
 
@@ -9152,7 +9180,7 @@ msgstr "Mouvement de l'axe X"
 
 #: src/gui/MItem_experimental_tools.cpp:202
 msgid "X current"
-msgstr "Courant sur X"
+msgstr "Courant de l'axe X"
 
 #: src/gui/screen_crash_recovery.cpp:95
 msgid "X-axis"
@@ -9178,7 +9206,7 @@ msgstr "Direction de l'axe X"
 msgid "X-axis steps per unit"
 msgstr "Pas par unité sur l'axe X"
 
-#: src/gui/MItem_tools.cpp:673
+#: src/gui/MItem_tools.cpp:674
 msgid "XL Buddy 5V Current"
 msgstr "Courant du 5V de la XL Buddy"
 
@@ -9228,7 +9256,7 @@ msgstr "Mouvement de l'axe Y"
 
 #: src/gui/MItem_experimental_tools.cpp:211
 msgid "Y current"
-msgstr "Courant sur Y"
+msgstr "Courant de l'axe Y"
 
 #: src/gui/screen_crash_recovery.cpp:96
 msgid "Y-axis"
@@ -9371,11 +9399,11 @@ msgstr ""
 "la fréquence de l'axe est trop basse.\n"
 "Veuillez Tendre la courroie."
 
-#: src/gui/MItem_tools.cpp:697
+#: src/gui/MItem_tools.cpp:698
 msgid "closed"
 msgstr "fermée"
 
-#: src/gui/MItem_tools.cpp:695
+#: src/gui/MItem_tools.cpp:696
 msgid "detached"
 msgstr "détaché"
 
@@ -9383,7 +9411,7 @@ msgstr "détaché"
 msgid "loosen"
 msgstr "desserrer"
 
-#: src/gui/MItem_tools.cpp:696
+#: src/gui/MItem_tools.cpp:697
 msgid "open"
 msgstr "ouverte"
 
