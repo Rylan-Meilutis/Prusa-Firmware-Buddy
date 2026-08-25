@@ -116,6 +116,7 @@ inline constexpr uint8_t FANCTLCPU_PWM_MIN = 20;
 inline constexpr uint8_t FANCTLCPU_PWM_MAX = 100;
 inline constexpr uint8_t FANCTLCPU_PWM_THR = 90; // 4.5V is the bottom of the fan's operating range, which is 90% of 5V
 inline constexpr uint8_t FANCTLCPU_MIN_PWM_TO_MEASURE_RPM = 0;
-inline constexpr uint16_t FANCTLCPU_RPM_MIN = 6375; // measured floor, deliberately below 9000 RPM - 20%
-inline constexpr uint16_t FANCTLCPU_RPM_MAX = 10350; // 9000 RPM + 15% = 10350 RPM
+// TODO BFW-9269 - limits relaxed due to the problems reported on production line. To be fine tuned later
+inline constexpr uint16_t FANCTLCPU_RPM_MIN = 3000;
+inline constexpr uint16_t FANCTLCPU_RPM_MAX = 15000;
 #endif // HAS_CPU_FAN
