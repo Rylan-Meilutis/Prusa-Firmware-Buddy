@@ -1,3 +1,4 @@
+#
 #: src/gui/screen/screen_filament_change.cpp:92
 msgid ""
 msgstr ""
@@ -5811,11 +5812,11 @@ msgstr "SURCHAUFFE DU PCB"
 
 #: src/gui/screen_menu_phase_stepping.cpp:22
 msgid "PHASE STEPPING"
-msgstr "PAS À PAS EN PHASE"
+msgstr "PHASE STEPPING"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:40
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "CALIBRATION DU PAS À PAS EN PHASE"
+msgstr "CALIBRATION DU PHASE STEPPING"
 
 #: tmp_error_headers/error_list.hpp:57
 msgid "PIN NOT REACHED"
@@ -5998,20 +5999,20 @@ msgstr ""
 
 #: src/gui/MItem_menus.hpp:200
 msgid "Phase Stepping"
-msgstr "Pas à pas en phase"
+msgstr "Phase Stepping"
 
 #: src/gui/selftest_action_helpers.cpp:92
 msgid "Phase Stepping Calibration"
-msgstr "Calibration du Pas à pas en phase"
+msgstr "Calibration du Phase Stepping"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:211
 msgid "Phase stepping calibration completed"
-msgstr "Calibration du pas à pas en phase terminé"
+msgstr "Calibration du Phase Stepping terminée"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:287
 msgid "Phase stepping defaults have been successfully restored."
 msgstr ""
-"Les valeurs par défaut du pas à pas en phase ont été restaurées avec succès."
+"Les valeurs par défaut du Phase Stepping ont été restaurées avec succès."
 
 #: src/gui/screen/toolhead/screen_toolhead_settings.cpp:235
 msgid "Pick Tool"
@@ -6918,8 +6919,8 @@ msgstr "Exécuter les selftests et les calibrations maintenant ?"
 msgid ""
 "Running the phase stepping calibration to reduce vibrations. Please wait..."
 msgstr ""
-"Exécution de la calibration du pas à pas en phase pour réduire les "
-"vibrations. Veuillez patienter..."
+"Exécution de la calibration du Phase Stepping pour réduire les vibrations. "
+"Veuillez patienter..."
 
 #: src/gui/screen/openprinttag/screen_opt_filament_detail.cpp:38
 msgid "SCAN OPENPRINTTAG"
@@ -8356,8 +8357,8 @@ msgstr ""
 msgid ""
 "To learn more about the phase stepping calibration process, read the article:"
 msgstr ""
-"Pour en savoir plus sur le processus de calibration du pas à pas en phase, "
-"lisez l'article :"
+"Pour en savoir plus sur le processus de calibration du Phase Stepping, lisez "
+"l'article :"
 
 #: src/gui/screen_help_fw_update.cpp:81
 msgid "To learn more including firmware downgrade, please visit:"

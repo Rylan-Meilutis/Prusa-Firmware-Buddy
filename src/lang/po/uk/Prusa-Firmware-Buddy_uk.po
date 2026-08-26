@@ -1,3 +1,4 @@
+#
 #: src/gui/screen/screen_filament_change.cpp:92
 msgid ""
 msgstr ""
@@ -5773,11 +5774,11 @@ msgstr "ПЕРЕГРІВ PCB"
 
 #: src/gui/screen_menu_phase_stepping.cpp:22
 msgid "PHASE STEPPING"
-msgstr "ФАЗОВЕ КРОКУВАННЯ"
+msgstr "PHASE STEPPING"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:40
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "КАЛІБРУВАННЯ ФАЗ. КРОКУВАННЯ"
+msgstr "КАЛІБРУВАННЯ PHASE STEPPING"
 
 #: tmp_error_headers/error_list.hpp:57
 msgid "PIN NOT REACHED"
@@ -5960,19 +5961,19 @@ msgstr ""
 
 #: src/gui/MItem_menus.hpp:200
 msgid "Phase Stepping"
-msgstr "Фазове крокування"
+msgstr "Phase Stepping"
 
 #: src/gui/selftest_action_helpers.cpp:92
 msgid "Phase Stepping Calibration"
-msgstr "Калібрування фаз. крокування"
+msgstr "Калібрування Phase Stepping"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:211
 msgid "Phase stepping calibration completed"
-msgstr "Калібрування фаз. крокування завершено"
+msgstr "Калібрування Phase Stepping завершено"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:287
 msgid "Phase stepping defaults have been successfully restored."
-msgstr "Стандартні значення фаз. крокування відновлено."
+msgstr "Стандартні значення Phase Stepping відновлено."
 
 #: src/gui/screen/toolhead/screen_toolhead_settings.cpp:235
 msgid "Pick Tool"

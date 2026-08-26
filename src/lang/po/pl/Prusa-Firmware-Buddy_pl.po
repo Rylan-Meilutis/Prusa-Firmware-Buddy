@@ -8307,8 +8307,8 @@ msgstr ""
 msgid ""
 "To learn more about the phase stepping calibration process, read the article:"
 msgstr ""
-"Aby dowiedzieć się więcej o procesie kalibracji sekwencji fazowej (Phase "
-"Stepping), przeczytaj ten artykuł:"
+"Aby dowiedzieć się więcej o procesie kalibracji Phase Stepping, przeczytaj "
+"ten artykuł:"
 
 #: src/gui/screen_help_fw_update.cpp:81
 msgid "To learn more including firmware downgrade, please visit:"

@@ -5893,11 +5893,11 @@ msgstr "PCBオーバーヒート"
 
 #: src/gui/screen_menu_phase_stepping.cpp:22
 msgid "PHASE STEPPING"
-msgstr "フェイズステッピング"
+msgstr "フェーズステッピング"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:40
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "フェーズステップキャリブレーション"
+msgstr "フェーズステッピングキャリブレーション"
 
 #: tmp_error_headers/error_list.hpp:57
 msgid "PIN NOT REACHED"
@@ -6080,7 +6080,7 @@ msgstr ""
 
 #: src/gui/MItem_menus.hpp:200
 msgid "Phase Stepping"
-msgstr "フェイズステッピング"
+msgstr "フェーズステッピング"
 
 #: src/gui/selftest_action_helpers.cpp:92
 msgid "Phase Stepping Calibration"
@@ -6088,12 +6088,13 @@ msgstr "フェーズステッピング キャリブレーション"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:211
 msgid "Phase stepping calibration completed"
-msgstr "フェーズステップキャリブレーション カンリョウ"
+msgstr "フェーズステッピングキャリブレーション カンリョウ"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:287
 msgid "Phase stepping defaults have been successfully restored."
 msgstr ""
-"フェーズステップノ デフォルトパラメータガ セイジョウニ フクゲンサレマシタ."
+"フェーズステッピングノ デフォルトパラメータガ セイジョウニ フクゲンサレマシ"
+"タ."
 
 #: src/gui/screen/toolhead/screen_toolhead_settings.cpp:235
 msgid "Pick Tool"
@@ -7004,8 +7005,8 @@ msgstr "スグニ セルフテスト ト キャリブレーション ヲ ジッ�
 msgid ""
 "Running the phase stepping calibration to reduce vibrations. Please wait..."
 msgstr ""
-"シンドウヲ ヘラスタメニ フェーズステップキャリブレーションヲ ジッコウシマス."
-"シバラクオマチクダサイ."
+"シンドウヲ ヘラスタメニ フェーズステッピングキャリブレーションヲ ジッコウシマ"
+"ス.シバラクオマチクダサイ."
 
 #: src/gui/screen/openprinttag/screen_opt_filament_detail.cpp:38
 msgid "SCAN OPENPRINTTAG"
@@ -8451,7 +8452,8 @@ msgstr ""
 msgid ""
 "To learn more about the phase stepping calibration process, read the article:"
 msgstr ""
-"ステッピングキャリブレーションプロセスノ ショウサイハ キジヲ オヨミクダサイ:"
+"フェーズステッピングキャリブレーションプロセスノ ショウサイハ キジヲ オヨミク"
+"ダサイ:"
 
 #: src/gui/screen_help_fw_update.cpp:81
 msgid "To learn more including firmware downgrade, please visit:"
