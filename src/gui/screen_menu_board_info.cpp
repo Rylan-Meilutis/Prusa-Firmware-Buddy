@@ -8,6 +8,7 @@
 #include <option/has_indx_head.h>
 #include <option/has_love_board.h>
 #include <option/has_xbuddy_extension.h>
+#include <option/has_xl_can.h>
 #include <option/has_xlcd.h>
 #include <utils/string_builder.hpp>
 
@@ -17,6 +18,10 @@
 
 #if HAS_INDX_HEAD()
     #include <puppies/INDX.hpp>
+#endif
+
+#if HAS_XL_CAN()
+    #include <puppies/xl_can.hpp>
 #endif
 
 WindowMenuInfoOtpBase::WindowMenuInfoOtpBase(const OTP_v2 &otp) {
@@ -104,6 +109,18 @@ MI_OTP_INDX_HEAD::MI_OTP_INDX_HEAD()
 #endif
 }
 {
+}
+
+MI_OTP_XL_CAN::MI_OTP_XL_CAN()
+    : WindowMenuInfoOtp {
+#if HAS_XL_CAN()
+    "XL-CAN", buddy::puppies::xl_can.get_otp()
+#endif
+}
+{
+#if HAS_XL_CAN()
+    set_is_hidden(!buddy::puppies::xl_can.is_enabled());
+#endif
 }
 
 ScreenMenuBoardInfo::ScreenMenuBoardInfo()
