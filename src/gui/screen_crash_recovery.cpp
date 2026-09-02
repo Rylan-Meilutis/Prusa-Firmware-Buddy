@@ -266,7 +266,7 @@ ScreenCrashRecovery::ScreenCrashRecovery()
     : screen_t()
     , header(this)
     , footer(this)
-    , window { WinsCheckAxis(*this) } {
+    , window { std::nullopt } {
 
     ScreenCrashRecovery::ClrMenuTimeoutClose(); // don't close on menu timeout
     header.SetText(_("CRASH DETECTED"));

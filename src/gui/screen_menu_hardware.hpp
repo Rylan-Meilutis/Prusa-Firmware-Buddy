@@ -20,6 +20,7 @@
 #include <option/has_toolchanger.h>
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
+#include <option/has_switchable_homing_calibration.h>
 
 #include <option/has_modular_bed.h>
 #if HAS_MODULAR_BED()
@@ -86,14 +87,11 @@ using ScreenMenuHardwareBase = BasicScreenMenu<
 #if HAS_CHAMBER_VENTS()
     MI_SWITCH_VENT_MECHANISM,
 #endif
-#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
-    MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
-#endif
 #if HAS_AUTO_RETRACT()
     MI_PRE_NOZZLE_CLEANING_RETRACT,
 #endif
     MI_GCODE_CHECKS,
-#if HAS_PRECISE_HOMING_COREXY()
+#if HAS_SWITCHABLE_HOMING_CALIBRATION()
     MI_AUTO_PRECISE_HOMING_CALIBRATION,
 #endif
     MI_INPUT_SHAPER,

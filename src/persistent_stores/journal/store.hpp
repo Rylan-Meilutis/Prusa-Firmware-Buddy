@@ -60,9 +60,4 @@ public:
     Store &operator=(Store &&other) = delete;
 };
 
-template <class Config, class DeprecatedItems, const std::span<const journal::Backend::MigrationFunction> &MigrationFunctions>
-inline Store<Config, DeprecatedItems, MigrationFunctions> &store() {
-    static constinit Store<Config, DeprecatedItems, MigrationFunctions> str {};
-    return str;
-}
 } // namespace journal

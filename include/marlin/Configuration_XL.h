@@ -590,17 +590,6 @@
   #define NOZZLE_LOAD_CELL
 #endif
 
-// A probe that is deployed and stowed with a solenoid pin (SOL1_PIN)
-//#define SOLENOID_PROBE
-
-// A sled-mounted probe like those designed by Charles Bell.
-//#define Z_PROBE_SLED
-//#define SLED_DOCKING_OFFSET 5  // The extra distance the X axis must travel to pickup the sled. 0 should be fine but you can push it further if you'd like.
-
-//
-// For Z_PROBE_ALLEN_KEY see the Delta example configurations.
-//
-
 /**
  *   Z Probe to nozzle (X,Y) offset, relative to (0, 0).
  *   X and Y offsets must be integers.
@@ -1044,9 +1033,9 @@
     #define Y_NOZZLE_PARK_POINT (Y_MAX_POS - 110.0f)
     #define Z_NOZZLE_PARK_POINT (20.0f)
 
-    /// Always raise the nozzle by this amount when parking on print end
-    /// Give the user some space to remove the purge after auto_retract
-    #define Z_NOZZLE_PARK_POINT_MIN 40.0f
+    /// Always park the bed at least this low, so the user can reach the print
+    /// and the purge left after auto_retract
+    #define Z_NOZZLE_PARK_POINT_MIN (Z_MAX_POS - 50.0f)
 
     #define Z_NOZZLE_PARK_RISE 20.0f // Relative Z rise
 

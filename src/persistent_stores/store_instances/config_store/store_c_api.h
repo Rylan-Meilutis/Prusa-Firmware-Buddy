@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <option/has_extra_experimental_settings.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,10 +24,6 @@ float get_steps_per_unit_e();
 bool get_has_400step_xy_motors();
 float get_default_steps_per_unit_x_signed();
 float get_default_steps_per_unit_y_signed();
-uint16_t get_default_microsteps_x();
-uint16_t get_default_microsteps_y();
-uint16_t get_default_microsteps_z();
-uint16_t get_default_microsteps_e();
 uint16_t get_microsteps_x();
 uint16_t get_microsteps_y();
 uint16_t get_microsteps_z();
@@ -66,17 +63,27 @@ uint16_t get_z_max_pos_mm_rounded();
  * @brief function set to store value to eeprom
  */
 void set_z_max_pos_mm(float max_pos);
-void set_steps_per_unit_z(float steps);
-void set_steps_per_unit_e(float steps);
+
 // wrong motor direction != Prusa default
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
+void set_steps_per_unit_z(float steps);
 void set_wrong_direction_z();
-void set_wrong_direction_e();
 void set_PRUSA_direction_z();
+#endif
+
+void set_steps_per_unit_e(float steps);
+
+void set_wrong_direction_e();
 void set_PRUSA_direction_e();
+
+#if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
 void set_rms_current_ma_x(uint16_t current);
 void set_rms_current_ma_y(uint16_t current);
 void set_rms_current_ma_z(uint16_t current);
 void set_rms_current_ma_e(uint16_t current);
+#endif
+
 void set_pid_nozzle(float p, float i, float d);
 void set_pid_bed(float p, float i, float d);
 

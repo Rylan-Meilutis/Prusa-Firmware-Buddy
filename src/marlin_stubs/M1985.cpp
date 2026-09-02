@@ -1,9 +1,9 @@
 /// @file
 /// @brief M1985: INDX tool offsets calibration wizard
 
-#include <option/has_indx.h>
+#include <option/has_tool_offset_sensor.h>
 
-#if HAS_INDX()
+#if HAS_TOOL_OFFSET_SENSOR()
 
     #include "PrusaGcodeSuite.hpp"
     #include <feature/indx_tool_offsets_calibration/indx_tool_offsets_calibration.hpp>

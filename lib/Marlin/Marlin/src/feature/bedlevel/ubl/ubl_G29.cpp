@@ -587,7 +587,7 @@
               // doesn't need the X/Y/W/H rectangle the loadcell tap-based
               // cleaning below scans.
               if (nozzle_cleaner_lite::is_available()) {
-                ubl.g29_nozzle_cleaning_failed |= !nozzle_cleaner_lite::clean_before_probing(Badge<unified_bed_leveling> {});
+                ubl.g29_nozzle_cleaning_failed |= !nozzle_cleaner_lite::clean(nozzle_cleaner_lite::CleanType::probing_tool);
                 break;
               }
             #endif

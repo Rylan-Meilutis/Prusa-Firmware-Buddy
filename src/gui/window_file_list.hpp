@@ -72,7 +72,7 @@ public:
     const char *CurrentLFN(bool *isFile = nullptr) const;
     const char *CurrentSFN(bool *isFile = nullptr) const;
 
-    /// @return true if path is either empty or contains just a "/"
+    /// @return true if path is either empty or equal to the root path
     static bool IsPathRoot(const char *path);
 
 protected:

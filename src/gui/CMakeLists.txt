@@ -43,6 +43,7 @@ target_sources(
           screen_menu.cpp
           screen_menu_control.cpp
           screen_menu_enclosure.cpp
+          screen_menu_experimental_settings.cpp
           screen_menu_external_light_bar.cpp
           screen_menu_fail_stat.cpp
           screen_menu_fan_info.cpp
@@ -139,12 +140,6 @@ endif()
 
 if(HAS_REMOTE_BED)
   target_sources(firmware PRIVATE screen_menu_remote_bed.cpp)
-endif()
-
-if(DEBUG)
-  target_sources(firmware PRIVATE screen_menu_experimental_settings_debug.cpp)
-else()
-  target_sources(firmware PRIVATE screen_menu_experimental_settings_release.cpp)
 endif()
 
 if(HAS_SELFTEST)

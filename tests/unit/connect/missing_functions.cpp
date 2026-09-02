@@ -10,8 +10,6 @@
 #include <cstring>
 #include <cstdio>
 
-void print_begin(const char *, marlin_server::PreviewSkipIfAble) {}
-
 namespace marlin_client {
 
 std::string last_gcode;
@@ -37,6 +35,8 @@ void inject(InjectQueueRecord record) {
         record);
     last_gcode = buf;
 }
+
+void print_start(const char *, marlin_server::PreviewSkipIfAble, marlin_server::ResetToolMapping) {}
 
 } // namespace marlin_client
 

@@ -77,7 +77,7 @@ void PrusaGcodeSuite::M1704() {
  *
  *#### Usage
  *
- *    M [ P ]
+ *    M705 [ P ]
  *
  *#### Parameters
  *

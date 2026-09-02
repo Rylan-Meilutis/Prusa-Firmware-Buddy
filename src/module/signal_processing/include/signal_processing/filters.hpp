@@ -48,7 +48,7 @@ public:
 
         // Correlate coefficients with delay line walking backwards from
         // write_pos (the newest sample, multiplied by coeffs[0]), wrapping
-        // around. For symmetric filters this is equivalent to convolution.        T result = T { 0 };
+        // around. For symmetric filters this is equivalent to convolution.
         T result = T { 0 };
         std::size_t coeff_idx = 0;
         std::size_t delay_idx = write_pos + 1;

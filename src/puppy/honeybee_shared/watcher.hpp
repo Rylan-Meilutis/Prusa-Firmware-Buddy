@@ -28,7 +28,7 @@ concept EnumType = std::is_enum_v<E> && requires(E e) {
 
 /**
  * @brief Watcher for presence of something.
- * @tparam Watched enum type of watched things, needs to contain _count and _last
+ * @tparam Watched enum type of watched things, needs to contain _count
  * @tparam timeout_us timeout [microseconds]
  */
 template <EnumType Watched, int32_t timeout_us>
@@ -99,7 +99,7 @@ public:
 
 /**
  * @brief Watcher for presence of some data.
- * @tparam Watched enum type of watched things, needs to contain _count and _last
+ * @tparam Watched enum type of watched things, needs to contain _count
  * @tparam timeout_us timeout [microseconds]
  * @tparam watcher_n watcher number for log in case there are more data watchers
  */
@@ -142,7 +142,7 @@ private:
 
 /**
  * @brief Watcher for presence of heartbeats.
- * @tparam Watched enum type of watched nodes, needs to contain _count and _last
+ * @tparam Watched enum type of watched nodes, needs to contain _count
  */
 template <EnumType Watched>
 class Heartbeat : public Proto<Watched, uavcan_node_Heartbeat_1_0_OFFLINE_TIMEOUT * 1'000'000> {

@@ -299,10 +299,11 @@ void test_abort() {
 }
 #endif
 
-void print_start(const char *filename, marlin_server::PreviewSkipIfAble skip_preview) {
+void print_start(const char *filename, marlin_server::PreviewSkipIfAble skip_preview, ResetToolMapping reset_tool_mapping) {
     Request request;
     request.type = Request::Type::PrintStart;
     request.print_start.skip_preview = skip_preview;
+    request.print_start.reset_tool_mapping = reset_tool_mapping;
     if (strlcpy(request.print_start.filename, filename, sizeof(request.print_start.filename)) >= sizeof(request.print_start.filename)) {
         log_error(MarlinClient, "ignoring truncated filename");
     } else {

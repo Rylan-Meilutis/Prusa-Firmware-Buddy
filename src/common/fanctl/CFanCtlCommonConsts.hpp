@@ -95,25 +95,27 @@ inline constexpr uint16_t FANCTLENCLOSURE_RPM_MAX = 2700;
 // Driver-level thresholds used by CFanCtl3Wire / get_rpm_is_ok().
 // Selftest pass/fail tolerances live separately in selftest_fans_config.hpp.
 //
-// Fan: LDO-D3007D04Y05X75FX, 5 V 3-wire (VCC/GND/FG, no PWM input), rated
-// 10000 RPM ±15%, 4-pole motor (datasheet: BFW-8968)
-// PWM drives a MOSFET on the
-// sandwich board's 5 V supply. The cpu_fan_controller policy runs it at
+// Fan: JDL3006S, 5 V 3-wire (VCC/GND/FG, no PWM input), 4-pole motor, rated
+// 9000 RPM ±20 %, operating range 4.5-5.5 V (datasheet: BFW-8968). PWM drives
+// a MOSFET on the sandwich board's 5 V supply. The cpu_fan_controller runs it at
 // 0 % or 100 % only -- at 100 % duty the CFanCtlPWM output pin stays
 // permanently high, so the 20 Hz soft-PWM frequency is not audible in
-// practice. MIN is set below the -15 % corner with margin for part
-// variance; MAX sits above the +15 % corner.
+// practice.
 //
-// XLS_TODO: validate reported RPM on real hardware. The new fan is
-// 4-pole vs the previous 2-pole part; CFanCtl3Wire's tach math assumes
-// 4 edges per revolution which matches a 4-pole / 2-pulse-per-rev FG.
-// If on-bench RPM reads ~5000 instead of ~10000, the fan FG is actually
-// 1 pulse/rev (2 edges/rev) and the tach divisor needs adjustment.
+// The window below is not the datasheet tolerance: MAX is the +15 % corner,
+// while MIN sits well under the -20 % corner because the fans read
+// noticeably slower mounted on the machine than they do free-air.
+//
+// XLS_TODO: the datasheet ticks only RED(+)/BLACK(-) ("2 Wires") and leaves
+// "Tachometer Output" unchecked. That is a datasheet error -- the parts we
+// have are physically 3-wire and RPM reads correctly, so cpuFanTach and the
+// RPM selftest are sound. Awaiting Product's confirmation that the shipped
+// part is consistently the 3-wire build.
 #if HAS_CPU_FAN()
 inline constexpr uint8_t FANCTLCPU_PWM_MIN = 20;
 inline constexpr uint8_t FANCTLCPU_PWM_MAX = 100;
-inline constexpr uint8_t FANCTLCPU_PWM_THR = 70; // 3.5V is the minimum startup voltage, which is 70% of 5V
+inline constexpr uint8_t FANCTLCPU_PWM_THR = 90; // 4.5V is the bottom of the fan's operating range, which is 90% of 5V
 inline constexpr uint8_t FANCTLCPU_MIN_PWM_TO_MEASURE_RPM = 0;
-inline constexpr uint16_t FANCTLCPU_RPM_MIN = 6375; // 7500 RPM - 15% = 6375 RPM
-inline constexpr uint16_t FANCTLCPU_RPM_MAX = 8625; // 7500 RPM + 15% = 8625 RPM
+inline constexpr uint16_t FANCTLCPU_RPM_MIN = 6375; // measured floor, deliberately below 9000 RPM - 20%
+inline constexpr uint16_t FANCTLCPU_RPM_MAX = 10350; // 9000 RPM + 15% = 10350 RPM
 #endif // HAS_CPU_FAN

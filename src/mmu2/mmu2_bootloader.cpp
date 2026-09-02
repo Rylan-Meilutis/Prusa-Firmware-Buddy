@@ -209,7 +209,7 @@ MMU2BootloaderManager::Task<void> MMU2BootloaderManager::main_coroutine() {
             }
 
             // The programming is done in 2-byte words, enforce it
-            if (bytes_to_write % 1 != 0) {
+            if (bytes_to_write % 2 != 0) {
                 buffer[bytes_to_write++] = '\0';
             }
 

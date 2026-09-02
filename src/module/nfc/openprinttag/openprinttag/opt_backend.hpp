@@ -165,7 +165,7 @@ public:
     /// - (optionally) Locks the registers
     /// - (optionally) Locks the headers data
     /// Might be implemented only for specific chip models and specific parameter configurations
-    /// All init-time data should be written to the tag beforehand using \p raw_write
+    /// All init-time data should be written to the tag beforehand using \p write
     [[nodiscard]] virtual IOResult<void> initialize_tag(TagID tag, const InitializeTagParams &params) {
         (void)tag, (void)params;
         return std::unexpected(IOError::not_implemented);

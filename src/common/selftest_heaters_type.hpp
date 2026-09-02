@@ -1,7 +1,7 @@
 /**
  * @file selftest_heaters_type.hpp
  * @author Radek Vana
- * @brief selftest fans data to be passed between threads
+ * @brief selftest heaters data to be passed between threads
  * @date 2021-03-01
  */
 

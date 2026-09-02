@@ -74,12 +74,6 @@ void CurrentStore::perform_config_check() {
             hotend_type.set(tool.to_raw(), HotendType::stock_with_sock); // New printers also sock
         }
 
-    #if HAS_15GT_BELTS() // not on XL_DEV_KIT, which shares this branch
-        // New XL printers ship with the 1.5GT belts.
-        // The restart-required result can be ignored: this runs at boot, before the planner reads steps/mm.
-        (void)set_belts_15gt(true);
-    #endif
-
 #elif PRINTER_IS_PRUSA_MK3_5()
         change_extended_printer_type(PrinterModel::mk3_5s, ChangeExtendedPrinterTypeMode::config_store_init);
 
@@ -440,9 +434,11 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     }
     auto transaction = get_backend().transaction_guard();
     belts_15gt_installed.set(installed);
+    #if HAS_EXTRA_EXPERIMENTAL_SETTINGS()
     // Clear any manual override so the resolved default follows the belt HW.
     axis_steps_per_unit_x.set_to_default();
     axis_steps_per_unit_y.set_to_default();
+    #endif
     // Belt type changes X/Y steps/mm -> XY geometry calibration and axis selftest are invalid.
     homing_sens_x.set_to_default();
     homing_sens_y.set_to_default();
@@ -455,6 +451,7 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     #if HAS_PRECISE_HOMING_COREXY()
     // The grid origin is a motor-phase-to-position mapping, so a different belt pitch invalidates it.
     corexy_grid_origin.set_to_default();
+    precise_homing_instability_history.set_to_default();
         #if HAS_TRINAMIC && defined(XY_HOMING_MEASURE_SENS_MIN)
     corexy_home_tmc_sens.set_to_default();
         #endif

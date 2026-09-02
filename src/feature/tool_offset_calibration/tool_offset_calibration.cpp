@@ -3,7 +3,10 @@
 
 #include "tool_offset_calibration.hpp"
 
+#include <array>
+#include <algorithm>
 #include <bitset>
+#include <cmath>
 #include <optional>
 
 #include <Marlin/src/gcode/gcode.h>
@@ -13,6 +16,7 @@
 #include <Marlin/src/module/probe.h>
 #include <Marlin/src/module/prusa/toolchanger.h>
 #include <marlin_server.hpp>
+#include <common/printer_model.hpp>
 #include <warning_type.hpp>
 #include <tool_index.hpp>
 #include <tools_mapping.hpp>
@@ -34,10 +38,14 @@
 #include <feature/gcode_exception/gcode_exception.hpp>
 #include <puppies/tool_offset_sensor.hpp>
 
+#include <option/has_nozzle_cleaner.h>
 #if HAS_NOZZLE_CLEANER()
     #include <nozzle_cleaner.hpp>
 #endif
-
+#include <option/has_nozzle_cleaner_lite.h>
+#if HAS_NOZZLE_CLEANER_LITE()
+    #include <nozzle_cleaner_lite.hpp>
+#endif
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
     #include <module/prusa/spool_join.hpp>
@@ -48,17 +56,32 @@ static_assert(HAS_TOOLCHANGER(), "Needs toolchanger");
 LOG_COMPONENT_DEF(ToolOffsetCalib, logging::Severity::info);
 
 METRIC_DEF(metric_sensor_pos, "tool_off_sensor_pos", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
+METRIC_DEF(metric_sensor_displacement, "tos_displacement", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 // Per-tool hotend offset (result of tool offset calibration) [mm]
 METRIC_DEF(metric_tool_offset, "tool_offset", METRIC_VALUE_CUSTOM, 0, METRIC_ENABLED);
 
 namespace {
-// C1_INDX - this position is proved to be the best in terms of the lowest warping
 constexpr xy_pos_t POS_TOOL_0 = { 25.0f, 5.0f };
 constexpr xy_pos_t POS_TOOL_LAST = { 65.0f, 5.0f };
 
 // Safe Z height for travel moves between probes
 constexpr float SAFE_Z_HEIGHT = 3.0f;
 
+#if PRINTER_IS_PRUSA_XL()
+/// Maximum allowable Z offset difference between tools, in mm
+/// If exceeded, the print is not allowed to continue
+constexpr float MAX_Z_OFFSET_DIFFERENCE = 4.0f;
+
+/// Maximum allowable XY offset spread (max - min) per axis after normalization, in mm
+/// If exceeded, the print is not allowed to continue
+constexpr float MAX_XY_OFFSET_DIFFERENCE = 4.0f;
+
+// Fallback temperatures if no filament is loaded
+constexpr int16_t DEFAULT_CLEANING_TEMP = 180;
+constexpr int16_t DEFAULT_Z_PROBING_TEMP = 150;
+constexpr int16_t DEFAULT_XY_PROBING_TEMP = 150;
+
+#elif PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 /// Maximum allowable Z offset difference between tools, in mm
 /// If exceeded, the print is not allowed to continue
 constexpr float MAX_Z_OFFSET_DIFFERENCE = 0.4f;
@@ -71,6 +94,10 @@ constexpr float MAX_XY_OFFSET_DIFFERENCE = 0.4f;
 constexpr int16_t DEFAULT_CLEANING_TEMP = 220;
 constexpr int16_t DEFAULT_Z_PROBING_TEMP = 170;
 constexpr int16_t DEFAULT_XY_PROBING_TEMP = 170;
+#else
+    #error "No tool offset calibration config for this printer"
+#endif
+
 struct ToolTemperatures {
     int16_t cleaning; // nozzle temp for purge/clean
     int16_t z_probing; // cooled-down temp for Z probing
@@ -108,7 +135,18 @@ ToolTemperatures get_tool_temperatures(PhysicalToolIndex physical_tool) {
 
     if (filament != FilamentType::none) {
         const auto params = filament.parameters();
+#if HAS_NOZZLE_CLEANER()
         return { params.nozzle_temperature, params.nozzle_preheat_temperature, DEFAULT_XY_PROBING_TEMP };
+#elif HAS_NOZZLE_CLEANER_LITE()
+        // The lite cleaner cleans at the preheat temperature and rests on the
+        // touchpoint until the cool-down temperature; Z probing then runs at
+        // that temperature (as hot as possible without ooze, so the nozzle
+        // thermal expansion stays close to printing conditions).
+        const int16_t cleaning_temp = params.nozzle_preheat_temperature;
+        return { cleaning_temp, static_cast<int16_t>(cleaning_temp - nozzle_cleaner_lite::cooldown_temp_diff), DEFAULT_XY_PROBING_TEMP };
+#else
+    #error "No nozzle cleaner available, no cleaning temperature defined for this printer"
+#endif
     } else {
         return { DEFAULT_CLEANING_TEMP, DEFAULT_Z_PROBING_TEMP, DEFAULT_XY_PROBING_TEMP };
     }
@@ -123,7 +161,7 @@ void set_temp_and_wait_reached(PhysicalToolIndex tool, int16_t temp, bool fan_co
     thermalManager.wait_for_hotend(tool, {
                                              .no_wait_for_cooling = false,
                                              .fan_cooling = fan_cooling,
-                                             .wait_temp = heating ? std::optional<float>(temp) : std::nullopt,
+                                             .early_return_temperature = heating ? std::optional<float>(temp) : std::nullopt,
                                          });
 }
 
@@ -198,9 +236,20 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
         // cool-down needed afterwards).
         set_temp_and_wait_reached(tool, temps.xy_probing);
     }
-#elif PRINTER_IS_PRUSA_XL()
-    // Nozzle cleaner not available, just heat to the XY-probing temperature
-    set_temp_and_wait_reached(tool, temps.xy_probing);
+#elif HAS_NOZZLE_CLEANER_LITE()
+    // The lite cleaner self-locates (homes and probes its own Z reference) and handles
+    // nozzle heating internally, so it can run in both contexts. As probing_tool it
+    // rests on the touchpoint until the cool-down temperature and keeps that target
+    // for the Z probing that follows.
+    if (nozzle_cleaner_lite::is_available()) {
+        if (!nozzle_cleaner_lite::clean(nozzle_cleaner_lite::CleanType::probing_tool)) {
+            return false;
+        }
+    }
+
+    // Already reached after a successful clean; establishes the Z-probing
+    // temperature when the cleaner is not installed.
+    set_temp_and_wait_reached(tool, temps.z_probing);
 #else
     #error "Not defined behavior for this printer configuration"
 #endif
@@ -396,6 +445,53 @@ void apply_stored_sensor_position(tool_offset::ProbingConfig &config) {
     // Stored position is more accurate than the default
     tool_offset::set_single_coil_position(config, stored);
 }
+#else
+xy_pos_t apply_stored_sensor_displacement(tool_offset::ProbingConfig &config) {
+    const xy_pos_t stored = config_store().tool_offset_sensor_displacement.get();
+    if (std::abs(stored.x) > config.sensor_displacement_error_threshold || std::abs(stored.y) > config.sensor_displacement_error_threshold) {
+        log_error(ToolOffsetCalib, "Stored sensor displacement (X=%.1f Y=%.1f) too large, resetting to zero",
+            static_cast<double>(stored.x),
+            static_cast<double>(stored.y));
+        const xy_pos_t zero { { { 0.f, 0.f } } };
+        config_store().tool_offset_sensor_displacement.set(zero);
+        metric_record_custom(&metric_sensor_displacement, " x=%.3f,y=%.3f",
+            static_cast<double>(zero.x),
+            static_cast<double>(zero.y));
+        return zero;
+    }
+
+    // Compute the tightest per-axis displacement bounds so all shifted geometry stays in travel.
+    const float half_x = config.coil_x.sensing_distance / 2.f;
+    const float half_y = config.coil_y.sensing_distance / 2.f;
+    const float dx_lo = std::max({ static_cast<float>(X_MIN_POS) - config.coil_x.position.x + half_x,
+        static_cast<float>(X_MIN_POS) - config.coil_y.position.x,
+        static_cast<float>(X_MIN_POS) - config.z_probe_position.x });
+    const float dx_hi = std::min({ static_cast<float>(X_MAX_POS) - config.coil_x.position.x - half_x,
+        static_cast<float>(X_MAX_POS) - config.coil_y.position.x,
+        static_cast<float>(X_MAX_POS) - config.z_probe_position.x });
+    const float dy_lo = std::max({ static_cast<float>(Y_MIN_POS) - config.coil_y.position.y + half_y,
+        static_cast<float>(Y_MIN_POS) - config.coil_x.position.y,
+        static_cast<float>(Y_MIN_POS) - config.z_probe_position.y });
+    const float dy_hi = std::min({ static_cast<float>(Y_MAX_POS) - config.coil_y.position.y - half_y,
+        static_cast<float>(Y_MAX_POS) - config.coil_x.position.y,
+        static_cast<float>(Y_MAX_POS) - config.z_probe_position.y });
+
+    const xy_pos_t displacement { { { std::clamp(stored.x, dx_lo, dx_hi), std::clamp(stored.y, dy_lo, dy_hi) } } };
+    if (displacement.x != stored.x || displacement.y != stored.y) {
+        log_warning(ToolOffsetCalib, "Sensor displacement clamped from (%.3f, %.3f) to (%.3f, %.3f) to stay within travel",
+            static_cast<double>(stored.x), static_cast<double>(stored.y),
+            static_cast<double>(displacement.x), static_cast<double>(displacement.y));
+    }
+
+    config.coil_x.position.x += displacement.x;
+    config.coil_x.position.y += displacement.y;
+    config.coil_y.position.x += displacement.x;
+    config.coil_y.position.y += displacement.y;
+    config.z_probe_position.x += displacement.x;
+    config.z_probe_position.y += displacement.y;
+
+    return displacement;
+}
 #endif
 
 bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb) {
@@ -409,8 +505,6 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     if (context == Context::Print) {
         status_guard.emplace();
     }
-    auto probing_config = tool_offset::get_default_probing_config();
-
     reset_z_tool_offsets(); // Clear old Z offsets to avoid interference with calibration
 
     log_info(ToolOffsetCalib, "Starting tool offset calibration");
@@ -463,9 +557,36 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     }
 #endif
 
-    // Z probing is only done from a running print — selftest skips it to save time. Z offsets
-    // are then left at zero until the next G427 call from a print start.
+#if HAS_INDX()
+    // For INDX Z probing is only done from a running print — selftest skips it to save time.
+    // Z offsets are then left at zero until the next G427 call from a print start.
     const bool measure_z = (context == Context::Print);
+#elif PRINTER_IS_PRUSA_XL()
+    // XLS does not perform tool offset calibration during print, so for XLS measure Z
+    // during selftest/calibration on XLS - the only place where the Z offset are calculated
+    const bool measure_z = true;
+#else
+    #error "Not defined behavior for this printer configuration"
+#endif
+
+#if HAS_NOZZLE_CLEANER_LITE() && PRINTER_IS_PRUSA_XL()
+    // Start heating all used tools to the cleaning temperature in parallel to save time;
+    std::array<int16_t, PhysicalToolIndex::count> saved_nozzle_targets {};
+    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        if (!used_physical_tools.test(tool.to_raw())) {
+            continue;
+        }
+        saved_nozzle_targets[tool.to_raw()] = thermalManager.degTargetHotend(tool);
+        thermalManager.setTargetHotend(get_tool_temperatures(tool).cleaning, tool);
+    }
+    ScopeGuard restore_nozzle_targets([&] {
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            if (used_physical_tools.test(tool.to_raw())) {
+                thermalManager.setTargetHotend(saved_nozzle_targets[tool.to_raw()], tool);
+            }
+        }
+    });
+#endif
 
     struct ProbeResult {
         float z;
@@ -477,10 +598,16 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     // prompt_retry allows to re-clean the nozzle and we restart the whole
     // pass with offsets reset.
     while (true) {
+        // Re-derive the probing config from defaults each pass: a previous pass's
+        // drift correction may have updated the stored values, and the dual-coil
+        // displacement application shifts the config additively.
+        auto probing_config = tool_offset::get_default_probing_config();
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
         // The stored sensor position tracks a single coil; dual-coil (XLS) would
         // need two stored positions (TODO WP5.4: per-coil storage + migration).
         apply_stored_sensor_position(probing_config);
+#else
+        const xy_pos_t applied_sensor_displacement = apply_stored_sensor_displacement(probing_config);
 #endif
         reset_hotend_offsets();
         hotend_currently_applied_offset = xyz_pos_t {};
@@ -557,7 +684,14 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 return false;
             }
 
+#if HAS_NOZZLE_CLEANER_LITE() && PRINTER_IS_PRUSA_XL()
+            // The pre-heat above already overwrote the target, so restore the genuinely
+            // previous temperature captured before it. This also lets a finished tool cool
+            // down while the remaining tools are being calibrated.
+            const int16_t saved_temp = saved_nozzle_targets[tool.to_raw()];
+#else
             const int16_t saved_temp = thermalManager.degTargetHotend(tool);
+#endif
             ScopeGuard restore_temp([&] {
                 thermalManager.setTargetHotend(saved_temp, tool);
             });
@@ -705,6 +839,40 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 }
             }
 #else
+            // Dual-coil (XLS): the midpoint of the measured offsets encodes the
+            // whole-sensor displacement (offset ~ e - (d_true - d_applied); the
+            // tool errors e average out, so d_true = d_applied - avg). Once found
+            // by the search FSM, the displacement is persisted and applied to the
+            // geometry on subsequent passes, so the hunt normally runs at most
+            // once per machine. The update threshold is shared with the
+            // single-coil path.
+            const xyz_pos_t average_offset = sum_offsets / no_summed_offsets;
+            if (std::abs(average_offset.x) > probing_config.sensor_displacement_error_threshold || std::abs(average_offset.y) > probing_config.sensor_displacement_error_threshold) {
+                // in actual configuration this code is dead
+                // TODO: reanalyze the need for this once calibration sequence is finalized for BFW-8420
+                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY, context) == Response::Retry) {
+                    continue;
+                }
+                return false;
+            } else if (std::abs(average_offset.x) > probing_config.sensor_position_update_threshold || std::abs(average_offset.y) > probing_config.sensor_position_update_threshold) {
+                const xy_pos_t new_displacement { { { applied_sensor_displacement.x - average_offset.x, applied_sensor_displacement.y - average_offset.y } } };
+                log_info(ToolOffsetCalib, "Updating stored sensor displacement: (%.3f, %.3f) -> (%.3f, %.3f)",
+                    static_cast<double>(applied_sensor_displacement.x), static_cast<double>(applied_sensor_displacement.y),
+                    static_cast<double>(new_displacement.x), static_cast<double>(new_displacement.y));
+                config_store().tool_offset_sensor_displacement.set(new_displacement);
+                metric_record_custom(&metric_sensor_displacement, " x=%.3f,y=%.3f",
+                    static_cast<double>(new_displacement.x),
+                    static_cast<double>(new_displacement.y));
+
+                // Correct all measured tools by the midpoint, as in the single-coil path.
+                for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+                    if (!used_physical_tools.test(tool.to_raw())) {
+                        continue;
+                    }
+                    hotend_offset[tool] -= average_offset.xy();
+                }
+            }
+
             for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
                 // Record metrics for all tools
                 metric_record_custom(&metric_tool_offset, ",tool=%u x=%.3f,y=%.3f,z=%.3f",

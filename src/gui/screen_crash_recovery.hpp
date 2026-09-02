@@ -111,7 +111,7 @@ struct WinsToolRecovery {
 };
 #endif
 
-using WinVariant = std::variant<
+using WinVariant = std::variant<std::nullopt_t,
 #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     WinsToolRecovery,
 #endif

@@ -71,7 +71,7 @@ void screen_filebrowser_data_t::printTheFile() {
         log_error(GUI, "Failed to prepare file path for print");
         return;
     }
-    print_begin(path.data());
+    marlin_client::print_start(path.data());
 }
 
 void screen_filebrowser_data_t::goHome() {

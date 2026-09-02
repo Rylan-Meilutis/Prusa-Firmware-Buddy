@@ -12,6 +12,7 @@
 #include <option/has_expansion_joints_gen_2.h>
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_15gt_belts.h>
+#include <option/has_switchable_homing_calibration.h>
 #include <common/extended_printer_type.hpp>
 #include <common/printer_variant/printer_variant.hpp>
 #include <dynamic_index_mapping.hpp>
@@ -120,7 +121,7 @@ protected:
 };
 #endif
 
-#if HAS_PRECISE_HOMING_COREXY()
+#if HAS_SWITCHABLE_HOMING_CALIBRATION()
 /// Option whether we should automatically calibrate precise homing when needed
 class MI_AUTO_PRECISE_HOMING_CALIBRATION : public MenuItemSwitch {
 public:

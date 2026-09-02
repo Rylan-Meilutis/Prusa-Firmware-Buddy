@@ -81,13 +81,6 @@ void print_utils_loop() {
     }
 }
 
-void print_begin(const char *filename, marlin_server::PreviewSkipIfAble skip_preview) {
-    marlin_client::print_start(filename, skip_preview);
-    // FIXME: This should not be here and it should be handled
-    // in Marlin. Needs refactoring!
-    oProgressData.mInit();
-}
-
 DeleteResult remove_file(const char *path) {
     if (marlin_vars().media_SFN_path.equals(path)) {
         switch (printer_state::get_state()) {

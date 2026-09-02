@@ -68,7 +68,7 @@ const AxisConfig_t selftest::Config_XAxis = {
     .movement_dir = -1,
     .park = true,
     .park_pos = 15,
-}; // MINI has movement_dir -1
+};
 
 const AxisConfig_t selftest::Config_YAxis = {
     .partname = "Y-Axis",

@@ -192,8 +192,8 @@ public:
 
     /**
      * @brief Change tool before load/unload.
-     * @param target_extruder change to this tool [indexed from 0]
-     * @param mode before which operation
+     * @param target_tool change to this tool [indexed from 0]
+     * @param load_type before which operation
      * @param settings_ config for park and othe Pause stuff
      * @return true on success
      */

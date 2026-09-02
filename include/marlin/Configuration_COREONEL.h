@@ -624,17 +624,6 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
   #define NOZZLE_LOAD_CELL
 #endif
 
-// A probe that is deployed and stowed with a solenoid pin (SOL1_PIN)
-//#define SOLENOID_PROBE
-
-// A sled-mounted probe like those designed by Charles Bell.
-//#define Z_PROBE_SLED
-//#define SLED_DOCKING_OFFSET 5  // The extra distance the X axis must travel to pickup the sled. 0 should be fine but you can push it further if you'd like.
-
-//
-// For Z_PROBE_ALLEN_KEY see the Delta example configurations.
-//
-
 /**
  *   Z Probe to nozzle (X,Y) offset, relative to (0, 0).
  *   X and Y offsets must be integers.
@@ -852,7 +841,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 #define Z_MIN_POS (0 - Z_MAX_OFFSET)
 #define X_MAX_POS (X_BED_SIZE - X_MIN_OFFSET + 10)
 #define X_MIN_PRINT_POS X_MIN_POS
-#define X_MAX_PRINT_POS X_WASTEBIN_SAFE_POINT // maximal print area X position (excluding nozzle cleaner area)
+#define X_MAX_PRINT_POS X_WASTEBIN_SAFE_POINT // maximal print area X position (excluding nozzle cleaner area); X_WASTEBIN_SAFE_POINT is defined in nozzle_cleaner.hpp
 #define Y_MAX_PRINT_POS (Y_BED_SIZE - Y_MIN_OFFSET) // maximal print area Y position (excluding toolchanger area)
 #define Y_MAX_POS (Y_MAX_PRINT_POS) // extra distance in Y to reach toolchanger
 #define PROBE_MAX_Y Y_BED_SIZE // limit maximal Y probe position (so that tool doesn't hit toolchanger with high tool offsets)
@@ -1027,7 +1016,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 // Manually set the home position. Leave these undefined for automatic settings.
 //#define MANUAL_X_HOME_POS 0
 //#define MANUAL_Y_HOME_POS 0
-//#define MANUAL_Z_HOME_POS 0
+#define MANUAL_Z_HOME_POS 0
 
 // Use "Z Safe Homing" to avoid homing with a Z probe outside the bed area.
 //
@@ -1042,7 +1031,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 
 #if ENABLED(Z_SAFE_HOMING)
 #if HAS_INDX()
-    #define Z_SAFE_HOMING_X_POINT (135) // X point for Z homing when homing all axes (G28).
+    // homing point is close to print sheet detection point to minimize Z differences
+    #define Z_SAFE_HOMING_X_POINT (25) // X point for Z homing when homing all axes (G28).
     #define Z_SAFE_HOMING_Y_POINT (15) // Y point for Z homing when homing all axes (G28).
 #else
     #define Z_SAFE_HOMING_X_POINT (270) // X point for Z homing when homing all axes (G28).
@@ -1051,8 +1041,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #if HAS_PRINT_SHEET_DETECTION()
         #if HAS_INDX()
             // Lower Y would crash into dock.
-            #define DETECT_PRINT_SHEET_X_POINT (0) // INDX_TODO: Has to be half-way to dock, we have to handle the edgecases first
-            #define DETECT_PRINT_SHEET_Y_POINT (0)
+            #define DETECT_PRINT_SHEET_X_POINT (25)
+            #define DETECT_PRINT_SHEET_Y_POINT (-27)
         #else
             #define DETECT_PRINT_SHEET_X_POINT (220)
             #define DETECT_PRINT_SHEET_Y_POINT (-7)
@@ -1125,56 +1115,21 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     // Specify a park position as { X, Y, Z }
 #if HAS_INDX()
     #define X_NOZZLE_CLEANER_ORIGIN 312.16f
-    #define Y_NOZZLE_CLEANER_ORIGIN 81.4f
+    #define Y_NOZZLE_CLEANER_ORIGIN 81.4f // master Y reference
 
-    // Y calibration indent positions [mm] for the manual fallback (the two wastebin variants). Both bins
-    // share the cleaner coordinate system; only where the manual Y indent sits differs. The standard
-    // (longer) bin's indent is at the origin; the extended (shorter) bin's is 40 mm closer (+Y). The
-    // matched point also selects the bin's capacity.
-    #define Y_NOZZLE_CLEANER_CALIB_POINT_STANDARD Y_NOZZLE_CLEANER_ORIGIN
-    #define Y_NOZZLE_CLEANER_CALIB_POINT_EXTENDED (Y_NOZZLE_CLEANER_ORIGIN + 40.f)
-
-    // Anchor for the cleaner tray Y geometry; the wastebin point, tray back edge and entry derive from
-    // it. INDX_TODO: tune.
-    #define Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL (Y_NOZZLE_CLEANER_ORIGIN + 92.f)
-
-    #define X_WASTEBIN_SAFE_POINT (X_NOZZLE_CLEANER_ORIGIN - 10.35f)
-    #define Y_WASTEBIN_SAFE_POINT (Y_NOZZLE_CLEANER_ORIGIN - 8.f)
-    #define Y_BRUSH_AVOID_POINT (Y_NOZZLE_CLEANER_ORIGIN + 101.f)
-
-    #define X_WASTEBIN_POINT X_NOZZLE_CLEANER_ORIGIN
-    #define Y_WASTEBIN_POINT (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL - 6.f) // derived from the tray anchor
-
-    // Loadcell Y calibration touches the tray back edge (drive to PURGE_TOUCH at PURGE_ENTRY, move -Y);
-    // stored offset = measured edge - BACK_NOMINAL.
-    // 4.745 = 5 - 0.255 (empirical loadcell-vs-V-groove median, 7 COREONE units). INDX_TODO: revisit.
-    #define Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL (Y_NOZZLE_CLEANER_PURGE_CENTER_NOMINAL + 4.745f)
-    #define Y_NOZZLE_CLEANER_PURGE_PROBE_MIN (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL - 3.f) // probe ceiling past the edge
-    #define X_NOZZLE_CLEANER_PURGE_TOUCH 304.5f
-    // Entry sits clear of the edge by more than the offset tolerance so the +X align move never bumps the
-    // tray even on a max-tolerance +Y misaligned bin.
-    #define Y_NOZZLE_CLEANER_PURGE_ENTRY (Y_NOZZLE_CLEANER_PURGE_BACK_NOMINAL + 4.f)
-
-    // Loadcell X calibration touches the outer cleaner wall (drive to WALL_ENTRY at WALL_TOUCH_Y, move
-    // +X); stored offset = measured - WALL_NOMINAL. NOMINAL sits 8.25 mm inward (6.65 + 3.2/2).
-    #define X_NOZZLE_CLEANER_WALL_TOUCH_Y (Y_NOZZLE_CLEANER_ORIGIN + 77.f)
-    #define X_NOZZLE_CLEANER_WALL_ENTRY (X_NOZZLE_CLEANER_ORIGIN - 12.f)
-    #define X_NOZZLE_CLEANER_WALL_PROBE_MAX (X_NOZZLE_CLEANER_ORIGIN - 2.f)
-    // 8.535 = 8.25 (6.65 + 3.2/2) + 0.285 (empirical loadcell-vs-V-groove median, 7 COREONE units). INDX_TODO: revisit.
-    #define X_NOZZLE_CLEANER_WALL_NOMINAL (X_NOZZLE_CLEANER_ORIGIN - 8.535f)
-
-    #define X_NOZZLE_PARK_POINT X_WASTEBIN_POINT
-    #define Y_NOZZLE_PARK_POINT Y_WASTEBIN_POINT + 5.f
+    // Cleaner geometry (wastebin, purge tray, wall, calibration points) is in nozzle_cleaner.hpp,
+    // anchored to the origins above. The park point must stay here: Marlin's SanityCheck.h expands
+    // XYZ_NOZZLE_PARK_POINT in every TU.
+    #define X_NOZZLE_PARK_POINT X_NOZZLE_CLEANER_ORIGIN // = X_WASTEBIN_POINT
+    #define Y_NOZZLE_PARK_POINT (Y_NOZZLE_CLEANER_ORIGIN + 91.f) // = Y_WASTEBIN_POINT + 5.f, kept in sync by a static_assert in nozzle_cleaner.cpp
 #else
     #define X_NOZZLE_PARK_POINT (X_MAX_POS - 40.0f)
     #define Y_NOZZLE_PARK_POINT (Y_MIN_POS + 3.0f)
 #endif
     #define Z_NOZZLE_PARK_POINT (20.0f)
-#if HAS_INDX()
-    #define Z_NOZZLE_PARK_POINT_MIN 200.0f // Bed low enough to reach the print through the door (fixed front plate with docks above it)
-#else
-    #define Z_NOZZLE_PARK_POINT_MIN 67.0f // Always raise the nozzle by this amount when parking on print end (BFW-8108)
-#endif
+    /// Always park the bed at least this low, so the user can reach the print.
+    /// On INDX this also has to clear the door with the fixed front plate.
+    #define Z_NOZZLE_PARK_POINT_MIN (Z_MAX_POS - 50.0f)
     #define Z_NOZZLE_PARK_RISE 50.0f // Relative Z rise
 
     #define XYZ_NOZZLE_PARK_POINT \

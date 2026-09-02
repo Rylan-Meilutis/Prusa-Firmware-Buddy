@@ -6,7 +6,7 @@
 #include "base_hotend.hpp"
 #include <tool/tool/standard_fff_physical_tool.hpp>
 
-/// Represents a hotend that is managed by a dwarf on an XL
+/// Represents a hotend that is managed by the INDX head
 class IndxHotend final : public BaseHotend {
     friend class PrusaToolChanger; // For access to start_heating / stop_heating
     friend class PrusaToolChangerUtils;

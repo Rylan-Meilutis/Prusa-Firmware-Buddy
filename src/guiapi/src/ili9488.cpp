@@ -378,8 +378,8 @@ void ili9488_set_complete_lcd_reinit() {
 static void startup_old_manufacturer() {
     ili9488_cmd_slpout(); // wakeup
     ili9488_delay_ms(120); // 120ms wait
-    ili9488_cmd_madctl(DEFAULT_MADCTL); // interface pixel format
-    ili9488_cmd_colmod(DEFAULT_COLMOD); // memory data access control
+    ili9488_cmd_madctl(DEFAULT_MADCTL); // memory data access control
+    ili9488_cmd_colmod(DEFAULT_COLMOD); // interface pixel format
     ili9488_cmd_dispon(); // display on
     ili9488_delay_ms(10); // 10ms wait
     ili9488_clear(0x000000); // black screen after power on
@@ -466,8 +466,8 @@ void ili9488_init(void) {
             startup_old_manufacturer();
         }
     } else {
-        ili9488_cmd_madctl(DEFAULT_MADCTL); // interface pixel format
-        ili9488_cmd_colmod(DEFAULT_COLMOD); // memory data access control
+        ili9488_cmd_madctl(DEFAULT_MADCTL); // memory data access control
+        ili9488_cmd_colmod(DEFAULT_COLMOD); // interface pixel format
         ili9488_inversion_on();
     }
 

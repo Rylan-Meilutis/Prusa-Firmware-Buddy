@@ -43,7 +43,8 @@ public:
 
 #if HAS_WASTEBIN_FILL_TRACKING()
         wastebin_overfill_wait_user, ///< bin projected to overfill
-        wastebin_emptying, ///< waiting for M1986 to finish
+        wastebin_emptying, ///< M1986 is parking and dropping the bed, before the empty-the-bin prompt
+        wastebin_emptied_returning, ///< the bin has been emptied, M1986 is on its way back
 #endif
 
         filament_not_inserted_wait_user,
@@ -90,7 +91,8 @@ class PrintPreview : public IPrintPreview {
 
     static constexpr int32_t max_run_period_ms = 50;
     uint32_t new_firmware_open_ms { 0 };
-    static constexpr uint32_t new_firmware_timeout_ms { 30000 }; // three seconds
+    static constexpr uint32_t new_firmware_timeout_ms { 30'000 };
+
 public:
     enum class Result : uint8_t {
         Wait,

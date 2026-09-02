@@ -12,8 +12,8 @@
 
 namespace cpu_fan_controller {
 
-// Hysteretic on/off thresholds (°C). The LDO-D3007D04Y05X75FX is rated
-// 3.5-7 V with a 3.5 V starting voltage
+// Hysteretic on/off thresholds (°C). The JDL3006S operating range is
+// 4.5-5.5 V, so FANCTLCPU_PWM_THR is the lowest duty that keeps it spinning.
 inline constexpr float temp_off = 55.0f;
 inline constexpr float temp_on = 65.0f;
 inline constexpr float temp_full = 80.0f;

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "PuppyModbus.hpp"
+#include <atomic>
 #include <tool_offset_sensor/modbus.hpp>
 #include <freertos/mutex.hpp>
 #include <option/has_tool_offset_sensor.h>
@@ -21,9 +22,9 @@ public:
 
     void set_config(bool ch0_enabled, bool ch1_enabled);
 
-    /// Whether we can reach the sensor. On XLS the sensor is optional
-    /// and needs to be evaluated in runtime
     bool is_enabled() const;
+
+    void set_enabled(bool set);
 
     // These are called from the puppy task.
     CommunicationStatus refresh(PuppyModbus &);
@@ -32,6 +33,7 @@ public:
 private:
     mutable freertos::Mutex mutex;
 
+    std::atomic<bool> is_enabled_ = false;
     bool valid = false;
     bool all_valid() const;
 

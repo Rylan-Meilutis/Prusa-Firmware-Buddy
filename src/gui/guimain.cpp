@@ -120,8 +120,20 @@ void gui_error_run(void) {
     LangEEPROM::getInstance(); // Initialize language EEPROM value
 
     // Handle factory reset before setting up the error screen
-    if (crash_dump::message_get_type() == crash_dump::MsgType::FACTORY_RESET) {
+    switch (crash_dump::message_get_type()) {
+
+    case crash_dump::MsgType::FACTORY_RESET:
         FactoryReset::perform_internal();
+        break;
+
+    case crash_dump::MsgType::RSOD:
+        // Don't show the "crash detected. Save to USB?" screen.
+        // RSODs are "expected" errors. The dump can still be exported through the menu item if needed
+        crash_dump::dump_set_exported();
+        break;
+
+    default:
+        break;
     }
 
     screen_node screen_initializer { ScreenFactory::Screen<ScreenError> };

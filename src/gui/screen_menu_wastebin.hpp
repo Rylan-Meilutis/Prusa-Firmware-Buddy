@@ -10,7 +10,12 @@ using ScreenMenuWastebin_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
     MI_NOZZLE_CLEANER_EMPTY_WASTEBIN,
     MI_NOZZLE_CLEANER_CAPACITY,
     MI_NOZZLE_CLEANER_PAUSE_THRESHOLD,
-    MI_NOZZLE_CLEANER_AUTOPAUSE>;
+    MI_NOZZLE_CLEANER_AUTOPAUSE,
+#if HAS_INDX()
+    MI_NOZZLE_CLEANER_X_OFFSET,
+    MI_NOZZLE_CLEANER_Y_OFFSET,
+#endif
+    MI_ALWAYS_HIDDEN>;
 
 class ScreenMenuWastebin : public ScreenMenuWastebin_ {
 public:

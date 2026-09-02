@@ -142,7 +142,7 @@ public:
 
     /**
      * @brief Get driver that uses this HAL instance.
-     * @param hfdcan_isr HAL instance
+     * @param huart_isr HAL instance
      * @return driver
      */
     static UartDriver &get_driver(UART_HandleTypeDef *huart_isr);

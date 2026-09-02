@@ -642,6 +642,11 @@ uint8_t SideStripHandler::current_brightness() const {
     return std::max({ current.r, current.g, current.b, current.w });
 }
 
+bool SideStripHandler::is_dimmed() const {
+    std::lock_guard lock(mutex);
+    return state == SideStripState::dimmed;
+}
+
 void SideStripHandler::change_state(SideStripState state) {
     if (this->state != state) {
         this->state = state;

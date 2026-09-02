@@ -138,7 +138,7 @@ static void save_current_tool() {
     save_current_tool();
 #endif
     crash_dump::save_message(crash_dump::MsgType::RSOD, std::to_underlying(error_code), error, module);
-    sys_reset();
+    crash_dump::trigger_crash_dump();
 }
 
 [[noreturn]] void fatal_error(const ErrCode error_code, ...) {

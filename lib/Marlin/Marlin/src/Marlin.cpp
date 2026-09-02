@@ -82,11 +82,6 @@
   #include "feature/host_actions.h"
 #endif
 
-#if ENABLED(DIGIPOT_I2C)
-  // #error dead code found by automatic analyses (see BFW-5461)
-  #include "feature/digipot/digipot.h"
-#endif
-
 #if ENABLED(NOZZLE_LOAD_CELL)
   #include "loadcell.hpp"
   #include "feature/prusa/e-stall_detector.h"
@@ -326,9 +321,6 @@ void manage_inactivity() {
  * @param waiting
  *   @par @c true Caller is waiting for some event, release CPU to other tasks.
  *   @par @c false Caller has more data to process, do not release CPU.
- * @param no_stepper_sleep
- *   @par @c true Keep steppers from disabling on timeout
- *   @par @c false Allow steppers to release (and lose position) on timeout
  */
 void idle(bool waiting) {
   #if HAS_PLANNER()
@@ -370,7 +362,7 @@ void idle(bool waiting) {
         // nozzle clogs/jams and upstream filament restraint before the extruder
         // can keep grinding the filament.
         SERIAL_ECHOLNPGM("E-motor stall detected");
-        queue.inject_P(PSTR("M1601"));
+        marlin_server::gcode_interrupt({"M1601"});
     }
   #endif
 
@@ -391,7 +383,6 @@ void idle(bool waiting) {
  *    • photo pin
  *    • servos
  *    • LCD controller
- *    • Digipot I2C
  *    • Z probe sled
  *    • status LEDs
  */
@@ -508,15 +499,6 @@ void setup() {
     #endif
   #endif /* HAS_PLANNER() */
 
-  #if ENABLED(COOLANT_MIST)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    OUT_WRITE(COOLANT_MIST_PIN, COOLANT_MIST_INVERT);   // Init Mist Coolant OFF
-  #endif
-  #if ENABLED(COOLANT_FLOOD)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    OUT_WRITE(COOLANT_FLOOD_PIN, COOLANT_FLOOD_INVERT); // Init Flood Coolant OFF
-  #endif
-
   #if HAS_BED_PROBE
     endstops.enable_z_probe(false);
   #endif
@@ -524,16 +506,6 @@ void setup() {
   #if HAS_STEPPER_RESET
     // #error dead code found by automatic analyses (see BFW-5461)
     enableStepperDrivers();
-  #endif
-
-  #if ENABLED(DIGIPOT_I2C)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    digipot_i2c_init();
-  #endif
-
-  #if EITHER(Z_PROBE_SLED, SOLENOID_PROBE) && HAS_SOLENOID_1
-    // #error dead code found by automatic analyses (see BFW-5461)
-    OUT_WRITE(SOL1_PIN, LOW); // OFF
   #endif
 
   #if HAS_HOME

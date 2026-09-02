@@ -25,6 +25,11 @@
 #include <utils/variant_utils.hpp>
 #include <option/has_indx.h>
 
+#include <option/has_phase_stepping.h>
+#if HAS_PHASE_STEPPING()
+  #include <feature/phase_stepping/axes.hpp>
+#endif
+
 void report_M92(const bool echo=true, const int8_t e=-1) {
   if (echo) SERIAL_ECHO_START(); else SERIAL_CHAR(' ');
   SERIAL_ECHOPAIR(" M92 X", LINEAR_UNIT(planner.settings.axis_steps_per_mm[X_AXIS]),
@@ -71,17 +76,18 @@ void report_M92(const bool echo=true, const int8_t e=-1) {
  *#### Parameters
  *
  *  - `X` - Set current position on X axis
- *  - `Y` - Set current position on Y axis
- *  - `Z` - Set current position on Z axis
- *  - `E` - Set current position on E axis
- *  - `T` - Set current position on E axis of tool
+ *  - `Y` - Set steps-per-unit on Y axis
+ *  - `Z` - Set steps-per-unit on Z axis
+ *  - `E` - Set steps-per-unit on E axis
+ *  - `T` - Set steps-per-unit on E axis of tool
  *  - `H` - Specifies micro-steps to use. We guess if it's not supplied.     (Not active by default)
  *  - `L` - Specifies a desired layer height. Nearest good heights are shown (Not active by default)
  *
  * Without parameters prints the current steps-per-unit
+ *
+ * Warning: Invalidates homing.
  */
 void GcodeSuite::M92() {
-
 #if HAS_INDX()
   // INDX has passive tools (single E stepper), so apply even with no tool selected.
   static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
@@ -103,6 +109,10 @@ void GcodeSuite::M92() {
     return report_M92(true, tool->to_raw());
 #endif
   }
+
+  #if HAS_PHASE_STEPPING()
+    phase_stepping::EnsureDisabled phstep_guard;
+  #endif
 
   // We need to synchronize before we can change axis steps per unit
   planner.synchronize();
@@ -166,6 +176,14 @@ void GcodeSuite::M92() {
       SERIAL_ECHOLNPGM(" }");
     }
   #endif
+
+  #if HAS_PHASE_STEPPING()
+    // FIXME: Code above does not update config store, phstep takes data from config store
+    phase_stepping::initialize_axis_motor_params();
+  #endif
+
+  // Invalidate all homing
+  axes_home_level = AxesHomeLevel::no_axes_homed;
 }
 
 /** @}*/

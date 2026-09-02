@@ -1,11 +1,4 @@
-/**
- * @file client_response.hpp
- * @brief every phase in dialog can have some buttons
- * buttons are generalized on this level as responses
- * because non GUI/WUI client can also use them
- * bound to ClientFSM in src/common/client_fsm_types.hpp
- */
-
+/// @file
 #pragma once
 
 #include <cstdint>
@@ -26,7 +19,6 @@
 #include <option/has_emergency_stop.h>
 #include <option/has_esp.h>
 #include <option/has_ht_hotend.h>
-#include <option/has_gearbox_alignment.h>
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_loadcell.h>
 #include <option/has_mmu2.h>
@@ -516,21 +508,6 @@ enum class PhasesSerialPrinting : PhaseUnderlyingType {
 constexpr inline ClientFSM client_fsm_from_phase(PhasesSerialPrinting) { return ClientFSM::Serial_printing; }
 #endif
 
-#if HAS_GEARBOX_ALIGNMENT()
-enum class PhaseGearboxAlignment : PhaseUnderlyingType {
-    intro,
-    filament_loaded_ask_unload,
-    filament_unknown_ask_unload,
-    loosen_screws,
-    alignment,
-    tighten_screws,
-    done,
-    finish,
-    _last = finish,
-};
-constexpr inline ClientFSM client_fsm_from_phase(PhaseGearboxAlignment) { return ClientFSM::GearboxAlignment; }
-#endif
-
 #if HAS_DOOR_SENSOR_CALIBRATION()
 enum class PhaseDoorSensorCalibration : PhaseUnderlyingType {
     confirm_abort,
@@ -582,6 +559,7 @@ enum class PhaseNozzleCleanerCalibration : PhaseUnderlyingType {
     lock_position_x,
     measuring_x,
     evaluating_x,
+    clean_nozzle,
     ask_position_y,
     lock_position_y,
     measuring_y,
@@ -590,7 +568,8 @@ enum class PhaseNozzleCleanerCalibration : PhaseUnderlyingType {
     _last = calibration_success,
 };
 constexpr inline ClientFSM client_fsm_from_phase(PhaseNozzleCleanerCalibration) { return ClientFSM::NozzleCleanerCalibration; }
-
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
 enum class PhaseToolOffsetsCalibration : PhaseUnderlyingType {
     intro,
     ensure_nozzles_clean,
@@ -897,19 +876,6 @@ inline constexpr EnumArray<PhasesInputShaperCalibration, PhaseResponses, CountPh
 };
 #endif
 
-#if HAS_GEARBOX_ALIGNMENT()
-inline constexpr EnumArray<PhaseGearboxAlignment, PhaseResponses, CountPhases<PhaseGearboxAlignment>()> gearbox_alignment_responses {
-    { PhaseGearboxAlignment::intro, { Response::Continue, Response::Skip } },
-    { PhaseGearboxAlignment::filament_loaded_ask_unload, { Response::Unload, Response::Abort } },
-    { PhaseGearboxAlignment::filament_unknown_ask_unload, { Response::Continue, Response::Unload, Response::Abort } },
-    { PhaseGearboxAlignment::loosen_screws, { Response::Continue, Response::Skip } },
-    { PhaseGearboxAlignment::alignment, {} },
-    { PhaseGearboxAlignment::tighten_screws, { Response::Continue } },
-    { PhaseGearboxAlignment::done, { Response::Continue } },
-    { PhaseGearboxAlignment::finish, {} },
-};
-#endif
-
 #if HAS_DOOR_SENSOR_CALIBRATION()
 inline constexpr EnumArray<PhaseDoorSensorCalibration, PhaseResponses, CountPhases<PhaseDoorSensorCalibration>()> door_sensor_calibration_responses {
     { PhaseDoorSensorCalibration::confirm_abort, { Response::Back, Response::Skip } },
@@ -957,13 +923,15 @@ inline constexpr EnumArray<PhaseNozzleCleanerCalibration, PhaseResponses, CountP
     { PhaseNozzleCleanerCalibration::lock_position_x, { Response::Continue, Response::Back, Response::Abort } },
     { PhaseNozzleCleanerCalibration::measuring_x, {} },
     { PhaseNozzleCleanerCalibration::evaluating_x, { Response::Yes, Response::Retry, Response::Abort } },
+    { PhaseNozzleCleanerCalibration::clean_nozzle, { Response::Retry, Response::Abort } },
     { PhaseNozzleCleanerCalibration::ask_position_y, { Response::Continue, Response::Abort } },
     { PhaseNozzleCleanerCalibration::lock_position_y, { Response::Continue, Response::Back, Response::Abort } },
     { PhaseNozzleCleanerCalibration::measuring_y, {} },
     { PhaseNozzleCleanerCalibration::evaluating_y, { Response::Yes, Response::Retry, Response::Abort } },
     { PhaseNozzleCleanerCalibration::calibration_success, { Response::Continue } },
 };
-
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
 inline constexpr EnumArray<PhaseToolOffsetsCalibration, PhaseResponses, CountPhases<PhaseToolOffsetsCalibration>()> tool_offsets_calibration_responses {
     { PhaseToolOffsetsCalibration::intro, { Response::Continue, Response::Abort } },
     { PhaseToolOffsetsCalibration::ensure_nozzles_clean, { Response::Continue, Response::Abort } },

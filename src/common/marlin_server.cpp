@@ -838,14 +838,12 @@ void init(void) {
         break;
 
     case XLTypeDetectionResult::detected_as_xls: {
-        // Note: marlin_client not needed for the XLS change, so it's safe
         change_extended_printer_type(PrinterModel::xls, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
         set_warning(WarningType::PrinterDetectedAsXLS);
         break;
     }
 
     case XLTypeDetectionResult::detected_as_xl: {
-        // Note: marlin_client not needed for the XLS change, so it's safe
         change_extended_printer_type(PrinterModel::xl, ChangeExtendedPrinterTypeMode::standard_with_marlin_client_and_puppies);
 
         if (config_store().printer_hw_config_done.get()) {
@@ -1282,12 +1280,45 @@ static bool pre_finalize_print([[maybe_unused]] bool finished) {
     prusa_toolchanger.persist_last_picked_tool(PhysicalToolIndex::currently_selected(), true);
 #endif
 
+#if HAS_CHAMBER_VENTS()
+    buddy::chamber().close_vents_after_print();
+#endif
+
     disable_e_steppers();
     disable_xy_steppers();
 
     return true;
 }
 
+/// To be called when completely exiting/resetting the server state - when user exits print preview or printing screen
+static void cleanup_print(ResetToolMapping reset_tool_mapping = ResetToolMapping::yes) {
+    gcode.compatibility = {};
+
+    if (bool(reset_tool_mapping)) {
+#if HAS_TOOL_MAPPING()
+        tool_mapper.reset();
+#endif
+
+#if HAS_SPOOL_JOIN()
+        spool_join.reset();
+#endif
+    }
+
+    media_prefetch.stop();
+
+    PrintPreview::Instance().ChangeState(IPrintPreview::State::inactive);
+    fsm_destroy(ClientFSM::PrintPreview);
+    fsm_destroy(ClientFSM::Printing);
+#if HAS_SERIAL_PRINT()
+    fsm_destroy(ClientFSM::Serial_printing);
+#endif
+
+    server.print_is_serial = false;
+    server.print_state = State::Idle;
+}
+
+/// To be called when the printer goes from printing -> not printing end state (finished, aborted, ...)
+/// Executes all the print finishing touches
 void static finalize_print(bool finished) {
 #if HAS_POWER_PANIC()
     power_panic::reset();
@@ -1356,16 +1387,6 @@ void static finalize_print(bool finished) {
     // BFW-5085
     print_area.reset_bounding_rect();
 #endif
-
-#if HAS_TOOL_MAPPING()
-    tool_mapper.reset();
-#endif
-
-#if HAS_SPOOL_JOIN()
-    spool_join.reset();
-#endif
-
-    gcode.compatibility = {};
 
 #if HAS_CHAMBER_API()
     buddy::chamber().reset();
@@ -1705,7 +1726,7 @@ bool serial_print_active() {
     return server.print_is_serial && (is_printing_state(server.print_state) || is_extended_paused_state(server.print_state));
 }
 
-void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview) {
+void print_start(const char *filename, const GCodeReaderPosition &resume_pos, PreviewSkipIfAble skip_preview, ResetToolMapping reset_tool_mapping) {
 #if HAS_SELFTEST()
     if (SelftestInstance().IsInProgress()) {
         return;
@@ -1725,10 +1746,7 @@ void print_start(const char *filename, const GCodeReaderPosition &resume_pos, ma
     case State::Aborted:
         // correctly end previous print
         finalize_print(server.print_state == State::Finished);
-        if (fsm_states.is_active(ClientFSM::Printing)) {
-            // exit from print screen, if opened
-            fsm_destroy(ClientFSM::Printing);
-        }
+        cleanup_print(reset_tool_mapping);
         break;
 
     case State::Idle:
@@ -1882,17 +1900,6 @@ void print_abort(void) {
 void print_exit(void) {
     switch (server.print_state) {
 
-#if HAS_POWER_PANIC()
-    case State::PowerPanic_Resume:
-    case State::PowerPanic_AwaitingResume:
-#endif
-    case State::Printing:
-    case State::Paused:
-    case State::Resuming_Reheating:
-    case State::Finishing_WaitIdle:
-        // do nothing
-        break;
-
     case State::Finished:
 #if HAS_LEDS()
         leds::LEDManager::instance().acknowledge_finished();
@@ -1900,8 +1907,12 @@ void print_exit(void) {
         server.print_state = State::Exit;
         break;
 
-    default:
+    case State::Aborted:
         server.print_state = State::Exit;
+        break;
+
+    default:
+        // Can't do muchF
         break;
     }
 }
@@ -2520,9 +2531,6 @@ static void _server_print_loop(void) {
         // button evaluation
         // We don't particularly care about the
         // difference, but downstream users do.
-
-        auto old_state = server.print_state;
-        auto new_state = old_state;
         switch (PrintPreview::Instance().Loop()) {
 
         case PrintPreview::Result::Wait:
@@ -2543,41 +2551,40 @@ static void _server_print_loop(void) {
             // Reset "time to" and percents before asking questions to "unknown"
             oProgressData.mInit();
 
-            new_state = State::PrintPreviewConfirmed;
+            server.print_state = State::PrintPreviewConfirmed;
             break;
 
         case PrintPreview::Result::Image:
-            new_state = State::PrintPreviewImage;
+            server.print_state = State::PrintPreviewImage;
             break;
 
         case PrintPreview::Result::Questions:
-            new_state = State::PrintPreviewQuestions;
+            server.print_state = State::PrintPreviewQuestions;
             break;
 
         case PrintPreview::Result::Abort:
-            new_state = did_not_start_print ? State::Idle : State::Finishing_WaitIdle;
             if (did_not_start_print) {
                 // Saving the result for connect, we already send the job id to them at this point.
                 marlin_vars().add_job_result(job_id, marlin_vars_t::JobInfo::JobResult::aborted);
+                cleanup_print();
+
+            } else {
+                server.print_state = State::Finishing_WaitIdle;
             }
-            media_prefetch.stop();
-            fsm_destroy(ClientFSM::PrintPreview);
             break;
 
 #if HAS_TOOL_MAPPING()
         case PrintPreview::Result::ToolsMapping:
-            new_state = State::PrintPreviewToolsMapping;
+            server.print_state = State::PrintPreviewToolsMapping;
             break;
 #endif
 
         case PrintPreview::Result::Print:
         case PrintPreview::Result::Inactive:
             did_not_start_print = false;
-            new_state = State::PrintInit;
+            server.print_state = State::PrintInit;
             break;
         }
-
-        server.print_state = new_state;
 
         break;
     }
@@ -2951,6 +2958,20 @@ static void _server_print_loop(void) {
         }
 #endif
 
+#if HAS_NOZZLE_CLEANER()
+        // Prime in nozzle cleaning area if available.
+    #if HAS_CRASH_DETECTION()
+        // trigger when clicking "Resume" after pause
+        if ((crash_s.get_state() == Crash_s::PRINTING) ||
+            // trigger when tool was lost
+            (crash_s.get_state() == Crash_s::RECOVERY && crash_s.is_toolchange_event())) {
+            unpark_prime();
+        }
+    #else // HAS_CRASH_DETECTION()
+        unpark_prime();
+    #endif // #else // HAS_CRASH_DETECTION()
+#endif // HAS_NOZZLE_CLEANER()
+
         unpark_head_XY();
         server.print_state = State::Resuming_UnparkHead_XY;
         break;
@@ -3126,6 +3147,7 @@ static void _server_print_loop(void) {
             disable_Z();
 #endif // Z_ALWAYS_ON
             server.print_state = State::Aborted;
+            // Don't clean up here - it will be done in State::Exit
             finalize_print(false);
         }
         break;
@@ -3141,11 +3163,7 @@ static void _server_print_loop(void) {
         }
 #endif
 
-        // Can go directly to Idle because we didn't really start printing.
-        server.print_state = State::Idle;
-        PrintPreview::Instance().ChangeState(IPrintPreview::State::inactive);
-        fsm_destroy(ClientFSM::PrintPreview);
-        media_prefetch.stop();
+        cleanup_print();
         break;
 
     case State::Finishing_WaitIdle:
@@ -3182,6 +3200,7 @@ static void _server_print_loop(void) {
     case State::Finishing_ParkHead:
         if (!is_processing()) {
             server.print_state = State::Finished;
+            // Don't clean up here - it will be done in State::Exit
             finalize_print(true);
         }
         break;
@@ -3191,19 +3210,7 @@ static void _server_print_loop(void) {
             break;
         }
 
-        // make the State::Exit state more resilient to repeated calls (e.g. USB drive pulled out prematurely at the end-of-print screen)
-        if (fsm_states.is_active(ClientFSM::Printing)) {
-            finalize_print(false);
-            fsm_destroy(ClientFSM::Printing);
-        }
-#if HAS_SERIAL_PRINT()
-        if (fsm_states.is_active(ClientFSM::Serial_printing)) {
-            finalize_print(false);
-        }
-#endif
-
-        media_prefetch.stop();
-        server.print_state = State::Idle;
+        cleanup_print();
         break;
 
 #if HAS_CRASH_DETECTION()
@@ -3625,6 +3632,11 @@ void resuming_begin(void) {
     // And waiting after they've heat up wouldn't work, for obivous reasons.
     if (server.resume.active_tool != PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
         tool_change(PhysicalToolIndex::from_raw(server.resume.active_tool), tool_return_t::no_return);
+        // Crash recovery must resume in place, without the park detour
+        if (!crash_s.did_trigger()) {
+            // Park for the reheat and the long Z return; on INDX the park position is over the wastebin
+            mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
+        }
     }
 #endif
 
@@ -3737,12 +3749,34 @@ static void park_head([[maybe_unused]] bool is_pause) {
     }
 }
 
+#if HAS_NOZZLE_CLEANER()
+void unpark_prime() {
+    if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+        return;
+    }
+
+    if (!all_axes_homed() || thermalManager.tooColdToExtrude(active_extruder)) {
+        return;
+    }
+
+    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean);
+    sync_e_position_to(server.resume.pos.e);
+}
+#endif // HAS_NOZZLE_CLEANER()
+
 void unpark_head_XY(void) {
     // TODO: double check this condition: when recovering from a crash, Z is not known, but we *can*
     // unpark, so we bypass this check as we need to move back
     if ((!HAS_CRASH_DETECTION() || !crash_s.did_trigger()) && !all_axes_homed()) {
         return;
     }
+
+    // The pause park position is off the print, so do the long Z return there, before the
+    // XY traverse; the traverse keeps a small clearance above the print, unpark_head_ZE
+    // does the rest
+    static constexpr float traverse_clearance = 5;
+    const float traverse_z = std::max(server.resume.pos.z, planner.max_printed_z) + traverse_clearance;
+    do_blocking_move_to_z(std::min(current_position.z, traverse_z), NOZZLE_PARK_Z_FEEDRATE, Segmented::yes);
 
     mapi::park({ .x = server.resume.pos.x, .y = std::min<float>(server.resume.pos.y, Y_BED_SIZE) });
 }
@@ -4118,7 +4152,7 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         return false;
 #endif
     case Request::Type::PrintStart:
-        print_start(request.print_start.filename, GCodeReaderPosition(), request.print_start.skip_preview);
+        print_start(request.print_start.filename, GCodeReaderPosition(), request.print_start.skip_preview, request.print_start.reset_tool_mapping);
         return true;
     case Request::Type::SetWarning:
         set_warning(request.warning_type);

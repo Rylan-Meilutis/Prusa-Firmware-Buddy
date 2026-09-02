@@ -3,6 +3,10 @@
     "configurations": [
         {
             "name": "Launch Buddy",
+            "presentation": {
+                "group": "1_Buddy",
+                "order": 1
+            },
             "cwd": "${workspaceRoot}",
             "executable": "${command:cmake.buildDirectory}/firmware",
             "request": "launch",
@@ -59,6 +63,10 @@
         },
         {
             "name": "Attach to Buddy",
+            "presentation": {
+                "group": "1_Buddy",
+                "order": 2
+            },
             "cwd": "${workspaceRoot}",
             "executable": "${command:cmake.buildDirectory}/firmware",
             "request": "attach",
@@ -113,7 +121,7 @@
             "svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-40327a4d2dff0992682be2872aaa6e096f35d2f4/STM32G07x.svd",
             "rtos": "FreeRTOS",
             "presentation": {
-                "group": "XL Puppies",
+                "group": "2_XL Puppies",
             },
             "preLaunchTask": "Wait 1", // this is needed when starting all puppies at once, because there is some issue when all of them start at once
             "rttConfig": {
@@ -183,7 +191,7 @@
             "svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-40327a4d2dff0992682be2872aaa6e096f35d2f4/STM32G07x.svd",
             "rtos": "FreeRTOS",
             "presentation": {
-                "group": "XL Puppies",
+                "group": "2_XL Puppies",
             },
             "preLaunchTask": "Wait 2", // this is needed when starting all puppies at once, because there is some issue when all of them start at once
         },
@@ -220,7 +228,7 @@
             "svdFile": "${workspaceRoot}/.dependencies/cmsis-svd-c0-ce4b873ae4a471cf28d7a7c9c69ded252d949672/STM32C092.svd",
             "rtos": "FreeRTOS",
             "presentation": {
-                "group": "XL Puppies",
+                "group": "2_XL Puppies",
             },
             "preLaunchTask": "Wait 1", // this is needed when starting all puppies at once, because there is some issue when all of them start at once
             "rttConfig": {
@@ -575,7 +583,7 @@
                 "Launch ModularBed"
             ],
             "presentation": {
-                "group": "XL Puppies",
+                "group": "2_XL Puppies",
             },
             "preLaunchTask": ""
         }

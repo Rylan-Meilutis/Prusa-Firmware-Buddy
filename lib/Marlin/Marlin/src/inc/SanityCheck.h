@@ -194,8 +194,6 @@
   #error "UBL_MESH_NUM_[XY]_POINTS is now GRID_MAX_POINTS_[XY]. Please update your configuration."
 #elif defined(min_software_endstops) || defined(max_software_endstops)
   #error "(min|max)_software_endstops are now (MIN|MAX)_SOFTWARE_ENDSTOPS. Please update your configuration."
-#elif ENABLED(Z_PROBE_SLED) && defined(SLED_PIN)
-  #error "Replace SLED_PIN with SOL1_PIN (applies to both Z_PROBE_SLED and SOLENOID_PROBE)."
 #elif defined(MIN_RETRACT)
   #error "MIN_RETRACT is now MIN_AUTORETRACT and MAX_AUTORETRACT. Please update your Configuration_adv.h."
 #elif defined(UBL_MESH_INSET)
@@ -274,8 +272,6 @@
   #error "POWER_SUPPLY is now obsolete. Please remove it from Configuration.h."
 #elif defined(STRING_SPLASH_LINE1) || defined(STRING_SPLASH_LINE2)
   #error "STRING_SPLASH_LINE[12] are now obsolete. Please remove them from Configuration.h."
-#elif defined(Z_PROBE_ALLEN_KEY_DEPLOY_1_X) || defined(Z_PROBE_ALLEN_KEY_STOW_1_X)
-  #error "Z_PROBE_ALLEN_KEY_(DEPLOY|STOW) coordinates are now a single setting. Please update your configuration."
 #elif defined(X_PROBE_OFFSET_FROM_EXTRUDER) || defined(Y_PROBE_OFFSET_FROM_EXTRUDER) || defined(Z_PROBE_OFFSET_FROM_EXTRUDER)
   #error "[XYZ]_PROBE_OFFSET_FROM_EXTRUDER is now NOZZLE_TO_PROBE_OFFSET. Please update your configuration."
 #elif defined(MIN_PROBE_X) || defined(MIN_PROBE_Y) || defined(MAX_PROBE_X) || defined(MAX_PROBE_Y)
@@ -478,25 +474,11 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #if 1 < 0 \
   + ENABLED(FIX_MOUNTED_PROBE) \
   + ENABLED(TOUCH_MI_PROBE) \
-  + ENABLED(SOLENOID_PROBE) \
-  + ENABLED(Z_PROBE_ALLEN_KEY) \
-  + ENABLED(Z_PROBE_SLED) \
   + ENABLED(SENSORLESS_PROBING)
-  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+  #error "Please enable only one probe option: SENSORLESS_PROBING, FIX_MOUNTED_PROBE, or TOUCH_MI_PROBE."
 #endif
 
 #if HAS_BED_PROBE
-  /**
-   * SOLENOID_PROBE requirements
-   */
-  #if ENABLED(SOLENOID_PROBE)
-    #if ENABLED(EXT_SOLENOID)
-      #error "SOLENOID_PROBE is incompatible with EXT_SOLENOID."
-    #elif !HAS_SOLENOID_1
-      #error "SOLENOID_PROBE requires SOL1_PIN. It can be added to your Configuration.h."
-    #endif
-  #endif
-
   /**
    * Touch-MI probe requirements
    */
@@ -565,7 +547,7 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
 #else
 
   #if ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST)
-    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires a probe: FIX_MOUNTED_PROBE, SOLENOID_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, or Z Servo."
+    #error "Z_MIN_PROBE_REPEATABILITY_TEST requires FIX_MOUNTED_PROBE."
   #endif
 
 #endif
@@ -633,14 +615,6 @@ static_assert(COUNT(npp) == XYZ, "NOZZLE_PARK_POINT requires X, Y, and Z values.
   #if EITHER(HOME_AFTER_DEACTIVATE, Z_SAFE_HOMING)
     #error "DISABLE_[XYZ] is not compatible with HOME_AFTER_DEACTIVATE or Z_SAFE_HOMING."
   #endif
-#endif
-
-/**
- * Allen Key
- * Deploying the Allen Key probe uses big moves in z direction. Too dangerous for an unhomed z-axis.
- */
-#if ENABLED(Z_PROBE_ALLEN_KEY) && (Z_HOME_DIR < 0) && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
-  #error "You can't home to a z min endstop with a Z_PROBE_ALLEN_KEY"
 #endif
 
 /**
@@ -1235,4 +1209,24 @@ static_assert(DEFAULT_XJERK == DEFAULT_YJERK,
 
 #if ENABLED(SPINDLE_FEATURE) || ENABLED(LASER_FEATURE)
     #error "laser is not supported"
+#endif
+
+#if ENABLED(EXT_SOLENOID) || ENABLED(MANUAL_SOLENOID_CONTROL) || ENABLED(SOLENOID_PROBE) || HAS_SOLENOID_1
+    #error "solenoids are not supported"
+#endif
+
+#if ENABLED(Z_PROBE_SLED)
+    #error "Z_PROBE_SLED is not supported"
+#endif
+
+#if ENABLED(Z_PROBE_ALLEN_KEY)
+    #error "Z_PROBE_ALLEN_KEY is not supported"
+#endif
+
+#if ENABLED(DIGIPOT_I2C)
+    #error "DIGIPOT is not supported"
+#endif
+
+#if ENABLED(COOLANT_MIST) || ENABLED(COOLANT_FLOOD) || ENABLED(COOLANT_CONTROL)
+    #error "COOLANT is not supported"
 #endif

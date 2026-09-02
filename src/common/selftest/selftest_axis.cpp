@@ -109,7 +109,7 @@ LoopResult CSelftestPart_Axis::wait(int8_t dir) {
         log_error(Selftest, "%s measured length = %fmm out of range <%f,%f>", config.partname, (double)length_mm, (double)config.length_min, (double)config.length_max);
         return LoopResult::Fail;
     }
-    log_info(Selftest, "%s measured length = %fmm out in range <%f,%f>", config.partname, (double)length_mm, (double)config.length_min, (double)config.length_max);
+    log_info(Selftest, "%s measured length = %fmm in range <%f,%f>", config.partname, (double)length_mm, (double)config.length_min, (double)config.length_max);
     return LoopResult::RunNext;
 }
 

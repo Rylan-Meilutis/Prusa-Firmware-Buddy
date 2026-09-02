@@ -87,28 +87,6 @@ namespace {
     }
 
 #if HAS_INDX()
-    /// @brief Ensure some tool is picked and dock 4 is empty, so the head can push the vent lever.
-    /// @return true if a suitable tool is picked and dock 4 is confirmed empty.
-    bool prepare_tool_for_vent_control() {
-        // Prefer tool 4 if enabled — picking it definitionally empties dock 4.
-        if (VENT_DOCK.is_enabled()) {
-            if (prusa_toolchanger.tool_change(VENT_DOCK, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
-                return true;
-            }
-        }
-
-        // Otherwise pick any enabled tool and verify dock 4 is empty.
-        if (!prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
-            return false;
-        }
-        auto bump_res = prusa_toolchanger.bump_to_dock(VENT_DOCK);
-        if (!bump_res.has_value() && bump_res.error() == PrusaToolChanger::BumpError::hit) {
-            fatal_error(ErrCode::ERR_MECHANICAL_UNEXPECTED_TOOL);
-            return false;
-        }
-        return true;
-    }
-
     void open_vents_move_sequence() {
     #if PRINTER_IS_PRUSA_COREONE()
         plan_to_y(0.0f, vent_feedrate);
@@ -167,9 +145,7 @@ namespace {
     /// @brief Run the full INDX vent-lever actuation: tool prep, reduced accel, move sequence.
     /// @return true on success.
     bool execute_indx_vent_lever(bool open) {
-        if (!prepare_tool_for_vent_control()) {
-            return false;
-        }
+        prusa_toolchanger.pick_tool_out_of_dock(VENT_DOCK);
 
         // Approach dock 4 at default travel speed — Y to the safe front-of-docks line first,
         // then X, so we don't slowly cross other docks during the reduced-accel sequence.

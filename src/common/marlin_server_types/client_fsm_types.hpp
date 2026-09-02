@@ -17,6 +17,7 @@
 #include <option/has_selftest.h>
 #include <option/has_serial_print.h>
 #include <option/has_heaters_selftest_gcode.h>
+#include <option/has_tool_offset_sensor.h>
 
 /// Client finite state machines bound to client_response.hpp
 enum class ClientFSM : uint8_t {
@@ -68,8 +69,10 @@ enum class ClientFSM : uint8_t {
 #if HAS_INDX()
     NozzleMismatch,
     DockCalibration,
-    ToolOffsetsCalibration,
     NozzleCleanerCalibration,
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    ToolOffsetsCalibration,
 #endif
     SafetyTimer,
     Wait, ///< FSM that only blocks the screen with a "please wait" text

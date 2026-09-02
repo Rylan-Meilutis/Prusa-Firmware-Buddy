@@ -897,7 +897,8 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
       if (!DEBUGGING(DRYRUN)) {
         if (target.e != current_position.e) {
           #if ENABLED(PREVENT_COLD_EXTRUSION)
-            if (thermalManager.tooColdToExtrude(active_extruder)) {
+            const auto tool = PhysicalToolIndex::currently_selected_opt();
+            if (!tool.has_value() || thermalManager.tooColdToExtrude(tool.value())) {
               current_position.e = target.e; // Behave as if the move really took place, but ignore E part
               SERIAL_ECHO_MSG(MSG_ERR_COLD_EXTRUDE_STOP);
             }

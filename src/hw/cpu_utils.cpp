@@ -8,7 +8,7 @@
 #include <limits>
 
 /**
- * Update period in ticks = calculation_period_ticks_power_2^2
+ * Update period in ticks = 2^calculation_period_ticks_power_2
  * e.g.:
  *
  * | calculation_period_ticks_power_2  | Update period in ticks |

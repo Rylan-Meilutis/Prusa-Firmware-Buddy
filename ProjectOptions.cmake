@@ -347,11 +347,17 @@ set_feature_for_printers_master_board(
 define_enum_option(NAME POWER_PANIC_STORAGE VALUE FLASH ALL_VALUES "FLASH;BKPSRAM")
 # Probing for the print sheet during Z_SAFE_HOMING
 set_feature_for_printers_master_board(
-  HAS_PRINT_SHEET_DETECTION "MK4" "iX" "COREONE" "COREONE_INDX" "COREONEL"
+  HAS_PRINT_SHEET_DETECTION
+  "MK4"
+  "iX"
+  "COREONE"
+  "COREONE_INDX"
+  "COREONEL"
+  "COREONEL_INDX"
   )
 set_feature_for_printers(HAS_PRECISE_HOMING "MK4" "MK3.5")
 set_feature_for_printers(
-  HAS_SELFTEST_DEPENDENCIES "COREONE" "COREONEL" "COREONE_INDX" "COREONEL_INDX"
+  HAS_SELFTEST_DEPENDENCIES "COREONE" "COREONEL" "COREONE_INDX" "COREONEL_INDX" "XL"
   )
 set_feature_for_printers(
   HAS_PRECISE_HOMING_COREXY
@@ -362,6 +368,9 @@ set_feature_for_printers(
   "COREONE_INDX"
   "COREONEL"
   "COREONEL_INDX"
+  )
+set_feature_for_printers(
+  HAS_SWITCHABLE_HOMING_CALIBRATION "iX" "XL" "XL_DEV_KIT" "COREONE" "COREONEL"
   )
 set_feature_for_printers_master_board(
   HAS_PHASE_STEPPING
@@ -480,7 +489,9 @@ set_feature_for_printers_master_board(
   "COREONEL"
   )
 set_feature_for_printers_master_board(HAS_FILAMENT_HEATBREAK_PARAM "iX")
-set_feature_for_printers_master_board(HAS_FILAMENT_BASE_PRESET_PARAM "COREONE_INDX" "COREONEL_INDX")
+set_feature_for_printers_master_board(
+  HAS_FILAMENT_BASE_PRESET_PARAM "COREONE_INDX" "COREONEL_INDX" "iX"
+  )
 set_feature_for_printers_master_board(
   HAS_FILAMENT_MATERIAL_FAMILY_PARAM
   "COREONE"
@@ -646,6 +657,7 @@ set_feature_for_printers(
   "iX"
   "XL"
   )
+set_feature_for_printers(HAS_SWITCHABLE_AUTO_RETRACT "COREONE" "COREONEL" "MK4" "iX" "XL")
 set_feature_for_printers(
   HAS_FILAMENT_TRACKER
   "COREONE"
@@ -1216,14 +1228,14 @@ if(BOARD IN_LIST BUDDY_BOARDS)
       ${DEBUG}
       CACHE BOOL "Enable metrics over rtt"
       )
-  define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
 else()
+  # Puppies have no rtt_metrics implementation
   set(RTT_METRICS_ENABLED
-      "OFF"
-      CACHE BOOL "Enable metrics over rtt"
+      OFF
+      CACHE BOOL "Enable metrics over rtt" FORCE
       )
-  define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
 endif()
+define_boolean_option(RTT_METRICS_ENABLED ${RTT_METRICS_ENABLED})
 
 set(DEVELOPER_MODE
     "OFF"
@@ -1271,3 +1283,10 @@ set(MDNS
     CACHE BOOL "Enable MDNS responder"
     )
 define_boolean_option(MDNS ${MDNS})
+
+if(DEBUG)
+  set(HAS_EXTRA_EXPERIMENTAL_SETTINGS YES)
+else()
+  set(HAS_EXTRA_EXPERIMENTAL_SETTINGS NO)
+endif()
+define_boolean_option(HAS_EXTRA_EXPERIMENTAL_SETTINGS ${HAS_EXTRA_EXPERIMENTAL_SETTINGS})

@@ -281,11 +281,8 @@ static bool measure_axis_distance(const AxisEnum axis, const ab_steps_t origin_s
     target_steps[axis] += dist;
 
     MachinePosXYZE target_mm;
-    {
-        MachinePosXY target_xy_mm;
-        corexy_ab_to_xy(target_steps.xy(), target_xy_mm);
-        target_mm.set(target_xy_mm);
-    }
+    target_mm.set(corexy_ab_to_xy(target_steps.xy()));
+
     LOOP_S_L_N(i, C_AXIS, XYZE_N) {
         target_mm[i] = initial_mm[i];
     }
@@ -446,7 +443,7 @@ static float travel_accel_distance(const float fr_mm_s) {
 }
 
 /// Maximum allowed homing distance difference per axis (max - min)
-static constexpr float axis_home_max_abs_diff(const AxisEnum axis) {
+static float axis_home_max_abs_diff(const AxisEnum axis) {
     return axis_home_max_diff(axis) - axis_home_min_diff(axis);
 }
 
@@ -1353,8 +1350,7 @@ bool corexy_home_refine(float fr_mm_s, CoreXYCalibrationMode mode) {
         c_ab[X_HOME_DIR == Y_HOME_DIR ? B_AXIS : A_AXIS] * phase_cycle_steps(B_AXIS) * -X_HOME_DIR
     };
 
-    MachinePosXY c_mm;
-    corexy_ab_to_xy(c_ab_steps, c_mm);
+    const MachinePosXY c_mm = corexy_ab_to_xy(c_ab_steps);
 
     {
         auto target = planner.get_machine_position_mm();

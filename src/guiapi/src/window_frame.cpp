@@ -313,9 +313,6 @@ void window_frame_t::windowEvent([[maybe_unused]] window_t *sender, GUI_event_t 
         switch (ev.reason) {
 
         case Reason::unspecified:
-            pWin = nullptr;
-            break;
-
         case Reason::forward_focus_chain:
             pWin = GetFirstEnabledSubWin();
             break;

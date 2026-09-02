@@ -57,15 +57,11 @@ void loop();
 void do_babystep_Z(float offs);
 
 // direct call of 'enqueue_and_echo_command'
-// @retval true command enqueued
-// @retval false otherwise
 void enqueue_gcode(const char *gcode);
 
 [[nodiscard]] bool enqueue_gcode_try(const char *gcode);
 
 // direct call of 'enqueue_and_echo_command' with formatting
-// @retval true command enqueued
-// @retval false otherwise
 void __attribute__((format(__printf__, 1, 2)))
 enqueue_gcode_printf(const char *gcode, ...);
 
@@ -117,7 +113,7 @@ bool serial_print_active();
  * @param resume_pos position in the file to start from
  * @param skip_preview can be used to skip preview thumbnail or toolmapping screen
  */
-void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview = marlin_server::PreviewSkipIfAble::no);
+void print_start(const char *filename, const GCodeReaderPosition &resume_pos, PreviewSkipIfAble skip_preview = PreviewSkipIfAble::no, ResetToolMapping reset_tool_mapping = ResetToolMapping::yes);
 
 //
 void set_command(uint32_t command);
@@ -177,6 +173,9 @@ resume_state_t *get_resume_data();
 // set the resume state for unpausing a print
 void set_resume_data(const resume_state_t *data);
 
+#if HAS_NOZZLE_CLEANER()
+void unpark_prime();
+#endif
 void unpark_head_XY();
 void unpark_head_ZE();
 

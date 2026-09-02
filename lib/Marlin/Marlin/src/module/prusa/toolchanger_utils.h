@@ -225,7 +225,7 @@ public:
     bool autodetect_toolchanger_enabled();
     /**
      * @brief Get picked and parked states and detect which tool is active.
-     * Modifies parked, picked and picked_dwarf.
+     * Modifies picked_dwarf and picked_update.
      */
     void autodetect_active_tool(buddy::puppies::PuppyModbus &);
 

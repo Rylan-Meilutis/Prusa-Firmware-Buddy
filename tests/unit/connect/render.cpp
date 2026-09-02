@@ -290,7 +290,8 @@ TEST_CASE("Render") {
                         "\"nozzle_diameter\":0.40,"
                         "\"high_flow\":false,"
                         "\"hardened\":false,"
-                        "\"material\":\"---\""
+                        "\"material\":\"---\","
+                        "\"profile\":\"---\""
                     "}"
                 "},"
                 "\"addon_power\":false,"
@@ -313,6 +314,7 @@ TEST_CASE("Render") {
         idle.slot_mask = 5;
         idle.slots[2] = Printer::SlotInfo {
             .material = { "PETG" },
+            .profile = { "PET-00L" },
             .hardened = true,
             .nozzle_diameter = 0.6f,
         };
@@ -335,13 +337,15 @@ TEST_CASE("Render") {
                         "\"nozzle_diameter\":0.40,"
                         "\"high_flow\":false,"
                         "\"hardened\":false,"
-                        "\"material\":\"---\""
+                        "\"material\":\"---\","
+                        "\"profile\":\"---\""
                     "},"
                     "\"3\":{"
                         "\"nozzle_diameter\":0.60,"
                         "\"high_flow\":false,"
                         "\"hardened\":true,"
-                        "\"material\":\"PETG\""
+                        "\"material\":\"PETG\","
+                        "\"profile\":\"PET-00L\""
                     "}"
                 "},"
                 "\"addon_power\":false,"

@@ -102,6 +102,9 @@ private:
     MenuMultiFilamentChange_::Container container;
     std::array<MI_ActionSelect *, VirtualToolIndex::count> action_items_ {};
     bool close_screen_on_media_disconnect_ = false;
+
+    /// Open the "Set All To" picker on the next LOOP event (deferred from ScreenChangeAllFilaments(SetupLoadAll))
+    bool set_all_to_picker_pending_ = false;
 };
 
 } // namespace multi_filament_change
@@ -118,4 +121,7 @@ public:
 
     struct SetupUnloadAll {};
     ScreenChangeAllFilaments(SetupUnloadAll);
+
+    struct SetupLoadAll {};
+    ScreenChangeAllFilaments(SetupLoadAll);
 };

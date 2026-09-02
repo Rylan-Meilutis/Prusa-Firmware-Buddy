@@ -15,6 +15,11 @@
     #include <module/prusa/toolchanger.h>
 #endif
 
+#include <option/has_tool_offset_sensor.h>
+#if HAS_TOOL_OFFSET_SENSOR()
+    #include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
+#endif
+
 #include <option/has_side_fsensor_remap.h>
 #if HAS_SIDE_FSENSOR_REMAP()
     #include <feature/filament_sensor/filament_sensors_handler_remap.hpp>
@@ -69,6 +74,12 @@ TestResult get_test_result(Action action, ToolMask tool) {
             return sr.get_loadcell(e);
         });
     case Action::ToolOffsetsCalibration:
+        // XLS runs the M1985 wizard, which stores a single pass/fail result. Plain XL runs the
+        // pin-based selftest, which stores a per-tool result in selftest_result.
+        // Based on presenece of the tool offset sensor, pick the right source for the result.
+        if (tool_offset_calibration::is_hardware_available()) {
+            return config_store().selftest_result_tool_offsets_calibration.get();
+        }
         return merge_hotends_evaluations([&](PhysicalToolIndex e) {
             return sr.get_tool_offset(e);
         });

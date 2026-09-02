@@ -202,7 +202,7 @@ void cubic_b_spline(
       const xyze_pos_t &pos = bez_target;
     #endif
 
-    if (!planner.buffer_line(pos, scaled_fr_mm_s, active_extruder, step))
+    if (!planner.buffer_line(pos, scaled_fr_mm_s, extruder, step))
       break;
   }
 }

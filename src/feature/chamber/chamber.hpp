@@ -80,9 +80,14 @@ public: // Temperature control
 
 #if HAS_CHAMBER_VENTS()
     /// Check the state of chamber grills (vents). Can be open/closed based on chamber target temperature
-    /// @param target The target chamber temperature to base the vent decision on
+    /// @param fil_target The target chamber temperature to base the vent decision on
     /// !HAS TO BE CALLED FROM DEFAULT THREAD ONLY!
     void manage_ventilation_state(std::optional<Temperature> fil_target, bool serial_print = false, bool has_explicit_vent_gcode = false);
+
+    /// Close the vents at the end of a print, if they are known to be open
+    /// and vent control is set to automatic.
+    /// !HAS TO BE CALLED FROM DEFAULT THREAD ONLY!
+    void close_vents_after_print();
 
     enum class VentState : uint8_t {
         open,

@@ -25,6 +25,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_lights_menu.h>
 #include <device/board.h>
 #include <gui/screen/screen_m600.hpp>
 
@@ -51,45 +52,19 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #endif
     MI_M600,
 #if HAS_WASTEBIN_FILL_TRACKING()
-    MI_NOZZLE_CLEANER_EMPTY_WASTEBIN,
-    MI_NOZZLE_CLEANER_AUTOPAUSE,
+    MI_WASTEBIN,
 #endif
-#if HAS_INDX()
-    MI_NOZZLE_CLEANER_X_OFFSET,
-    MI_NOZZLE_CLEANER_Y_OFFSET,
-#endif
+
 #if HAS_CANCEL_OBJECT()
     MI_CO_CANCEL_OBJECT,
 #endif
     MI_SPEED,
     MI_NOZZLE_TARGET_TEMP,
-#if HAS_TOOLCHANGER()
-    // Multi-tool: additional submenu to set target temp for all tools, not just the active one.
-    WithIcon<MenuItemVirtualSubmenu<N_("Nozzle Temperatures"), MI_NOZZLE_TARGET_TEMP, PhysicalToolIndex::count, PhysicalToolIndex::from_raw>,
-        &img::nozzle_16x16>,
-#endif
     MI_HEATBED,
-#if HAS_CHAMBER_API()
-    MI_CHAMBER_TARGET_TEMP,
-#endif
     MI_PRINTFAN,
-#if HAS_INDX()
-    MI_DOCKFAN,
-#endif
-#if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
-    MI_XBUDDY_EXTENSION_COOLING_FANS,
-    MI_XBUDDY_EXTENSION_COOLING_FANS_CONTROL_MAX,
-    MI_XBE_FILTRATION_FAN,
-#endif
+    MI_TEMPERATURE_AND_FANS,
 #if HAS_CHAMBER_FILTRATION_API()
     MI_CHAMBER_FILTRATION,
-#endif
-#if HAS_SIDE_LEDS()
-    MI_PRINT_CHAMBER_LIGHTS_ENABLE,
-#endif
-    MI_PRINT_SCREEN_BRIGHTNESS,
-#if HAS_LEDS()
-    MI_PRINT_STATUS_LEDS_ENABLE,
 #endif
 #if HAS_LOADCELL()
     MI_LIVE_ADJUST_Z, // position with loadcell
@@ -103,26 +78,15 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
 #else
     MI_FILAMENT_SENSOR,
 #endif
-#if HAS_LOADCELL()
+#if HAS_LOADCELL() && !HAS_INDX()
     MI_STUCK_FILAMENT_DETECTION,
-    MI_FILAMENT_MOVEMENT_DETECTION,
 #endif
 #if XL_ENCLOSURE_SUPPORT()
     MI_ENCLOSURE_ENABLE,
     MI_ENCLOSURE,
 #endif
-#if !PRINTER_IS_PRUSA_MINI()
     MI_STEALTH_MODE,
-    MI_SOUND_MODE,
-#endif
-#if HAS_ST7789_DISPLAY() && !PRINTER_IS_PRUSA_MINI()
-    // We could potentionally have MINI display without buzzer.
-    // MINI keeps this setting in User Interface without duplicating it here.
-    MI_SOUND_VOLUME,
-#endif
-#if !PRINTER_IS_PRUSA_MINI()
     MI_INPUT_SHAPER,
-#endif
     MI_FAN_CHECK,
     MI_GCODE_VERIFY,
 #if HAS_EMERGENCY_STOP()
@@ -136,11 +100,16 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_CRASH_DETECTION,
     MI_CRASH_SENSITIVITY_XY,
 #endif
-    MI_USER_INTERFACE, MI_NETWORK,
+    MI_USER_INTERFACE,
+#if HAS_LIGHTS_MENU()
+    MI_LIGHTS,
+#endif
+    MI_NETWORK,
 #if DEVELOPMENT_ITEMS()
     MI_HARDWARE_TUNE,
 #endif
-    MI_TIMEZONE, MI_TIMEZONE_MIN, MI_TIMEZONE_SUMMER, MI_INFO,
+    MI_LANG_AND_TIME,
+    MI_INFO,
 #if HAS_POWER_PANIC()
     MI_TRIGGER_POWER_PANIC,
 #endif

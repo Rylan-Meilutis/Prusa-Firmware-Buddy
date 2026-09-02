@@ -57,6 +57,13 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
 /// Single-coil only: the store holds one sensor position, while dual-coil has a
 /// separate coil per axis (TODO WP5.4: per-coil storage + migration).
 void apply_stored_sensor_position(tool_offset::ProbingConfig &config);
+#else
+/// Dual-coil counterpart of apply_stored_sensor_position: shift both coils and
+/// the Z-probe spot in `config` by the stored whole-sensor displacement, clamped
+/// so all shifted geometry stays within travel. A corrupt stored value (component
+/// over `sensor_displacement_error_threshold`) is reset to zero.
+/// @return the displacement actually applied
+xy_pos_t apply_stored_sensor_displacement(tool_offset::ProbingConfig &config);
 #endif
 
 /// True iff the contactless tool-offset hardware is reachable in this

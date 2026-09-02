@@ -33,7 +33,7 @@ enum class SensorChannel : uint8_t { ch0 = 0,
 /// single-coil describes the same physical coil twice, once per axis, because
 /// the two sweeps differ in length.
 struct CoilAxis {
-    xyz_pos_t position {}; ///< coil centre, machine frame
+    xyz_pos_t position {}; ///< coil centre, machine frame; .z is the expected sensor-surface height
     SensorChannel channel = SensorChannel::ch0; ///< LDC1612 channel feeding this coil
     float sensing_distance = 0.f; ///< sweep length along the measured axis
 };
@@ -44,6 +44,13 @@ struct ProbingConfig {
 
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
     float y_shift_z_probe_offset_from_sensor;
+#else
+    xyz_pos_t z_probe_position;
+    /// Cross-X hunt for a low-confidence Y sweep: the sweep line's X is stepped
+    /// across ±cross_hunt_range around coil_y.position.x in cross_hunt_step
+    /// decrements.
+    float cross_hunt_range;
+    float cross_hunt_step;
 #endif
 
     float safe_z_height; // Height above the sensor for the descent before probing and the post-scan lift
@@ -59,6 +66,10 @@ struct ProbingConfig {
 
     static constexpr float sensor_position_update_threshold = 0.2f;
     static constexpr float sensor_position_error_threshold = 3.0f;
+
+    /// Dual-coil (XLS): error threshold for the whole-sensor displacement.
+    /// Sensor maybe moved by 30mm for silicon head calibration, plus some margin
+    static constexpr float sensor_displacement_error_threshold = 35.0f;
 };
 
 ProbingConfig get_default_probing_config();

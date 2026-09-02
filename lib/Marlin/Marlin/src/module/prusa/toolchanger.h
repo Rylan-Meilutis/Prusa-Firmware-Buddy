@@ -208,12 +208,12 @@ public:
         hit
     };
 
-    /**
-     * @brief Try bumping to a dock position to see if its empty.
-     * @param tool this tool
-     * @return true if empty
-     */
-    std::expected<void, BumpError> bump_to_dock(PhysicalToolIndex tool);
+    /// Try bumping to a @p dock position to see if its empty.
+    std::expected<void, BumpError> bump_to_dock(PhysicalToolIndex dock);
+
+    /// Ensures some tool is picked and selected @p dock is empty
+    /// @warning throws a fatal error on failure
+    void pick_tool_out_of_dock(PhysicalToolIndex dock);
 
     /**
      * @brief Updates/invalidates the last picked tool (only when not printing if not overriden)

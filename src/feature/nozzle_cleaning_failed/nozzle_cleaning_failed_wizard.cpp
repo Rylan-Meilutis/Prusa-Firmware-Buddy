@@ -12,6 +12,7 @@
 #include <tool/hotend/hotend.hpp>
 #include <utils/variant_utils.hpp>
 #include <bsod/bsod.h>
+#include <option/has_switchable_auto_retract.h>
 
 using namespace marlin_server;
 using namespace nozzle_cleaning_failed_wizard;
@@ -38,7 +39,7 @@ public:
             // Inform the user that the nozzle cleaning failed, ask him what to do (ignore/retry/abort)
             const auto what_to_do = ask_user_what_to_do();
 
-#if HAS_AUTO_RETRACT()
+#if HAS_SWITCHABLE_AUTO_RETRACT()
             // No matter what user chose, offer him to enable auto-retract
             offer_auto_retract_enable();
 #endif
@@ -123,7 +124,7 @@ public:
         }
     }
 
-#if HAS_AUTO_RETRACT()
+#if HAS_SWITCHABLE_AUTO_RETRACT()
     void offer_auto_retract_enable() {
         if (config_store().auto_retract_enabled.get()) {
             // Auto-retract is enabled, no point in offering to enable

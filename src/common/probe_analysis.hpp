@@ -42,6 +42,10 @@ public:
 
         /// Value of the failed parameter
         float arg = 0;
+
+        /// Best-effort bed coordinate despite the rejection.
+        /// NAN when the measurement was too broken to compute one.
+        float z_coordinate = std::numeric_limits<float>::quiet_NaN();
     };
 
     using Result = std::expected<AnalysisResult, AnalysisError>;
@@ -185,7 +189,7 @@ public:
     void StoreSample(uint32_t time_us, float currentZ, float currentLoad);
 
     /// Run the analysis and return its result
-    Result Analyse(bool is_nozzle_clean = false);
+    Result Analyse(bool check_angle_after);
 
     /// Clear the analysis window
     void Reset() {
@@ -313,7 +317,7 @@ public:
 
     /// Calculates the analysisStart and analysisEnd features.
     ///
-    /// Returns true if we have enough data in the window. False otherwise.
+    /// Fails if there is not enough data in the window.
     std::expected<void, AnalysisError> CalculateAnalysisRange(Features &features);
 
     bool CalculateLoadLineApproximationFeatures(Features &features);
@@ -361,7 +365,7 @@ public:
      * @note This function is auto-generated based on trained models.
      *       Hand-made changes will be lost (so don't make them).
      */
-    bool HasOutOfRangeFeature(Features &features, const char **feature, float *value, bool is_nozzle_clean = false) const;
+    bool HasOutOfRangeFeature(Features &features, const char **feature, float *value, bool check_angle_after) const;
 
 protected:
     ProbeAnalysisBase(CircleBufferBaseT<Record> &window, float loadDelay, int skipBorderSamples)

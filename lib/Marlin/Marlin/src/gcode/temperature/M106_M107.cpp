@@ -58,14 +58,6 @@
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
 
-#if ENABLED(SINGLENOZZLE)
-    #define _ALT_P active_extruder
-#elif HAS_TOOLCHANGER()
-    #define _ALT_P 0
-#else
-    #define _ALT_P _MIN(active_extruder.load(), FAN_COUNT - 1)
-#endif
-
 /**
  * @brief Set fans that are not controlled by Marlin
  * @param fan Fan index (0-based)
@@ -234,7 +226,7 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
  *Enclosure fan (index 3) don't support T parameter
  */
 void GcodeSuite::M106() {
-    const uint8_t p = parser.byteval('P', _ALT_P);
+    const uint8_t p = parser.byteval('P', 0);
 
     const bool auto_control = parser.seen('R');
     if (parser.seen('S') || parser.seen('A') || auto_control) {
@@ -299,7 +291,7 @@ void GcodeSuite::M106() {
  * - `T` - Select which tool if there are multiple fans, one on each tool
  */
 void GcodeSuite::M107() {
-    const uint8_t p = parser.byteval('P', _ALT_P);
+    const uint8_t p = parser.byteval('P', 0);
 
     const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
     if (set_special_fan_speed(p, tool, 0, false)) {

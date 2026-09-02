@@ -8,6 +8,7 @@
 #include <Marlin/src/module/tool_change.h>
 #include <M70X.hpp>
 #include <feature/filament_sensor/calibrator/filament_sensor_calibrator.hpp>
+#include <feature/filament_sensor/filament_sensor.hpp>
 #include <inplace_vector.hpp>
 #include <mapi/motion.hpp>
 #include <raii/auto_restore.hpp>
@@ -76,6 +77,7 @@ private:
     void finalize();
 
     [[nodiscard]] bool prepare();
+    [[nodiscard]] bool check_sensors_connected();
     [[nodiscard]] bool initial_remove_filament();
     [[nodiscard]] bool remove_filament_early_check();
     void calibrate(FilamentSensorCalibrator::CalibrationPhase phase);
@@ -139,6 +141,12 @@ SelftestFSensorsResult SelftestFSensors::run() {
     // Set up for the selftest - pick the right tool, park to the right position, ...
     if (!prepare()) {
         return Result::aborted;
+    }
+
+    // A disconnected sensor device cannot be calibrated, resolve that before asking the user to unload
+    // Aborting here fails the selftest
+    if (!check_sensors_connected()) {
+        return process_and_present_results(true);
     }
 
     // Make sure there is no filament in the filament sensor before continuing
@@ -275,6 +283,22 @@ bool SelftestFSensors::prepare() {
         }
     }
 #endif
+
+    return true;
+}
+
+bool SelftestFSensors::check_sensors_connected() {
+    if (std::ranges::any_of(calibrators_, [](auto *c) { return c->sensor().get_state() == FilamentSensorState::NotConnected; })) {
+        fsm_change_with_tool(Phase::not_connected);
+        switch (marlin_server::wait_for_response(Phase::not_connected)) {
+
+        case Response::Abort:
+            return false;
+
+        default:
+            bsod_unreachable();
+        }
+    }
 
     return true;
 }

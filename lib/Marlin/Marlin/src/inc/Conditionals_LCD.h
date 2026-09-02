@@ -461,7 +461,7 @@
 /**
  * Set flags for enabled probes
  */
-#define HAS_BED_PROBE ANY(FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, Z_PROBE_ALLEN_KEY, Z_PROBE_SLED, SOLENOID_PROBE, SENSORLESS_PROBING)
+#define HAS_BED_PROBE ANY(FIX_MOUNTED_PROBE, TOUCH_MI_PROBE, SENSORLESS_PROBING)
 #define PROBE_SELECTED (HAS_BED_PROBE)
 
 #if HAS_BED_PROBE
@@ -472,9 +472,6 @@
   #ifndef Z_PROBE_LOW_POINT
     // #error dead code found by automatic analyses (see BFW-5461)
     #define Z_PROBE_LOW_POINT -5
-  #endif
-  #if ENABLED(Z_PROBE_ALLEN_KEY)
-    #error
   #endif
   #ifdef MULTIPLE_PROBING
     #if EXTRA_PROBING

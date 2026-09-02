@@ -140,9 +140,16 @@ struct state_print_t {
 // crash recovery data
 struct state_crash_t {
     uint32_t sdpos; /// sdpos of the gcode instruction being aborted
-    xyze_pos_t start_current_position; /// absolute logical starting XYZE position of the gcode instruction
-    xyze_pos_t crash_current_position; /// absolute logical XYZE position of the crash location
-    xyze_pos_t crash_position; /// absolute physical XYZE position of the crash location
+
+    /// Value of current_position at the start of the interrupted GCode
+    xyze_pos_t start_current_position;
+
+    /// Basically just crash_machine_position as native coordinates instead of machine
+    xyze_pos_t crash_native_position;
+
+    /// Exact stepper positions at the time of the crash
+    MachinePosXYZE crash_machine_position;
+
     uint16_t segments_finished = 0;
     uint8_t leveling_active; /// state of MBL before crashing
     AxesHomeLevel axes_home_level; /// axis state before crashing

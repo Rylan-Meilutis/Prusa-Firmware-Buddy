@@ -10,6 +10,11 @@
 #include <option/has_wastebin.h>
 #include <option/has_wastebin_fill_tracking.h>
 
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <nozzle_cleaner.hpp>
+#endif
+
 #include <option/has_toolchanger.h>
 #include <bsod/bsod.h>
 #if HAS_TOOLCHANGER()
@@ -105,9 +110,9 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
 #if HAS_WASTEBIN_FILL_TRACKING()
     case ParkPosition::empty_wastebin:
         // Park at the INDX home corner (X to the min endstop, Y all the way back), clear of the
-        // cleaner which sits at high X, and drop the bed low (Z at least 160, or 20 above tall
-        // prints) so there is room to reach in and empty the cleaner.
-        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 20, .absolute = 160 } };
+        // cleaner which sits at high X, and drop the bed near its lowest (Z within 50 of Z_MAX, or
+        // 20 above tall prints) so there is room to reach in and empty the cleaner.
+        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 20, .absolute = Z_MAX_POS - 50 } };
 #endif
 
 #if HAS_NOZZLE_CLEANER() || HAS_NOZZLE_CLEANER_LITE()

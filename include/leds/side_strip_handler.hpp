@@ -115,6 +115,10 @@ public:
     /// Brightest currently driven RGBW channel, including off/dim/transition state.
     uint8_t current_brightness() const;
 
+    /// True while the strip is dimmed down due to inactivity.
+    /// Honours the dimming mode (Never/Always/On Idle), the inactivity timer and the printing state.
+    bool is_dimmed() const;
+
 private:
     void change_state(SideStripState state);
 

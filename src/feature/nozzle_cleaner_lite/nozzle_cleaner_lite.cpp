@@ -156,12 +156,6 @@ namespace {
     constexpr uint8_t rub_cycles_slow = 2;
     constexpr float rub_acceleration = 5000.0f;
 
-    // Touchpoint cool-down temperature sits this much below the cleaning
-    // temperature: no active ooze, yet as hot as possible so the nozzle
-    // thermal expansion stays close to printing conditions. The probing tool
-    // keeps it for the MBL that follows.
-    constexpr int16_t cooldown_temp_diff = 20;
-
     constexpr int16_t no_filament_cleaning_temperature = 170;
 
     int16_t cleaning_temperature_for(PhysicalToolIndex tool, CleanType clean_type) {
@@ -191,7 +185,7 @@ namespace {
 
         pressure_advance::PressureAdvanceDisabler pa_disabler;
         Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
-        return probe_here(expected_touchpoint_surface_z, touchpoint_probe_attempts);
+        return probe_here(expected_touchpoint_surface_z, touchpoint_probe_attempts, TolerateNozzleDirt::yes);
     }
 
     // Move in raw machine coordinates (line_to_machine_pos), bypassing MBL.
@@ -344,12 +338,6 @@ bool clean(CleanType clean_type) {
     move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, leave_feedrate);
 
-    if (clean_type == CleanType::parked_tool) {
-        Hotend::for_tool(*tool).set_nozzle_target_temp(0);
-        restore_nozzle_target.disarm();
-        return true;
-    }
-
     move_to_machine_pos_z(probed_z + touch_point_z_pressure, dive_feedrate);
     // Declared after the temperature guard so it runs before it: the nozzle must
     // come off the touchpoint before anything re-heats it.
@@ -366,110 +354,6 @@ bool clean(CleanType clean_type) {
         restore_nozzle_target.disarm();
     }
     return true;
-}
-
-#if HAS_TOOLCHANGER()
-static bool clean_before_probing_toolchanger() {
-    std::bitset<PhysicalToolIndex::count> used_physical_tools;
-
-    // Walk each gcode tool that is used in the print
-    auto &gcode_info = GCodeInfo::getInstance();
-    for (auto gcode_tool : GcodeToolIndex::all()) {
-        if (!gcode_info.get_extruder_info(gcode_tool).used()) {
-            continue;
-        }
-
-        // Map gcode → virtual (respects tool mapper)
-        auto virtual_tool = stdext::get_optional<VirtualToolIndex>(gcode_tool.to_virtual());
-        while (virtual_tool) {
-            used_physical_tools.set(virtual_tool->to_physical().to_raw());
-
-    #if HAS_SPOOL_JOIN()
-            virtual_tool = spool_join.get_spool_2(*virtual_tool);
-    #else
-            virtual_tool = std::nullopt;
-    #endif
-        }
-    }
-
-    // The start gcode deliberately selects the tool that homes and probes MBL
-    // before the G29 that triggers cleaning; put it back once the cleaning
-    // tool changes are done so probing runs with the tool the gcode chose.
-    const auto original_tool = PhysicalToolIndex::currently_selected();
-    ScopeGuard restore_original_tool([&] {
-        if (PhysicalToolIndex::currently_selected() != original_tool
-            && !tool_change(stdext::to_variant(original_tool), tool_return_t::no_return)) {
-            log_error(NozzleCleanerLite, "Failed to restore originally selected tool");
-        }
-    });
-
-    // Only the tool that probes MBL afterwards needs the controlled
-    // cool-down; the others cool naturally in the dock, without waiting.
-    const auto probing_tool = stdext::get_optional<PhysicalToolIndex>(original_tool);
-
-    // Start heating all used tools to the cleaning temperature in parallel to
-    // save time
-    std::array<int16_t, PhysicalToolIndex::count> saved_nozzle_targets {};
-    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-        if (!used_physical_tools.test(tool.to_raw())) {
-            continue;
-        }
-        const int16_t cleaning_temperature = cleaning_temperature_for(tool, tool == probing_tool ? CleanType::probing_tool : CleanType::parked_tool);
-
-        saved_nozzle_targets[tool.to_raw()] = Hotend::for_tool(tool).nozzle_target_temp();
-        Hotend::for_tool(tool).set_nozzle_target_temp(cleaning_temperature);
-    }
-    ScopeGuard restore_nozzle_targets([&] {
-        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-            if (used_physical_tools.test(tool.to_raw())) {
-                Hotend::for_tool(tool).set_nozzle_target_temp(saved_nozzle_targets[tool.to_raw()]);
-            }
-        }
-    });
-
-    bool all_cleaned = true;
-    for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
-        if (!used_physical_tools.test(tool.to_raw())) {
-            continue;
-        }
-
-        if (!tool_change(stdext::to_variant(tool), tool_return_t::no_return)) {
-            log_error(NozzleCleanerLite, "Tool change to tool %u failed", tool.to_raw());
-            all_cleaned = false;
-            break;
-        }
-        all_cleaned &= clean(tool == probing_tool ? CleanType::probing_tool : CleanType::parked_tool);
-    }
-
-    // On success the probing tool keeps its cool-down target for the MBL
-    // that follows and the other tools are off; restoring would re-heat them.
-    if (all_cleaned) {
-        restore_nozzle_targets.disarm();
-    }
-    return all_cleaned;
-}
-#endif
-
-bool clean_before_probing(Badge<unified_bed_leveling>) {
-    release_assert(is_available());
-
-#if !HAS_TOOLCHANGER()
-    const bool all_cleaned = clean(CleanType::probing_tool);
-#else
-    const bool all_cleaned = clean_before_probing_toolchanger();
-#endif
-
-    // MBL probing follows right after this returns, with no M109 in between
-    // to re-stabilize the nozzle. On success the target was deliberately left
-    // at the cool-down temperature and probing runs there; on failure the
-    // guards restored the previous target. Either way, wait for the nozzle
-    // to settle.
-    const auto active_tool = PhysicalToolIndex::currently_selected_opt();
-    if (active_tool && Hotend::for_tool(*active_tool).nozzle_target_temp() > 0) {
-        thermalManager.wait_for_hotend(*active_tool, { .no_wait_for_cooling = false });
-    }
-
-    return all_cleaned;
 }
 
 } // namespace nozzle_cleaner_lite

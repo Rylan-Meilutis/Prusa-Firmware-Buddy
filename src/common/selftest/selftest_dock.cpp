@@ -236,13 +236,12 @@ LoopResult CSelftestPart_Dock::state_measure() {
 
 LoopResult CSelftestPart_Dock::state_compute_position() {
     // Calculate x,y distance between home and dock position
-    ab_steps_t after = {
+    const ab_steps_t after = {
         stepper.position_from_startup(AxisEnum::A_AXIS),
         stepper.position_from_startup(AxisEnum::B_AXIS),
     };
 
-    xy_pos_t diff;
-    corexy_ab_to_xy(position_before_measure - after, diff);
+    const MachinePosXY diff = corexy_ab_to_xy(position_before_measure - after);
 
     // Obtain dock info
     const PrusaToolInfo tool_calibration = {

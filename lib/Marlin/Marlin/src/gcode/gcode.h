@@ -59,8 +59,6 @@
  * G28  - Home one or more axes
  * G29  - Start or continue the bed leveling probe procedure (Requires bed leveling)
  * G30  - Single Z probe, probes bed at X Y location (defaults to current XY location)
- * G31  - Dock sled (Z_PROBE_SLED only)
- * G32  - Undock sled (Z_PROBE_SLED only)
  * G34  - Z Stepper automatic alignment using probe: I<iterations> T<accuracy> A<amplification> (Requires Z_STEPPER_AUTO_ALIGN)
  * G38  - Probe in any direction using the Z_MIN_PROBE (Requires G38_PROBE_TARGET)
  * G42  - Coordinated move to a mesh point (Requires AUTO_BED_LEVELING_BLINEAR or AUTO_BED_LEVELING_UBL)
@@ -73,9 +71,6 @@
  *
  * M0   - Unconditional stop - Wait for user to press a button on the LCD.
  * M1   -> M0
- * M7   - Turn mist coolant ON. (Requires COOLANT_CONTROL)
- * M8   - Turn flood coolant ON. (Requires COOLANT_CONTROL)
- * M9   - Turn coolant OFF. (Requires COOLANT_CONTROL)
  * M16  - Expected printer check. (Requires EXPECTED_PRINTER_CHECK)
  * M17  - Enable/Power all stepper motors
  * M18  - Disable all stepper motors; same as M84
@@ -161,8 +156,6 @@
  * M350 - Set microstepping mode. (Requires digital microstepping pins.)
  * M351 - Toggle MS1 MS2 pins directly. (Requires digital microstepping pins.)
  * M355 - Set Case Light on/off and set brightness. (Requires CASE_LIGHT_PIN)
- * M380 - Activate solenoid on active extruder. (Requires EXT_SOLENOID)
- * M381 - Disable all solenoids. (Requires EXT_SOLENOID)
  * M400 - Finish all moves.
  * M401 - Deploy and activate Z probe. (Requires a probe)
  * M402 - Deactivate and stow Z probe. (Requires a probe)
@@ -191,7 +184,6 @@
  * M701 - Load filament
  * M702 - Unload filament
  * M851 - Set Z probe's XYZ offsets in current units. (Negative values: X=left, Y=front, Z=below)
- * M852 - Set skew factors: "M852 [I<xy>] [J<xz>] [K<yz>]". (Requires SKEW_CORRECTION_GCODE, and SKEW_CORRECTION_FOR_Z for IJ)
  * M876 - Handle Prompt Response. (Requires HOST_PROMPT_SUPPORT and not EMERGENCY_PARSER)
  * M900 - Get or Set Linear Advance K-factor. (PA Compatibility with old LIN_ADVANCE)
  * M906 - Set or get motor current in milliamps using axis codes X, Y, Z, E. Report values if no axis codes given. P selects a motor current profile (HAS_MOTOR_CURRENT_PROFILES). (Requires at least one _DRIVER_TYPE defined as TMC2130/2160/5130/5160/2208/2209/2660)
@@ -435,11 +427,6 @@ private:
 
   #if HAS_BED_PROBE
     static void G30();
-    #if ENABLED(Z_PROBE_SLED)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      static void G31();
-      static void G32();
-    #endif
   #endif
 
   #if ENABLED(Z_STEPPER_AUTO_ALIGN)
@@ -473,19 +460,6 @@ private:
 
   #if HAS_RESUME_CONTINUE
     static void M0_M1();
-  #endif
-
-  #if ENABLED(COOLANT_CONTROL)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    #if ENABLED(COOLANT_MIST)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      static void M7();
-    #endif
-    #if ENABLED(COOLANT_FLOOD)
-      // #error dead code found by automatic analyses (see BFW-5461)
-      static void M8();
-    #endif
-    static void M9();
   #endif
 
   #if ENABLED(EXPECTED_PRINTER_CHECK)
@@ -654,12 +628,6 @@ private:
   #if HAS_CASE_LIGHT
     // #error dead code found by automatic analyses (see BFW-5461)
     static void M355();
-  #endif
-
-  #if EITHER(EXT_SOLENOID, MANUAL_SOLENOID_CONTROL)
-    // #error dead code found by automatic analyses (see BFW-5461)
-    static void M380();
-    static void M381();
   #endif
 
   static void M400();

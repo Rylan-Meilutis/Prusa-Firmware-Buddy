@@ -253,6 +253,18 @@ void Chamber::manage_ventilation_state(std::optional<Temperature> fil_target, bo
         break;
     }
 }
+
+void Chamber::close_vents_after_print() {
+    if (vent_state_ != VentState::open) {
+        return;
+    }
+
+    if (config_store().get_vent_control() != VentControl::automatic) {
+        return;
+    }
+
+    automatic_chamber_vents::execute_control(VentState::closed);
+}
 #endif
 
 } // namespace buddy

@@ -875,8 +875,8 @@ void PrusaToolChanger::final_tool_change_moves(const FinalToolChangeMoves &args)
         backoff_pos.y += DOCK_BACKOFF_Y_OFFSET;
         unpark_to(backoff_pos);
     } else if (args.return_type > tool_return_t::no_return) {
-        // Move back to the original (or adjusted) position
-        unpark_to(return_position.xy()); // schedule a smooth XY transition to return_position
+        // Move back to the original (or adjusted) position.
+        mapi::park({ .x = return_position.x, .y = return_position.y });
     }
 
     // Now move down in Z
@@ -899,7 +899,7 @@ void PrusaToolChanger::unpark_to(const xy_pos_t &destination) {
     move(destination.x, destination.y, travel_fr);
 }
 
-std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(PhysicalToolIndex tool) {
+std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(PhysicalToolIndex dock) {
     // Home if needed (mapi::park below requires XY homed)
     if (!ensure_safe_move()) {
         return std::unexpected<BumpError>(BumpError::unsafe_move);
@@ -909,7 +909,7 @@ std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(
     mapi::park({ .z = mapi::ParkingPosition::AtLeast { .above_print = 2.0f } });
 
     // Get dock info
-    const PrusaToolInfo &info = get_tool_info(tool, /*check_calibrated=*/false);
+    const PrusaToolInfo &info = get_tool_info(dock, /*check_calibrated=*/false);
 
     // reduce maximum parking speed to improve reliability during constant toolchanging
     float target_fr = limit_stealth_feedrate(PARKING_FINAL_MAX_SPEED);
@@ -928,13 +928,37 @@ std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(
     // We've hit endstops so back off a bit and warn user probably
     if (hit) {
         do_blocking_move_to_xy(info.dock_x, safe_y + 25.f, target_fr);
-        log_warning(PrusaToolChanger, "Bump to dock of tool #%u detected endstop hit, dock probably occupied", tool.to_raw());
+        log_warning(PrusaToolChanger, "Bump to dock #%u detected endstop hit, dock probably occupied", dock.to_raw());
         // Invalidate homing state to trigger rehome before next toolchaínge attempt, to be sure we have correct position of the dock in the future
         invalidate_xy_homing();
         return std::unexpected<BumpError>(BumpError::hit);
     }
 
     return std::expected<void, BumpError>();
+}
+
+void PrusaToolChanger::pick_tool_out_of_dock(PhysicalToolIndex dock) {
+    // picking the tool from dock may be enough
+    if (dock.is_enabled()) {
+        if (tool_change(dock, tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+            return; // dock was just emptied
+        }
+    }
+
+    // we still dont know for sure
+    if (!prusa_toolchanger.pick_any_tool(tool_return_t::no_return, {}, tool_change_lift_t::full_lift, false)) {
+        fatal_error(ErrCode::ERR_MECHANICAL_TOOLCHANGER);
+    }
+    auto bump_res = prusa_toolchanger.bump_to_dock(dock);
+    if (bump_res.has_value()) {
+        return; // dock is empty
+    }
+    switch (bump_res.error()) {
+    case PrusaToolChanger::BumpError::hit:
+        fatal_error(ErrCode::ERR_MECHANICAL_UNEXPECTED_TOOL);
+    case PrusaToolChanger::BumpError::unsafe_move:
+        fatal_error("Homing failed.", "PrusaToolChanger");
+    }
 }
 
 void PrusaToolChanger::persist_last_picked_tool(std::variant<PhysicalToolIndex, NoTool> tool, bool override_always) {

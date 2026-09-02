@@ -71,7 +71,6 @@ protected:
      * @brief   Commits a previously allocated slot
      * @details Makes the item written to an allocated slot visible to consumers.
      *          Must be called after allocate() and writing to the returned pointer.
-     * @return  true if successful
      */
     void commit([[maybe_unused]] T *item) {
 #ifndef NDEBUG

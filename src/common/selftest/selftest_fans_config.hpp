@@ -32,10 +32,11 @@ constexpr FanRPMRange benevolent_fan_range = { .rpm_min = 10, .rpm_max = 10000 }
 ///  Blocked fan increases its RPMs over 7000.
 ///  With XL shroud the values can be 6200 - 6600 depending on fan shroud version.
 constexpr FanRPMRange print_fan_range_xl = { .rpm_min = 5300, .rpm_max = 7000 };
-/// XLS uses LDO D5015G08B05X71 blower: 7100 RPM +/-10%
-constexpr FanRPMRange print_fan_range_xls = { .rpm_min = 6400, .rpm_max = 7800 };
+/// XLS uses LDO D5015G08B05X71 blower: datasheet values 7100 RPM +/-10%,
+/// but when loaded it is higher, empirically measured value: 8000 RPM +/- 15%
+constexpr FanRPMRange print_fan_range_xls = { .rpm_min = 6800, .rpm_max = 9200 };
 constexpr FanRPMRange print_low_fan_range = benevolent_fan_range;
-constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 6500, .rpm_max = 8700 };
+constexpr FanRPMRange heatbreak_fan_range = { .rpm_min = 6500, .rpm_max = 9800 };
 #elif PRINTER_IS_PRUSA_MK4()
 // Datasheet values for MK4S (5700+-10%) & MK4 (5900+-10%)
 // range needs to be relaxed due to difference in atmospheric pressure and altitude during selftest
@@ -71,8 +72,8 @@ static_assert(print_fan_range.rpm_max < heatbreak_fan_range.rpm_min, "These cann
 
 #if HAS_CPU_FAN()
 /// CPU cooling fan on the XLS sandwich board. Range derives from
-/// FANCTLCPU_RPM_MIN/MAX in CFanCtlCommonConsts.hpp (LDO-D3007D04Y05X75FX
-/// nominal 7500 RPM ±15 %, with margin for part variance).
+/// FANCTLCPU_RPM_MIN/MAX in CFanCtlCommonConsts.hpp (JDL3006S, nominal
+/// 9000 RPM; see there for why the window is not the datasheet tolerance).
 constexpr FanRPMRange cpu_fan_range = { .rpm_min = FANCTLCPU_RPM_MIN, .rpm_max = FANCTLCPU_RPM_MAX };
 #endif
 
