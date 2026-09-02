@@ -33,12 +33,8 @@ struct Status {
     /// !!! Does not correspond to the compensated readings
     int16_t hotend_temp_raw_c100_dt_s = 0;
 
-    /// Integral of (heater duty cycle)^2 over time (us)
-    /// Expect overflows. Since duty cycle is 0-1, overflows at most once in 4294967295/1000000 = 4300 s
-    /// We need to send this as uint32_t, uint16_t would overflow too fast
-    /// and dividing by 1000 to ms would screw up the overflows
-    uint16_t hotend_duty_cycle_sq_integral_us_lo = 0;
-    uint16_t hotend_duty_cycle_sq_integral_us_hi = 0;
+    /// PWM (0-255) representing power flowing to nozzle
+    uint16_t hotend_pwm_averaged = 0;
 
     /// Integral of measured V × I power over time [mW × ms]
     /// Expect overflows. At 60W, overflows once in 4294967295 / 60000 / 1000000 ≈ 71 s

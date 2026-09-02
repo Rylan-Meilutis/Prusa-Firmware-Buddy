@@ -46,8 +46,6 @@ static constexpr auto preset_flags = [] {
 }();
 static_assert(store_flags == preset_flags);
 
-extern osThreadId displayTaskHandle;
-
 static uint16_t encode_params(bool hard_reset, FactoryReset::ItemBitset items_to_keep) {
     static_assert(std::to_underlying(FactoryReset::Item::_cnt) < 16, "ItemBitset must fit in 15 bits");
     return static_cast<uint16_t>(items_to_keep.to_ulong()) | (hard_reset ? (1 << 15) : 0);
@@ -72,7 +70,6 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
 
     const bool hard_reset = decode_hard_reset(encoded_params);
     const ItemBitset items_to_keep = decode_items_to_keep(encoded_params);
-    debug_assert(osThreadGetId() == displayTaskHandle);
 
     // Render the screen
     Rect16 progress_rect;

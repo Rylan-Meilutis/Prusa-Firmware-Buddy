@@ -163,12 +163,13 @@ inline constexpr std::array printer_model_info {
     },
     PrinterModelInfo {
         .model = PrinterModel::xls,
-        .compatibility_group = PrinterModelCompatibilityGroup::xlp,
+        .compatibility_group = PrinterModelCompatibilityGroup::xls,
         .version = { 3, 1, 1 },
         .help_url = "xlp",
         .usb_pid = 41,
         .gcode_check_code = 410,
         .id_str = "XLP",
+        .display_str_override = "XL+",
     },
     PrinterModelInfo {
         // Append-only EEPROM model ID. CORE One Plus shares the CORE One

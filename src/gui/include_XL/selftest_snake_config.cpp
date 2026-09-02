@@ -32,6 +32,10 @@
     #include <module/prusa/homing_corexy.hpp>
 #endif
 
+#include <option/has_cpu_fan.h>
+#include <option/has_xl_can.h>
+#include <selftest_fans_config.hpp>
+
 namespace SelftestSnake {
 TestResult get_test_result(Action action, ToolMask tool) {
     SelftestResult sr = config_store().selftest_result.get();
@@ -53,6 +57,18 @@ TestResult get_test_result(Action action, ToolMask tool) {
             break;
         }
 #endif /* HAS_CHAMBER_API() */
+#if HAS_CPU_FAN() || HAS_XL_CAN()
+        // Gate exactly as M1978 does: on plain XL these fans are never tested and their
+        // slots stay unknown, which would drag the whole action to unknown.
+        if (fan_selftest::has_board_fans()) {
+    #if HAS_CPU_FAN()
+            res = test_result::evaluate_results(res, config_store().cpu_fan_selftest_result.get());
+    #endif
+    #if HAS_XL_CAN()
+            res = test_result::evaluate_results(res, config_store().bed_mcu_fan_selftest_result.get());
+    #endif
+        }
+#endif
         return res;
     }
     case Action::ZAlign:

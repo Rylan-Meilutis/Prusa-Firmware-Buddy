@@ -362,7 +362,12 @@ void idle(bool waiting) {
         // nozzle clogs/jams and upstream filament restraint before the extruder
         // can keep grinding the filament.
         SERIAL_ECHOLNPGM("E-motor stall detected");
-        marlin_server::gcode_interrupt({"M1601"});
+
+        const auto virtual_tool = VirtualToolIndex::currently_selected_opt();
+        if (!virtual_tool.has_value()) {
+            bsod("EStall without a tool");
+        }
+        marlin_server::gcode_interrupt(GCodeLiteral{"M1601 V%.0f", (float) virtual_tool->to_raw()});
     }
   #endif
 

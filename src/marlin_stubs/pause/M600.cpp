@@ -328,7 +328,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
  * upstream filament restraint that stalls forward extrusion.
  *#### Usage
  *
- *    M1601 [ R ]
+ *    M1601 [ V<virtual tool> ] [ R ]
  *
  * R0/omitted = stuck, R1 = runout, R2 = filament not moving,
  * R3 = flow-pressure breakout/max-flow limit.
@@ -336,7 +336,9 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
  */
 #if HAS_LOADCELL()
 void PrusaGcodeSuite::M1601() {
-    auto active_tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
+    auto active_tool = parser.seen('V')
+        ? std::optional { VirtualToolIndex::from_raw(parser.intval('V', -1)) }
+        : stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
     if (!active_tool.has_value()) {
         bsod_unreachable();
     }

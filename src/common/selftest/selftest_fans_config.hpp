@@ -4,6 +4,8 @@
 #include <option/has_switched_fan_test.h>
 #include <option/has_cpu_fan.h>
 #include <option/has_xl_can.h>
+#include <common/printer_model.hpp>
+#include <common/extended_printer_type.hpp>
 #if HAS_CPU_FAN()
     #include <fanctl/CFanCtlCommonConsts.hpp>
 #endif
@@ -82,6 +84,20 @@ constexpr FanRPMRange cpu_fan_range = { .rpm_min = FANCTLCPU_RPM_MIN, .rpm_max =
 /// captured for this fan yet, so the test only verifies the fan spins and the
 /// tacho reports
 constexpr FanRPMRange bed_mcu_fan_range = benevolent_fan_range;
+#endif
+
+#if HAS_CPU_FAN() || HAS_XL_CAN()
+/// Whether this machine carries the two board-cooling fans above. Their capability
+/// macros are master-board-level and shared with plain XL, where neither fan exists.
+/// The printer model is the discriminator rather than the runtime XL-CAN bridge
+/// state, so that a stored selftest result is read back under the same condition
+/// that decided to produce it.
+[[nodiscard]] inline bool has_board_fans() {
+    static_assert(PRINTER_IS_PRUSA_XL());
+    static_assert(extended_printer_type_model == std::array { PrinterModel::xl, PrinterModel::xls },
+        "New XL variant - decide whether it carries the CPU and Modular Bed MCU fans");
+    return PrinterModelInfo::current().model == PrinterModel::xls;
+}
 #endif
 
 } // namespace fan_selftest

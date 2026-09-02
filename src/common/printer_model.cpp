@@ -160,7 +160,7 @@ constexpr PrinterGCodeCompatibilityReport gcode_compatibility_report_constexpr(c
         // No backwards compatibility
         break;
 
-    case CompatGroup::xlp:
+    case CompatGroup::xls:
         upgrade_from(PrinterModel::xl);
         result.xl_compatibility_mode = true;
         break;

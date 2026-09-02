@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-19 13:50+0200\n"
+"POT-Creation-Date: 2026-08-26 14:52+0200\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -573,7 +573,7 @@ msgstr ""
 msgid "BED LEVEL CORRECTION"
 msgstr "КОРЕКЦІЯ РІВНЯ СТОЛУ"
 
-#: src/gui/screen_menu_board_info.cpp:111
+#: src/gui/screen_menu_board_info.cpp:128
 msgid "BOARD INFO"
 msgstr "ІНФО ПРО ПЛАТУ"
 
@@ -864,7 +864,7 @@ msgstr "ВЛАСНІ ПАРАМЕТРИ"
 msgid "Calibrate"
 msgstr "Калібрувати"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:75
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:68
 msgid "Calibrate Dock Position"
 msgstr "Калібрувати положення док-станції"
 
@@ -982,7 +982,7 @@ msgstr "Скасувати об'єкт"
 msgid "Canceled"
 msgstr "Скасовано"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:530
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:550
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -1397,7 +1397,7 @@ msgstr "Вентилятори охолодження"
 msgid "Cooling the nozzle"
 msgstr "Охолодження сопла"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:103
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:96
 msgid "Could not park the tool. Calibration preserved."
 msgstr "Не вдалося припаркувати інструмент. Калібрування збережено."
 
@@ -1523,7 +1523,7 @@ msgstr "Помилка DNS"
 msgid "DOCK CALIBRATION"
 msgstr "КАЛІБРУВАННЯ ДОКУ"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:116
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:109
 msgid "DOCK POSITION"
 msgstr "ПОЗИЦІЯ ДОКУ"
 
@@ -1798,7 +1798,7 @@ msgstr "Калібрування позиції док-станції"
 msgid "Dock X"
 msgstr "Док X"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:57
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:50
 msgid "Dock Y"
 msgstr "Док Y"
 
@@ -1810,6 +1810,16 @@ msgstr "Вентилятор доку"
 msgid "Dock fan is not spinning. Check for debris and inspect the wiring."
 msgstr ""
 "Вентилятор доку не обертається. Перевірте на сміття та огляньте проводку."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:219
+msgid ""
+"Dock position calibration needs to be performed before the tool can be used."
+msgstr ""
+"Перед використанням інструмента необхідно виконати калібрування позиції дока."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+msgid "Dock position not calibrated"
+msgstr "Позиція дока не відкалібрована"
 
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:30
 msgid "Dock positions have been successfully calibrated and saved."
@@ -2655,7 +2665,7 @@ msgid "Filament is abrasive, but tool does not have hardened nozzle installed."
 msgstr ""
 "Філамент абразивний, але в інструменті не встановлено загартоване сопло."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:205
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:209
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2675,7 +2685,7 @@ msgstr "Тайм-аут завантаження філаменту."
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "Філамент потрібно нагріти та повернути назад у сопло."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:204
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:208
 msgid "Filament not calibrated"
 msgstr "Філамент не відкалібровано"
 
@@ -2689,7 +2699,7 @@ msgstr ""
 "Виберіть НІ, щоб скасувати друк.\n"
 "Виберіть ВИМКНУТИ ДФ, щоб вимкнути датчик філаменту та продовжити друк."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:177
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:181
 msgid "Filament not loaded"
 msgstr "Філамент не завантажено"
 
@@ -2746,7 +2756,7 @@ msgstr "Датчик філаменту не підключено, переві�
 msgid "Filament sensor not ready: perform calibration first."
 msgstr "Датчик філаменту не готовий: спочатку виконайте калібрування."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:195
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:199
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -2987,7 +2997,7 @@ msgstr ""
 "лише офіційну\n"
 "підписану прошивку."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:71
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:75
 msgid "Firmware update required"
 msgstr "Потрібне оновлення прошивки"
 
@@ -3121,7 +3131,7 @@ msgstr "Сумісність G-Code"
 msgid "G-Code Level"
 msgstr "Рівень G-Code"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:54
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:58
 msgid "G-Code compatibility mode"
 msgstr "Режим сумісності G-Code"
 
@@ -3135,7 +3145,7 @@ msgstr "Філаменти G-Code (%i)"
 msgid "G-Code incompatibilities detected"
 msgstr "Виявлено несумісності G-Code"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:80
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:84
 msgid ""
 "G-Code is not sliced with Input Shaping support. Slicing with IS "
 "significantly shortens printing time."
@@ -3143,7 +3153,7 @@ msgstr ""
 "G-Code не нарізано з підтримкою Input Shaping. Нарізання з IS значно "
 "скорочує час друку."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:89
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:93
 msgid ""
 "G-Code is not sliced with newest INDX profiles. There will be some issues "
 "with the print."
@@ -3151,14 +3161,14 @@ msgstr ""
 "G-Code не нарізано з найновішими профілями INDX. Виникнуть деякі проблеми з "
 "друком."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:99
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:103
 msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
 msgstr ""
 "G-Code нарізано для MMU, але MMU вимкнено на принтері. Друк неможливий."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:186
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:190
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3166,19 +3176,19 @@ msgstr ""
 "G-Code нарізано для іншого типу філаменту, ніж завантажений у призначеному "
 "інструменті."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:46
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:50
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr "G-Code нарізано для іншого принтера, несумісний."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:146
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:150
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "G-Code нарізано для іншого діаметра інструменту."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:55
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:59
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr "G-Code нарізано для іншої, але сумісної моделі принтера."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:154
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:158
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3186,7 +3196,7 @@ msgstr ""
 "G-Code нарізано для загартованого сопла. Незагартовані сопла можуть "
 "пошкодитися."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:162
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:166
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3194,7 +3204,7 @@ msgstr ""
 "G-Code нарізано для сопла з високою витратою. Друк стандартним соплом може "
 "призвести до недоекструзії та пропусків."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:170
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:174
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3204,16 +3214,16 @@ msgstr ""
 "більшого продування, тому друк MMU з таким соплом може спричинити "
 "перетікання кольору."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:72
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:76
 msgid ""
 "G-Code requires features from a newer firmare version to function properly."
 msgstr "G-Code потребує функцій новішої версії прошивки."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:116
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:120
 msgid "G-Code requires more tools than are currently enabled."
 msgstr "G-Code потребує більше інструментів, ніж зараз увімкнено."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:108
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:112
 msgid "G-Code requires some features the printer does not have."
 msgstr "G-Code потребує функцій, яких немає в принтері."
 
@@ -3232,7 +3242,7 @@ msgstr ""
 "Ім'я: %s\n"
 "Хеш ключа: %s"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:232
 msgid "G-Code tool is not mapped."
 msgstr "Інструмент G-Code не зіставлено."
 
@@ -3245,7 +3255,7 @@ msgstr ""
 "проблем або скористайтеся іншим USB-накопичувачем. Натисніть «Продовжити», "
 "щоб відновити друк."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:63
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:67
 msgid "G-Code version mismatch"
 msgstr "Невідповідність версії G-Code"
 
@@ -3365,7 +3375,7 @@ msgstr "HAL виявив невизначену помилку I2C під час
 msgid "HAL detected an I2C undefined error when sending data via I2C."
 msgstr "HAL виявив невизначену помилку I2C під час надсилання даних через I2C."
 
-#: src/feature/factory_reset/factory_reset.cpp:116
+#: src/feature/factory_reset/factory_reset.cpp:113
 msgid "HARD RESET"
 msgstr "ЖОРСТКИЙ СКИД"
 
@@ -3795,7 +3805,7 @@ msgstr "Хомінг"
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
 #: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:22
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:23
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:29
 #: src/gui/screen_phase_stepping_calibration.cpp:42
 #: src/gui/screen/screen_filament_change.cpp:80
 #: src/gui/screen_crash_recovery.cpp:94 src/gui/screen_crash_recovery.cpp:262
@@ -4027,7 +4037,7 @@ msgstr "Неактивно"
 msgid "Incompatible filament"
 msgstr "Несумісний філамент"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:45
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:49
 msgid "Incompatible printer model"
 msgstr "Несумісна модель принтера"
 
@@ -4142,7 +4152,7 @@ msgstr "Недійсний заголовок файлу BGCODE"
 msgid "Invalidate"
 msgstr "Анулювати"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:79
 msgid "Invalidate Calibration"
 msgstr "Анулювати калібрування"
 
@@ -4198,7 +4208,7 @@ msgid "Joining spool"
 msgstr "З'єднання котушки"
 
 #: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
-#: src/feature/factory_reset/factory_reset.cpp:127
+#: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:53
 msgid "Keep"
 msgstr "Зберегти"
@@ -4536,9 +4546,9 @@ msgstr "Низька температура"
 msgid "Lower belt actual frequency"
 msgstr "Фактична частота нижнього ременя"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:21
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:26
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:28
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:27
 msgid "Lowering bed for clearance"
 msgstr "Опускання столу для зазору"
 
@@ -4773,7 +4783,7 @@ msgstr ""
 "служби основної пластини. Огляньте деталь і переконайтеся, що у вас є "
 "запасна пластина. Відвідайте prusa.io/mmu-care"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:20
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:25
 msgid "Make sure all the nozzles are clean, then press Continue."
 msgstr "Переконайтесь, що всі сопла чисті, потім натисніть Продовжити."
 
@@ -5277,15 +5287,15 @@ msgstr ""
 "електронікою. Перевірте проводку та роз'єми."
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:226
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:240
 msgid "Not enough filament"
 msgstr "Недостатньо філаменту"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:115
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:119
 msgid "Not enough tools"
 msgstr "Недостатньо інструментів"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:79
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:83
 msgid "Not sliced for Input Shaping"
 msgstr "Не нарізано для Input Shaping"
 
@@ -5430,7 +5440,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr "Очисник сопла може переповнитися"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:124
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:128
 msgid "Nozzle cleaner not calibrated"
 msgstr "Очисник сопла не відкалібрований"
 
@@ -5535,17 +5545,26 @@ msgstr ""
 "\n"
 "Досягнута температура: %u°C"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:169
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:173
 msgid "Nozzle high-flow mismatch"
 msgstr "Невідповідність витрати сопла"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:153
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:157
 msgid "Nozzle not hardened"
 msgstr "Сопло не загартоване"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:161
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:165
 msgid "Nozzle not high-flow"
 msgstr "Сопло не з високою витратою"
+
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:23
+msgid ""
+"Nozzles have to be perfectly clean for good calibration results.\n"
+"Manually pick each tool and clean its nozzle. Press Continue when done."
+msgstr ""
+"Для точного калібрування сопла мають бути ідеально чистими.\n"
+"Вручну виберіть кожен інструмент та очистьте його сопло. Після завершення "
+"натисніть Продовжити."
 
 #: src/gui/footer/footer_item_fsensor.cpp:61
 #: src/gui/footer/footer_item_multitool.cpp:29
@@ -5640,7 +5659,7 @@ msgstr ""
 "Після того, як принтер почне екструдувати пластик, відрегулюйте висоту "
 "сопла, обертаючи ручку, доки філамент не прилипне до листа."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:178
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:182
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5755,11 +5774,11 @@ msgstr "ПЕРЕГРІВ PCB"
 
 #: src/gui/screen_menu_phase_stepping.cpp:22
 msgid "PHASE STEPPING"
-msgstr "ФАЗОВЕ КРОКУВАННЯ"
+msgstr "PHASE STEPPING"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:40
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "КАЛІБРУВАННЯ ФАЗ. КРОКУВАННЯ"
+msgstr "КАЛІБРУВАННЯ PHASE STEPPING"
 
 #: tmp_error_headers/error_list.hpp:57
 msgid "PIN NOT REACHED"
@@ -5781,7 +5800,7 @@ msgstr "ТОЧНИЙ ХОМІНГ НЕ ВДАВСЯ"
 msgid "PREHEAT ERROR"
 msgstr "ПОМИЛКА ПОПЕРЕДНЬОГО НАГРІВУ"
 
-#: src/gui/screen/screen_menu_mmu_preload_all.cpp:70
+#: src/gui/screen/screen_menu_mmu_preload_all.cpp:71
 msgid "PRELOAD ALL"
 msgstr "ПОПЕРЕДНЬО ЗАВАНТАЖИТИ"
 
@@ -5932,7 +5951,7 @@ msgstr ""
 msgid "Performing cut"
 msgstr "Виконання обрізання"
 
-#: src/feature/factory_reset/factory_reset.cpp:96
+#: src/feature/factory_reset/factory_reset.cpp:93
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -5942,19 +5961,19 @@ msgstr ""
 
 #: src/gui/MItem_menus.hpp:200
 msgid "Phase Stepping"
-msgstr "Фазове крокування"
+msgstr "Phase Stepping"
 
 #: src/gui/selftest_action_helpers.cpp:92
 msgid "Phase Stepping Calibration"
-msgstr "Калібрування фаз. крокування"
+msgstr "Калібрування Phase Stepping"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:211
 msgid "Phase stepping calibration completed"
-msgstr "Калібрування фаз. крокування завершено"
+msgstr "Калібрування Phase Stepping завершено"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:287
 msgid "Phase stepping defaults have been successfully restored."
-msgstr "Стандартні значення фаз. крокування відновлено."
+msgstr "Стандартні значення Phase Stepping відновлено."
 
 #: src/gui/screen/toolhead/screen_toolhead_settings.cpp:235
 msgid "Pick Tool"
@@ -5969,8 +5988,8 @@ msgstr "Узяти інструмент %i"
 msgid "Pick/Park Tool"
 msgstr "Вибрати/Запаркувати інструмент"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:22
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:28
 #: src/gui/wizard/selftest_frame_temp.cpp:71
 #: src/gui/wizard/screen_heaters_selftest.cpp:73
 msgid "Picking up tool"
@@ -5993,7 +6012,7 @@ msgstr "Спершу відкалібруйте очисник сопла пер
 msgid "Please calibrate the docks first."
 msgstr "Спершу відкалібруйте доки."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:125
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:129
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "Спершу відкалібруйте очисник сопла."
 
@@ -6579,7 +6598,7 @@ msgstr "ПРАВОРУЧ"
 
 #: src/gui/screen/screen_print_preview.cpp:50
 msgid "Raising the bed"
-msgstr "Підняття столу"
+msgstr "Підйом столу"
 
 #: src/gui/screen/screen_filament_change.cpp:29
 msgid "Ramming"
@@ -6735,7 +6754,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "Вимагає фільтрації"
 
-#: src/feature/factory_reset/factory_reset.cpp:127 src/gui/MItem_tools.hpp:424
+#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:424
 #: src/gui/screen/screen_factory_reset.cpp:52
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -7181,11 +7200,11 @@ msgstr "Пропустити"
 msgid "Skip Network Setup"
 msgstr "Пропустити налаштування мережі"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:98
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:102
 msgid "Sliced for MMU"
 msgstr "Нарізано для MMU"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:88
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:92
 msgid "Sliced with old INDX profiles"
 msgstr "Нарізано зі старими профілями INDX"
 
@@ -7233,7 +7252,7 @@ msgstr "Швидкість"
 msgid "Speed sweep movement failed."
 msgstr "Рух розгортки швидкості не вдався."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:194
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:198
 msgid "Spool join sensor not ready"
 msgstr "Датчик з'єднання котушок не готовий"
 
@@ -7525,7 +7544,7 @@ msgstr "НЕВІДПОВІДНІСТЬ ІНСТРУМЕНТА"
 msgid "TOOL OFFSET OUT OF BOUNDS"
 msgstr "ЗМІЩЕННЯ ІНСТРУМЕНТА ЗА МЕЖАМИ ДІАПАЗОНУ"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:70
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:87
 msgid "TOOL OFFSETS CALIBRATION"
 msgstr "КАЛІБРУВАННЯ ЗМІЩЕНЬ ІНСТРУМЕНТІВ"
 
@@ -7913,7 +7932,7 @@ msgstr "Шлях занадто довгий."
 msgid "The previous tests must be completed before this one."
 msgstr "Попередні тести треба завершити перед цим."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:19
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:21
 msgid ""
 "The printer will calibrate the XY/Z offsets of all tools using the tool "
 "offset sensor. This may take several minutes."
@@ -8025,7 +8044,7 @@ msgstr ""
 "Є дані використання для запису на OpenPrintTag. Тримайте котушку біля NFC-"
 "зчитувача."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:227
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:241
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr "На котушках недостатньо філаменту для друку моделі."
@@ -8144,7 +8163,7 @@ msgid ""
 "continue?"
 msgstr "Це змінить поведінку датчика філаменту. Бажаєте продовжити?"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:90
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:83
 msgid ""
 "This will invalidate the calibration for this tool. The tool will not be "
 "available for printing until its dock is calibrated again. Proceed?"
@@ -8290,10 +8309,10 @@ msgstr "Інструмент %i"
 #: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:31
 #, c-format
 msgid "Tool %i gearbox alignment"
-msgstr "Вирівнювання редуктора інстр. %i"
+msgstr "Вирівнювання редуктора інструмента %i"
 
 #. %u placeholders are filled with the 1-based current tool and the total tool count.
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:25
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:31
 #, c-format
 msgid "Tool %u of %u"
 msgstr "Інструмент %u з %u"
@@ -8318,13 +8337,13 @@ msgstr "Калібрування зсуву інструмента"
 msgid "Tool Offset Failed"
 msgstr "Зміщення інструмента не вдалося"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:18
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:20
 #: src/gui/selftest_action_helpers.cpp:114
 #: src/gui/wizard/selftest_frame_tool_offsets.cpp:15
 msgid "Tool Offsets Calibration"
 msgstr "Калібрування зміщень інструментів"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:138
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:142
 msgid "Tool is disabled or of a different type."
 msgstr "Інструмент вимкнено або іншого типу."
 
@@ -8350,11 +8369,11 @@ msgstr ""
 "датчик чисті.\n"
 "Увага: сопло може бути гарячим."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:27
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:33
 msgid "Tool offsets calibration failed."
 msgstr "Калібрування зміщень інструментів не вдалося."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:32
 msgid "Tool offsets have been successfully calibrated and saved."
 msgstr "Зміщення інструментів успішно відкалібровано та збережено."
 
@@ -8467,8 +8486,8 @@ msgid ""
 "Turn off the printer and check that the filament sensor cables are wired "
 "correctly."
 msgstr ""
-"Вимкніть принтер і перевірте правильність підключення кабелів датчика "
-"філаменту."
+"Вимкніть принтер і переконайтеся, що кабелі датчика філамента підключені "
+"правильно."
 
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:37
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:40
@@ -8698,7 +8717,7 @@ msgstr "Вивантаження до FINDA"
 msgid "Unloading to pulley"
 msgstr "Вивантаження до шківа"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:217
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:231
 msgid "Unmapped tool"
 msgstr "Незіставлений інструмент"
 
@@ -8718,7 +8737,7 @@ msgstr "Небезпечне зміщення інструмента XY"
 msgid "Unsafe Z Tool Offset"
 msgstr "Небезпечне зміщення інструмента Z"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:107
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:111
 msgid "Unsupported features"
 msgstr "Непідтримувані функції"
 
@@ -9040,15 +9059,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "Неправильний"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:185
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:189
 msgid "Wrong filament type"
 msgstr "Невірний тип філаменту"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:145
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:149
 msgid "Wrong nozzle diameter"
 msgstr "Невірний діаметр сопла"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:137
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:141
 msgid "Wrong tool"
 msgstr "Невірний інструмент"
 

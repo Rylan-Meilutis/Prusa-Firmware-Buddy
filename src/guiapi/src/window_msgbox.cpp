@@ -239,7 +239,7 @@ MsgBoxIconnedError::MsgBoxIconnedError(Rect16 rect, const PhaseResponses &resp, 
 // MsgBoxIconnedWait
 MsgBoxIconnedWait::MsgBoxIconnedWait(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
     const string_view_utf8 &txt, is_multiline multiline)
-    : MsgBoxIconned(rect, resp, def_btn, txt, multiline, &img::hourglass_26x39) {
+    : MsgBoxIconned(rect, resp, def_btn, txt, multiline, &img::hourglass0_26x39) {
     icon.SetRect(Rect16(0, GuiDefaults::HeaderHeight, GuiDefaults::ScreenWidth, 140));
     icon.SetAlignment(Align_t::Center());
 

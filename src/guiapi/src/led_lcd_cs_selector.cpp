@@ -8,7 +8,6 @@
 #include <buddy/main.h>
 #include <device/peripherals.hpp>
 #include "hwio_pindef.h"
-#include "gui_time.hpp" //gui::GetTick()
 #include <buddy/ccm_thread.hpp>
 #include "option/has_side_leds.h"
 #include <common/spi_baud_rate_prescaler_guard.hpp>

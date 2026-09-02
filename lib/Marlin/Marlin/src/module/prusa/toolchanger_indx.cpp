@@ -380,8 +380,8 @@ void PrusaToolChanger::move(const float x, const float y, const feedRate_t feedr
     line_to_current_position(feedrate);
 }
 
-const xy_float_t PrusaToolChanger::get_tool_dock_position(PhysicalToolIndex tool) {
-    const auto info = PrusaToolChangerUtils::get_tool_info(tool, true);
+const xy_float_t PrusaToolChanger::get_tool_dock_position(PhysicalToolIndex tool, bool check_calibrated) {
+    const auto info = PrusaToolChangerUtils::get_tool_info(tool, check_calibrated);
     return xy_float_t { info.dock_x, info.dock_y + DOCK_SAFE_Y_OFFSET };
 }
 
@@ -871,9 +871,7 @@ void PrusaToolChanger::final_tool_change_moves(const FinalToolChangeMoves &args)
     // Move back in XY direction
     if (args.return_type == tool_return_t::dock_backoff) {
         // After docking, back off in +Y to clear the dock area (e.g. for manual filament removal)
-        xy_pos_t backoff_pos = current_position.xy();
-        backoff_pos.y += DOCK_BACKOFF_Y_OFFSET;
-        unpark_to(backoff_pos);
+        mapi::park({ .y = current_position.y + DOCK_BACKOFF_Y_OFFSET });
     } else if (args.return_type > tool_return_t::no_return) {
         // Move back to the original (or adjusted) position.
         mapi::park({ .x = return_position.x, .y = return_position.y });
@@ -891,12 +889,6 @@ void PrusaToolChanger::final_tool_change_moves(const FinalToolChangeMoves &args)
 
     // Wait for moves to finish
     planner.synchronize();
-}
-
-void PrusaToolChanger::unpark_to(const xy_pos_t &destination) {
-    // move to the destination
-    const float travel_fr = limit_stealth_feedrate(TRAVEL_MOVE_MM_S);
-    move(destination.x, destination.y, travel_fr);
 }
 
 std::expected<void, PrusaToolChanger::BumpError> PrusaToolChanger::bump_to_dock(PhysicalToolIndex dock) {

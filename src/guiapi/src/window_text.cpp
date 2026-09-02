@@ -5,6 +5,7 @@
 #include <gui/gui_utils.hpp>
 #include <display_helper.h>
 #include <window_icon.hpp>
+#include "gui_time.hpp"
 
 void window_text_t::SetText(const string_view_utf8 &txt) {
     if (text.is_same_ref(txt)) {

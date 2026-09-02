@@ -196,8 +196,14 @@ void InductionHeater::heater_control(int32_t target_centideg, int32_t current_ce
     update(pwr_i);
 }
 
-fpm::fixed_16_16 InductionHeater::current_duty_cycle_sq() const {
-    return current_power == 0 ? fpm::fixed_16_16 { 0 } : intervalLUT[current_power - 1].duty_cycle_sq;
+uint8_t InductionHeater::current_pwm() const {
+    if (current_power == 0) {
+        return 0;
+    }
+    constexpr auto full_power = intervalLUT[max_power - 1].duty_cycle_sq;
+    const auto current = intervalLUT[current_power - 1].duty_cycle_sq;
+    constexpr auto scaling_factor = 255 / full_power;
+    return static_cast<uint8_t>(current * scaling_factor);
 }
 
 bool InductionHeater::should_measure() const {

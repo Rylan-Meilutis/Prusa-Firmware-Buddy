@@ -32,6 +32,10 @@
     #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
 #endif
 
+#if HAS_TOOLCHANGER()
+    #include <module/prusa/toolchanger.h>
+#endif
+
 // Needed for ChecksTraits<GeneralCheck>::metadata
 using namespace buddy::compatibility_checks;
 using namespace buddy::gcode_compatibility;
@@ -203,6 +207,16 @@ constinit const ChecksTraits<VirtualToolCheck>::Metadata ChecksTraits<VirtualToo
                 .severity = HWCheckSeverity::Abort,
                 .title = N_("Filament not calibrated"),
                 .description = N_("Filament is missing calibration data. Unload it and load again to run the calibration."),
+            },
+        },
+#endif
+#if HAS_TOOLCHANGER()
+        {
+            VirtualToolCheck::dock_position_calibrated,
+            CheckMetadata {
+                .severity = HWCheckSeverity::Abort,
+                .title = N_("Dock position not calibrated"),
+                .description = N_("Dock position calibration needs to be performed before the tool can be used."),
             },
         },
 #endif
@@ -420,6 +434,12 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                 virtual_tool_fails.set(VirtualToolCheck::correct_tool);
                 return;
             }
+
+#if HAS_TOOLCHANGER()
+            if (prusa_toolchanger.is_toolchanger_enabled() && !prusa_toolchanger.is_tool_info_valid(physical_tool)) {
+                virtual_tool_fails.set(VirtualToolCheck::dock_position_calibrated);
+            }
+#endif
 
             const FilamentType loaded_filament_type = config_store().get_filament_type(virtual_tool);
             const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();

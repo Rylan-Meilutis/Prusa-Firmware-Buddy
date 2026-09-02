@@ -43,7 +43,11 @@ home_80x80_disabled.png
 home_80x80_focused.png
 home_80x80.png
 home_shape_16x16.png
-hourglass_26x39.png
+hourglass0_26x39.png
+hourglass1_26x39.png
+hourglass2_26x39.png
+hourglass3_26x39.png
+hourglass4_26x39.png
 info_16x16.png
 info_48x48.png
 info_58x58.png

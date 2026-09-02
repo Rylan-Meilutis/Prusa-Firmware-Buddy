@@ -49,8 +49,6 @@ void report_M92(const bool echo=true, const int8_t e=-1) {
                         " E", VOLUMETRIC_UNIT(planner.settings.axis_steps_per_mm[E_AXIS_N(i)]));
     }
   #endif
-
-  UNUSED_E(e);
 }
 
 /** \addtogroup G-Codes
@@ -88,14 +86,6 @@ void report_M92(const bool echo=true, const int8_t e=-1) {
  * Warning: Invalidates homing.
  */
 void GcodeSuite::M92() {
-#if HAS_INDX()
-  // INDX has passive tools (single E stepper), so apply even with no tool selected.
-  static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
-#else
-  const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
-  if (!tool.has_value()) return;
-#endif
-
   // No arguments? Show M92 report.
   if (!parser.seen("XYZE"
     #if ENABLED(MAGIC_NUMBERS_GCODE)
@@ -103,11 +93,9 @@ void GcodeSuite::M92() {
       "HL"
     #endif
   )) {
-#if HAS_INDX()
-    return report_M92(true);
-#else
-    return report_M92(true, tool->to_raw());
-#endif
+
+    const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
+    return report_M92(true, tool.has_value() ? tool->to_raw() : -1);
   }
 
   #if HAS_PHASE_STEPPING()
@@ -125,13 +113,18 @@ void GcodeSuite::M92() {
 
     LOOP_XYZE(i) {
       if (parser.seenval(axis_codes[i])) {
+        const float value = parser.value_per_axis_units((AxisEnum)i);
+
         if (i == E_AXIS) {
-#if HAS_INDX()
+#if E_STEPPERS == 1
           const AxisEnum e_axis = E_AXIS_N(0);
 #else
+          const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
+          if(!tool.has_value()) {
+            continue;
+          }
           const AxisEnum e_axis = E_AXIS_N(tool->to_raw());
 #endif
-          const float value = parser.value_per_axis_units(e_axis);
           if (value < 20) {
             float factor = planner.settings.axis_steps_per_mm[e_axis] / value; // increase e constants if M92 E14 is given for netfab.
             #if HAS_CLASSIC_E_JERK
@@ -144,8 +137,8 @@ void GcodeSuite::M92() {
           s.axis_msteps_per_mm[e_axis] = value * PLANNER_STEPS_MULTIPLIER;
         }
         else {
-          s.axis_steps_per_mm[i] = parser.value_per_axis_units((AxisEnum)i);
-          s.axis_msteps_per_mm[i] = parser.value_per_axis_units((AxisEnum)i) * PLANNER_STEPS_MULTIPLIER;
+          s.axis_steps_per_mm[i] = value;
+          s.axis_msteps_per_mm[i] = value * PLANNER_STEPS_MULTIPLIER;
         }
       }
     }

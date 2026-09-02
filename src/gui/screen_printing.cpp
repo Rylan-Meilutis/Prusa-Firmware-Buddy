@@ -958,6 +958,7 @@ void screen_printing_data_t::change_print_state() {
             return printing_state_t::STOPPED;
         case State::Finished:
         case State::Exit:
+            stop_pressed = false;
             return printing_state_t::PRINTED;
         case State::PowerPanic_acFault:
         case State::SerialPrintInit:

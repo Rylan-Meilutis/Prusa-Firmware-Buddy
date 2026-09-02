@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-19 13:50+0200\n"
+"POT-Creation-Date: 2026-08-26 14:52+0200\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -580,7 +580,7 @@ msgstr ""
 msgid "BED LEVEL CORRECTION"
 msgstr "ベッドレベルホセイ"
 
-#: src/gui/screen_menu_board_info.cpp:111
+#: src/gui/screen_menu_board_info.cpp:128
 msgid "BOARD INFO"
 msgstr "ボードジョウホウ"
 
@@ -874,7 +874,7 @@ msgstr "カスタムパラメータ"
 msgid "Calibrate"
 msgstr "キャリブレート"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:75
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:68
 msgid "Calibrate Dock Position"
 msgstr "ドックポジション キャリブレーション"
 
@@ -996,7 +996,7 @@ msgstr "オブジェクトノ キャンセル"
 msgid "Canceled"
 msgstr "キャンセルサレマシタ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:530
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:550
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -1424,7 +1424,7 @@ msgstr "クーリング・ファン"
 msgid "Cooling the nozzle"
 msgstr "ノズル レイキャク"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:103
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:96
 msgid "Could not park the tool. Calibration preserved."
 msgstr ""
 "ツールヲ パークデキマセンデシタ.キャリブレーションハ ホゾンサレテイマス."
@@ -1551,7 +1551,7 @@ msgstr "DNSエラー"
 msgid "DOCK CALIBRATION"
 msgstr "ドック キャリブレーション"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:116
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:109
 msgid "DOCK POSITION"
 msgstr "ドックポジション"
 
@@ -1829,7 +1829,7 @@ msgstr "ドックポジション キャリブレーション"
 msgid "Dock X"
 msgstr "ドックX"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:57
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:50
 msgid "Dock Y"
 msgstr "ドックY"
 
@@ -1842,6 +1842,17 @@ msgid "Dock fan is not spinning. Check for debris and inspect the wiring."
 msgstr ""
 "ドックファンガ カイテンシテイマセン.ゴミガ ツマッテイナイカ カクニンシ, ハイ"
 "センヲ テンケンシテクダサイ."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:219
+msgid ""
+"Dock position calibration needs to be performed before the tool can be used."
+msgstr ""
+"ツールヲシヨウスルマエニ、ドックイチノキャリブレーションヲオコナウヒツヨウガ"
+"アリマス."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+msgid "Dock position not calibrated"
+msgstr "ドックイチガキャリブレーションサレテイマセン"
 
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:30
 msgid "Dock positions have been successfully calibrated and saved."
@@ -2689,7 +2700,7 @@ msgstr ""
 "フィラメントハ ケンマセイデスガ, ツールニ ハードノズルガ トリツケラレテイマセ"
 "ン."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:205
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:209
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2709,7 +2720,7 @@ msgstr "フィラメントノ ローディングガ タイムアウトシマシ�
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "フィラメントヲ カネツシ, ノズルヘ オシモドスヒツヨウガ アリマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:204
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:208
 msgid "Filament not calibrated"
 msgstr "フィラメントキャリブレーションミカンリョウ"
 
@@ -2724,7 +2735,7 @@ msgstr ""
 "フィラメントセンサーヲ ムコウニシテ プリントヲ ゾッコウスルニハ, フィラメント"
 "センサーノムコウ ヲセンタクシマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:177
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:181
 msgid "Filament not loaded"
 msgstr "フィラメントガ ロードサレテイマセン"
 
@@ -2788,7 +2799,7 @@ msgstr ""
 "フィラメントセンサーガ ジュンビデキテイマセン:マズ キャリブレーション シテク"
 "ダサイ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:195
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:199
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -3031,7 +3042,7 @@ msgstr ""
 "セイシキナ ファームウェアノミ\n"
 "カキコミスルコトガデキマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:71
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:75
 msgid "Firmware update required"
 msgstr "ファームウェア ヲ アップデート シテクダサイ"
 
@@ -3166,7 +3177,7 @@ msgstr "Gコード・コンパチビリティ"
 msgid "G-Code Level"
 msgstr "G-コード レベル"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:54
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:58
 msgid "G-Code compatibility mode"
 msgstr "Gコード コンパチビリティモード"
 
@@ -3180,7 +3191,7 @@ msgstr "Gコード フィラメント (%i)"
 msgid "G-Code incompatibilities detected"
 msgstr "Gコードノ ゴカンセイガ ケンシュツサレマシタ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:80
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:84
 msgid ""
 "G-Code is not sliced with Input Shaping support. Slicing with IS "
 "significantly shortens printing time."
@@ -3188,7 +3199,7 @@ msgstr ""
 "Gコードハ インプットシェーピングタイオウデ スライスサレテイマセン.インプット"
 "シェーピングデ スライススルト, プリントジカンガ オオキク タンシュクサレマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:89
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:93
 msgid ""
 "G-Code is not sliced with newest INDX profiles. There will be some issues "
 "with the print."
@@ -3196,7 +3207,7 @@ msgstr ""
 "Gコードハ サイシンノ INDXプロファイルデ スライスサレテイマセン.プリントニ モ"
 "ンダイガ ショウズル カノウセイガ アリマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:99
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:103
 msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
@@ -3204,7 +3215,7 @@ msgstr ""
 "Gコードハ MMUヨウニ スライスサレテイマスガ, プリンタデ MMUガ ユウコウニ ナッ"
 "テイマセン.プリントデキマセン."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:186
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:190
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3212,22 +3223,22 @@ msgstr ""
 "Gコードハ, ゲンザイ アサインサレタ ツールニ ロードサレテイル モノト コトナル "
 "フィラメントタイプヨウニ スライスサレテイマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:46
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:50
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr ""
 "Gコードハ ベツノ プリンタヨウニ スライスサレテオリ, ゴカンセイガ アリマセン."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:146
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:150
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "Gコードハ コトナル ツールチョッケイヨウニ スライスサレテイマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:55
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:59
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr ""
 "Gコードハ コトナルガ ゴカンセイノアル プリンタモデルヨウニ スライスサレテイマ"
 "ス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:154
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:158
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3235,7 +3246,7 @@ msgstr ""
 "Gコードハ ハードノズルヨウニ スライスサレテイマス.ハードノズルデハナイ ノズル"
 "ハ, ザイリョウノ ケンマセイニヨリ ソンショウスル カノウセイガ アリマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:162
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:166
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3244,7 +3255,7 @@ msgstr ""
 "リントスルト, アンダーエクストルージョンヤ エクストルーダースキップガ ハッセ"
 "イスル カノウセイガ アリマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:170
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:174
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3254,19 +3265,19 @@ msgstr ""
 "ルハ ヨリオオクノ パージガ ヒツヨウナタメ, ハイフローノズルデ MMUプリントヲ "
 "オコナウト, カラークリープガ ハッセイスル カノウセイガ アリマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:72
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:76
 msgid ""
 "G-Code requires features from a newer firmare version to function properly."
 msgstr ""
 "Gコードノ ドウサニハ, アタラシイ ファームウェアバージョンノ キノウガ ヒツヨウ"
 "デス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:116
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:120
 msgid "G-Code requires more tools than are currently enabled."
 msgstr ""
 "Gコードハ, ゲンザイ ユウコウナ モノヨリ オオクノ ツールヲ ヒツヨウトシマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:108
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:112
 msgid "G-Code requires some features the printer does not have."
 msgstr "Gコードハ, プリンタガ モタナイ キノウヲ ヒツヨウトシマス."
 
@@ -3285,7 +3296,7 @@ msgstr ""
 "アイデンティティ ネーム: %s\n"
 "アイデンティティ キー ハッシュ: %s"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:232
 msgid "G-Code tool is not mapped."
 msgstr "Gコードノ ツールガ マッピングサレテイマセン."
 
@@ -3298,7 +3309,7 @@ msgstr ""
 "カ カクニンシテクダサイ.マタハ ベツノ USBドライブヲ タメシテクダサイ.ゾッコウ"
 "ヲ オシテ プリントヲ サイカイ シマス."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:63
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:67
 msgid "G-Code version mismatch"
 msgstr "Gコード バージョンミスマッチ"
 
@@ -3435,7 +3446,7 @@ msgstr ""
 "HALハ, I2Cケイユデ データヲ ソウシンスルトキニ フメイナエラーヲ ケンシュツシ"
 "マシタ."
 
-#: src/feature/factory_reset/factory_reset.cpp:116
+#: src/feature/factory_reset/factory_reset.cpp:113
 msgid "HARD RESET"
 msgstr "ハードリセット"
 
@@ -3867,7 +3878,7 @@ msgstr "ホーム"
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
 #: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:22
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:23
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:29
 #: src/gui/screen_phase_stepping_calibration.cpp:42
 #: src/gui/screen/screen_filament_change.cpp:80
 #: src/gui/screen_crash_recovery.cpp:94 src/gui/screen_crash_recovery.cpp:262
@@ -4103,7 +4114,7 @@ msgstr "インアクティブ"
 msgid "Incompatible filament"
 msgstr "ゴカンセイノナイ フィラメント"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:45
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:49
 msgid "Incompatible printer model"
 msgstr "ゴカンセイノナイ プリンタモデル"
 
@@ -4222,7 +4233,7 @@ msgstr "バイナリGコードファイルヘッダ ムコウ"
 msgid "Invalidate"
 msgstr "ムコウカ"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:79
 msgid "Invalidate Calibration"
 msgstr "キャリブレーションヲ ムコウカ"
 
@@ -4280,7 +4291,7 @@ msgid "Joining spool"
 msgstr "スプール・ケツゴウチュウ..."
 
 #: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
-#: src/feature/factory_reset/factory_reset.cpp:127
+#: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:53
 msgid "Keep"
 msgstr "キープ"
@@ -4619,9 +4630,9 @@ msgstr "オンドガ ヒクイ"
 msgid "Lower belt actual frequency"
 msgstr "シタノベルトノ ジッソウクシュウハスウ"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:21
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:26
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:28
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:27
 msgid "Lowering bed for clearance"
 msgstr "クリアランスカクホノタメ ベッドヲ サゲテイマス"
 
@@ -4870,7 +4881,7 @@ msgstr ""
 "タッシマシタ.ブヒンヲ テンケンシ, ヨビノ プレートガ アルコトヲ カクニンシテク"
 "ダサイ.prusa.io/mmu-careヲ ゴランクダサイ."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:20
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:25
 msgid "Make sure all the nozzles are clean, then press Continue."
 msgstr ""
 "スベテノ ノズルガ キレイデアルコトヲ カクニンシ, ツヅケルヲ オシテクダサイ."
@@ -5385,15 +5396,15 @@ msgstr ""
 "イ."
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:226
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:240
 msgid "Not enough filament"
 msgstr "フィラメントガ タリマセン"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:115
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:119
 msgid "Not enough tools"
 msgstr "ツールガ タリマセン"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:79
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:83
 msgid "Not sliced for Input Shaping"
 msgstr "インプットシェーピング ヒタイオウ"
 
@@ -5539,7 +5550,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr "ノズルクリーナー オーバーフローノ カノウセイ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:124
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:128
 msgid "Nozzle cleaner not calibrated"
 msgstr "ノズルクリーナー ミキャリブレーション"
 
@@ -5645,17 +5656,27 @@ msgstr ""
 "\n"
 "トウタツオンド: %u°C"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:169
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:173
 msgid "Nozzle high-flow mismatch"
 msgstr "ノズルハイフロー ミスマッチ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:153
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:157
 msgid "Nozzle not hardened"
 msgstr "ノズル コウカノズル ミタイオウ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:161
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:165
 msgid "Nozzle not high-flow"
 msgstr "ノズルハイフロー ミタイオウ"
+
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:23
+msgid ""
+"Nozzles have to be perfectly clean for good calibration results.\n"
+"Manually pick each tool and clean its nozzle. Press Continue when done."
+msgstr ""
+"セイカクナキャリブレーションニハ、ノズルガカンゼンニクリーンデアルヒツヨウガ"
+"アリマス.\n"
+"カクツールヲシュドウデトリハズシ、ノズルヲセイソウシテクダサイ. カンリョウゴ"
+"ニツヅケルヲオシテクダサイ."
 
 #: src/gui/footer/footer_item_fsensor.cpp:61
 #: src/gui/footer/footer_item_multitool.cpp:29
@@ -5750,7 +5771,7 @@ msgstr ""
 "プリンタガ フィラメントニ オシダシハジメタラ, フィラメントガ プリントシート"
 "ニ セッスルヨウニ ノブヲマワシ, ノズルノタカサヲ チョウセイシテクダサイ."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:178
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:182
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5872,11 +5893,11 @@ msgstr "PCBオーバーヒート"
 
 #: src/gui/screen_menu_phase_stepping.cpp:22
 msgid "PHASE STEPPING"
-msgstr "フェイズステッピング"
+msgstr "フェーズステッピング"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:40
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "フェーズステップキャリブレーション"
+msgstr "フェーズステッピングキャリブレーション"
 
 #: tmp_error_headers/error_list.hpp:57
 msgid "PIN NOT REACHED"
@@ -5898,7 +5919,7 @@ msgstr "セイミツホーミングエラー"
 msgid "PREHEAT ERROR"
 msgstr "プリヒートエラー"
 
-#: src/gui/screen/screen_menu_mmu_preload_all.cpp:70
+#: src/gui/screen/screen_menu_mmu_preload_all.cpp:71
 msgid "PRELOAD ALL"
 msgstr "プリロード オール"
 
@@ -6049,7 +6070,7 @@ msgstr ""
 msgid "Performing cut"
 msgstr "カットジッコウ"
 
-#: src/feature/factory_reset/factory_reset.cpp:96
+#: src/feature/factory_reset/factory_reset.cpp:93
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -6059,7 +6080,7 @@ msgstr ""
 
 #: src/gui/MItem_menus.hpp:200
 msgid "Phase Stepping"
-msgstr "フェイズステッピング"
+msgstr "フェーズステッピング"
 
 #: src/gui/selftest_action_helpers.cpp:92
 msgid "Phase Stepping Calibration"
@@ -6067,12 +6088,13 @@ msgstr "フェーズステッピング キャリブレーション"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:211
 msgid "Phase stepping calibration completed"
-msgstr "フェーズステップキャリブレーション カンリョウ"
+msgstr "フェーズステッピングキャリブレーション カンリョウ"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:287
 msgid "Phase stepping defaults have been successfully restored."
 msgstr ""
-"フェーズステップノ デフォルトパラメータガ セイジョウニ フクゲンサレマシタ."
+"フェーズステッピングノ デフォルトパラメータガ セイジョウニ フクゲンサレマシ"
+"タ."
 
 #: src/gui/screen/toolhead/screen_toolhead_settings.cpp:235
 msgid "Pick Tool"
@@ -6087,8 +6109,8 @@ msgstr "ツール %i ヲ ピック"
 msgid "Pick/Park Tool"
 msgstr "ツールノ ピック/パーク"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:22
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:28
 #: src/gui/wizard/selftest_frame_temp.cpp:71
 #: src/gui/wizard/screen_heaters_selftest.cpp:73
 msgid "Picking up tool"
@@ -6113,7 +6135,7 @@ msgstr ""
 msgid "Please calibrate the docks first."
 msgstr "マズ ドックヲ キャリブレーションシテクダサイ."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:125
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:129
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "マズ ノズルクリーナーヲ キャリブレーションシテクダサイ."
 
@@ -6714,7 +6736,7 @@ msgstr "ミギ"
 
 #: src/gui/screen/screen_print_preview.cpp:50
 msgid "Raising the bed"
-msgstr "ベッドヲ アゲテイマス"
+msgstr "ベッドノジョウショウ"
 
 #: src/gui/screen/screen_filament_change.cpp:29
 msgid "Ramming"
@@ -6875,7 +6897,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "フィルター ガ ヒツヨウ"
 
-#: src/feature/factory_reset/factory_reset.cpp:127 src/gui/MItem_tools.hpp:424
+#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:424
 #: src/gui/screen/screen_factory_reset.cpp:52
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6983,8 +7005,8 @@ msgstr "スグニ セルフテスト ト キャリブレーション ヲ ジッ�
 msgid ""
 "Running the phase stepping calibration to reduce vibrations. Please wait..."
 msgstr ""
-"シンドウヲ ヘラスタメニ フェーズステップキャリブレーションヲ ジッコウシマス."
-"シバラクオマチクダサイ."
+"シンドウヲ ヘラスタメニ フェーズステッピングキャリブレーションヲ ジッコウシマ"
+"ス.シバラクオマチクダサイ."
 
 #: src/gui/screen/openprinttag/screen_opt_filament_detail.cpp:38
 msgid "SCAN OPENPRINTTAG"
@@ -7333,11 +7355,11 @@ msgstr "スキップ"
 msgid "Skip Network Setup"
 msgstr "ネットワーク セットアップ ヲ ショウリャク"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:98
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:102
 msgid "Sliced for MMU"
 msgstr "MMUヨウニ スライスズミ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:88
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:92
 msgid "Sliced with old INDX profiles"
 msgstr "フルイ INDXプロファイルデ スライスズミ"
 
@@ -7386,7 +7408,7 @@ msgstr "スピード"
 msgid "Speed sweep movement failed."
 msgstr "スピードスイープ ガ シッパイシマシタ"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:194
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:198
 msgid "Spool join sensor not ready"
 msgstr "スプールジョインセンサーノ ジュンビガ デキテイマセン"
 
@@ -7683,7 +7705,7 @@ msgstr "ツール ミスマッチ"
 msgid "TOOL OFFSET OUT OF BOUNDS"
 msgstr "ツールオフセット ハンイガイ"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:70
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:87
 msgid "TOOL OFFSETS CALIBRATION"
 msgstr "ツールオフセット キャリブレーション"
 
@@ -8087,7 +8109,7 @@ msgstr "パスガ ナガスギマス."
 msgid "The previous tests must be completed before this one."
 msgstr "コノテストノマエニ, イゼンノテストヲ カンリョウスルヒツヨウガアリマス."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:19
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:21
 msgid ""
 "The printer will calibrate the XY/Z offsets of all tools using the tool "
 "offset sensor. This may take several minutes."
@@ -8203,7 +8225,7 @@ msgstr ""
 "オープンプリントタグニ カキコム フィラメントシヨウリョウガ アリマス.スプール"
 "ガ NFCリーダーニ チカイコトヲ カクニンシテクダサイ."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:227
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:241
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr ""
@@ -8328,7 +8350,7 @@ msgstr ""
 "コノソウサハ フィラメントセンサー ノ キョドウ ニ エイキョウ ヲ アタエマス.ツ"
 "ヅケマスカ?"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:90
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:83
 msgid ""
 "This will invalidate the calibration for this tool. The tool will not be "
 "available for printing until its dock is calibrated again. Proceed?"
@@ -8430,7 +8452,8 @@ msgstr ""
 msgid ""
 "To learn more about the phase stepping calibration process, read the article:"
 msgstr ""
-"ステッピングキャリブレーションプロセスノ ショウサイハ キジヲ オヨミクダサイ:"
+"フェーズステッピングキャリブレーションプロセスノ ショウサイハ キジヲ オヨミク"
+"ダサイ:"
 
 #: src/gui/screen_help_fw_update.cpp:81
 msgid "To learn more including firmware downgrade, please visit:"
@@ -8479,10 +8502,10 @@ msgstr "ツール %i"
 #: src/feature/gearbox_alignment/screen_gearbox_alignment.cpp:31
 #, c-format
 msgid "Tool %i gearbox alignment"
-msgstr "ツール %i ギアボックス イチアワセ"
+msgstr "ツール %i ギアボックスノアライメント"
 
 #. %u placeholders are filled with the 1-based current tool and the total tool count.
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:25
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:31
 #, c-format
 msgid "Tool %u of %u"
 msgstr "ツール %u / %u"
@@ -8507,13 +8530,13 @@ msgstr "ツールオフセット キャリブレーション"
 msgid "Tool Offset Failed"
 msgstr "ツールオフセット シッパイ"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:18
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:20
 #: src/gui/selftest_action_helpers.cpp:114
 #: src/gui/wizard/selftest_frame_tool_offsets.cpp:15
 msgid "Tool Offsets Calibration"
 msgstr "ツールオフセット キャリブレーション"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:138
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:142
 msgid "Tool is disabled or of a different type."
 msgstr "ツールガ ムコウカ, マタハ コトナル タイプデス."
 
@@ -8539,11 +8562,11 @@ msgstr ""
 "キレイデアルコトヲ カクニンシテクダサイ.\n"
 "チュウイ: ノズルガ アツイ バアイガ アリマス."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:27
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:33
 msgid "Tool offsets calibration failed."
 msgstr "ツールオフセットノ キャリブレーションニ シッパイシマシタ."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:32
 msgid "Tool offsets have been successfully calibrated and saved."
 msgstr ""
 "ツールオフセットガ セイジョウニ キャリブレーションサレ, ホゾンサレマシタ."
@@ -8658,8 +8681,8 @@ msgid ""
 "Turn off the printer and check that the filament sensor cables are wired "
 "correctly."
 msgstr ""
-"プリンタノ デンゲンヲ キリ, フィラメントセンサーノ ケーブルガ タダシク セツゾ"
-"クサレテイルカ カクニンシテクダサイ."
+"プリンターノデンゲンヲキリ、フィラメントセンサーノケーブルガタダシクセツゾク"
+"サレテイルカカクニンシテクダサイ."
 
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:37
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:40
@@ -8892,7 +8915,7 @@ msgstr "FINDAヘノ アンロード"
 msgid "Unloading to pulley"
 msgstr "プーリーヘノ アンロード"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:217
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:231
 msgid "Unmapped tool"
 msgstr "アンマップドツール"
 
@@ -8912,7 +8935,7 @@ msgstr "XYツールオフセットガ フアンゼン"
 msgid "Unsafe Z Tool Offset"
 msgstr "Zツールオフセットガ フアンゼン"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:107
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:111
 msgid "Unsupported features"
 msgstr "サポートサレテイナイ キノウ"
 
@@ -9244,15 +9267,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "コトナリマス"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:185
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:189
 msgid "Wrong filament type"
 msgstr "フィラメントタイプガ チガイマス"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:145
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:149
 msgid "Wrong nozzle diameter"
 msgstr "ノズルチョッケイガ チガイマス"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:137
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:141
 msgid "Wrong tool"
 msgstr "ツールガ チガイマス"
 

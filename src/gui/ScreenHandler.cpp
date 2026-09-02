@@ -1,6 +1,7 @@
 #include "ScreenHandler.hpp"
 #include "bsod.h"
 
+#include <gui_time.hpp>
 #include <gui.hpp>
 #include <marlin_client.hpp>
 #include <printer_lock.hpp>

@@ -190,11 +190,8 @@ void filament_gcodes::M702_unload(std::optional<float> unload_length, float z_mi
     settings.SetExtruder(virtual_tool);
     settings.SetUnloadLength(unload_length);
     settings.SetRetractLength(0.f);
-    mapi::ParkingPosition park_position = {
-        .x = X_AXIS_UNLOAD_POS,
-        .y = Y_AXIS_UNLOAD_POS,
-        .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos },
-    };
+    mapi::ParkingPosition park_position = mapi::get_parking_position(mapi::ParkPosition::unload);
+    park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos };
     settings.SetParkPoint(park_position);
     xyze_pos_t current_position_tmp = current_position;
 
@@ -295,11 +292,8 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
     settings.SetFastLoadLength(fast_load_length);
     settings.SetRetractLength(0.f);
     float e_pos_to_restore = current_position.e;
-    mapi::ParkingPosition pos = {
-        .x = X_AXIS_LOAD_POS,
-        .y = Y_AXIS_LOAD_POS,
-        .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos },
-    };
+    mapi::ParkingPosition pos = mapi::get_parking_position(mapi::ParkPosition::load);
+    pos.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos };
     settings.SetParkPoint(pos);
 
     auto active_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());

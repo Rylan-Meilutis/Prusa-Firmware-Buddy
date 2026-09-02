@@ -362,6 +362,10 @@ extern "C" void main_cpp(void) {
     spi_init_lcd();
 #endif
 
+#if HAS_GUI() && !BOARD_IS_XLBUDDY()
+    hw_tim2_init(); // TIM2 is used to generate buzzer PWM, except on older versions of XL. Not needed without display.
+#endif
+
 #if BOARD_IS_XLBUDDY()
     hw_init_spi_side_leds();
 #endif
@@ -481,10 +485,6 @@ extern "C" void main_cpp(void) {
 
 #if HAS_MMU2_OVER_UART()
     uart_init_mmu();
-#endif
-
-#if HAS_GUI() && !(BOARD_IS_XLBUDDY())
-    hw_tim2_init(); // TIM2 is used to generate buzzer PWM, except on older versions of XL. Not needed without display.
 #endif
 
 #if HAS_PUPPIES()
@@ -695,10 +695,6 @@ void init_error_screen() {
 #endif
 
 #if HAS_GUI()
-    #if !(_DEBUG) && !(BOARD_IS_XLBUDDY())
-    hw_tim2_init(); // TIM2 is used to generate buzzer PWM, except on XL. Not needed without display.
-    #endif
-
     init_only_littlefs();
 
     displayTaskHandle = create_task("display", gui_error_run, TASK_PRIORITY_DISPLAY_TASK, task_stack.display, task_control_block.display);

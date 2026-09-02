@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-19 13:50+0200\n"
+"POT-Creation-Date: 2026-08-26 14:52+0200\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -583,7 +583,7 @@ msgstr ""
 msgid "BED LEVEL CORRECTION"
 msgstr "CORRECTION DU NIVELLEMENT DU PLATEAU"
 
-#: src/gui/screen_menu_board_info.cpp:111
+#: src/gui/screen_menu_board_info.cpp:128
 msgid "BOARD INFO"
 msgstr "INFOS DE LA CARTE"
 
@@ -875,7 +875,7 @@ msgstr "PARAMÈTRES PERSONNALISÉS"
 msgid "Calibrate"
 msgstr "Calibrer"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:75
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:68
 msgid "Calibrate Dock Position"
 msgstr "Calibrer la Position du Dock"
 
@@ -996,7 +996,7 @@ msgstr "Annuler Objet"
 msgid "Canceled"
 msgstr "Annulé"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:530
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:550
 msgid ""
 "Cannot disable filament sensors, because they are required for spool join."
 msgstr ""
@@ -1425,7 +1425,7 @@ msgstr "Ventilateurs de refroidissement"
 msgid "Cooling the nozzle"
 msgstr "Refroidissement de la buse"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:103
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:96
 msgid "Could not park the tool. Calibration preserved."
 msgstr "Impossible de stationner l'outil. Calibration conservée."
 
@@ -1552,7 +1552,7 @@ msgstr "Erreur DNS"
 msgid "DOCK CALIBRATION"
 msgstr "CALIBRATION DU DOCK"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:116
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:109
 msgid "DOCK POSITION"
 msgstr "POSITION DU DOCK"
 
@@ -1832,7 +1832,7 @@ msgstr "Calibration de la position du dock"
 msgid "Dock X"
 msgstr "Dock X"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:57
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:50
 msgid "Dock Y"
 msgstr "Dock Y"
 
@@ -1845,6 +1845,17 @@ msgid "Dock fan is not spinning. Check for debris and inspect the wiring."
 msgstr ""
 "Le ventilateur du dock ne tourne pas. Vérifiez la présence de débris et "
 "inspectez le câblage."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:219
+msgid ""
+"Dock position calibration needs to be performed before the tool can be used."
+msgstr ""
+"La calibration de la position du dock doit être effectuée avant d'utiliser "
+"l'outil."
+
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+msgid "Dock position not calibrated"
+msgstr "Position du dock non calibrée"
 
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:30
 msgid "Dock positions have been successfully calibrated and saved."
@@ -2692,7 +2703,7 @@ msgid "Filament is abrasive, but tool does not have hardened nozzle installed."
 msgstr ""
 "Le filament est abrasif, mais l'outil n'a pas de buse renforcée installée."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:205
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:209
 msgid ""
 "Filament is missing calibration data. Unload it and load again to run the "
 "calibration."
@@ -2712,7 +2723,7 @@ msgstr "Le chargement du filament a expiré."
 msgid "Filament needs to be heated and pushed back to the nozzle."
 msgstr "Le filament doit être chauffé et repoussé vers la buse."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:204
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:208
 msgid "Filament not calibrated"
 msgstr "Filament non calibré"
 
@@ -2727,7 +2738,7 @@ msgstr ""
 "Sélectionnez DÉSACTIVER CF pour désactiver le capteur de filament et "
 "continuer l'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:177
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:181
 msgid "Filament not loaded"
 msgstr "Filament non chargé"
 
@@ -2786,7 +2797,7 @@ msgid "Filament sensor not ready: perform calibration first."
 msgstr ""
 "Le capteur de filament n'est pas prêt : procédez d'abord à la calibration."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:195
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:199
 msgid ""
 "Filament sensor required to trigger the spool join is either disabled or not "
 "calibrated."
@@ -3007,7 +3018,7 @@ msgstr ""
 "Échec de la vérification de la signature du firmware !\n"
 "Seul le firmware officiel signé peut être flashé."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:71
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:75
 msgid "Firmware update required"
 msgstr "Mise à jour du firmware requise"
 
@@ -3134,7 +3145,7 @@ msgstr "Compatibilité du G-Code"
 msgid "G-Code Level"
 msgstr "Niveau de G-code"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:54
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:58
 msgid "G-Code compatibility mode"
 msgstr "Mode de compatibilité du G-code"
 
@@ -3148,7 +3159,7 @@ msgstr "Filaments du G-Code (%i)"
 msgid "G-Code incompatibilities detected"
 msgstr "Incompatibilités de G-code détectées"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:80
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:84
 msgid ""
 "G-Code is not sliced with Input Shaping support. Slicing with IS "
 "significantly shortens printing time."
@@ -3156,7 +3167,7 @@ msgstr ""
 "Le G-code n'est pas découpé avec la prise en charge de l'Input Shaping. Le "
 "découpage avec IS réduit considérablement le temps d'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:89
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:93
 msgid ""
 "G-Code is not sliced with newest INDX profiles. There will be some issues "
 "with the print."
@@ -3164,7 +3175,7 @@ msgstr ""
 "Le G-code n'est pas découpé avec les profils INDX les plus récents. Il y "
 "aura quelques problèmes avec l'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:99
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:103
 msgid ""
 "G-Code is sliced for MMU, but the MMU is not enabled on the printer. Cannot "
 "print."
@@ -3172,7 +3183,7 @@ msgstr ""
 "Le G-code est découpé pour le MMU, mais le MMU n'est pas activé sur "
 "l'imprimante. Impossible d'imprimer."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:186
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:190
 msgid ""
 "G-Code is sliced for a different filament type than what is currently loaded "
 "in the assigned tool."
@@ -3180,21 +3191,21 @@ msgstr ""
 "Le G-code est découpé pour un type de filament différent de celui "
 "actuellement chargé dans l'outil assigné."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:46
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:50
 msgid "G-Code is sliced for a different printer and is not compatible."
 msgstr ""
 "Le G-code est découpé pour une imprimante différente et n'est pas compatible."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:146
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:150
 msgid "G-Code is sliced for a different tool diameter."
 msgstr "Le G-code est découpé pour un diamètre d'outil différent."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:55
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:59
 msgid "G-Code is sliced for a different, but compatible printer model."
 msgstr ""
 "Le G-code est découpé pour un modèle d'imprimante différent, mais compatible."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:154
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:158
 msgid ""
 "G-Code is sliced for a hardened nozzle. Non-hardened nozzles can get damaged "
 "due to material abrasivity."
@@ -3202,7 +3213,7 @@ msgstr ""
 "Le G-code est découpé pour une buse durcie. Les buses non durcies peuvent "
 "être endommagées par l'abrasivité du matériau."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:162
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:166
 msgid ""
 "G-Code is sliced for a high-flow nozzle. Printing with standard nozzle can "
 "lead to underextrusion and extruder skipping."
@@ -3210,7 +3221,7 @@ msgstr ""
 "Le G-code est découpé pour une buse à haut débit. L'impression avec une buse "
 "standard peut entraîner une sous-extrusion et des sauts de l'extrudeur."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:170
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:174
 msgid ""
 "G-Code is sliced for a non-high flow nozzle. High-flow nozzles require more "
 "purging, so printing a MMU print with a high-flow nozzle can result in a "
@@ -3221,18 +3232,18 @@ msgstr ""
 "d'une impression MMU avec une buse à haut débit peut entraîner une dérive de "
 "couleur."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:72
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:76
 msgid ""
 "G-Code requires features from a newer firmare version to function properly."
 msgstr ""
 "Le G-Code nécessite des fonctionnalités d'une version plus récente du "
 "firmware pour fonctionner correctement."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:116
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:120
 msgid "G-Code requires more tools than are currently enabled."
 msgstr "Le G-code nécessite plus d'outils que ceux actuellement activés."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:108
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:112
 msgid "G-Code requires some features the printer does not have."
 msgstr ""
 "Le G-code nécessite certaines fonctionnalités dont l'imprimante ne dispose "
@@ -3253,7 +3264,7 @@ msgstr ""
 "Nom d'identité : %s\n"
 "Hachage de la clé d'identité : %s"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:218
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:232
 msgid "G-Code tool is not mapped."
 msgstr "L'outil du G-Code n'est pas attribué."
 
@@ -3266,7 +3277,7 @@ msgstr ""
 "tout problème ou utilisez une clé USB différente. Appuyez sur Continuer pour "
 "reprendre l'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:63
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:67
 msgid "G-Code version mismatch"
 msgstr "Incompatibilité de version du G-code"
 
@@ -3397,7 +3408,7 @@ msgstr ""
 "La HAL a détecté une erreur I2C non définie lors de l'envoi de données via "
 "I2C."
 
-#: src/feature/factory_reset/factory_reset.cpp:116
+#: src/feature/factory_reset/factory_reset.cpp:113
 msgid "HARD RESET"
 msgstr "RÉINITIALISATION TOTALE"
 
@@ -3805,7 +3816,7 @@ msgstr "Accueil"
 #. //MSG_PROGRESS_RETRACT_FINDA c=20
 #: src/mmu2/mmu2_progress_converter.cpp:31
 #: src/feature/print_status_message/print_status_message_formatter_buddy.cpp:22
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:23
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:29
 #: src/gui/screen_phase_stepping_calibration.cpp:42
 #: src/gui/screen/screen_filament_change.cpp:80
 #: src/gui/screen_crash_recovery.cpp:94 src/gui/screen_crash_recovery.cpp:262
@@ -4042,7 +4053,7 @@ msgstr "Inactif"
 msgid "Incompatible filament"
 msgstr "Filament incompatible"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:45
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:49
 msgid "Incompatible printer model"
 msgstr "Modèle d'imprimante incompatible"
 
@@ -4159,7 +4170,7 @@ msgstr "En-tête de fichier BGCODE invalide"
 msgid "Invalidate"
 msgstr "Invalider"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:86
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:79
 msgid "Invalidate Calibration"
 msgstr "Invalider la calibration"
 
@@ -4216,7 +4227,7 @@ msgid "Joining spool"
 msgstr "Jointement de bobine"
 
 #: src/feature/indx_dock_calibration/dialog_dock_select.cpp:45
-#: src/feature/factory_reset/factory_reset.cpp:127
+#: src/feature/factory_reset/factory_reset.cpp:124
 #: src/gui/screen/screen_factory_reset.cpp:53
 msgid "Keep"
 msgstr "Conserver"
@@ -4555,9 +4566,9 @@ msgstr "T. basse"
 msgid "Lower belt actual frequency"
 msgstr "Fréquence réelle de la courroie inférieure"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:21
 #: src/feature/indx_dock_calibration/screen_dock_calibration.cpp:26
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:28
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:27
 msgid "Lowering bed for clearance"
 msgstr "Abaissement du plateau pour dégager de la place"
 
@@ -4800,7 +4811,7 @@ msgstr ""
 "vie de la main-plate. Inspectez la pièce et assurez-vous d'avoir une plaque "
 "de rechange disponible. Visitez prusa.io/mmu-care"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:20
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:25
 msgid "Make sure all the nozzles are clean, then press Continue."
 msgstr ""
 "Assurez-vous que toutes les buses sont propres, puis appuyez sur Continuer."
@@ -5309,15 +5320,15 @@ msgstr ""
 "problème avec l'électronique. Vérifiez le câblage et les connecteurs."
 
 #. TODO: Sanitize HWCheckType and use it here as well
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:226
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:240
 msgid "Not enough filament"
 msgstr "Pas assez de filament"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:115
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:119
 msgid "Not enough tools"
 msgstr "Pas assez d'outils"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:79
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:83
 msgid "Not sliced for Input Shaping"
 msgstr "Non découpé pour l'Input Shaping"
 
@@ -5465,7 +5476,7 @@ msgstr ""
 msgid "Nozzle cleaner may overflow"
 msgstr "Le nettoyeur de buse peut déborder"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:124
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:128
 msgid "Nozzle cleaner not calibrated"
 msgstr "Nettoyeur de buse non calibré"
 
@@ -5570,17 +5581,26 @@ msgstr ""
 "\n"
 "Température atteinte : %u°C"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:169
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:173
 msgid "Nozzle high-flow mismatch"
 msgstr "Incompatibilité buse haut-débit"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:153
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:157
 msgid "Nozzle not hardened"
 msgstr "Buse non durcie"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:161
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:165
 msgid "Nozzle not high-flow"
 msgstr "Buse pas haut débit"
+
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:23
+msgid ""
+"Nozzles have to be perfectly clean for good calibration results.\n"
+"Manually pick each tool and clean its nozzle. Press Continue when done."
+msgstr ""
+"Les buses doivent être parfaitement propres pour un bon étalonnage.\n"
+"Prenez manuellement chaque outil et nettoyez sa buse. Appuyez sur Continuer "
+"une fois terminé."
 
 #: src/gui/footer/footer_item_fsensor.cpp:61
 #: src/gui/footer/footer_item_multitool.cpp:29
@@ -5676,7 +5696,7 @@ msgstr ""
 "buse en faisant tourner le bouton jusqu'à ce que le filament adhère à la "
 "plaque d'impression."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:178
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:182
 msgid ""
 "One of the used tools does not have a filament loaded. Filament sensors need "
 "to be disabled for the print."
@@ -5792,11 +5812,11 @@ msgstr "SURCHAUFFE DU PCB"
 
 #: src/gui/screen_menu_phase_stepping.cpp:22
 msgid "PHASE STEPPING"
-msgstr "PAS À PAS EN PHASE"
+msgstr "PHASE STEPPING"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:40
 msgid "PHASE STEPPING CALIBRATION"
-msgstr "CALIBRATION DU PAS À PAS EN PHASE"
+msgstr "CALIBRATION DU PHASE STEPPING"
 
 #: tmp_error_headers/error_list.hpp:57
 msgid "PIN NOT REACHED"
@@ -5818,7 +5838,7 @@ msgstr "ÉCHEC DU HOMING PRÉCIS"
 msgid "PREHEAT ERROR"
 msgstr "ERREUR DE PRÉCHAUFFAGE"
 
-#: src/gui/screen/screen_menu_mmu_preload_all.cpp:70
+#: src/gui/screen/screen_menu_mmu_preload_all.cpp:71
 msgid "PRELOAD ALL"
 msgstr "TOUT PRÉCHARGER"
 
@@ -5969,7 +5989,7 @@ msgstr ""
 msgid "Performing cut"
 msgstr "Coupe en cours"
 
-#: src/feature/factory_reset/factory_reset.cpp:96
+#: src/feature/factory_reset/factory_reset.cpp:93
 msgid ""
 "Performing factory reset.\n"
 "Do not turn off the printer."
@@ -5979,20 +5999,20 @@ msgstr ""
 
 #: src/gui/MItem_menus.hpp:200
 msgid "Phase Stepping"
-msgstr "Pas à pas en phase"
+msgstr "Phase Stepping"
 
 #: src/gui/selftest_action_helpers.cpp:92
 msgid "Phase Stepping Calibration"
-msgstr "Calibration du Pas à pas en phase"
+msgstr "Calibration du Phase Stepping"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:211
 msgid "Phase stepping calibration completed"
-msgstr "Calibration du pas à pas en phase terminé"
+msgstr "Calibration du Phase Stepping terminée"
 
 #: src/gui/screen_phase_stepping_calibration.cpp:287
 msgid "Phase stepping defaults have been successfully restored."
 msgstr ""
-"Les valeurs par défaut du pas à pas en phase ont été restaurées avec succès."
+"Les valeurs par défaut du Phase Stepping ont été restaurées avec succès."
 
 #: src/gui/screen/toolhead/screen_toolhead_settings.cpp:235
 msgid "Pick Tool"
@@ -6007,8 +6027,8 @@ msgstr "Saisir l'Outil %i"
 msgid "Pick/Park Tool"
 msgstr "Saisir/Stationner l'Outil"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:22
 #: src/feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:28
 #: src/gui/wizard/selftest_frame_temp.cpp:71
 #: src/gui/wizard/screen_heaters_selftest.cpp:73
 msgid "Picking up tool"
@@ -6033,7 +6053,7 @@ msgstr ""
 msgid "Please calibrate the docks first."
 msgstr "Veuillez d'abord calibrer les docks."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:125
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:129
 msgid "Please calibrate the nozzle cleaner first."
 msgstr "Veuillez d'abord calibrer le nettoyeur de buse."
 
@@ -6633,7 +6653,7 @@ msgstr "DROITE"
 
 #: src/gui/screen/screen_print_preview.cpp:50
 msgid "Raising the bed"
-msgstr "Élévation du plateau"
+msgstr "Montée du plateau"
 
 #: src/gui/screen/screen_filament_change.cpp:29
 msgid "Ramming"
@@ -6791,7 +6811,7 @@ msgstr ""
 msgid "Requires Filtration"
 msgstr "Nécessite une filtration"
 
-#: src/feature/factory_reset/factory_reset.cpp:127 src/gui/MItem_tools.hpp:424
+#: src/feature/factory_reset/factory_reset.cpp:124 src/gui/MItem_tools.hpp:424
 #: src/gui/screen/screen_factory_reset.cpp:52
 #: src/gui/screen_menu_steel_sheets.hpp:61
 #: src/gui/screen_menu_bed_level_correction.hpp:92
@@ -6899,8 +6919,8 @@ msgstr "Exécuter les selftests et les calibrations maintenant ?"
 msgid ""
 "Running the phase stepping calibration to reduce vibrations. Please wait..."
 msgstr ""
-"Exécution de la calibration du pas à pas en phase pour réduire les "
-"vibrations. Veuillez patienter..."
+"Exécution de la calibration du Phase Stepping pour réduire les vibrations. "
+"Veuillez patienter..."
 
 #: src/gui/screen/openprinttag/screen_opt_filament_detail.cpp:38
 msgid "SCAN OPENPRINTTAG"
@@ -7243,11 +7263,11 @@ msgstr "Sauter"
 msgid "Skip Network Setup"
 msgstr "Ignorer la configuration du réseau"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:98
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:102
 msgid "Sliced for MMU"
 msgstr "Découpé pour le MMU"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:88
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:92
 msgid "Sliced with old INDX profiles"
 msgstr "Découpé avec d'anciens profils INDX"
 
@@ -7296,7 +7316,7 @@ msgstr "Vitesse"
 msgid "Speed sweep movement failed."
 msgstr "Le mouvement de balayage rapide a échoué."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:194
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:198
 msgid "Spool join sensor not ready"
 msgstr "Capteur de jonction de bobine non prêt"
 
@@ -7590,7 +7610,7 @@ msgstr "INCOMPATIBILITÉ D'OUTIL"
 msgid "TOOL OFFSET OUT OF BOUNDS"
 msgstr "DÉCALAGE DE L'OUTIL HORS LIMITES"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:70
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:87
 msgid "TOOL OFFSETS CALIBRATION"
 msgstr "CALIBRATION DU DÉCALAGE DES OUTILS"
 
@@ -7991,7 +8011,7 @@ msgstr "Le chemin est trop long."
 msgid "The previous tests must be completed before this one."
 msgstr "Les tests précédents doivent être complétés avant celui-ci."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:19
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:21
 msgid ""
 "The printer will calibrate the XY/Z offsets of all tools using the tool "
 "offset sensor. This may take several minutes."
@@ -8108,7 +8128,7 @@ msgstr ""
 "Les données relatives à la consommation de filament doivent être écrites "
 "dans l'OpenPrintTag. Assurez-vous que la bobine soit proche du lecteur NFC."
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:227
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:241
 msgid ""
 "There is not enough filament remaining on the spools to print the model."
 msgstr ""
@@ -8236,7 +8256,7 @@ msgstr ""
 "Cela modifiera le comportement du capteur de filament. Voulez-vous "
 "continuer ?"
 
-#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:90
+#: src/gui/screen/toolhead/screen_toolhead_settings_dock.cpp:83
 msgid ""
 "This will invalidate the calibration for this tool. The tool will not be "
 "available for printing until its dock is calibrated again. Proceed?"
@@ -8337,8 +8357,8 @@ msgstr ""
 msgid ""
 "To learn more about the phase stepping calibration process, read the article:"
 msgstr ""
-"Pour en savoir plus sur le processus de calibration du pas à pas en phase, "
-"lisez l'article :"
+"Pour en savoir plus sur le processus de calibration du Phase Stepping, lisez "
+"l'article :"
 
 #: src/gui/screen_help_fw_update.cpp:81
 msgid "To learn more including firmware downgrade, please visit:"
@@ -8388,7 +8408,7 @@ msgid "Tool %i gearbox alignment"
 msgstr "Alignement du réducteur de l'outil %i"
 
 #. %u placeholders are filled with the 1-based current tool and the total tool count.
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:25
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:31
 #, c-format
 msgid "Tool %u of %u"
 msgstr "Outil %u sur %u"
@@ -8413,13 +8433,13 @@ msgstr "Calibration du Décalage des Outils"
 msgid "Tool Offset Failed"
 msgstr "Échec du décalage d'outil"
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:18
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:20
 #: src/gui/selftest_action_helpers.cpp:114
 #: src/gui/wizard/selftest_frame_tool_offsets.cpp:15
 msgid "Tool Offsets Calibration"
 msgstr "Calibration des Décalage de l'Outil"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:138
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:142
 msgid "Tool is disabled or of a different type."
 msgstr "L'outil est désactivé ou d'un type différent."
 
@@ -8445,11 +8465,11 @@ msgstr ""
 "le capteur sont propres.\n"
 "Attention : la buse peut être chaude."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:27
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:33
 msgid "Tool offsets calibration failed."
 msgstr "La calibration des décalages des outils a échoué."
 
-#: src/feature/indx_tool_offsets_calibration/screen_indx_tool_offsets_calibration.cpp:26
+#: src/feature/tool_offset_wizard/screen_tool_offset_wizard.cpp:32
 msgid "Tool offsets have been successfully calibrated and saved."
 msgstr "Les décalages d'outils ont été calibrés et enregistrés avec succès."
 
@@ -8562,8 +8582,8 @@ msgid ""
 "Turn off the printer and check that the filament sensor cables are wired "
 "correctly."
 msgstr ""
-"Éteignez l'imprimante et vérifiez si le câblage du capteur de filament est "
-"correct."
+"Éteignez l'imprimante et vérifiez que les câbles du capteur de filament sont "
+"correctement branchés."
 
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:37
 #: src/gui/screen/selftest/screen_manual_belt_tuning.cpp:40
@@ -8791,7 +8811,7 @@ msgstr "Déchargement vers la FINDA"
 msgid "Unloading to pulley"
 msgstr "Déchargement vers la poulie"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:217
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:231
 msgid "Unmapped tool"
 msgstr "Outil désattribué"
 
@@ -8811,7 +8831,7 @@ msgstr "Décalage d'outil en XY dangereux"
 msgid "Unsafe Z Tool Offset"
 msgstr "Décalage d'outil en Z dangereux"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:107
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:111
 msgid "Unsupported features"
 msgstr "Fonctionnalités non prises en charge"
 
@@ -9139,15 +9159,15 @@ msgstr ""
 msgid "Wrong"
 msgstr "Faux"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:185
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:189
 msgid "Wrong filament type"
 msgstr "Type de filament incorrect"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:145
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:149
 msgid "Wrong nozzle diameter"
 msgstr "Diamètre de buse incorrect"
 
-#: src/feature/compatibility_checks/gcode_compatibility.cpp:137
+#: src/feature/compatibility_checks/gcode_compatibility.cpp:141
 msgid "Wrong tool"
 msgstr "Outil incorrect"
 

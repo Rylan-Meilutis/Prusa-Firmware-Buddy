@@ -95,8 +95,9 @@ public:
      * @brief Returns calibrated value with the tools docking position
      *
      * @param tool_nr number of tool
+     * @param check_calibrated Redscreens if true and the tool is not calibrated
      */
-    const xy_float_t get_tool_dock_position(PhysicalToolIndex tool);
+    const xy_float_t get_tool_dock_position(PhysicalToolIndex tool, bool check_calibrated = true);
 
     /// @returns position just in front of the dock, the tool being ready to be parked
     xy_pos_t tool_park_position(PhysicalToolIndex tool);
@@ -453,8 +454,6 @@ private:
      */
     void toolfall();
 
-    #endif
-
     /**
      * @brief Plan a smooth unparking move towards destination
      * unpark_to() should only be called after pickup() in order to plan a smooth unpark move,
@@ -463,6 +462,8 @@ private:
      * @param destination
      */
     void unpark_to(const xy_pos_t &destination);
+
+    #endif
 
     /**
      * @brief Compensate the Z offset by the specified amount

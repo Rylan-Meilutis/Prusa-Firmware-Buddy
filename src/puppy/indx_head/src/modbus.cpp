@@ -49,9 +49,7 @@ namespace {
         state.status_regs.hotend_temp_raw_c100_dt_s = app::get_hotend_temp_raw_c100_dt_s();
         state.status_regs.tpis_ambient_temperature_c100 = app::get_tpis_ambient_temp_c100();
 
-        const uint32_t duty_cycle_int = app::get_hotend_duty_cycle_sq_integral_us();
-        state.status_regs.hotend_duty_cycle_sq_integral_us_lo = uint16_t(duty_cycle_int);
-        state.status_regs.hotend_duty_cycle_sq_integral_us_hi = uint16_t(duty_cycle_int >> 16);
+        state.status_regs.hotend_pwm_averaged = app::get_hotend_pwm_averaged();
 
         const uint32_t power_int = app::get_hotend_energy_consumed_uJ();
         state.status_regs.hotend_energy_consumed_uJ_lo = uint16_t(power_int);

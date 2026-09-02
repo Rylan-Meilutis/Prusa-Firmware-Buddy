@@ -1,5 +1,6 @@
 #include "footer_items_nozzle_bed.hpp"
 
+#include "gui_time.hpp"
 #include "filament.hpp"
 #include <img_resources.hpp>
 #include "footer_eeprom.hpp"

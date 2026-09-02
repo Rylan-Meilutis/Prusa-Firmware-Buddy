@@ -18,15 +18,6 @@
     #include <module/prusa/spool_join.hpp>
 #endif
 #include <tool/hotend/hotend.hpp>
-#if 0
-    // Commented out (not deleted): tool_offset::wait_for_loadcell_alive() no
-    // longer exists upstream - HAS_TOOL_OFFSET_SENSOR dropped plain XL, keeping
-    // it for COREONE_INDX/COREONEL_INDX only, so this header isn't even linked
-    // for XL anymore. run_z_probe() (probe.cpp, BFW-8854) now waits for fresh
-    // loadcell samples before every probe on every printer, making this XL-only
-    // guard redundant. Reverse only if XL regains its own tool-offset sensor.
-    #include <Marlin/src/feature/contactless_offset/contactless_offset.hpp>
-#endif
 #include <Marlin/src/feature/pressure_advance/pressure_advance_config.hpp>
 #include "loadcell.hpp"
 #include <feature/print_status_message/print_status_message_guard.hpp>
@@ -34,7 +25,6 @@
 #include <raii/scope_guard.hpp>
 #include <config_store/store_definition.hpp>
 #include <bsod/bsod.h>
-#include <filament.hpp>
 #include <timing.h>
 
 #include <algorithm>
@@ -42,6 +32,7 @@
 #include <bitset>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 
 LOG_COMPONENT_DEF(NozzleCleanerLite, logging::Severity::info);
 
@@ -54,17 +45,13 @@ namespace {
     };
 
 #if PRINTER_IS_PRUSA_XL()
-    // Touchpoint: fixed reference point next to the cleaner, used to home Z
-    // locally instead of relying on G28's (possibly distant) safe-homing XY.
+    // Touchpoint: fixed reference point on the cleaner
     constexpr xy_pos_t touchpoint_xy = { { { -6.45f, 70.0f } } };
 
     constexpr CleanerAxis cleaner_axis = CleanerAxis::y;
     constexpr float cleaner_distance = 10.0f;
     constexpr float cleaner_length = 30.0f;
 
-    // Where the used band starts within the pad's width, relative to the
-    // touchpoint. Shifted off centre: a centred band would reach within 0.05mm
-    // of the X endstop.
     constexpr float across_offset = -1.0f;
 #elif PRINTER_IS_PRUSA_COREONE()
     constexpr xy_pos_t touchpoint_xy = { { { 206.5f, -15.0f } } };
@@ -81,8 +68,6 @@ namespace {
     constexpr float cleaner_distance = -10.0f;
     constexpr float cleaner_length = -30.0f;
 
-    // Only 0.5mm of Y travel is left below the touchpoint, so use the band above
-    // it only.
     constexpr float across_offset = 0.0f;
 #else
     #error "nozzle_cleaner_lite sequence not defined for this printer variant"
@@ -117,34 +102,20 @@ namespace {
     // of every stroke retracing one. At 1.5 a stroke holds two or three diagonal
     // segments and the pattern comes back around every fourth stroke.
     constexpr float crossings_per_stroke = 1.5f;
-    // A non-positive value would make the drift walk away from the stroke end
-    // instead of towards it, without ever terminating.
+    // A non-positive value would make the zigzag drift walk away from the stroke end without ever terminating.
     static_assert(crossings_per_stroke > 0.0f);
 
-    // line_to_machine_pos does not clamp, so an out-of-range target is driven into
-    // the hard stop. Prove the whole pad stays inside the travel. XL and COREONEL
-    // only clear it by 0.15mm and 0.10mm respectively.
     constexpr float travel_limit_margin = 0.4f;
     static_assert(std::min(cleaner_pad.along_near, cleaner_pad.along_far) - travel_limit_margin >= along_travel_min);
     static_assert(std::max(cleaner_pad.along_near, cleaner_pad.along_far) + travel_limit_margin <= along_travel_max);
     static_assert(cleaner_pad.across_min - travel_limit_margin >= across_travel_min);
     static_assert(cleaner_pad.across_max + travel_limit_margin <= across_travel_max);
 
-    // Z targets expressed relative to the freshly probed touchpoint surface, so
-    // they stay correct even if the Z home offset or touchpoint height drifts.
-    constexpr float safe_above_surface_mm = 1.0f;
-    // Where the nozzle waits for the cleaning temperature, relative to the
-    // expected surface (the true surface is only probed after the wait).
-    constexpr float wait_above_surface_mm = 2.0f;
-    // Rough expected touchpoint surface height in machine Z; the surface sits
-    // slightly below the homed bed level. Only needs to be near-right:
-    // run_z_probe approaches from above and searches down to
-    // expected + Z_PROBE_LOW_POINT, so the true surface is found each run.
-    constexpr float expected_touchpoint_surface_z = 0.0f;
-    constexpr uint8_t touchpoint_probe_attempts = 3;
-    constexpr float touch_point_z_pressure = -0.1f; // Z target for the nozzle to press on the touchpoint after cleaning
-    constexpr float dive_below_surface_mm = -0.3f;
+    // Z targets relative to the probed touchpoint surface
+    constexpr float safe_above_surface_mm = 2.0f;
+    constexpr float wipe_z_offset_mm = -0.5f + 0.2f; // touchpoint is 0.2mm below the wiper top, we need to dive 0.5mm into wiper
     constexpr float travel_clearance_mm = 10.0f;
+    constexpr float final_clearance_mm = 20.0f;
 
     constexpr feedRate_t approach_feedrate = MMM_TO_MMS(1200);
     constexpr feedRate_t leave_feedrate = MMM_TO_MMS(1200);
@@ -155,38 +126,6 @@ namespace {
     constexpr uint8_t rub_cycles_fast = 5;
     constexpr uint8_t rub_cycles_slow = 2;
     constexpr float rub_acceleration = 5000.0f;
-
-    constexpr int16_t no_filament_cleaning_temperature = 170;
-
-    int16_t cleaning_temperature_for(PhysicalToolIndex tool, CleanType clean_type) {
-        // Both MBL clean types inherit the temperature the preceding gcode set
-        // for probing; a standalone clean must not inherit a printing one.
-        if (clean_type != CleanType::standalone) {
-            const int16_t gcode_target = Hotend::for_tool(tool).nozzle_target_temp();
-            // Too low a target means the gcode never set a probing temperature
-            if (gcode_target >= EXTRUDE_MINTEMP) {
-                return gcode_target;
-            }
-        }
-
-        const FilamentType filament = FilamentType::for_tool_heuristic(tool.currently_selected_virtual_tool());
-        return filament ? filament.parameters().nozzle_preheat_temperature : no_filament_cleaning_temperature;
-    }
-
-    float probe_touchpoint_z() {
-        // XL-only staleness guard removed; see the commented-out
-        // contactless_offset.hpp include above for why and when to reverse.
-#if 0
-        if (!tool_offset::wait_for_loadcell_alive()) {
-            log_error(NozzleCleanerLite, "Loadcell did not produce fresh samples before touchpoint probe");
-            return std::numeric_limits<float>::quiet_NaN();
-        }
-#endif
-
-        pressure_advance::PressureAdvanceDisabler pa_disabler;
-        Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
-        return probe_here(expected_touchpoint_surface_z, touchpoint_probe_attempts, TolerateNozzleDirt::yes);
-    }
 
     // Move in raw machine coordinates (line_to_machine_pos), bypassing MBL.
     void move_to_machine_pos_xy(float x, float y, feedRate_t fr_mm_s) {
@@ -202,6 +141,19 @@ namespace {
         target.z = z;
         line_to_machine_pos(target, fr_mm_s);
         planner.synchronize();
+    }
+
+    /// machine Z where the nozzle touched the touchpoint, nan if it never did.
+    float find_touchpoint_z() {
+        pressure_advance::PressureAdvanceDisabler pa_disabler;
+        Loadcell::HighPrecisionEnabler loadcell_high_precision_enabler(loadcell);
+
+        if (!do_homing_move(Z_AXIS, Z_PROBE_LOW_POINT - current_machine_position().z)) {
+            log_error(NozzleCleanerLite, "touchpoint not found above Z %.1fmm", static_cast<double>(Z_PROBE_LOW_POINT));
+            return std::numeric_limits<float>::quiet_NaN();
+        }
+
+        return current_machine_position().z;
     }
 
     // Queue a move given in pad coordinates.
@@ -238,8 +190,11 @@ bool is_available() {
     return config_store().nozzle_cleaner_lite_installed.get();
 }
 
-bool clean(CleanType clean_type) {
+bool clean(CleanArgs args) {
     release_assert(is_available());
+
+    const int16_t rest_temp = args.probe_temp.value_or(args.cleaning_temp - cooldown_temp_diff);
+    release_assert(!args.cooldown || rest_temp <= args.cleaning_temp);
 
     PrintStatusMessageGuard status_message;
     status_message.update<PrintStatusMessage::nozzle_cleaner_lite>({});
@@ -250,65 +205,43 @@ bool clean(CleanType clean_type) {
         return false;
     }
 
-    const int16_t cleaning_temperature = cleaning_temperature_for(*tool, clean_type);
-
     // Start heating used tool and restore target temp on exit
     const int16_t saved_nozzle_target = Hotend::for_tool(*tool).nozzle_target_temp();
-    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature);
+    Hotend::for_tool(*tool).set_nozzle_target_temp(args.cleaning_temp);
     ScopeGuard restore_nozzle_target([&] {
         Hotend::for_tool(*tool).set_nozzle_target_temp(saved_nozzle_target);
     });
 
-    // Home XY (and Z) only if needed, with clearance so we don't drag over the bed.
-    if (!GcodeSuite::G28_no_parser(true, true, true, G28Flags { .only_if_needed = true, .z_raise = travel_clearance_mm })) {
+    if (!GcodeSuite::G28_no_parser(true, true, true, G28Flags { .only_if_needed = true })) {
         log_error(NozzleCleanerLite, "homing failed");
         return false;
     }
 
+    move_to_machine_pos_z(current_machine_position().z + travel_clearance_mm, leave_feedrate);
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, dive_feedrate);
-    move_to_machine_pos_z(expected_touchpoint_surface_z + wait_above_surface_mm, dive_feedrate);
 
-    // Reach the cleaning temperature before probing: solidified ooze on a
-    // cold tip triggers the probe high and shifts the whole brush Z reference
-    // up; at temperature the ooze is soft and squishes aside.
+    // reach the cleaning temperature before touching down
     if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
         log_error(NozzleCleanerLite, "temperature wait failed");
         return false;
     }
 
-    // The exact surface height is not known yet: run_z_probe approaches from
-    // above and finds it (it stops on contact even during the fast approach).
-    const float probed_z = probe_touchpoint_z();
+    const float probed_z = find_touchpoint_z();
     if (std::isnan(probed_z)) {
-        log_error(NozzleCleanerLite, "Touchpoint probe failed");
         return false;
     }
     log_info(NozzleCleanerLite, "Touchpoint surface at Z=%.3f", static_cast<double>(probed_z));
 
     move_to_machine_pos_z(probed_z + safe_above_surface_mm, approach_feedrate);
 
-    // Start the cool-down already: the nozzle then cools while it brushes,
-    // shortening the touchpoint wait. The part fan makes the drop fast enough
-    // to matter.
-    Hotend::for_tool(*tool).set_nozzle_target_temp(cleaning_temperature - cooldown_temp_diff);
-    const uint8_t saved_fan_speed = thermalManager.get_print_fan_speed();
-    thermalManager.set_print_fan_speed(255);
-    ScopeGuard restore_fan_speed([&] {
-        thermalManager.set_print_fan_speed(saved_fan_speed);
-    });
-
-    // Start the zigzag somewhere new each run so consecutive cleans do not retrace
-    // the same track. Kept within the first half of the pattern, so the first
-    // crossing always heads towards across_max.
+    // Start the zigzag somewhere new each run so consecutive cleans do not retrace the same track.
     ZigZag zigzag { cleaner_pad, crossings_per_stroke,
         static_cast<float>(ticks_ms() % 1000) / 2000.0f };
 
-    // Safely move from the touchpoint onto the pad, at the zigzag's own starting
-    // point rather than the pad centre, so no stroke has to drag the nozzle
-    // sideways onto the pattern.
+    // Safely move from the touchpoint onto the pad, at the zigzag's own starting point rather than the pad centre
     const auto zigzag_start = zigzag.start();
     move_to_pad(zigzag_start.along, zigzag_start.across, approach_feedrate);
-    move_to_machine_pos_z(probed_z + dive_below_surface_mm, dive_feedrate);
+    move_to_machine_pos_z(probed_z + wipe_z_offset_mm, dive_feedrate);
 
     const float saved_travel_acceleration = planner.user_settings.travel_acceleration;
     {
@@ -317,8 +250,7 @@ bool clean(CleanType clean_type) {
         planner.apply_settings(s);
     }
 
-    // Rub: a few fast cycles, then a couple of slower ones to finish cleanly.
-    // The zigzag carries on across all of them.
+    // few fast cycles, then a couple of slower ones to finish cleanly.
     for (uint8_t i = 0; i < rub_cycles_fast; ++i) {
         rub_stroke(zigzag, cleaner_pad.along_far, rub_feedrate_fast);
         rub_stroke(zigzag, cleaner_pad.along_near, rub_feedrate_fast);
@@ -334,15 +266,28 @@ bool clean(CleanType clean_type) {
         planner.apply_settings(s);
     }
 
+    const uint8_t saved_fan_speed = thermalManager.get_print_fan_speed();
+    ScopeGuard restore_fan_speed([&] {
+        thermalManager.set_print_fan_speed(saved_fan_speed);
+    });
+    if (args.cooldown) {
+        // Start cooling down already on the way back to the touchpoint
+        Hotend::for_tool(*tool).set_nozzle_target_temp(rest_temp);
+        thermalManager.set_print_fan_speed(255);
+    }
+
     // Retreat back over the touchpoint
     move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
     move_to_machine_pos_xy(touchpoint_xy.x, touchpoint_xy.y, leave_feedrate);
 
-    move_to_machine_pos_z(probed_z + touch_point_z_pressure, dive_feedrate);
-    // Declared after the temperature guard so it runs before it: the nozzle must
-    // come off the touchpoint before anything re-heats it.
+    if (!args.cooldown) {
+        return true;
+    }
+
+    move_to_machine_pos_z(probed_z, dive_feedrate);
+
     ScopeGuard leave_touchpoint([&] {
-        move_to_machine_pos_z(probed_z + travel_clearance_mm, leave_feedrate);
+        move_to_machine_pos_z(probed_z + final_clearance_mm, leave_feedrate);
     });
 
     if (!thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false })) {
@@ -350,7 +295,7 @@ bool clean(CleanType clean_type) {
         return false;
     }
 
-    if (clean_type == CleanType::probing_tool) {
+    if (args.keep_target) {
         restore_nozzle_target.disarm();
     }
     return true;

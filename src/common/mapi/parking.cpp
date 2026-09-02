@@ -34,9 +34,17 @@ const ParkArgs ParkArgs::default_args {};
 constexpr bool is_in_wastebin_area(float x, float y) {
     return x > X_WASTEBIN_SAFE_POINT && y > Y_WASTEBIN_SAFE_POINT;
 }
+
+/// Also checks that X and Y are absolute coordinates - apply_nozzle_cleaner_offset()
+/// silently leaves the Unchanged ones alone
+constexpr bool is_in_wastebin_area(const ParkingPosition &position) {
+    const auto *x = std::get_if<float>(&position.x);
+    const auto *y = std::get_if<float>(&position.y);
+    return x && y && is_in_wastebin_area(*x, *y);
+}
 #endif
 
-ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std::variant<VirtualToolIndex, NoTool> tool) {
+ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std::variant<PhysicalToolIndex, NoTool> tool) {
     switch (position) {
     case ParkPosition::park:
 #if HAS_INDX()
@@ -65,11 +73,27 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
 #endif
     }
 
-    case ParkPosition::load:
-        return ParkingPosition { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
+    case ParkPosition::load: {
+        static constexpr ParkingPosition base_pos { X_AXIS_LOAD_POS, Y_AXIS_LOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_LOAD_POS } };
+#if HAS_INDX()
+        // The load and unload positions coincide with the park and purge points over the wastebin,
+        // so they need the calibrated nozzle cleaner offsets applied as well
+        static_assert(is_in_wastebin_area(base_pos));
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
 
-    case ParkPosition::unload:
-        return ParkingPosition { X_AXIS_UNLOAD_POS, Y_AXIS_UNLOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_UNLOAD_POS } };
+    case ParkPosition::unload: {
+        static constexpr ParkingPosition base_pos { X_AXIS_UNLOAD_POS, Y_AXIS_UNLOAD_POS, ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = Z_AXIS_UNLOAD_POS } };
+#if HAS_INDX()
+        static_assert(is_in_wastebin_area(base_pos));
+        return apply_nozzle_cleaner_offset(base_pos);
+#else
+        return base_pos;
+#endif
+    }
 
     case ParkPosition::loadcell_selftest:
         return ParkingPosition(XYZ_LOADCELL_SELFTEST_POINT);
@@ -135,8 +159,8 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
 
 #if HAS_TOOLCHANGER()
     case ParkPosition::tool_park:
-        if (auto *t = std::get_if<VirtualToolIndex>(&tool)) {
-            const auto xy = prusa_toolchanger.tool_park_position(t->to_physical());
+        if (auto *t = std::get_if<PhysicalToolIndex>(&tool)) {
+            const auto xy = prusa_toolchanger.tool_park_position(*t);
             return { .x = xy.x, .y = xy.y, .z = mapi::ParkingPosition::AtLeast { .above_print = 2 } };
         } else {
             // User-reachable, don't do a BSOD

@@ -7,9 +7,7 @@
 #include "window_event.hpp"
 #include "align.hpp"
 #include "color_scheme.hpp"
-#include "gui_time.hpp" // not needed here, but will save lot of includes
 #include "compact_pointer.hpp"
-// !!! all windows should use gui::GetTick() to access tick value!!!
 
 #include <gui/event/focus_event.hpp>
 

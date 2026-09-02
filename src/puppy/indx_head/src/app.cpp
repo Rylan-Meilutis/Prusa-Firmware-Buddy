@@ -62,6 +62,9 @@ std::atomic<uint8_t> heatbreak_fan_pwm = 0;
 std::atomic<uint32_t> printfan_start_ms = 0;
 std::atomic<uint32_t> heatbreak_fan_start_ms = 0;
 
+std::atomic<uint8_t> hotend_pwm_averaged { 0 };
+fpm::fixed_16_16 hotend_pwm_ema_buffer { 0 };
+
 struct LedsConfig : public indx_head::leds::LedConfig {
     using indx_head::leds::LedConfig::operator=;
     bool leds_changed = true;
@@ -72,9 +75,6 @@ LedsConfig leds_config;
 
 std::atomic<bool> selftest_mode = false;
 
-/// Integrates (hotend duty cycle 0-1)^2 over time - in us units
-/// Overflows are expected
-std::atomic<uint32_t> hotend_duty_cycle_sq_integral_us { 0 };
 std::atomic<uint32_t> hotend_energy_consumed_uJ { 0 };
 
 /// Internally used by step_hotend_energy
@@ -180,8 +180,11 @@ void step_hotend() {
 
     inductionHeater.heater_control(target_temp.load() * 100 /*centiDeg*/, nozzle_temp_compensated_c100);
 
-    // Integrate duty cycle
-    hotend_duty_cycle_sq_integral_us += uint32_t(inductionHeater.current_duty_cycle_sq() * dt_us);
+    // computing averaged pwm value to show in gui
+    const fpm::fixed_16_16 pwm { inductionHeater.current_pwm() };
+    constexpr fpm::fixed_16_16 ema_weight { 0.02f };
+    hotend_pwm_ema_buffer = hotend_pwm_ema_buffer * (1 - ema_weight) + pwm * ema_weight;
+    hotend_pwm_averaged.store(static_cast<uint8_t>(hotend_pwm_ema_buffer));
 
     step_hotend_energy(dt_us);
 }
@@ -443,8 +446,8 @@ int16_t get_hotend_temp_raw_c100_dt_s() {
     return hotend_temp_raw_c100_dt_s.load();
 }
 
-uint32_t get_hotend_duty_cycle_sq_integral_us() {
-    return hotend_duty_cycle_sq_integral_us.load();
+uint8_t get_hotend_pwm_averaged() {
+    return hotend_pwm_averaged.load();
 }
 
 uint32_t get_hotend_energy_consumed_uJ() {
