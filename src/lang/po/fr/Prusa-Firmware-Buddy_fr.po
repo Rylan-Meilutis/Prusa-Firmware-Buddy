@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-26 14:52+0200\n"
+"POT-Creation-Date: 2026-08-27 14:22+0200\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3707,7 +3707,7 @@ msgstr "En chauffe..."
 msgid "Help"
 msgstr "Aide"
 
-#: src/gui/screen/initial/screen_welcome.cpp:24
+#: src/gui/screen/initial/screen_welcome.cpp:30
 msgid ""
 "Hi, this is your\n"
 "Original Prusa MINI printer.\n"
@@ -3717,7 +3717,7 @@ msgstr ""
 "Bonjour, je suis votre imprimante Original Prusa MINI.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:21
+#: src/gui/screen/initial/screen_welcome.cpp:27
 msgid ""
 "Hi, this is your\n"
 "Original Prusa MK3.5 printer.\n"
@@ -3727,7 +3727,7 @@ msgstr ""
 "Bonjour, je suis votre imprimante Original Prusa MK3.5.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:14
+#: src/gui/screen/initial/screen_welcome.cpp:20
 msgid ""
 "Hi, this is your\n"
 "Original Prusa XL printer.\n"
@@ -3737,7 +3737,7 @@ msgstr ""
 "Bonjour, je suis votre imprimante Original Prusa XL.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:27
+#: src/gui/screen/initial/screen_welcome.cpp:33
 msgid ""
 "Hi, this is your\n"
 "Original Prusa iX printer.\n"
@@ -3748,7 +3748,7 @@ msgstr ""
 "J'aimerais vous guider tout au long du processus d'installation."
 
 #. The MK4 is left out intentionally - it could be MK4, MK4S or MK3.9, we don't know yet
-#: src/gui/screen/initial/screen_welcome.cpp:18
+#: src/gui/screen/initial/screen_welcome.cpp:24
 msgid ""
 "Hi, this is your\n"
 "Original Prusa printer.\n"
@@ -3758,7 +3758,7 @@ msgstr ""
 "Bonjour, je suis votre imprimante Original Prusa.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:31
+#: src/gui/screen/initial/screen_welcome.cpp:37
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One INDX printer.\n"
@@ -3769,7 +3769,7 @@ msgstr ""
 "votre imprimante Prusa CORE One INDX.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:39
+#: src/gui/screen/initial/screen_welcome.cpp:45
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One L INDX printer.\n"
@@ -3780,7 +3780,7 @@ msgstr ""
 "votre imprimante Prusa CORE One L INDX.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:42
+#: src/gui/screen/initial/screen_welcome.cpp:48
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One L printer.\n"
@@ -3791,7 +3791,7 @@ msgstr ""
 "votre imprimante Prusa CORE One L.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
-#: src/gui/screen/initial/screen_welcome.cpp:34
+#: src/gui/screen/initial/screen_welcome.cpp:40
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One printer.\n"
@@ -3799,6 +3799,16 @@ msgid ""
 "through the setup process."
 msgstr ""
 "Bonjour, je suis votre imprimante Prusa CORE One.\n"
+"J'aimerais vous guider tout au long du processus d'installation."
+
+#: src/gui/screen/initial/screen_welcome.cpp:18
+msgid ""
+"Hi, this is your\n"
+"Prusa XL+ printer.\n"
+"I would like to guide you\n"
+"through the setup process."
+msgstr ""
+"Bonjour, je suis votre imprimante Prusa XL+.\n"
 "J'aimerais vous guider tout au long du processus d'installation."
 
 #: src/gui/MItem_tools.cpp:947
@@ -9217,10 +9227,10 @@ msgstr "XL Enclosure"
 
 #: tmp_error_headers/error_list.hpp:282
 msgid ""
-"XL-CAN bridge detected. Printer type has been set to Original Prusa XL+. "
+"XL-CAN bridge detected. Printer type has been set to Prusa XL+. "
 "Settings have been updated."
 msgstr ""
-"XL-CAN bridge détecté. Le type d'imprimante a été défini sur Original Prusa "
+"XL-CAN bridge détecté. Le type d'imprimante a été défini sur Prusa "
 "XL+. Les réglages ont été mis à jour."
 
 #: tmp_error_headers/error_list.hpp:296

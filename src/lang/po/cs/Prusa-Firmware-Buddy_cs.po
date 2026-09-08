@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-26 14:52+0200\n"
+"POT-Creation-Date: 2026-08-27 14:22+0200\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3637,7 +3637,7 @@ msgstr "Zahřívání..."
 msgid "Help"
 msgstr "Pomoc"
 
-#: src/gui/screen/initial/screen_welcome.cpp:24
+#: src/gui/screen/initial/screen_welcome.cpp:30
 msgid ""
 "Hi, this is your\n"
 "Original Prusa MINI printer.\n"
@@ -3649,7 +3649,7 @@ msgstr ""
 "Nyní vás provedu\n"
 "úvodním nastavením."
 
-#: src/gui/screen/initial/screen_welcome.cpp:21
+#: src/gui/screen/initial/screen_welcome.cpp:27
 msgid ""
 "Hi, this is your\n"
 "Original Prusa MK3.5 printer.\n"
@@ -3661,7 +3661,7 @@ msgstr ""
 "Nyní vás provedu skrz\n"
 "úvodní nastavení."
 
-#: src/gui/screen/initial/screen_welcome.cpp:14
+#: src/gui/screen/initial/screen_welcome.cpp:20
 msgid ""
 "Hi, this is your\n"
 "Original Prusa XL printer.\n"
@@ -3673,7 +3673,7 @@ msgstr ""
 "Nyní vás provedu skrz\n"
 "úvodní nastavení."
 
-#: src/gui/screen/initial/screen_welcome.cpp:27
+#: src/gui/screen/initial/screen_welcome.cpp:33
 msgid ""
 "Hi, this is your\n"
 "Original Prusa iX printer.\n"
@@ -3686,7 +3686,7 @@ msgstr ""
 "úvodní nastavení."
 
 #. The MK4 is left out intentionally - it could be MK4, MK4S or MK3.9, we don't know yet
-#: src/gui/screen/initial/screen_welcome.cpp:18
+#: src/gui/screen/initial/screen_welcome.cpp:24
 msgid ""
 "Hi, this is your\n"
 "Original Prusa printer.\n"
@@ -3698,7 +3698,7 @@ msgstr ""
 "Nyní vás provedu\n"
 "skrz úvodní nastavení."
 
-#: src/gui/screen/initial/screen_welcome.cpp:31
+#: src/gui/screen/initial/screen_welcome.cpp:37
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One INDX printer.\n"
@@ -3710,7 +3710,7 @@ msgstr ""
 "Nyní vás provedu skrze\n"
 "úvodní nastavení."
 
-#: src/gui/screen/initial/screen_welcome.cpp:39
+#: src/gui/screen/initial/screen_welcome.cpp:45
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One L INDX printer.\n"
@@ -3722,7 +3722,7 @@ msgstr ""
 "Nyní vás provedu skrze\n"
 "úvodní nastavení."
 
-#: src/gui/screen/initial/screen_welcome.cpp:42
+#: src/gui/screen/initial/screen_welcome.cpp:48
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One L printer.\n"
@@ -3734,7 +3734,7 @@ msgstr ""
 "Rád bych vás provedl\n"
 "celým procesem nastavení."
 
-#: src/gui/screen/initial/screen_welcome.cpp:34
+#: src/gui/screen/initial/screen_welcome.cpp:40
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One printer.\n"
@@ -3743,6 +3743,18 @@ msgid ""
 msgstr ""
 "Vítá vás vaše tiskárna\n"
 "Prusa CORE One.\n"
+"Nyní vás provedu skrz\n"
+"úvodní nastavení."
+
+#: src/gui/screen/initial/screen_welcome.cpp:18
+msgid ""
+"Hi, this is your\n"
+"Prusa XL+ printer.\n"
+"I would like to guide you\n"
+"through the setup process."
+msgstr ""
+"Vítá vás vaše tiskárna\n"
+"Prusa XL+!\n"
 "Nyní vás provedu skrz\n"
 "úvodní nastavení."
 
@@ -9058,10 +9070,10 @@ msgstr "XL Enclosure"
 
 #: tmp_error_headers/error_list.hpp:282
 msgid ""
-"XL-CAN bridge detected. Printer type has been set to Original Prusa XL+. "
+"XL-CAN bridge detected. Printer type has been set to Prusa XL+. "
 "Settings have been updated."
 msgstr ""
-"Detekován XL-CAN bridge. Typ tiskárny byl nastaven na Original Prusa XL+. "
+"Detekován XL-CAN bridge. Typ tiskárny byl nastaven na Prusa XL+. "
 "Nastavení byla aktualizována."
 
 #: tmp_error_headers/error_list.hpp:296

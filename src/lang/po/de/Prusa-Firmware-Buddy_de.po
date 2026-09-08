@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: info@prusa3d.com\n"
-"POT-Creation-Date: 2026-08-26 14:52+0200\n"
+"POT-Creation-Date: 2026-08-27 14:22+0200\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3756,7 +3756,7 @@ msgstr "Aufheizen..."
 msgid "Help"
 msgstr "Hilfe"
 
-#: src/gui/screen/initial/screen_welcome.cpp:24
+#: src/gui/screen/initial/screen_welcome.cpp:30
 msgid ""
 "Hi, this is your\n"
 "Original Prusa MINI printer.\n"
@@ -3768,7 +3768,7 @@ msgstr ""
 "Ich würde Sie gerne durch\n"
 "den Einrichtungsprozess führen."
 
-#: src/gui/screen/initial/screen_welcome.cpp:21
+#: src/gui/screen/initial/screen_welcome.cpp:27
 msgid ""
 "Hi, this is your\n"
 "Original Prusa MK3.5 printer.\n"
@@ -3780,7 +3780,7 @@ msgstr ""
 "Ich führe Sie gerne durch\n"
 "den Einrichtungsprozess."
 
-#: src/gui/screen/initial/screen_welcome.cpp:14
+#: src/gui/screen/initial/screen_welcome.cpp:20
 msgid ""
 "Hi, this is your\n"
 "Original Prusa XL printer.\n"
@@ -3792,7 +3792,7 @@ msgstr ""
 "Ich führe Sie gerne durch\n"
 "den Einrichtungsprozess."
 
-#: src/gui/screen/initial/screen_welcome.cpp:27
+#: src/gui/screen/initial/screen_welcome.cpp:33
 msgid ""
 "Hi, this is your\n"
 "Original Prusa iX printer.\n"
@@ -3805,7 +3805,7 @@ msgstr ""
 "den Einrichtungsprozess."
 
 #. The MK4 is left out intentionally - it could be MK4, MK4S or MK3.9, we don't know yet
-#: src/gui/screen/initial/screen_welcome.cpp:18
+#: src/gui/screen/initial/screen_welcome.cpp:24
 msgid ""
 "Hi, this is your\n"
 "Original Prusa printer.\n"
@@ -3817,7 +3817,7 @@ msgstr ""
 "Ich führe Sie gerne durch\n"
 "den Einrichtungsprozess."
 
-#: src/gui/screen/initial/screen_welcome.cpp:31
+#: src/gui/screen/initial/screen_welcome.cpp:37
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One INDX printer.\n"
@@ -3829,7 +3829,7 @@ msgstr ""
 "Ich möchte Sie durch den\n"
 "Einrichtungsvorgang führen."
 
-#: src/gui/screen/initial/screen_welcome.cpp:39
+#: src/gui/screen/initial/screen_welcome.cpp:45
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One L INDX printer.\n"
@@ -3841,7 +3841,7 @@ msgstr ""
 "Ich möchte Sie durch den\n"
 "Einrichtungsvorgang führen."
 
-#: src/gui/screen/initial/screen_welcome.cpp:42
+#: src/gui/screen/initial/screen_welcome.cpp:48
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One L printer.\n"
@@ -3853,7 +3853,7 @@ msgstr ""
 "Ich führe Sie gerne durch\n"
 "den Einrichtungsprozess."
 
-#: src/gui/screen/initial/screen_welcome.cpp:34
+#: src/gui/screen/initial/screen_welcome.cpp:40
 msgid ""
 "Hi, this is your\n"
 "Prusa CORE One printer.\n"
@@ -3862,6 +3862,18 @@ msgid ""
 msgstr ""
 "Hallo, dies ist Ihr\n"
 "Prusa CORE One Drucker.\n"
+"Ich führe Sie gerne durch\n"
+"den Einrichtungsprozess."
+
+#: src/gui/screen/initial/screen_welcome.cpp:18
+msgid ""
+"Hi, this is your\n"
+"Prusa XL+ printer.\n"
+"I would like to guide you\n"
+"through the setup process."
+msgstr ""
+"Hallo, dies ist Ihr\n"
+"Prusa XL+ Drucker.\n"
 "Ich führe Sie gerne durch\n"
 "den Einrichtungsprozess."
 
@@ -9332,10 +9344,10 @@ msgstr "XL Enclosure"
 
 #: tmp_error_headers/error_list.hpp:282
 msgid ""
-"XL-CAN bridge detected. Printer type has been set to Original Prusa XL+. "
+"XL-CAN bridge detected. Printer type has been set to Prusa XL+. "
 "Settings have been updated."
 msgstr ""
-"XL-CAN-Brücke erkannt. Als Druckertyp wurde der Original Prusa XL+ "
+"XL-CAN-Brücke erkannt. Als Druckertyp wurde der Prusa XL+ "
 "eingestellt. Die Einstellungen wurden aktualisiert."
 
 #: tmp_error_headers/error_list.hpp:296

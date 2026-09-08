@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:prusa3d/Prusa-Error-Codes.git
 	branch = master
-	commit = 95bd49a1b1317af2ecfa9c056e316f1b26db7cff
-	parent = ff4d97fa57b80b30ab166a2ea3ba07b57a2c4028
+	commit = ee3f8ad9e8a0d511e6f5575bf0861f6cdca382e4
+	parent = 888c99988a6be94e7771d8c1cf5a5432e6231ea1
 	method = merge
 	cmdver = 0.4.9
