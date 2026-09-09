@@ -9,7 +9,7 @@ namespace mapi {
 struct CalibrationPreamble {
     /// Motion step about to be performed; lets each wizard report its own FSM phase.
     enum class Step : uint8_t {
-        moving_away, ///< lowering the bed to the physical bottom
+        moving_away, ///< lowering the bed for clearance
 #if HAS_TOOLCHANGER()
         picking_tool, ///< picking a tool (ensure_picked policy only, fired only when no tool is currently picked)
         parking_tool, ///< parking the picked tool (ensure_parked policy only, fired only when a tool is currently picked)
