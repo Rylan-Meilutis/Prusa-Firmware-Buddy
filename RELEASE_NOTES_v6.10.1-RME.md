@@ -40,6 +40,10 @@ Firmware Buddy 6.10.1.
   material validation, and distinct extrusion-fault workflows.
 - Retains session-scoped chamber-light hold and its local, print, disconnect,
   replacement-session, timeout, emergency-stop, and restart release paths.
+- Fixed filament-menu tool selection on INDX and other mapped-tool systems.
+  The selected virtual filament slot is now translated through the active
+  tool map before emitting a `T` command, preventing a successful pickup from
+  being falsely reported as "Failed to pick up the selected tool."
 
 ## Validation
 
