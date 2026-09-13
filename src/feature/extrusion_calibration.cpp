@@ -2,45 +2,55 @@
 
 #include <algorithm>
 #include <cmath>
+#include <new>
 
 namespace buddy::extrusion_calibration {
 
 namespace {
-Capture instance;
-std::array<Result, max_logical_filaments> results {};
-std::atomic<uint8_t> calibration_command_depth { 0 };
-std::atomic_uint8_t anchors { 0 };
-float profile_pressure_advance = NAN;
-float calibrated_pressure_advance = NAN;
-std::atomic_bool monitor_enabled { false };
-std::atomic_bool monitor_presence_detection { false };
-std::atomic_bool monitor_movement_detection { false };
-std::atomic_uint8_t monitor_suspend_count { 0 };
-std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
-std::atomic_bool monitor_fault_suspended { false };
-float monitor_sign = 1;
-float monitor_low_pressure = 0;
-float monitor_pressure_per_velocity = 0;
-float monitor_noise = 1;
-float monitor_low_velocity = 0.8f;
-uint32_t monitor_last_time = 0;
-float monitor_last_e = 0;
-float monitor_filtered_load = 0;
-float monitor_idle_baseline = 0;
-float monitor_forward_time = 0;
-float monitor_forward_e = 0;
-float monitor_idle_time = 0;
-float monitor_peak_pressure = 0;
-float monitor_bad_time = 0;
-float monitor_bad_e = 0;
-float monitor_breakout_time = 0;
-bool monitor_breakout_seen = false;
-bool monitor_collapse_seen = false;
-}
+    Capture instance;
+    std::array<Result, max_logical_filaments> results {};
+    std::atomic<uint8_t> calibration_command_depth { 0 };
+    std::atomic_uint8_t anchors { 0 };
+    float profile_pressure_advance = NAN;
+    float calibrated_pressure_advance = NAN;
+    std::atomic_bool monitor_enabled { false };
+    std::atomic_bool monitor_presence_detection { false };
+    std::atomic_bool monitor_movement_detection { false };
+    std::atomic_uint8_t monitor_suspend_count { 0 };
+    std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
+    std::atomic_bool monitor_fault_suspended { false };
+    float monitor_sign = 1;
+    float monitor_low_pressure = 0;
+    float monitor_pressure_per_velocity = 0;
+    float monitor_noise = 1;
+    float monitor_low_velocity = 0.8f;
+    uint32_t monitor_last_time = 0;
+    float monitor_last_e = 0;
+    float monitor_filtered_load = 0;
+    float monitor_idle_baseline = 0;
+    float monitor_forward_time = 0;
+    float monitor_forward_e = 0;
+    float monitor_idle_time = 0;
+    float monitor_peak_pressure = 0;
+    float monitor_bad_time = 0;
+    float monitor_bad_e = 0;
+    float monitor_breakout_time = 0;
+    bool monitor_breakout_seen = false;
+    bool monitor_collapse_seen = false;
+} // namespace
 
-void Capture::start() {
+bool Capture::start() {
+    if (!samples_) {
+        samples_.reset(new (std::nothrow) Sample[capacity]);
+    }
+    if (!samples_) {
+        count_.store(0, std::memory_order_relaxed);
+        active_.store(false, std::memory_order_release);
+        return false;
+    }
     count_.store(0, std::memory_order_relaxed);
     active_.store(true, std::memory_order_release);
+    return true;
 }
 
 void Capture::pause() {
@@ -48,9 +58,15 @@ void Capture::pause() {
 }
 
 void Capture::resume() {
-    if (count_.load(std::memory_order_acquire) < samples_.size()) {
+    if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
         active_.store(true, std::memory_order_release);
     }
+}
+
+void Capture::release() {
+    active_.store(false, std::memory_order_release);
+    count_.store(0, std::memory_order_relaxed);
+    samples_.reset();
 }
 
 size_t Capture::stop() {
@@ -59,23 +75,23 @@ size_t Capture::stop() {
 }
 
 void Capture::record(const uint32_t time_us, const float load_g, const float e_position_mm) {
-    if (!active_.load(std::memory_order_acquire)) {
+    if (!active_.load(std::memory_order_acquire) || !samples_) {
         return;
     }
     const size_t index = count_.fetch_add(1, std::memory_order_acq_rel);
-    if (index < samples_.size()) {
+    if (index < capacity) {
         samples_[index] = { time_us, load_g, e_position_mm };
     } else {
-        count_.store(samples_.size(), std::memory_order_release);
+        count_.store(capacity, std::memory_order_release);
         active_.store(false, std::memory_order_release);
     }
 }
 
 Score Capture::score() const {
-    const size_t n = std::min(size(), samples_.size());
+    const size_t n = samples_ ? std::min(size(), capacity) : 0;
     Score result;
     result.sample_count = static_cast<uint16_t>(std::min(n, size_t(std::numeric_limits<uint16_t>::max())));
-    result.capture_overflow = size() >= samples_.size();
+    result.capture_overflow = samples_ && size() >= capacity;
     if (n < 32) {
         return result;
     }
@@ -108,9 +124,13 @@ Score Capture::score() const {
         float before = 0, after = 0, local_noise = 0;
         for (size_t j = i - 13; j < i - 3; ++j) {
             before += samples_[j].load_g;
-            if (j > i - 13) local_noise += std::abs(samples_[j].load_g - samples_[j - 1].load_g);
+            if (j > i - 13) {
+                local_noise += std::abs(samples_[j].load_g - samples_[j - 1].load_g);
+            }
         }
-        for (size_t j = i + 25; j < i + 35; ++j) after += samples_[j].load_g;
+        for (size_t j = i + 25; j < i + 35; ++j) {
+            after += samples_[j].load_g;
+        }
         before /= plateau_n;
         after /= plateau_n;
         const float amplitude = std::abs(after - before);
@@ -129,7 +149,9 @@ Score Capture::score() const {
             const float normalized_error = (samples_[i + j].load_g - after) / amplitude;
             area += std::abs(normalized_error);
             excursion = std::max(excursion, direction * (samples_[i + j].load_g - after) / amplitude);
-            if (settled_at == 27 && std::abs(normalized_error) < 0.1f) settled_at = j;
+            if (settled_at == 27 && std::abs(normalized_error) < 0.1f) {
+                settled_at = j;
+            }
         }
         const float transition_cost = area / 27.0f + 2.0f * std::max(0.0f, excursion) + float(settled_at) / 27.0f;
         cost += transition_cost;
@@ -148,7 +170,7 @@ Score Capture::score() const {
     }
 
     result.transitions_used = static_cast<uint16_t>(std::min(used, size_t(std::numeric_limits<uint16_t>::max())));
-    result.valid = used >= 4 && size() < samples_.size();
+    result.valid = used >= 4 && size() < capacity;
     if (used > 0) {
         result.transient = cost / used;
         result.transient_stddev = std::sqrt(std::max(0.0f, cost_squared / used - result.transient * result.transient));
@@ -164,10 +186,14 @@ Score Capture::score() const {
 }
 
 float Capture::noise_floor() const {
-    const size_t n = std::min(size(), samples_.size());
-    if (n < 16) return std::numeric_limits<float>::infinity();
+    const size_t n = samples_ ? std::min(size(), capacity) : 0;
+    if (n < 16) {
+        return std::numeric_limits<float>::infinity();
+    }
     float mean = 0;
-    for (size_t i = 0; i < n; ++i) mean += samples_[i].load_g;
+    for (size_t i = 0; i < n; ++i) {
+        mean += samples_[i].load_g;
+    }
     mean /= n;
     float variance = 0;
     for (size_t i = 0; i < n; ++i) {
@@ -182,7 +208,9 @@ Capture &capture() { return instance; }
 void record_loadcell_sample(const uint32_t time_us, const float load_g, const float e_position_mm) {
     instance.record(time_us, load_g, e_position_mm);
 
-    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0) return;
+    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0) {
+        return;
+    }
     if (!monitor_last_time) {
         monitor_last_time = time_us;
         monitor_last_e = e_position_mm;
@@ -193,7 +221,9 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     const float de = e_position_mm - monitor_last_e;
     monitor_last_time = time_us;
     monitor_last_e = e_position_mm;
-    if (!(dt > 0 && dt < 0.1f)) return;
+    if (!(dt > 0 && dt < 0.1f)) {
+        return;
+    }
 
     monitor_filtered_load += 0.12f * (load_g - monitor_filtered_load);
     const float velocity = de / dt;
@@ -211,8 +241,9 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         return;
     }
 
-    if (monitor_forward_time == 0 && monitor_idle_time > 0.15f)
+    if (monitor_forward_time == 0 && monitor_idle_time > 0.15f) {
         monitor_idle_baseline = monitor_filtered_load;
+    }
     monitor_idle_time = 0;
     monitor_forward_time += dt;
     monitor_forward_e += std::max(0.0f, de);
@@ -340,7 +371,9 @@ void suspend_pressure_monitor(const bool suspend) {
     }
     uint8_t count = monitor_suspend_count.load(std::memory_order_acquire);
     while (count) {
-        if (!monitor_suspend_count.compare_exchange_weak(count, count - 1, std::memory_order_acq_rel)) continue;
+        if (!monitor_suspend_count.compare_exchange_weak(count, count - 1, std::memory_order_acq_rel)) {
+            continue;
+        }
         if (count == 1) {
             // Loading/unloading can move E a long distance without nozzle
             // pressure. Re-arm from the next real sample and grant the full
@@ -357,14 +390,16 @@ void suspend_pressure_monitor(const bool suspend) {
 
 ExtrusionFault consume_extrusion_fault() {
     const auto fault = monitor_fault.exchange(ExtrusionFault::none, std::memory_order_acq_rel);
-    if (fault != ExtrusionFault::none && !monitor_fault_suspended.exchange(true, std::memory_order_acq_rel))
+    if (fault != ExtrusionFault::none && !monitor_fault_suspended.exchange(true, std::memory_order_acq_rel)) {
         monitor_suspend_count.fetch_add(1, std::memory_order_acq_rel);
+    }
     return fault;
 }
 
 void acknowledge_extrusion_fault() {
-    if (monitor_fault_suspended.exchange(false, std::memory_order_acq_rel))
+    if (monitor_fault_suspended.exchange(false, std::memory_order_acq_rel)) {
         suspend_pressure_monitor(false);
+    }
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_last_time = 0;
     monitor_forward_time = monitor_forward_e = monitor_idle_time = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
@@ -380,7 +415,9 @@ const Result *job_result(const size_t logical_filament) {
 void set_job_result(const size_t logical_filament, const Result &result) {
     if (logical_filament < results.size()) {
         results[logical_filament] = result;
-        if (result.valid) calibrated_pressure_advance = result.pressure_advance;
+        if (result.valid) {
+            calibrated_pressure_advance = result.pressure_advance;
+        }
     }
 }
 
@@ -394,7 +431,8 @@ void set_calibration_command_active(const bool active) {
         return;
     }
     uint8_t depth = calibration_command_depth.load(std::memory_order_acquire);
-    while (depth && !calibration_command_depth.compare_exchange_weak(depth, depth - 1, std::memory_order_acq_rel)) {}
+    while (depth && !calibration_command_depth.compare_exchange_weak(depth, depth - 1, std::memory_order_acq_rel)) {
+    }
 }
 
 bool calibration_command_active() {
@@ -404,13 +442,15 @@ bool calibration_command_active() {
 uint8_t occupied_anchor_mask() { return anchors.load(std::memory_order_acquire); }
 
 void occupy_anchor(const size_t logical_filament) {
-    if (logical_filament < max_logical_filaments)
+    if (logical_filament < max_logical_filaments) {
         anchors.fetch_or(static_cast<uint8_t>(1u << logical_filament), std::memory_order_acq_rel);
+    }
 }
 
 void clear_anchor(const size_t logical_filament) {
-    if (logical_filament < max_logical_filaments)
+    if (logical_filament < max_logical_filaments) {
         anchors.fetch_and(static_cast<uint8_t>(~(1u << logical_filament)), std::memory_order_acq_rel);
+    }
 }
 
 } // namespace buddy::extrusion_calibration

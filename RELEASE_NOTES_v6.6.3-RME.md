@@ -14,6 +14,10 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     the estimator now evaluates the sweep profile directly.
   * Reduced remaining analysis peak memory by filtering backward in place and
     compiling the rough-alignment score trace out of production images.
+  * Restored phase-stepping calibration heap headroom by removing the idle
+    15 KiB automatic-PA sample buffer from permanent SRAM. M976 now acquires
+    its bounded capture buffer only while measuring, releases it on every
+    exit, and reports an explicit error if memory is unavailable.
   * Material telemetry now reports the base polymer family independently from
     the selected profile. Connect and Link expose `material=PLA` with a
     separate `profile=PLA-00D`, and loaded-filament serial reports use
