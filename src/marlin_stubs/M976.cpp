@@ -241,8 +241,8 @@ void park_after_calibration() {
 class HotendTargetRestorer {
 public:
     HotendTargetRestorer() {
-        for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
-            targets_[hotend] = Temperature::degTargetHotend(PhysicalToolIndex::from_raw(hotend));
+        for (const auto hotend : PhysicalToolIndex::all()) {
+            targets_[hotend.to_raw()] = Temperature::degTargetHotend(hotend);
         }
     }
     ~HotendTargetRestorer() {
@@ -254,26 +254,26 @@ public:
         // before unwinding this guard. Never lower a target until those moves
         // have physically completed.
         planner.synchronize();
-        for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
-            Temperature::setTargetHotend(targets_[hotend], PhysicalToolIndex::from_raw(hotend));
+        for (const auto hotend : PhysicalToolIndex::all()) {
+            Temperature::setTargetHotend(targets_[hotend.to_raw()], hotend);
         }
         if (!wait_for_reachable_targets) {
             return;
         }
-        for (uint8_t hotend = 0; hotend < HOTENDS; ++hotend) {
-            if (targets_[hotend] < thermalManager.extrude_min_temp) {
+        for (const auto hotend : PhysicalToolIndex::all()) {
+            if (targets_[hotend.to_raw()] < thermalManager.extrude_min_temp) {
                 continue;
             }
-            M109_no_parser(PhysicalToolIndex::from_raw(hotend), {
-                                                                    .target_temp = targets_[hotend],
-                                                                    .wait_heat = true,
-                                                                    .wait_heat_or_cool = true,
-                                                                });
+            M109_no_parser(hotend, {
+                                       .target_temp = targets_[hotend.to_raw()],
+                                       .wait_heat = true,
+                                       .wait_heat_or_cool = true,
+                                   });
         }
     }
 
 private:
-    std::array<int16_t, HOTENDS> targets_ {};
+    std::array<int16_t, PhysicalToolIndex::count> targets_ {};
 };
 
 bool parse_uint(const char *&cursor, unsigned &value, const char terminator) {

@@ -206,9 +206,10 @@ bool MarlinSettings::load() {
       .Ki = get_pid_nozzle_i(),
       .Kd = get_pid_nozzle_d(),
     };
-    for (int8_t e = 0; e < HOTENDS; e++) {
-      Hotend::for_tool(PhysicalToolIndex::from_raw(e)).set_nozzle_pid_config(pid);
-    }
+    // HOTENDS includes Marlin's NoTool sentinel on toolchanger builds.  Iterating
+    // that raw range constructs an invalid PhysicalToolIndex during startup.
+    for (const auto tool : PhysicalToolIndex::all())
+      Hotend::for_tool(tool).set_nozzle_pid_config(pid);
   #endif
 
   #if ENABLED(PIDTEMPBED)
