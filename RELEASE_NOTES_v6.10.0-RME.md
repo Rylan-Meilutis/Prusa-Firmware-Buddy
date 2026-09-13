@@ -16,6 +16,10 @@ cooling, persistence, and toolchanger changes are retained.
   the estimator now evaluates the sweep profile directly.
 - Reduced remaining analysis peak memory by filtering backward in place and
   compiling the rough-alignment score trace out of production images.
+- Restored phase-stepping calibration heap headroom by removing the idle
+  15 KiB automatic-PA sample buffer from permanent SRAM. M976 now acquires its
+  bounded capture buffer only while measuring, releases it on every exit, and
+  reports an explicit error if memory is unavailable.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
