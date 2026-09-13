@@ -914,9 +914,9 @@ static bool handle_remote_manufacturer_service(const std::string_view command) {
       SERIAL_ECHOPGM("RME_MANUFACTURER builtin=0 slot="); SERIAL_ECHO(i); SERIAL_ECHOPGM(" name=");
       report_remote_manufacturer_name(item->name_view()); SERIAL_EOL();
     }
-    for (uint8_t tool = 0; tool < EXTRUDERS; ++tool) {
-      SERIAL_ECHOPGM("RME_MANUFACTURER_LOADED tool="); SERIAL_ECHO(tool); SERIAL_ECHOPGM(" name=");
-      if (const auto item = filament_manufacturer::loaded(tool)) report_remote_manufacturer_name(item->name_view());
+    for (const auto tool : VirtualToolIndex::all()) {
+      SERIAL_ECHOPGM("RME_MANUFACTURER_LOADED tool="); SERIAL_ECHO(tool.to_raw()); SERIAL_ECHOPGM(" name=");
+      if (const auto item = filament_manufacturer::loaded(tool.to_raw())) report_remote_manufacturer_name(item->name_view());
       else SERIAL_ECHOPGM("none");
       SERIAL_EOL();
     }
@@ -935,7 +935,7 @@ static bool handle_remote_manufacturer_service(const std::string_view command) {
     if (printer_lock::locked()) return true;
     const auto tool = remote_number(command, "tool");
     const auto name = remote_manufacturer_name(command);
-    if (!tool || *tool < 0 || *tool >= EXTRUDERS || !name) return true;
+    if (!tool || *tool < 0 || static_cast<size_t>(*tool) >= VirtualToolIndex::count || !name) return true;
     const auto decoded_name = std::string_view(name->data());
     const bool is_none = decoded_name.size() == 4 && std::equal(decoded_name.begin(), decoded_name.end(), "none", [](const char lhs, const char rhs) {
       return std::tolower(static_cast<unsigned char>(lhs)) == rhs;
@@ -1081,7 +1081,8 @@ static bool handle_remote_toolmap_service(const std::string_view command) {
   } else if (action[0] == 'S') {
     const auto logical = remote_number(command, "logical");
     const auto physical = remote_number(command, "physical");
-    if (logical && physical && *logical >= 0 && *logical < EXTRUDERS && *physical >= 0 && *physical < EXTRUDERS)
+    if (logical && physical && *logical >= 0 && static_cast<size_t>(*logical) < GcodeToolIndex::count
+        && *physical >= 0 && static_cast<size_t>(*physical) < VirtualToolIndex::count)
       tool_mapper.set_mapping(*logical, *physical);
   } else if (action[0] == 'E') {
     if (const auto value = remote_number(command, "value"); value && (*value == 0 || *value == 1)) tool_mapper.set_enable(*value);

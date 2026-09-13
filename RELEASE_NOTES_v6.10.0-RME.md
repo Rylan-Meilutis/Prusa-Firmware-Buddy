@@ -9,6 +9,11 @@ cooling, persistence, and toolchanger changes are retained.
 
 ## RME integration changes
 
+- Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
+  nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
+  construct a physical tool from the internal `NoTool` sentinel. PID loading,
+  PID editing, automatic-PA target restoration, and RME tool-map reporting now
+  iterate only strongly typed real tools; the sentinel is never advertised.
 - Preserved the bounded RME text, bulk, and framed-binary parsers, durable
   resumable uploads, shared transfer ownership, and crash-dump storage.
 - Reconciled upstream's virtual-tool-aware `M1601` recovery with the distinct
