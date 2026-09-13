@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <new>
 
 namespace buddy::extrusion_calibration {
 
@@ -38,9 +39,18 @@ namespace {
     bool monitor_collapse_seen = false;
 } // namespace
 
-void Capture::start() {
+bool Capture::start() {
+    if (!samples_) {
+        samples_.reset(new (std::nothrow) Sample[capacity]);
+    }
+    if (!samples_) {
+        count_.store(0, std::memory_order_relaxed);
+        active_.store(false, std::memory_order_release);
+        return false;
+    }
     count_.store(0, std::memory_order_relaxed);
     active_.store(true, std::memory_order_release);
+    return true;
 }
 
 void Capture::pause() {
@@ -48,9 +58,15 @@ void Capture::pause() {
 }
 
 void Capture::resume() {
-    if (count_.load(std::memory_order_acquire) < samples_.size()) {
+    if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
         active_.store(true, std::memory_order_release);
     }
+}
+
+void Capture::release() {
+    active_.store(false, std::memory_order_release);
+    count_.store(0, std::memory_order_relaxed);
+    samples_.reset();
 }
 
 size_t Capture::stop() {
@@ -59,23 +75,23 @@ size_t Capture::stop() {
 }
 
 void Capture::record(const uint32_t time_us, const float load_g, const float e_position_mm) {
-    if (!active_.load(std::memory_order_acquire)) {
+    if (!active_.load(std::memory_order_acquire) || !samples_) {
         return;
     }
     const size_t index = count_.fetch_add(1, std::memory_order_acq_rel);
-    if (index < samples_.size()) {
+    if (index < capacity) {
         samples_[index] = { time_us, load_g, e_position_mm };
     } else {
-        count_.store(samples_.size(), std::memory_order_release);
+        count_.store(capacity, std::memory_order_release);
         active_.store(false, std::memory_order_release);
     }
 }
 
 Score Capture::score() const {
-    const size_t n = std::min(size(), samples_.size());
+    const size_t n = samples_ ? std::min(size(), capacity) : 0;
     Score result;
     result.sample_count = static_cast<uint16_t>(std::min(n, size_t(std::numeric_limits<uint16_t>::max())));
-    result.capture_overflow = size() >= samples_.size();
+    result.capture_overflow = samples_ && size() >= capacity;
     if (n < 32) {
         return result;
     }
@@ -154,7 +170,7 @@ Score Capture::score() const {
     }
 
     result.transitions_used = static_cast<uint16_t>(std::min(used, size_t(std::numeric_limits<uint16_t>::max())));
-    result.valid = used >= 4 && size() < samples_.size();
+    result.valid = used >= 4 && size() < capacity;
     if (used > 0) {
         result.transient = cost / used;
         result.transient_stddev = std::sqrt(std::max(0.0f, cost_squared / used - result.transient * result.transient));
@@ -170,7 +186,7 @@ Score Capture::score() const {
 }
 
 float Capture::noise_floor() const {
-    const size_t n = std::min(size(), samples_.size());
+    const size_t n = samples_ ? std::min(size(), capacity) : 0;
     if (n < 16) {
         return std::numeric_limits<float>::infinity();
     }
