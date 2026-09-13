@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 
 namespace buddy::extrusion_calibration {
 
@@ -42,17 +43,21 @@ public:
     // remains fail-safe rather than consuming unbounded memory.
     static constexpr size_t capacity = 1280;
 
-    void start();
+    /// Allocate the capture buffer and begin a new capture. The buffer exists
+    /// only while M976 is measuring, leaving calibration/phase-stepping heap
+    /// headroom untouched during normal operation.
+    bool start();
     void pause();
     void resume();
     size_t stop();
+    void release();
     void record(uint32_t time_us, float load_g, float e_position_mm);
     Score score() const;
     float noise_floor() const;
     size_t size() const { return count_.load(std::memory_order_acquire); }
 
 private:
-    std::array<Sample, capacity> samples_ {};
+    std::unique_ptr<Sample[]> samples_;
     std::atomic_size_t count_ { 0 };
     std::atomic_bool active_ { false };
 };
