@@ -23,6 +23,10 @@ Firmware Buddy 6.10.1.
   load-cell samples are still resident.
 - Reduced remaining analysis peak memory by filtering backward in place and
   compiling the rough-alignment score trace out of production images.
+- Restored phase-stepping calibration heap headroom by removing the idle
+  15 KiB automatic-PA sample buffer from permanent SRAM. M976 now acquires its
+  bounded capture buffer only while measuring, releases it on every exit, and
+  reports an explicit error if memory is unavailable.
 - Removed the remaining heap-backed progress callback from tool-offset
   calibration. Its callback now uses bounded inline storage and is checked at
   compile time to remain allocation-free.

@@ -4,9 +4,23 @@
 
 using buddy::extrusion_calibration::Capture;
 
+TEST_CASE("calibration capture does not permanently consume the sample buffer") {
+    // Keeping the 15 KiB sample array inside the global Capture object starves
+    // phase-stepping calibration even when M976 is idle.
+    STATIC_REQUIRE(sizeof(Capture) < 64);
+    Capture capture;
+    REQUIRE(capture.start());
+    capture.record(1'000, 2, 0.01f);
+    capture.stop();
+    REQUIRE(capture.size() == 1);
+    capture.release();
+    REQUIRE(capture.size() == 0);
+    REQUIRE(capture.start());
+}
+
 TEST_CASE("calibration rejects an empty or truncated capture") {
     Capture capture;
-    capture.start();
+    REQUIRE(capture.start());
     REQUIRE_FALSE(capture.score().valid);
     for (size_t i = 0; i < Capture::capacity + 1; ++i) {
         capture.record(i * 3000, 0, 0);
@@ -17,7 +31,7 @@ TEST_CASE("calibration rejects an empty or truncated capture") {
 
 TEST_CASE("calibration capture excludes a paused cleaner wipe") {
     Capture capture;
-    capture.start();
+    REQUIRE(capture.start());
     capture.record(1'000, 2, 0.01f);
     capture.pause();
     capture.record(2'000, 100, 0.02f);
@@ -31,7 +45,7 @@ TEST_CASE("calibration capture excludes a paused cleaner wipe") {
 
 TEST_CASE("calibration scores repeated extrusion transitions") {
     Capture capture;
-    capture.start();
+    REQUIRE(capture.start());
     float e = 0;
     for (size_t i = 0; i < 240; ++i) {
         const bool fast = (i / 40) % 2;

@@ -532,7 +532,10 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     constexpr float fast_flow = 8.0f * filament_area;
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
     auto &capture = buddy::extrusion_calibration::capture();
-    capture.start();
+    if (!capture.start()) {
+        SERIAL_ERROR_MSG("M976 capture memory unavailable");
+        return {};
+    }
 #if HAS_INDX()
     capture.pause();
 #else
@@ -558,6 +561,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
         capture.pause();
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
             capture.stop();
+            capture.release();
             return {};
         }
     #if HAS_WASTEBIN_FILL_TRACKING()
@@ -571,16 +575,23 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     planner.synchronize();
     pressure_advance::set_calibration_mode(false);
     capture.stop();
-    return capture.score();
+    const auto result = capture.score();
+    capture.release();
+    return result;
 }
 
 float measure_idle_noise_floor() {
     auto &capture = buddy::extrusion_calibration::capture();
     planner.synchronize();
-    capture.start();
+    if (!capture.start()) {
+        SERIAL_ERROR_MSG("M976 capture memory unavailable");
+        return std::numeric_limits<float>::infinity();
+    }
     GcodeSuite::dwell(300);
     capture.stop();
-    return capture.noise_floor();
+    const float result = capture.noise_floor();
+    capture.release();
+    return result;
 }
 
 float result_confidence(const buddy::extrusion_calibration::Score &score, const float idle_noise, const float separation = 1.0f) {
