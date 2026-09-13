@@ -1546,3 +1546,9 @@ INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
 - Unit coverage exercises activation, print rejection, one-shot local events,
   session cleanup, and non-mutating queries. The release matrix compiles both
   side-light and no-side-light configurations.
+
+### Mapped-tool filament loading
+
+- Fixed filament-menu tool selection on INDX and other mapped-tool systems.
+  Virtual filament slots are translated through the active tool map before
+  emitting a `T` command, avoiding false pickup-failure warnings.
