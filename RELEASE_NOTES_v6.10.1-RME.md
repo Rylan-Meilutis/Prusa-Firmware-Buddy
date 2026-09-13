@@ -13,6 +13,13 @@ Firmware Buddy 6.10.1.
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
   PID editing, automatic-PA target restoration, and RME tool-map reporting now
   iterate only strongly typed real tools; the sentinel is never advertised.
+- Fixed tool-offset calibration exhausting the heap after its first recorded
+  sweep. The large segmented load-cell sample buffer is now moved into the
+  analysis result instead of being copied, and the result type is explicitly
+  move-only so the firmware cannot silently reintroduce that allocation.
+- Removed the remaining heap-backed progress callback from tool-offset
+  calibration. Its callback now uses bounded inline storage and is checked at
+  compile time to remain allocation-free.
 - Includes upstream 6.10.1 translations, welcome-screen corrections, and
   updated Prusa error-code definitions.
 - Retains bounded text, bulk, and framed-binary parsing; durable resumable
@@ -27,6 +34,8 @@ Firmware Buddy 6.10.1.
 ## Validation
 
 - RME protocol/parser, transfer, Connect, and persistent-store test suites.
+- CORE One INDX release link with compile-time enforcement of move-only sweep
+  recordings and bounded progress callbacks.
 - Complete final firmware matrix for every supported preset and translated
   MINI image.
 - Per-target FLASH, RAM, CCMRAM, ISR-stack, firmware-descriptor, and backup-RAM
