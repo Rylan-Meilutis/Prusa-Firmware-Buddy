@@ -47,6 +47,9 @@ store, and crash-dump changes are retained.
   emitting a `T` command, avoiding false pickup-failure warnings.
 - Pickup validation now checks the attached physical nozzle rather than the
   still-inactive virtual filament slot, allowing M701 to load that slot.
+- Restored the INDX interactive loading metadata sequence. Selecting a
+  material now continues to color and manufacturer selection, and M701
+  preserves both choices when committing the loaded virtual filament slot.
 
 ## Validation
 
