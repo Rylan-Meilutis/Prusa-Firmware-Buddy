@@ -95,8 +95,8 @@ void apply_hotend_pid(float p, float i, float d) {
         .Kd = scalePID_d(d),
     };
 
-    for (int8_t e = 0; e < HOTENDS; ++e) {
-        Hotend::for_tool(PhysicalToolIndex::from_raw(e)).set_nozzle_pid_config(pid);
+    for (const auto tool : PhysicalToolIndex::all()) {
+        Hotend::for_tool(tool).set_nozzle_pid_config(pid);
     }
 #endif
 }

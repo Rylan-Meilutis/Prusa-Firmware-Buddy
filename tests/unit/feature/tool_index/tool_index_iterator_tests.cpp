@@ -26,6 +26,11 @@ bool VirtualToolIndex::is_enabled() const {
     return enabled_virtual_tools.contains(self.to_raw());
 }
 
+template <>
+bool GcodeToolIndex::is_enabled() const {
+    return true;
+}
+
 Items test_iterator(auto iterator) {
     Items result;
     for (auto tool : iterator) {
@@ -53,6 +58,15 @@ TEST_CASE("ToolIndexIterator::physical") {
     CHECK(test_iterator(Iterator::make_single(Index::from_raw(3)).skip_all_disabled()) == Items { 3 });
 
     CHECK_THROWS(Index::from_raw(5));
+}
+
+TEST_CASE("typed tool iteration excludes Marlin NoTool sentinels") {
+    // This fixture models a toolchanger: Marlin exposes one extra HOTENDS entry
+    // for NoTool, while only PhysicalToolIndex values are safe to dereference.
+    STATIC_CHECK(HOTENDS == PhysicalToolIndex::count + 1);
+    STATIC_CHECK(EXTRUDERS == GcodeToolIndex::count + 1);
+    CHECK(test_iterator(PhysicalToolIndex::all()) == Items { 0, 1, 2, 3, 4 });
+    CHECK(test_iterator(GcodeToolIndex::all()) == Items { 0, 1, 2, 3 });
 }
 
 TEST_CASE("ToolIndexIterator::virtual") {
