@@ -13,6 +13,9 @@ store, and crash-dump changes are retained.
   sweep. The large segmented load-cell sample buffer is now moved into the
   analysis result instead of being copied, and the result is compile-time
   guarded as move-only. The progress callback also uses bounded inline storage.
+- Removed the subsequent final-analysis allocation of a 2,800-float motion
+  lookup table. Position estimation now evaluates the sweep profile directly
+  while the recorded load-cell data remains resident.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
