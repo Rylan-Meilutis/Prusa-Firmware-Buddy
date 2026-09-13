@@ -42,6 +42,9 @@ store, and crash-dump changes are retained.
   Upstream added a calibration item whose hash collides with the former RME
   key, so custom color values reset once on upgrade instead of risking
   calibration or settings corruption.
+- Fixed filament-menu tool selection on INDX and other mapped-tool systems.
+  Virtual filament slots are translated through the active tool map before
+  emitting a `T` command, avoiding false pickup-failure warnings.
 
 ## Validation
 
