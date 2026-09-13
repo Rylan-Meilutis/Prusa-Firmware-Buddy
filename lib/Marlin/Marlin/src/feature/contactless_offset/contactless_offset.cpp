@@ -983,16 +983,10 @@ static bool preprocess_signal(
         signal_value.push_back(median_filter.filter(raw_samples[ext_start + i].sensor_value));
     }
 
-    sfl::segmented_vector<float, 256> bwd;
-    bwd.reserve(ext_size);
-    bwd.resize(ext_size);
     median_filter.reset();
     for (size_t i = ext_size; i-- > 0;) {
-        bwd[i] = median_filter.filter(raw_samples[ext_start + i].sensor_value);
-    }
-
-    for (size_t i = 0; i < ext_size; ++i) {
-        signal_value[i] = (signal_value[i] + bwd[i]) * 0.5f;
+        const float backward_value = median_filter.filter(raw_samples[ext_start + i].sensor_value);
+        signal_value[i] = (signal_value[i] + backward_value) * 0.5f;
     }
 
     auto [mean, std_val] = sp::normalize_inplace(signal_value);
@@ -1399,8 +1393,10 @@ static std::optional<int> find_rough_time_alignment(
     // Sweep over candidate shifts, compute integrated energy in the four
     // pass windows for each shift, find the best.
     const int k_search = seconds_to_samples(max_shift_s, dt_dec);
+#if TOOL_OFFSET_DEBUG()
     sfl::segmented_vector<float, 256> score_curve;
     score_curve.reserve(static_cast<size_t>(2 * k_search + 1));
+#endif
     int k_best = 0;
     float s_best = -std::numeric_limits<float>::infinity();
     for (int k = -k_search; k <= k_search; ++k) {
@@ -1414,7 +1410,9 @@ static std::optional<int> find_rough_time_alignment(
                 s += energy[j];
             }
         }
+#if TOOL_OFFSET_DEBUG()
         score_curve.push_back(s);
+#endif
         if (s > s_best) {
             s_best = s;
             k_best = k;
@@ -1446,8 +1444,10 @@ static std::optional<int> find_rough_time_alignment(
         };
     }
 
+#if TOOL_OFFSET_DEBUG()
     debug_report_rough_align_score(label, dt_dec, -k_search, k_search, k_best,
         score_over_baseline, score_curve);
+#endif
     debug_report_rough_align_energy(label, decimation, dt_dec, /*threshold=*/0.0f,
         /*offset=*/k_best * decimation,
         regions.data(), regions.size(), energy);

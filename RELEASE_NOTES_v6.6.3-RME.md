@@ -12,6 +12,8 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
     compile-time guarded as move-only; progress callbacks use inline storage.
   * Removed the subsequent 2,800-float final-analysis lookup-table allocation;
     the estimator now evaluates the sweep profile directly.
+  * Reduced remaining analysis peak memory by filtering backward in place and
+    compiling the rough-alignment score trace out of production images.
   * Material telemetry now reports the base polymer family independently from
     the selected profile. Connect and Link expose `material=PLA` with a
     separate `profile=PLA-00D`, and loaded-filament serial reports use
