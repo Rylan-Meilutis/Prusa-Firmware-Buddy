@@ -1552,3 +1552,5 @@ INDX uses 65.95%. XL has the highest aggregate RAM use at 84.45%.
 - Fixed filament-menu tool selection on INDX and other mapped-tool systems.
   Virtual filament slots are translated through the active tool map before
   emitting a `T` command, avoiding false pickup-failure warnings.
+- Pickup validation now checks the attached physical nozzle rather than the
+  still-inactive virtual filament slot, allowing M701 to load that slot.
