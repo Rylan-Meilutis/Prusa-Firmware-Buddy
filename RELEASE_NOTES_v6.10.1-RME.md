@@ -21,6 +21,8 @@ Firmware Buddy 6.10.1.
   fix: final position estimation now evaluates the trapezoidal sweep profile
   directly instead of allocating a 2,800-float lookup table while recorded
   load-cell samples are still resident.
+- Reduced remaining analysis peak memory by filtering backward in place and
+  compiling the rough-alignment score trace out of production images.
 - Removed the remaining heap-backed progress callback from tool-offset
   calibration. Its callback now uses bounded inline storage and is checked at
   compile time to remain allocation-free.
