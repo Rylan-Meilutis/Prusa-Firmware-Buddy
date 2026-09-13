@@ -8,6 +8,11 @@ Firmware Buddy 6.10.1.
 
 ## Integration changes
 
+- Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
+  nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
+  construct a physical tool from the internal `NoTool` sentinel. PID loading,
+  PID editing, automatic-PA target restoration, and RME tool-map reporting now
+  iterate only strongly typed real tools; the sentinel is never advertised.
 - Includes upstream 6.10.1 translations, welcome-screen corrections, and
   updated Prusa error-code definitions.
 - Retains bounded text, bulk, and framed-binary parsing; durable resumable

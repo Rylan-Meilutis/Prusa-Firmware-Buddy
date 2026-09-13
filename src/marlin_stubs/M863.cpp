@@ -10,16 +10,16 @@
 void rme_report_tool_mapping() {
     SERIAL_ECHOPGM("RME_TOOLMAP ");
     SERIAL_ECHO(tool_mapper.is_enabled() ? 1 : 0);
-    for (uint8_t logical = 0; logical < EXTRUDERS; ++logical) {
+    // EXTRUDERS includes Marlin's NoTool sentinel on INDX.  It is internal
+    // state, not a host-visible logical tool.
+    for (const auto logical : GcodeToolIndex::all()) {
         SERIAL_ECHOPGM(" L");
-        SERIAL_ECHO(logical);
+        SERIAL_ECHO(logical.to_raw());
         SERIAL_CHAR('=');
-        const uint8_t physical = tool_mapper.to_virtual(logical, true);
-        if (physical == ToolMapper::NO_TOOL_MAPPED) {
-            SERIAL_ECHO(-1);
-        } else {
-            SERIAL_ECHO(physical);
-        }
+        match(
+            tool_mapper.to_virtual(logical, true),
+            [](const VirtualToolIndex tool) { SERIAL_ECHO(tool.to_raw()); },
+            [](const ToolNotMapped) { SERIAL_ECHO(-1); });
     }
     SERIAL_EOL();
 }
