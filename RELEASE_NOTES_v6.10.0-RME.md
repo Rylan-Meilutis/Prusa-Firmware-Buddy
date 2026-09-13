@@ -12,6 +12,8 @@ cooling, persistence, and toolchanger changes are retained.
 - Fixed tool-offset calibration exhausting the heap after its first recorded
   sweep. Its large load-cell recording is transferred without copying and is
   compile-time guarded as move-only; progress callbacks use inline storage.
+- Removed the subsequent 2,800-float final-analysis lookup-table allocation;
+  the estimator now evaluates the sweep profile directly.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
