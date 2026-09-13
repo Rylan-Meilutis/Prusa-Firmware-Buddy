@@ -59,11 +59,12 @@ expands_t multi_tool_expands() {
     marlin_client::gcode_printf("T%d S1 L0 D0", gcode_tool->to_raw());
     window_dlg_wait_t::wait_for_gcodes_to_finish();
 
-    // If the pickup failed (e.g. dock error), active_extruder won't match the
-    // tool we asked for. Notify the user, bail out so the caller doesn't
-    // proceed with the load/unload — and skip the Validate() below so the
-    // parent menu gets redrawn instead of staying stale.
-    if (!stdext::holds_value(marlin_vars().active_extruder.get(), *tool)) {
+    // Loading starts before the selected virtual filament slot contains any
+    // filament. On multiplexed systems (notably INDX), active_extruder is
+    // therefore intentionally NoTool even after the nozzle was picked up.
+    // Validate the physical pickup instead; the virtual slot only becomes
+    // active after M701 has loaded it.
+    if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), tool->to_physical())) {
         MsgBoxWarning(_("Failed to pick up the selected tool."), Responses_Ok);
         return false;
     }
