@@ -88,11 +88,14 @@ void filament_gcodes::M701_load(const M701LoadArgs &args) {
     InProgress progress;
 
     FilamentType filament_to_be_loaded = args.filament_to_be_loaded;
+    auto color_to_be_loaded = args.color_to_be_loaded;
     const VirtualToolIndex virtual_tool = args.virtual_tool;
     const bool do_purge_only = args.fast_load_length.has_value() && *args.fast_load_length <= 0.0f;
 
     if (args.op_preheat) {
         if (filament_to_be_loaded == FilamentType::none) {
+            filament::set_color_to_load(std::nullopt);
+            filament::set_manufacturer_to_load(std::nullopt);
             const FilamentSelectionArgs data {
                 .mode = do_purge_only ? PreheatMode::purge : PreheatMode::standard_load,
                 .tool = virtual_tool,
@@ -109,12 +112,16 @@ void filament_gcodes::M701_load(const M701LoadArgs &args) {
             }
 
             filament_to_be_loaded = preheat_ret.second;
+            if (!color_to_be_loaded) {
+                color_to_be_loaded = filament::get_color_to_load();
+            }
         } else {
+            filament::set_manufacturer_to_load(std::nullopt);
             preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::for_filament_load(false));
         }
     }
     filament::set_type_to_load(filament_to_be_loaded);
-    filament::set_color_to_load(args.color_to_be_loaded);
+    filament::set_color_to_load(color_to_be_loaded);
 
     pause::Settings settings;
     settings.SetExtruder(virtual_tool);
