@@ -179,6 +179,76 @@ struct SweepSpeedProfile {
         };
     }
 
+    struct Sample {
+        float position;
+        float velocity;
+    };
+
+    // Evaluate the commanded sweep analytically. Keeping this calculation
+    // here avoids materializing a multi-kilobyte position lookup table during
+    // analysis, when the load-cell recording is still resident in the heap.
+    Sample sample_at(float time) const {
+        const auto pass_sample = [&](float pass_time, float speed, float t) {
+            float accel_time = speed / accel;
+            float accel_distance = 0.5f * accel * accel_time * accel_time;
+            float cruise_speed = speed;
+            if (2.0f * accel_distance >= total_distance) {
+                accel_distance = total_distance / 2.0f;
+                accel_time = std::sqrt(2.0f * accel_distance / accel);
+                cruise_speed = accel * accel_time;
+            }
+            const float cruise_distance = total_distance - 2.0f * accel_distance;
+            const float cruise_time = pass_time - 2.0f * accel_time;
+
+            if (t < accel_time) {
+                return Sample { 0.5f * accel * t * t, accel * t };
+            }
+            if (t < accel_time + cruise_time) {
+                const float cruise_t = t - accel_time;
+                return Sample { accel_distance + cruise_speed * cruise_t, cruise_speed };
+            }
+            const float decel_t = std::min(t - accel_time - cruise_time, accel_time);
+            return Sample {
+                accel_distance + cruise_distance + cruise_speed * decel_t - 0.5f * accel * decel_t * decel_t,
+                cruise_speed - accel * decel_t,
+            };
+        };
+
+        const float pass1 = pass_time1();
+        const float pass2 = pass_time2();
+        float cursor = rest_time;
+        if (time < cursor) {
+            return { 0, 0 };
+        }
+        if (time < cursor + pass1) {
+            return pass_sample(pass1, speed1, time - cursor);
+        }
+        cursor += pass1 + rest_time;
+        if (time < cursor) {
+            return { total_distance, 0 };
+        }
+        if (time < cursor + pass1) {
+            const auto sample = pass_sample(pass1, speed1, time - cursor);
+            return { total_distance - sample.position, -sample.velocity };
+        }
+        cursor += pass1 + rest_time;
+        if (time < cursor) {
+            return { 0, 0 };
+        }
+        if (time < cursor + pass2) {
+            return pass_sample(pass2, speed2, time - cursor);
+        }
+        cursor += pass2 + rest_time;
+        if (time < cursor) {
+            return { total_distance, 0 };
+        }
+        if (time < cursor + pass2) {
+            const auto sample = pass_sample(pass2, speed2, time - cursor);
+            return { total_distance - sample.position, -sample.velocity };
+        }
+        return { 0, 0 };
+    }
+
     // Build a type-erased velocity source for the full sweep motion
     sp::pipe::SignalSource<float> make_source(sp::SamplingFreq freq) const {
         auto trapezoid = [&](float speed) -> sp::pipe::SignalSource<float> {
@@ -1884,9 +1954,7 @@ static PositionEstimate estimate_position_iterative(
     const float *peak_times,
     const float *weights,
     size_t n_peaks,
-    const sfl::segmented_vector<float, 512> &position_table,
-    sp::SamplingFreq motion_sampling_freq,
-    float total_time,
+    const SweepSpeedProfile &profile,
     float max_delay_s) {
 
     uint32_t estimate_start_us = ticks_us();
@@ -1897,6 +1965,7 @@ static PositionEstimate estimate_position_iterative(
         min_peak = std::min(min_peak, peak_times[i]);
         max_peak = std::max(max_peak, peak_times[i]);
     }
+    const float total_time = profile.total_time();
     float tau_lower = std::max(-max_delay_s, max_peak - total_time);
     float tau_upper = std::min(max_delay_s, min_peak);
     if (tau_upper <= tau_lower) {
@@ -1913,11 +1982,6 @@ static PositionEstimate estimate_position_iterative(
     float best_tau = 0;
     float min_variance = std::numeric_limits<float>::infinity();
     float best_mean_position = 0;
-
-    const size_t table_size = position_table.size();
-    if (table_size < 2) {
-        return { 0, 0, std::numeric_limits<float>::infinity() };
-    }
 
     // Reject peaks that land on flat regions (rest periods / turnarounds)
     // where position is not changing — these give degenerate zero-variance
@@ -1940,21 +2004,12 @@ static PositionEstimate estimate_position_iterative(
                 continue;
             }
 
-            // O(1) lookup with linear interpolation for sub-step precision
-            float fidx = aligned_time * motion_sampling_freq;
-            size_t idx = static_cast<size_t>(fidx);
-            if (idx >= table_size - 1) {
-                idx = table_size - 2;
-            }
-
-            // Check local velocity — reject peaks on plateaus
-            float velocity = std::abs(position_table[idx + 1] - position_table[idx]) * motion_sampling_freq;
-            if (velocity < min_velocity_mm_s) {
+            const auto sample = profile.sample_at(aligned_time);
+            if (std::abs(sample.velocity) < min_velocity_mm_s) {
                 continue;
             }
 
-            float frac = fidx - static_cast<float>(idx);
-            float pos = position_table[idx] + frac * (position_table[idx + 1] - position_table[idx]);
+            const float pos = sample.position;
 
             float w = weights ? weights[i] : 1.0f;
             sum_wpos += w * pos;
@@ -1984,8 +2039,7 @@ static PositionEstimate estimate_position_iterative(
 // Compute final position estimate using all/forward/backward peak subsets
 static TwoSpeedAnalysisResult estimate_position_from_peaks(
     const FourPassPeaks &peaks,
-    const SweepSpeedProfile &profile,
-    sp::SamplingFreq motion_sampling_freq) {
+    const SweepSpeedProfile &profile) {
 
     constexpr float max_delay_fallback_s = 0.5f;
     constexpr float max_spread_mm = 0.1f; // spread above this → zero confidence
@@ -2004,21 +2058,6 @@ static TwoSpeedAnalysisResult estimate_position_from_peaks(
     float forward_peaks[2] = { peaks.pass1.peak_time_s, peaks.pass3.peak_time_s };
     float backward_peaks[2] = { peaks.pass2.peak_time_s, peaks.pass4.peak_time_s };
 
-    const float dt = 1.0f / motion_sampling_freq;
-    auto speed_source = profile.make_source(motion_sampling_freq);
-    sfl::segmented_vector<float, 512> position_table;
-    position_table.reserve(profile.total_samples(motion_sampling_freq));
-    {
-        float pos = 0;
-        while (sp::pipe::available(speed_source)) {
-            pos += speed_source.next() * dt;
-            position_table.push_back(pos);
-        }
-    }
-
-    log_info(ContactlessOffset, "estimate_position_from_peaks: built position_table with %u entries",
-        static_cast<unsigned>(position_table.size()));
-
     // Dynamic max delay: at least 0.5s, or 10% of profile duration if larger
     float max_delay = std::max(max_delay_fallback_s, profile.total_time() * 0.1f);
 
@@ -2029,17 +2068,17 @@ static TwoSpeedAnalysisResult estimate_position_from_peaks(
 
     uint32_t est_all_start_us = ticks_us();
     result.estimate_all = estimate_position_iterative(
-        all_peaks, all_weights, 4, position_table, motion_sampling_freq, profile.total_time(), max_delay);
+        all_peaks, all_weights, 4, profile, max_delay);
     uint32_t est_all_us = ticks_us() - est_all_start_us;
 
     uint32_t est_fwd_start_us = ticks_us();
     result.estimate_forward = estimate_position_iterative(
-        forward_peaks, nullptr, 2, position_table, motion_sampling_freq, profile.total_time(), max_delay);
+        forward_peaks, nullptr, 2, profile, max_delay);
     uint32_t est_fwd_us = ticks_us() - est_fwd_start_us;
 
     uint32_t est_bwd_start_us = ticks_us();
     result.estimate_backward = estimate_position_iterative(
-        backward_peaks, nullptr, 2, position_table, motion_sampling_freq, profile.total_time(), max_delay);
+        backward_peaks, nullptr, 2, profile, max_delay);
     uint32_t est_bwd_us = ticks_us() - est_bwd_start_us;
 
     log_info(ContactlessOffset, "estimate_position_from_peaks: estimate_all=%uus estimate_fwd=%uus estimate_bwd=%uus",
@@ -2096,7 +2135,7 @@ static std::expected<TwoSpeedAnalysisResult, const char *> analyze_twospeed_swee
     uint32_t peaks_us = ticks_us() - peaks_start_us;
 
     uint32_t final_result_start_us = ticks_us();
-    TwoSpeedAnalysisResult result = estimate_position_from_peaks(peaks, profile, motion_sampling_freq);
+    TwoSpeedAnalysisResult result = estimate_position_from_peaks(peaks, profile);
     uint32_t final_result_us = ticks_us() - final_result_start_us;
 
     log_info(ContactlessOffset, "analyze_twospeed: total %uus (detect_peaks=%uus compute_result=%uus) samples=%u",

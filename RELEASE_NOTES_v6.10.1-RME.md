@@ -17,6 +17,10 @@ Firmware Buddy 6.10.1.
   sweep. The large segmented load-cell sample buffer is now moved into the
   analysis result instead of being copied, and the result type is explicitly
   move-only so the firmware cannot silently reintroduce that allocation.
+- Removed the second calibration heap spike identified after the recording
+  fix: final position estimation now evaluates the trapezoidal sweep profile
+  directly instead of allocating a 2,800-float lookup table while recorded
+  load-cell samples are still resident.
 - Removed the remaining heap-backed progress callback from tool-offset
   calibration. Its callback now uses bounded inline storage and is checked at
   compile time to remain allocation-free.
