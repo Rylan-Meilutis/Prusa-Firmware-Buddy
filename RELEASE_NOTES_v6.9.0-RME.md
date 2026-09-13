@@ -16,6 +16,8 @@ store, and crash-dump changes are retained.
 - Removed the subsequent final-analysis allocation of a 2,800-float motion
   lookup table. Position estimation now evaluates the sweep profile directly
   while the recorded load-cell data remains resident.
+- Reduced remaining analysis peak memory by filtering backward in place and
+  compiling the rough-alignment score trace out of production images.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
