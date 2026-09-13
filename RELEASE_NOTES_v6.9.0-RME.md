@@ -9,6 +9,10 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Fixed tool-offset calibration exhausting the heap after its first recorded
+  sweep. The large segmented load-cell sample buffer is now moved into the
+  analysis result instead of being copied, and the result is compile-time
+  guarded as move-only. The progress callback also uses bounded inline storage.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
