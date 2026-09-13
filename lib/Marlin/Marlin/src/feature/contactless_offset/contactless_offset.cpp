@@ -60,6 +60,8 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <type_traits>
+#include <utility>
 #include <sfl/segmented_vector.hpp>
 #include <puppies/INDX.hpp>
 #include <puppies/PuppyModbus.hpp>
@@ -218,6 +220,12 @@ struct RawRecordedSample {
 };
 
 struct MotionExecutionResult {
+    MotionExecutionResult() = default;
+    MotionExecutionResult(const MotionExecutionResult &) = delete;
+    MotionExecutionResult &operator=(const MotionExecutionResult &) = delete;
+    MotionExecutionResult(MotionExecutionResult &&) noexcept = default;
+    MotionExecutionResult &operator=(MotionExecutionResult &&) noexcept = default;
+
     sfl::segmented_vector<RawRecordedSample, 512> raw_samples;
     abce_pos_t moved_by;
     float sensor_sampling_freq_hz;
@@ -386,8 +394,13 @@ std::expected<MotionExecutionResult, const char *> execute_motion_with_recording
     case tool_offset::Sensor::Error::NONE:
         break;
     }
-    return std::expected<MotionExecutionResult, const char *>(result);
+    // The recording can span many segmented-vector blocks. Copying it here
+    // temporarily doubles its heap use and can exhaust RAM during calibration.
+    return std::expected<MotionExecutionResult, const char *>(std::move(result));
 }
+
+static_assert(!std::is_copy_constructible_v<MotionExecutionResult>);
+static_assert(std::is_nothrow_move_constructible_v<MotionExecutionResult>);
 
 // Project speed sources along (dir_x, dir_y) into XYZE motion signal
 template <typename SpeedSourceX, typename SpeedSourceY>

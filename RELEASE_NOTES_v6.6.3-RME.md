@@ -7,6 +7,9 @@ Prusa Firmware Buddy 6.6.3. No 6.6.2-RME feature was intentionally removed.
 
 ### Additions since 6.6.2-RME
 
+  * Fixed tool-offset calibration exhausting the heap after its first recorded
+    sweep. Its large load-cell recording is moved rather than copied and is
+    compile-time guarded as move-only; progress callbacks use inline storage.
   * Material telemetry now reports the base polymer family independently from
     the selected profile. Connect and Link expose `material=PLA` with a
     separate `profile=PLA-00D`, and loaded-filament serial reports use
