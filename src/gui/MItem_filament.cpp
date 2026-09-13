@@ -11,6 +11,7 @@
 
 #if HAS_TOOLCHANGER()
     #include "module/prusa/toolchanger.h"
+    #include "module/prusa/tool_mapper.hpp"
     #include <gui/dialogs/dialog_tool_select.hpp>
     #include "screen_menu_filament_changeall.hpp"
 #endif
@@ -45,8 +46,17 @@ expands_t multi_tool_expands() {
         return false;
     }
 
+    // The selector returns a virtual filament slot, while T commands address
+    // G-code tools. These are different index spaces when tool mapping (for
+    // example INDX) is active, so never serialize the virtual index directly.
+    const auto gcode_tool = stdext::get_optional<GcodeToolIndex>(tool_mapper.to_gcode(*tool));
+    if (!gcode_tool) {
+        MsgBoxWarning(_("G-Code tool is not mapped."), Responses_Ok);
+        return false;
+    }
+
     marlin_client::gcode("G27 P0 Z5"); // Lift Z if not high enough
-    marlin_client::gcode_printf("T%d S1 L0 D0", tool->to_raw());
+    marlin_client::gcode_printf("T%d S1 L0 D0", gcode_tool->to_raw());
     window_dlg_wait_t::wait_for_gcodes_to_finish();
 
     // If the pickup failed (e.g. dock error), active_extruder won't match the

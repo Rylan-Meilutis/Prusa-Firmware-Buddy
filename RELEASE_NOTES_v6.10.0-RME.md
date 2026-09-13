@@ -36,6 +36,9 @@ cooling, persistence, and toolchanger changes are retained.
   behavior with the 6.10.0 GUI and lighting lifecycle.
 - Adopted upstream's animated hourglass assets and printer display names rather
   than restoring obsolete resources from the earlier firmware line.
+- Fixed filament-menu tool selection on INDX and other mapped-tool systems.
+  Virtual filament slots are translated through the active tool map before
+  emitting a `T` command, avoiding false pickup-failure warnings.
 
 ## Validation
 
