@@ -2,7 +2,7 @@
 /// @brief Tool offset calibration (Z-offset via probing + XY-offset with tool_offset board)
 #pragma once
 
-#include <functional>
+#include <inplace_function.hpp>
 
 #include <feature/contactless_offset/contactless_offset.hpp>
 #include <tool_index.hpp>
@@ -32,7 +32,12 @@ struct ProgressReport {
 /// Optional callback invoked once per tool, before that tool's prepare/probe/XY-scan. The
 /// callback runs on the marlin thread — keep it short and don't block. Return `false` to abort
 /// the calibration (run() will then return false without touching the remaining tools).
-using ProgressCallback = std::function<bool(const ProgressReport &)>;
+// Calibration is normally entered while the GUI and puppy/CAN workflows have
+// already consumed most of the available runtime memory.  std::function is
+// permitted to allocate here (and did make entering this wizard dependent on
+// the state of the system heap).  Keep the callback entirely inline instead.
+using ProgressCallback = stdext::inplace_function<bool(const ProgressReport &)>;
+static_assert(sizeof(ProgressCallback) <= sizeof(void *) * 4);
 
 /// Run the full tool offset calibration sequence:
 /// 1. Z-offset calibration: probe a line with first tool at reference positions, interpolate other tools
