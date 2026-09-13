@@ -44,6 +44,9 @@ Firmware Buddy 6.10.1.
   The selected virtual filament slot is now translated through the active
   tool map before emitting a `T` command, preventing a successful pickup from
   being falsely reported as "Failed to pick up the selected tool."
+- Pickup validation now checks the attached physical nozzle rather than
+  `active_extruder`. Before M701 loads filament, an INDX virtual slot is
+  intentionally inactive, so the old check falsely rejected every nozzle.
 
 ## Validation
 
