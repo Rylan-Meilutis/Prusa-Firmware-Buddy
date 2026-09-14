@@ -8,6 +8,11 @@ Firmware Buddy 6.10.1.
 
 ## Integration changes
 
+- A parameterless `M105` is now valid while every INDX tool is parked. It
+  returns the normal no-tool temperature snapshot without emitting
+  `echo: Invalid extruder -1`, so OctoPrint does not incorrectly blacklist T0
+  before a serial print selects its first tool. Explicit invalid `M105 Tn`
+  requests remain errors.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
