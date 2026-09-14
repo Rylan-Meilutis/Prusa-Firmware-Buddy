@@ -55,6 +55,7 @@ GcodeSuite gcode;
 #endif
 
 #include "../Marlin.h" // for idle() and suspend_auto_report
+#include <host_keepalive_policy.hpp>
 
 #include "odometer.hpp"
 
@@ -821,7 +822,7 @@ void GcodeSuite::process_subcommands_now(char * gcode) {
 
     const millis_t ms = millis();
     static millis_t next_busy_signal_ms = 0;
-    if (!suspend_auto_report && host_keepalive_interval && busy_state != NOT_BUSY) {
+    if (buddy::host_keepalive_policy::should_emit(host_keepalive_interval, busy_state != NOT_BUSY)) {
       if (PENDING(ms, next_busy_signal_ms)) return;
       switch (busy_state) {
         case IN_HANDLER:

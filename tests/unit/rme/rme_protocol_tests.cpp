@@ -17,6 +17,7 @@
 #include <g427_tool_selection.hpp>
 #include <task_stack_requirements.hpp>
 #include <unknown_axis_motion.hpp>
+#include <host_keepalive_policy.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -33,6 +34,16 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("Host keepalive remains active when calibration suspends auto reports", "[rme][serial][regression]") {
+    using buddy::host_keepalive_policy::should_emit;
+
+    // Auto-report state is deliberately absent from this policy. M97x/G426 and
+    // similar long operations may suppress telemetry, never the host heartbeat.
+    CHECK(should_emit(2, true));
+    CHECK_FALSE(should_emit(0, true));
+    CHECK_FALSE(should_emit(2, false));
+}
 
 TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
     using rme_indx_workflow::nozzle_mismatch;
