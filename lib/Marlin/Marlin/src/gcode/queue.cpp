@@ -48,6 +48,7 @@ GCodeQueue queue;
 #include <rme_protocol_parser.hpp>
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
+#include <rme_indx_workflow.hpp>
 #include <indx_dock_tolerance.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
@@ -64,6 +65,9 @@ GCodeQueue queue;
   #define RME_HAS_INDX() HAS_INDX()
 #else
   #define RME_HAS_INDX() 0
+#endif
+#if RME_HAS_INDX()
+  #include <common/marlin_server_types/fsm/nozzle_mismatch_phases.hpp>
 #endif
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
@@ -1197,6 +1201,44 @@ static bool handle_remote_dock_service(const std::string_view command) {
 #endif
 }
 
+static bool handle_remote_indx_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME INDX ";
+  if (!command.starts_with(prefix)) return false;
+#if RME_HAS_INDX()
+  if (!command.substr(prefix.size()).starts_with("SLOT SELECT")) return false;
+  const auto slot = remote_number(command, "slot");
+  if (!slot || *slot < 0 || static_cast<size_t>(*slot) >= PhysicalToolIndex::count) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx_slot_selection code=invalid_slot");
+    return true;
+  }
+  const auto selected = PhysicalToolIndex::from_raw(static_cast<uint8_t>(*slot));
+  bool selection_active = false;
+  marlin_vars().peek_fsm_states([&](const fsm::States &states) {
+    const auto top = states.get_top();
+    selection_active = top && top->fsm_type == ClientFSM::NozzleMismatch
+      && top->data.GetPhase() == std::to_underlying(PhaseNozzleMismatch::dock_selection);
+  });
+  if (!selection_active) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx_slot_selection code=no_active_selection");
+    return true;
+  }
+  // Match the local dock-selection screen: normally offer enabled docks, but
+  // permit every physical dock when none is configured yet after reset.
+  if (!selected.is_enabled() && PhysicalToolIndex::enabled_range_size() != 0) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx_slot_selection code=disabled_slot");
+    return true;
+  }
+  marlin_server::set_response(EncodedFSMResponse {
+    .response = FSMResponseVariant::make<uint8_t>(selected.to_raw()),
+    .fsm_and_phase = PhaseNozzleMismatch::dock_selection,
+  });
+  return true;
+#else
+  SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx code=unsupported feature=indx");
+  return true;
+#endif
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
@@ -1213,6 +1255,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_toolmap_service(command)
       || handle_remote_spool_join_service(command)
       || handle_remote_dock_service(command)
+      || handle_remote_indx_service(command)
       || buddy_rme_firmware_service(payload)
       || buddy_rme_file_service(payload)
       || handle_dialog_service_response(payload)) return true;
@@ -1225,6 +1268,49 @@ extern "C" bool buddy_rme_service_frame(const char *raw_command) {
 }
 
 static void report_service_queue_status() {
+  const char *workflow = "printer";
+  const char *phase = "none";
+  const char *state = "idle";
+  marlin_vars().peek_fsm_states([&](const fsm::States &states) {
+    const auto top = states.get_top();
+    if (!top) return;
+    const uint8_t raw_phase = top->data.GetPhase();
+#if RME_HAS_INDX()
+    switch (top->fsm_type) {
+      case ClientFSM::NozzleMismatch: {
+        const auto descriptor = rme_indx_workflow::nozzle_mismatch(raw_phase);
+        workflow = descriptor.workflow;
+        phase = descriptor.phase;
+        state = descriptor.error ? "waiting" : "active";
+        break;
+      }
+      case ClientFSM::DockCalibration:
+        workflow = "indx_dock_calibration";
+        phase = rme_indx_workflow::dock_calibration_phase(raw_phase);
+        state = raw_phase == std::to_underlying(PhaseDockCalibration::calibration_failed) ? "waiting" : "active";
+        break;
+      case ClientFSM::NozzleCleanerCalibration:
+        workflow = "indx_nozzle_cleaner_calibration";
+        phase = rme_indx_workflow::nozzle_cleaner_phase(raw_phase);
+        state = (raw_phase == std::to_underlying(PhaseNozzleCleanerCalibration::evaluating_x)
+              || raw_phase == std::to_underlying(PhaseNozzleCleanerCalibration::evaluating_y)
+              || raw_phase == std::to_underlying(PhaseNozzleCleanerCalibration::clean_nozzle)) ? "waiting" : "active";
+        break;
+      case ClientFSM::ToolOffsetsCalibration:
+        workflow = "indx_tool_offset_calibration";
+        phase = rme_indx_workflow::tool_offsets_phase(raw_phase);
+        state = raw_phase == std::to_underlying(PhaseToolOffsetsCalibration::calibration_failed) ? "waiting" : "active";
+        break;
+      default: break;
+    }
+#endif
+  });
+  SERIAL_ECHOPGM("RME_DIALOG workflow=");
+  SERIAL_ECHO(workflow);
+  SERIAL_ECHOPGM(" phase=");
+  SERIAL_ECHO(phase);
+  SERIAL_ECHOPGM(" state=");
+  SERIAL_ECHOLN(state);
   SERIAL_ECHOPGM("RME_PROMPT ");
   bool first = true;
   marlin_vars().peek_fsm_states([&](const fsm::States &states) {

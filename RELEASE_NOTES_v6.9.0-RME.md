@@ -111,3 +111,10 @@ and carry the `6.9.0-RME` firmware suffix.
   `RME_CHANGE domain=spooljoin key=joins` notifications.
 - Serial tool-offset, pressure-advance, phase-stepping, and INDX tool-offset
   calibration now hold the configured active lighting state until completion.
+- A parked INDX toolchanger no longer reports extruder `-1` as an invalid tool
+  when parameterless temperature, fan, or configuration commands are sent.
+- Added structured RME dialog routing for INDX tool detection, dock/slot
+  selection, pickup and park failures, dock calibration, nozzle-cleaner
+  calibration, tool-offset calibration, and future generic INDX errors.
+- Added guarded remote selection for the INDX unknown-tool dock picker with
+  `@RME INDX SLOT SELECT slot=<zero-based-index>`.
