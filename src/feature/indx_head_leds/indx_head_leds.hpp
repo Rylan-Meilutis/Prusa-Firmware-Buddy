@@ -1,15 +1,13 @@
 /// @file
 #pragma once
 
+#include <utils/led_color.hpp>
+
 namespace indx_head_leds {
 
-/// (Re)evaluates the printer state and pushes the matching color/animation to the
-/// INDX head LEDs, but only when the resulting state actually changes — the head
-/// runs the animations itself, so buddy just reacts to transitions.
-///
-/// Respects config_store().tool_leds_enabled. Follows the chamber light: shares its
-/// brightness levels and dims on the same inactivity (alert states stay lit). Called
-/// from LEDManager::update() (rate-limited, power-panic aware).
-void update();
+/// Mirrors the already-rendered center pixel of the front status bar to the INDX
+/// head. This keeps configured colors, brightness and animation frames identical.
+/// Respects config_store().tool_leds_enabled and only sends real changes.
+void update(leds::ColorRGBW front_status_color);
 
 } // namespace indx_head_leds
