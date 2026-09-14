@@ -361,11 +361,13 @@ physical indices are passed directly to the physical toolchanger rather than
 being reinterpreted as mapped G-code tools. A fresh strand is wiped/broken
 before pellet ejection.
 
-After INDX XY homing, ordinary serial `G0`/`G1` destinations and the complete
-envelope of serial `G2`/`G3` arcs must remain inside `RME_ENVELOPE`. Firmware
-rejects moves into the dock, cleaner, purge-bucket, or other service-only area
-instead of clamping and reshaping the move. Only native tool-change and cleaner
-commands may enter those areas; they use calibrated segmented keep-out paths.
+After INDX XY homing, ordinary serial `G0`/`G1` XY destinations and the complete
+envelope of serial `G2`/`G3` arcs may not cross the front dock boundary or enter
+the right-side cleaner/purge-bucket strip. Z-only and E-only commands remain
+valid while a native operation is temporarily inside a service area. Other
+machine bounds retain their normal software-endstop behavior. Only native
+tool-change and cleaner commands may enter service areas; they use calibrated
+segmented keep-out paths.
 
 ## Lifetime and job statistics
 

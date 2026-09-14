@@ -175,12 +175,13 @@ TEST_CASE("M976 never uses legacy sheet-contact cleanup on INDX", "[rme][m976][i
 
 TEST_CASE("INDX serial motion is confined to the printable rectangle", "[rme][indx][keepout][motion]") {
     using namespace buddy::indx_serial_motion_safety;
-    constexpr Bounds bounds { -1, 250, 0, 206.5f };
-    STATIC_REQUIRE(point_is_safe(125, 100, bounds));
-    STATIC_REQUIRE_FALSE(point_is_safe(251, 100, bounds));
-    STATIC_REQUIRE_FALSE(point_is_safe(125, -0.1f, bounds));
-    STATIC_REQUIRE(arc_is_safe(125, 100, 20, bounds));
-    STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, bounds));
+    constexpr ServiceBoundary boundary { 250, 0 };
+    STATIC_REQUIRE(point_is_safe(125, 100, boundary));
+    STATIC_REQUIRE(point_is_safe(-20, 220, boundary)); // ordinary endstops handle non-service sides
+    STATIC_REQUIRE_FALSE(point_is_safe(251, 100, boundary));
+    STATIC_REQUIRE_FALSE(point_is_safe(125, -0.1f, boundary));
+    STATIC_REQUIRE(arc_is_safe(125, 100, 20, boundary));
+    STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
 }
 
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {
