@@ -133,8 +133,8 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
         constexpr buddy::indx_serial_motion_safety::ServiceBoundary service_boundary {
           X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS
         };
-        if (!buddy::indx_serial_motion_safety::point_is_safe(current_position.x, current_position.y, service_boundary)
-            || !buddy::indx_serial_motion_safety::point_is_safe(destination.x, destination.y, service_boundary)) {
+        if (!buddy::indx_serial_motion_safety::linear_move_is_safe(
+                current_position.x, current_position.y, destination.x, destination.y, service_boundary)) {
           SERIAL_ERROR_MSG("Unsafe INDX move outside printable area");
           return;
         }
