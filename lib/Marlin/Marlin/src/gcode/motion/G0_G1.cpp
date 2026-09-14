@@ -88,7 +88,8 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
     #endif
   #endif
 
-  const bool xy_move_requested = parser.seen('X') || parser.seen('Y');
+  const bool x_move_requested = parser.seen('X');
+  const bool xy_move_requested = x_move_requested || parser.seen('Y');
 
   // Serial jogs may arrive before XY has ever been homed. Rebase unknown axes
   // to the conservative side opposite nearby hardware, mirroring the existing
@@ -134,7 +135,7 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
           X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS
         };
         if (!buddy::indx_serial_motion_safety::linear_move_is_safe(
-                current_position.x, current_position.y, destination.x, destination.y, service_boundary)) {
+                current_position.x, current_position.y, destination.x, destination.y, x_move_requested, service_boundary)) {
           SERIAL_ERROR_MSG("Unsafe INDX move outside printable area");
           return;
         }

@@ -173,3 +173,7 @@ and carry the `6.9.0-RME` firmware suffix.
 - INDX automatic PA now runs the toolhead fan while a wiped purge pellet cools
   for four seconds before ejection. The pellet is solid enough to leave the
   waste bin instead of folding into it and merging with later purges.
+- INDX serial keep-out validation now identifies lateral motion from the
+  command's X field instead of transformed floating-point coordinates. This
+  prevents valid relative Y-only purge moves from being falsely rejected after
+  tool-offset or mesh transforms while retaining the cleaner hard boundary.
