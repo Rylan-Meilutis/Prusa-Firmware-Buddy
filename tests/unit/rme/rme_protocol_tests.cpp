@@ -6,6 +6,7 @@
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
+#include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
 #include <task_stack_requirements.hpp>
 
@@ -404,6 +405,20 @@ TEST_CASE("RME production header scanner covers data and control frame states", 
 TEST_CASE("firmware candidate cleanup waits for bootloader handoff") {
     CHECK_FALSE(firmware_update_handoff::candidate_cleanup_allowed(true));
     CHECK(firmware_update_handoff::candidate_cleanup_allowed(false));
+}
+
+TEST_CASE("firmware cleanup marker waits for storage ownership and is checked once", "[rme][file][firmware]") {
+    firmware_update_handoff::CleanupGate gate;
+
+    CHECK_FALSE(gate.should_check(false, false));
+    CHECK_FALSE(gate.should_check(true, true));
+    CHECK(gate.should_check(true, false));
+    CHECK_FALSE(gate.should_check(true, false));
+    CHECK_FALSE(gate.should_check(true, true));
+
+    // Removing and reinserting the medium starts a new inspection lifetime.
+    CHECK_FALSE(gate.should_check(false, false));
+    CHECK(gate.should_check(true, false));
 }
 
 TEST_CASE("RME light hold is transient and print-safe", "[rme][light]") {

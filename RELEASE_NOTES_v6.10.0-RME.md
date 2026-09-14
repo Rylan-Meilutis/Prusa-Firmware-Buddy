@@ -44,6 +44,10 @@ cooling, persistence, and toolchanger changes are retained.
 - Restored the INDX interactive loading metadata sequence. Selecting a
   material now continues to color and manufacturer selection, and M701
   preserves both choices when committing the loaded virtual filament slot.
+- Fixed a watchdog crash when a startup crash-dump export overlapped an RME
+  firmware upload. Local and RME USB writers now share the transfer latch,
+  and the bootloader cleanup marker is inspected once per media insertion
+  after active storage work completes instead of reopening it every cycle.
 
 ## Validation
 
