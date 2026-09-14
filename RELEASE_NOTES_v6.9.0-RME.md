@@ -103,3 +103,11 @@ store, and crash-dump changes are retained.
 
 The release assets are built with the repository's final signed RME build path
 and carry the `6.9.0-RME` firmware suffix.
+# RME spool-join control
+
+- Added `@RME SPOOLJOIN QUERY`, `ADD`/`SET`, and `RESET` so hosts can configure
+  the same volatile spool-join chains as the printer UI and `M864`.
+- Added structured validation errors, unsupported-feature reporting, and
+  `RME_CHANGE domain=spooljoin key=joins` notifications.
+- Serial tool-offset, pressure-advance, phase-stepping, and INDX tool-offset
+  calibration now hold the configured active lighting state until completion.

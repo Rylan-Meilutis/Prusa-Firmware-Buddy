@@ -128,6 +128,24 @@ void SideStripHandler::print_finished_ping() {
     }
 }
 
+void SideStripHandler::begin_operation_hold() {
+    std::lock_guard lock(mutex);
+    if (operation_hold_count != UINT8_MAX) {
+        ++operation_hold_count;
+    }
+    host_idle_override = false;
+    state = SideStripState::unknown;
+}
+
+void SideStripHandler::end_operation_hold() {
+    std::lock_guard lock(mutex);
+    if (operation_hold_count > 0) {
+        --operation_hold_count;
+    }
+    active_timestamp_ms = ticks_ms();
+    state = SideStripState::unknown;
+}
+
 void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     std::lock_guard lock(mutex);
 
@@ -203,7 +221,7 @@ void SideStripHandler::update() {
         // open setup/control screen readable while the head or bed is moving,
         // then start the normal activity timeout when the operation ends.
         // An explicit host idle override remains authoritative.
-        const bool machine_activity = machine_operation_holds_active(print_active, terminal_print_state, host_idle_override);
+        const bool machine_activity = machine_operation_holds_active(print_active, terminal_print_state, host_idle_override, operation_hold_count > 0);
 
         if (print_active && !print_override_session_active) {
             print_brightness_overridden = false;

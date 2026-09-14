@@ -47,6 +47,7 @@ GCodeQueue queue;
 #include <filament_manufacturer.hpp>
 #include <rme_protocol_parser.hpp>
 #include <rme_active_tool.hpp>
+#include <rme_spool_join.hpp>
 #include <indx_dock_tolerance.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
@@ -68,6 +69,10 @@ GCodeQueue queue;
 #include <option/has_toolchanger.h>
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_side_leds.h>
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+  #include "../module/prusa/spool_join.hpp"
+#endif
 #if __has_include(<option/has_wastebin_fill_tracking.h>)
   #include <option/has_wastebin_fill_tracking.h>
   #define RME_HAS_WASTEBIN_FILL_TRACKING() HAS_WASTEBIN_FILL_TRACKING()
@@ -1108,6 +1113,48 @@ static bool handle_remote_toolmap_service(const std::string_view command) {
 #endif
 }
 
+static bool handle_remote_spool_join_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME SPOOLJOIN ";
+  if (!command.starts_with(prefix)) return false;
+#if HAS_SPOOL_JOIN()
+  const auto action = command.substr(prefix.size());
+  if (rme_protocol::action_is(action, "QUERY")) {
+    const uint8_t count = spool_join.get_num_joins();
+    SERIAL_ECHOPGM("RME_SPOOLJOIN count="); SERIAL_ECHOLN(count);
+    for (uint8_t index = 0; index < count; ++index) {
+      const auto join = spool_join.get_join_nr(index);
+      SERIAL_ECHOPGM("RME_SPOOLJOIN_ENTRY index="); SERIAL_ECHO(index);
+      SERIAL_ECHOPGM(" from="); SERIAL_ECHO(join.spool_1);
+      SERIAL_ECHOPGM(" to="); SERIAL_ECHOLN(join.spool_2);
+    }
+    return true;
+  }
+  if (rme_protocol::action_is(action, "ADD") || rme_protocol::action_is(action, "SET")) {
+    const auto from = remote_number(command, "from");
+    const auto to = remote_number(command, "to");
+    if (!from || !to || !rme_spool_join::valid_pair(*from, *to, VirtualToolIndex::count)) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=spool_join code=invalid_join");
+      return true;
+    }
+    if (!spool_join.add_join(static_cast<uint8_t>(*from), static_cast<uint8_t>(*to))) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=spool_join code=invalid_join");
+      return true;
+    }
+    SerialPrinting::notify_configuration("spooljoin", "joins", true, remote_transaction(command).value_or(0));
+    return true;
+  }
+  if (rme_protocol::action_is(action, "RESET")) {
+    spool_join.reset();
+    SerialPrinting::notify_configuration("spooljoin", "joins", true, remote_transaction(command).value_or(0));
+    return true;
+  }
+  return false;
+#else
+  SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=spool_join code=unsupported feature=spool_join");
+  return true;
+#endif
+}
+
 static void report_remote_dock_settings() {
 #if RME_HAS_INDX()
   const float tolerance_x = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_x_mm.get(), indx_dock_tolerance::default_x_mm);
@@ -1164,6 +1211,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_machine_service(command)
       || handle_remote_stats_service(command)
       || handle_remote_toolmap_service(command)
+      || handle_remote_spool_join_service(command)
       || handle_remote_dock_service(command)
       || buddy_rme_firmware_service(payload)
       || buddy_rme_file_service(payload)

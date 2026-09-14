@@ -36,4 +36,6 @@ TEST_CASE("Machine motion holds active lighting without overriding print or expl
     CHECK_FALSE(leds::machine_operation_holds_active(true, false, false));
     CHECK_FALSE(leds::machine_operation_holds_active(false, true, false));
     CHECK_FALSE(leds::machine_operation_holds_active(false, false, true));
+    CHECK(leds::machine_operation_holds_active(false, true, true, true));
+    CHECK(leds::machine_operation_holds_active(true, true, true, true));
 }
