@@ -81,6 +81,9 @@ store, and crash-dump changes are retained.
   cycles at every measured dock before accepting it and advancing.
 - INDX head LEDs now mirror the rendered center pixel of the front status bar,
   including configured colors, state brightness, and live animation frames.
+- `G427 T0,7 R2 P3` can now declare the exact physical tools used by a serial
+  print, avoiding the legacy all-enabled-tool fallback when file metadata is
+  unavailable. Tool-offset purging also ejects the newly-created final pellet.
 
 ## Validation
 

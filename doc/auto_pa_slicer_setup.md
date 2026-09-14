@@ -76,6 +76,21 @@ zero.
 
 ## XL, INDX, and other multi-tool profiles
 
+For an INDX serial print, make the tools used by the job explicit on the
+tool-offset calibration command. A count is not sufficient because firmware
+also needs the physical indices. For a job using physical tools 0 and 7:
+
+```gcode
+G427 T0,7 R2 P3
+```
+
+`T` is a comma-separated physical-tool list. It is authoritative when present;
+an invalid, duplicate, disabled, or unavailable tool rejects the calibration.
+Without `T`, firmware uses parsed `filament used [g]` metadata and retains the
+legacy all-enabled-tools fallback when that metadata identifies no used tools.
+Generate the list with the same `is_extruder_used[]` conditions as the M976
+manifest. Do not emit merely the number of tools.
+
 The following one-line manifest includes only tools that the sliced job uses.
 It supports indices 0 through 7. Keep the
 `M976 A ...` expression on one physical G-code line.

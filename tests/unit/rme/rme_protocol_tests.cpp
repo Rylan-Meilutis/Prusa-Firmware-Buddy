@@ -10,6 +10,7 @@
 #include <rme_light_hold.hpp>
 #include <rme_active_tool.hpp>
 #include <indx_dock_tolerance.hpp>
+#include <g427_tool_selection.hpp>
 #include <task_stack_requirements.hpp>
 #include <unknown_axis_motion.hpp>
 
@@ -180,6 +181,22 @@ TEST_CASE("RME numeric parameters reject malformed and overflowing values", "[rm
     CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2.5mm"sv, "tolerance_x"));
     CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2..5"sv, "tolerance_x"));
     CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2."sv, "tolerance_x"));
+}
+
+TEST_CASE("G427 explicit tool list is authoritative and bounded", "[gcode][g427][indx]") {
+    const auto absent = g427_tool_selection::parse("G427 R2 P3", 8);
+    CHECK_FALSE(absent.present);
+    CHECK_FALSE(absent.mask.has_value());
+
+    const auto selected = g427_tool_selection::parse("G427 T0,7 R2 P3", 8);
+    REQUIRE(selected.present);
+    REQUIRE(selected.mask.has_value());
+    CHECK(*selected.mask == ((uint32_t { 1 } << 0) | (uint32_t { 1 } << 7)));
+
+    CHECK_FALSE(g427_tool_selection::parse("G427 T", 8).mask.has_value());
+    CHECK_FALSE(g427_tool_selection::parse("G427 T0,0", 8).mask.has_value());
+    CHECK_FALSE(g427_tool_selection::parse("G427 T0,8", 8).mask.has_value());
+    CHECK_FALSE(g427_tool_selection::parse("G427 T0,x", 8).mask.has_value());
 }
 
 TEST_CASE("INDX dock calibration uses independent configurable axis tolerances", "[rme][indx][dock]") {
