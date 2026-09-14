@@ -1,4 +1,5 @@
 #include "marlin_server.hpp"
+#include "serial_print_finalize_policy.hpp"
 
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>
@@ -1326,6 +1327,7 @@ void static finalize_print(bool finished) {
     power_panic::reset();
 #endif
 
+    const bool was_serial_print = server.print_is_serial;
 #if HAS_SERIAL_PRINT()
     const bool keep_serial_finished_screen = finished && server.print_is_serial;
     if (!keep_serial_finished_screen) {
@@ -1429,7 +1431,7 @@ void static finalize_print(bool finished) {
     // races that reset against the old sequence and causes a Resend loop.
     // Streamed jobs are finalized by M77/the inactivity path and host action
     // messages; retain the legacy marker only for actual media prints.
-    if (!keep_serial_finished_screen) {
+    if (buddy::serial_print_finalize_policy::emit_file_printed_marker(was_serial_print)) {
         SERIAL_ECHOLNPGM(MSG_FILE_PRINTED);
     }
 }

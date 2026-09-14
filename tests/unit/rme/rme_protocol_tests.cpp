@@ -18,6 +18,8 @@
 #include <task_stack_requirements.hpp>
 #include <unknown_axis_motion.hpp>
 #include <host_keepalive_policy.hpp>
+#include <m976_indx_pellet_policy.hpp>
+#include <serial_print_finalize_policy.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -43,6 +45,28 @@ TEST_CASE("Host keepalive remains active when calibration suspends auto reports"
     CHECK(should_emit(2, true));
     CHECK_FALSE(should_emit(0, true));
     CHECK_FALSE(should_emit(2, false));
+}
+
+TEST_CASE("Media completion marker is never emitted for a serial job", "[rme][serial][regression]") {
+    using buddy::serial_print_finalize_policy::emit_file_printed_marker;
+
+    CHECK(emit_file_printed_marker(false));
+    CHECK_FALSE(emit_file_printed_marker(true));
+}
+
+TEST_CASE("INDX PA bounds pellet buildup without ejecting every cycle", "[rme][m976][indx][pellet]") {
+    using namespace buddy::m976_indx_pellet_policy;
+    uint8_t pending = 0;
+    for (uint8_t cycle = 1; cycle < cycles_per_ejection; ++cycle) {
+        CHECK_FALSE(record_cycle_and_should_eject(pending));
+        CHECK(pending == cycle);
+    }
+    CHECK(record_cycle_and_should_eject(pending));
+    CHECK(final_ejection_needed(pending));
+    pending = 0; // successful periodic wipe/ejection
+    CHECK_FALSE(final_ejection_needed(pending));
+    CHECK_FALSE(record_cycle_and_should_eject(pending));
+    CHECK(final_ejection_needed(pending)); // final remainder is always ejected
 }
 
 TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
