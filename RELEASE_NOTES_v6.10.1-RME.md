@@ -115,3 +115,9 @@ and carry the `6.10.1-RME` firmware suffix.
   calibration, tool-offset calibration, and future generic INDX errors.
 - Added guarded remote selection for the INDX unknown-tool dock picker with
   `@RME INDX SLOT SELECT slot=<zero-based-index>`.
+- Fixed INDX M976 motion and extrusion safety. It now rejects stale, disabled,
+  duplicate, or mismatched manifest mappings before motion; enters through the
+  native cleaner keep-out route; purges between the prime block and wiper;
+  wipes each pellet free; and exits without redundant dock cycling.
+- Unknown-but-detected INDX tools now report a waiting RME workflow so a host
+  can acknowledge detection and then use guarded dock selection.

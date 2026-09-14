@@ -347,6 +347,15 @@ An OctoPrint plugin can use these read-only values to populate its printer
 profile without hard-coded model tables. Values are snapshots: query again
 after changing firmware motion limits.
 
+For INDX automatic pressure-advance calibration, every manifest association is
+validated against enabled tool configuration before any tool-change or XY
+motion. Duplicate physical/logical entries and stale or disabled mappings are
+rejected. M976 keeps the selected tool through measurement, enters the cleaner
+only through its native keep-out-aware `G750` approach, extrudes in the open
+gap between the prime block and wiper, wipes each pellet free, and exits through
+the native cleaner route. Hosts must not add purge-bucket moves or tool
+park/pick commands around M976.
+
 ## Lifetime and job statistics
 
 ```text
@@ -736,6 +745,12 @@ button response. Select it with the guarded operation below (zero-based slot,
 so `slot=3` is the UI's Dock 4):
 
 ```text
+@RME DIALOG QUERY
+RME_DIALOG workflow=indx_tool_detection phase=unknown_tool_detected state=waiting
+RME_PROMPT Continue
+ok
+@RME DIALOG RESPOND A"Continue"
+ok
 @RME DIALOG QUERY
 RME_DIALOG workflow=indx_slot_selection phase=select_slot state=active
 RME_PROMPT none

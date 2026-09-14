@@ -3,6 +3,7 @@
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
 #include <m976_temperature_policy.hpp>
+#include <m976_indx_policy.hpp>
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
@@ -35,9 +36,11 @@ using namespace std::string_view_literals;
 TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
     using rme_indx_workflow::nozzle_mismatch;
     CHECK(std::string_view(nozzle_mismatch(0).workflow) == "indx_tool_detection"sv);
+    CHECK(std::string_view(nozzle_mismatch(0).phase) == "unknown_tool_detected"sv);
+    CHECK(nozzle_mismatch(0).waiting_for_host);
     CHECK(std::string_view(nozzle_mismatch(1).workflow) == "indx_slot_selection"sv);
     CHECK(std::string_view(nozzle_mismatch(3).phase) == "dock_not_empty"sv);
-    CHECK(nozzle_mismatch(3).error);
+    CHECK(nozzle_mismatch(3).waiting_for_host);
     CHECK(std::string_view(nozzle_mismatch(4).phase) == "tool_lost"sv);
     CHECK(std::string_view(nozzle_mismatch(6).phase) == "pickup_failed"sv);
     CHECK(std::string_view(nozzle_mismatch(7).phase) == "park_failed"sv);
@@ -146,6 +149,18 @@ TEST_CASE("M976 MMU service temperature stays above cold extrusion cutoff", "[rm
     CHECK_FALSE(calibration_temperature_ready(169.9f, 170, 170));
     CHECK_FALSE(calibration_temperature_ready(255.0f, 160, 170));
     CHECK_FALSE(wait_for_restored_target);
+}
+
+TEST_CASE("M976 rejects stale or unsafe INDX manifest mappings before motion", "[rme][m976][indx][regression]") {
+    using buddy::m976_indx_policy::safe_manifest_mapping;
+
+    CHECK(safe_manifest_mapping(0, 0, 0, true, true));
+    CHECK(safe_manifest_mapping(7, 7, 7, true, true));
+    CHECK(safe_manifest_mapping(7, 0, 7, true, true));
+    CHECK_FALSE(safe_manifest_mapping(7, 0, 0, true, true));
+    CHECK_FALSE(safe_manifest_mapping(0, 7, 7, true, true));
+    CHECK_FALSE(safe_manifest_mapping(7, 7, 7, false, true));
+    CHECK_FALSE(safe_manifest_mapping(7, 7, 7, true, false));
 }
 
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {

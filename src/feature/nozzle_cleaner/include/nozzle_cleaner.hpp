@@ -77,6 +77,9 @@ enum class Sequence : uint16_t {
     // Internal-only sequences below; not invocable via G12.
     _cnt_external,
     enter_cleaner_from_inside = _cnt_external,
+    /// Move to the open purge gap used by pressure-advance calibration.
+    /// Internal-only: unlike purge_clean this does not extrude or wipe.
+    pa_calibration_purge_position,
 #endif
     _cnt,
 };
