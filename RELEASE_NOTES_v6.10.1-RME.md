@@ -155,3 +155,10 @@ and carry the `6.10.1-RME` firmware suffix.
 - Serial-print aborts no longer emit the media-only `Done printing file`
   marker, preventing OctoPrint from continuing with a desynchronized numbered
   command stream after a calibration failure.
+- Corrected the INDX serial keep-out policy to allow straight Y-only entry and
+  exit at the front priming strip. Lateral X travel there and entry into the
+  cleaner remain blocked, so valid slicer priming moves no longer cancel with
+  `Unsafe INDX move outside printable area`.
+- INDX automatic PA now performs the native purge autoretract before its
+  five-cycle wipe/eject operation, preventing a still-fed strand from following
+  the nozzle and accumulating on the toolhead.
