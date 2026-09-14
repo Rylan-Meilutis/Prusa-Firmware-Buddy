@@ -121,3 +121,5 @@ and carry the `6.10.1-RME` firmware suffix.
   wipes each pellet free; and exits without redundant dock cycling.
 - Unknown-but-detected INDX tools now report a waiting RME workflow so a host
   can acknowledge detection and then use guarded dock selection.
+- The Josef Prusa (`pepa`) portrait is rendered in its original colors instead
+  of being recolored by the selected UI theme.
