@@ -15,6 +15,10 @@
     #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
 #endif
 #include <feature/extrusion_calibration.hpp>
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
+#endif
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <common/mapi/motion.hpp>
 #include <common/mapi/parking.hpp>
@@ -723,6 +727,9 @@ void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
 } // namespace
 
 void PrusaGcodeSuite::M976() {
+#if HAS_SIDE_LEDS()
+    leds::ScopedActiveLightHold active_light_hold;
+#endif
 #if !(PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX())
     SERIAL_ERROR_MSG("M976 unsupported printer");
     return;

@@ -102,3 +102,11 @@ Firmware Buddy 6.10.1.
 
 The release assets are produced by the repository's final version build path
 and carry the `6.10.1-RME` firmware suffix.
+# RME spool-join control and calibration lighting
+
+- Added `@RME SPOOLJOIN QUERY`, `ADD`/`SET`, and `RESET` so hosts can configure
+  volatile spool-join chains, with structured errors and change notifications.
+- Serial calibration commands now hold the configured active lighting state
+  for their complete execution and release into the normal timeout afterward.
+- A parked INDX toolchanger no longer reports extruder `-1` as an invalid tool
+  when parameterless temperature, fan, or configuration commands are sent.

@@ -186,8 +186,10 @@ GcodeSuite::PhysicalToolFromCommand GcodeSuite::get_target_physical_from_optiona
     if (current.has_value()) {
       return *current;
     } else {
-      SERIAL_ECHO_START();
-      SERIAL_ECHOLNPAIR(" " MSG_INVALID_EXTRUDER " ", -1);
+      // A toolchanger with every tool parked has no implicit target. This is
+      // a valid machine state, not an invalid host-requested tool. Callers may
+      // no-op or apply global behavior; only an explicit invalid T parameter
+      // should emit MSG_INVALID_EXTRUDER and make hosts disable that tool.
       return NoTool {};
     }
   }

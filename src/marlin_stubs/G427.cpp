@@ -4,6 +4,10 @@
 #include "PrusaGcodeSuite.hpp"
 #include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
 #include <g427_tool_selection.hpp>
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
+#endif
 
 /** \addtogroup G-Codes
  * @{
@@ -32,6 +36,9 @@
 namespace PrusaGcodeSuite {
 
 void G427() {
+#if HAS_SIDE_LEDS()
+    leds::ScopedActiveLightHold active_light_hold;
+#endif
     GCodeParser2 parser;
     if (!parser.parse_marlin_command()) {
         return;
