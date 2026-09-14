@@ -726,6 +726,80 @@ Stuck-filament recovery and tool mapping provide dedicated operations:
 @RME TOOLMAP RESET
 ```
 
+Spool joins can be inspected and configured without using the human-readable
+`M864` interface:
+
+```text
+@RME SPOOLJOIN QUERY
+RME_SPOOLJOIN count=2
+RME_SPOOLJOIN_ENTRY index=0 from=0 to=2
+RME_SPOOLJOIN_ENTRY index=1 from=2 to=4
+ok
+
+@RME SPOOLJOIN ADD from=0 to=2 tx=126
+RME_CHANGE domain=spooljoin key=joins origin=host tx=126
+ok
+
+@RME SPOOLJOIN RESET tx=127
+RME_CHANGE domain=spooljoin key=joins origin=host tx=127
+ok
+```
+
+`SET` is accepted as an alias for `ADD`. Adding to the source of an existing
+chain appends to that chain, matching the printer UI and `M864 J` behavior.
+Self-joins, disabled or out-of-range tools, duplicate destinations, and loops
+return `workflow=spool_join code=invalid_join`. Spool joins are print-session
+configuration: they are not written as a persistent user setting, although
+power-panic recovery preserves them with the interrupted job. `RESET` removes
+all joins. Machines without spool-join support return
+`workflow=spool_join code=unsupported feature=spool_join`; hosts should hide
+the controls after that response.
+
+Long-running calibration commands issued over serial keep the configured
+`active` lighting state for the complete operation, even when no print or GUI
+wizard is active. This includes `G427` tool-offset calibration, `M976`
+pressure-advance calibration, `M972` phase-stepping calibration, and the INDX
+dock, nozzle-cleaner, and tool-offset wizard commands (`M1982`, `M1983`, and
+`M1985`). The hold is scoped to command execution and starts
+the normal activity timeout when the command returns; it does not alter saved
+brightness or timeout settings.
+
+INDX dock calibration has independent, persistent X and Y acceptance
+tolerances. The defaults are `tolerance_x=2.5` mm and `tolerance_y=1.0` mm;
+each value may be set from 0.5 through 5.0 mm in 0.1 mm increments. These are
+validation tolerances around the machine-defined dock positions, not changes
+to the dock positions themselves. The same saved values are shown by the dock
+settings and calibration-failure screens.
+
+After measuring a dock, firmware must successfully pick and park that tool
+three consecutive times before marking the dock calibrated and advancing to
+the next selected dock. A failed validation cycle invalidates that dock and
+enters the normal dock retry/abort screen; hosts should keep presenting the
+`dock_calibration` workflow until it succeeds or is aborted.
+
+```text
+@RME DOCK QUERY
+RME_DOCK tolerance_x=2.50 tolerance_y=1.00
+ok
+
+@RME DOCK SET tolerance_x=2.5 tolerance_y=1.0 tx=125
+RME_DOCK tolerance_x=2.50 tolerance_y=1.00
+RME_CHANGE domain=dock key=tolerance origin=host tx=125
+ok
+```
+
+`SET` accepts either axis by itself. It is idle-only and rejects missing,
+malformed, or out-of-range values with `workflow=dock`. Non-INDX machines
+return `code=unsupported feature=indx`; hosts should hide this setting after
+that response.
+
+Before XY is homed, serial `G0`/`G1` jogging uses conservative assumed
+coordinates so a host cannot unknowingly drive into tool hardware. INDX starts
+unknown Y at 0 and unknown X at its maximum (protecting the front docks and
+right-side purge bucket); XL starts unknown Y at its maximum because its docks
+are at the rear. Requested motion is clamped to the remaining safe interval.
+Internal homing and calibration motion is not rewritten by this host guard.
+
 Workflow identifiers are stable handler-routing keys. Current firmware emits
 `mmu`, `filament_load`, `filament_unload`, `tool_change`, `filament_runout`,
 `filament_movement`, `extrusion_flow_limit`, `stuck_filament`,

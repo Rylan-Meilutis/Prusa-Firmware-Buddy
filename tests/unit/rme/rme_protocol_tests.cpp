@@ -9,6 +9,9 @@
 #include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
 #include <rme_active_tool.hpp>
+#include <rme_spool_join.hpp>
+#include <indx_dock_tolerance.hpp>
+#include <g427_tool_selection.hpp>
 #include <task_stack_requirements.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
@@ -41,6 +44,18 @@ TEST_CASE("RME active tool reports a parked toolchanger as none", "[rme][tool][r
         std::variant<TestTool, TestNoTool> { TestTool { 2 } });
     CHECK(selected.selected);
     CHECK(selected.index == 2);
+}
+
+TEST_CASE("RME spool join endpoints are distinct and bounded", "[rme][spooljoin]") {
+    using rme_spool_join::valid_pair;
+
+    CHECK(valid_pair(0, 1, 5));
+    CHECK(valid_pair(3, 4, 5));
+    CHECK_FALSE(valid_pair(1, 1, 5));
+    CHECK_FALSE(valid_pair(-1, 1, 5));
+    CHECK_FALSE(valid_pair(0, -1, 5));
+    CHECK_FALSE(valid_pair(5, 0, 5));
+    CHECK_FALSE(valid_pair(0, 5, 5));
 }
 
 TEST_CASE("RME Marlin task stack retains crash-derived guard space", "[rme][stack][regression]") {
