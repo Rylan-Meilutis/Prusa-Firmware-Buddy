@@ -156,10 +156,11 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
         { Sequence::pa_calibration_purge_position, {
                                                        .filename = "pa_calibration_purge_position",
                                                        .directory = directory,
-                                                       // X0 is the calibrated purge lane. Y87 is the
-                                                       // open gap between the prime block and wiper.
-                                                       // G750 applies the measured cleaner offsets and
-                                                       // its A approach observes the cleaner keep-outs.
+                                                       // X0/Y87 is the calibrated prime-block purge
+                                                       // position used by native INDX purge_clean.
+                                                       // G750 applies the measured cleaner offsets. The
+                                                       // caller must first use nozzle_cleaner_approach;
+                                                       // A only makes this final move asynchronous.
                                                        .default_gcode = "G750 X0 Y87 F21000 A",
                                                    } },
 #else

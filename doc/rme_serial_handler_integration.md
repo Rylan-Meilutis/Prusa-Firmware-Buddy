@@ -297,7 +297,7 @@ actions:
 
 For INDX M976, send only the tools present in the sliced manifest. Firmware
 validates the enabled mapping before moving and owns the complete pickup,
-keep-out-aware cleaner entry, purge-gap extrusion, pellet wipe, and cleaner
+keep-out-aware cleaner entry, prime-block extrusion, strand wipe, pellet ejection, and cleaner
 exit. The host must not synthesize intermediate tool changes or purge moves.
 
 An error event is a notification that firmware entered or is about to enter a

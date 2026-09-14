@@ -122,6 +122,16 @@ and carry the `6.9.0-RME` firmware suffix.
   duplicate, or mismatched manifest mappings before motion; enters through the
   native cleaner keep-out route; purges between the prime block and wiper;
   wipes each pellet free; and exits without redundant dock cycling.
+- Fixed a remaining INDX M976 collision path where legacy far-right bed cleanup
+  overlapped the tool-8 dock. INDX automatic PA now performs no bed probing or
+  bed cleanup, selects validated physical tools without virtual remapping, and
+  wipes a strand before ejecting its pellet.
+- Post-home and post-tool-change travel now stages through the native INDX
+  cleaner approach, including its dock escape and segmented keep-out path,
+  before any cleaner-local move.
+- Ordinary homed INDX serial linear moves and complete arc envelopes are now
+  confined to the printable area. Unsafe print G-code or manual serial moves
+  into tool-dock, cleaner, and purge-bucket keep-outs are rejected explicitly.
 - Unknown-but-detected INDX tools now report a waiting RME workflow so a host
   can acknowledge detection and then use guarded dock selection.
 - The Josef Prusa (`pepa`) portrait is rendered in its original colors instead
