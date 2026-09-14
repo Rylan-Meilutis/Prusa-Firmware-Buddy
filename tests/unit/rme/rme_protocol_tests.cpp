@@ -10,6 +10,7 @@
 #include <rme_light_hold.hpp>
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
+#include <rme_indx_workflow.hpp>
 #include <indx_dock_tolerance.hpp>
 #include <g427_tool_selection.hpp>
 #include <task_stack_requirements.hpp>
@@ -30,6 +31,31 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
+    using rme_indx_workflow::nozzle_mismatch;
+    CHECK(std::string_view(nozzle_mismatch(0).workflow) == "indx_tool_detection"sv);
+    CHECK(std::string_view(nozzle_mismatch(1).workflow) == "indx_slot_selection"sv);
+    CHECK(std::string_view(nozzle_mismatch(3).phase) == "dock_not_empty"sv);
+    CHECK(nozzle_mismatch(3).error);
+    CHECK(std::string_view(nozzle_mismatch(4).phase) == "tool_lost"sv);
+    CHECK(std::string_view(nozzle_mismatch(6).phase) == "pickup_failed"sv);
+    CHECK(std::string_view(nozzle_mismatch(7).phase) == "park_failed"sv);
+    CHECK(std::string_view(nozzle_mismatch(8).phase) == "confirm_abort"sv);
+    CHECK(std::string_view(nozzle_mismatch(255).workflow) == "indx"sv);
+}
+
+TEST_CASE("RME names every INDX calibration phase", "[rme][indx]") {
+    using namespace rme_indx_workflow;
+    CHECK(std::string_view(dock_calibration_phase(3)) == "select_docks"sv);
+    CHECK(std::string_view(dock_calibration_phase(11)) == "validating"sv);
+    CHECK(std::string_view(dock_calibration_phase(14)) == "failed"sv);
+    CHECK(std::string_view(nozzle_cleaner_phase(8)) == "measuring_x"sv);
+    CHECK(std::string_view(nozzle_cleaner_phase(14)) == "evaluating_y"sv);
+    CHECK(std::string_view(tool_offsets_phase(5)) == "calibrating"sv);
+    CHECK(std::string_view(tool_offsets_phase(7)) == "failed"sv);
+    CHECK(std::string_view(tool_offsets_phase(8)) == "unknown"sv);
+}
 
 TEST_CASE("RME active tool reports a parked toolchanger as none", "[rme][tool][regression]") {
     struct TestTool {
