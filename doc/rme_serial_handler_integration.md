@@ -66,6 +66,12 @@ key=loaded` only after material, color, and manufacturer have all been
 committed. Refresh the loaded-filament snapshot on that event; no polling or
 delay is required.
 
+Query `@RME SPOOLJOIN QUERY` with the other startup snapshots when spool-join
+support is advertised. Apply `ADD`/`SET` and `RESET` as volatile print-session
+configuration and refresh the whole chain on `RME_CHANGE domain=spooljoin
+key=joins`. Reject loops, duplicate destinations, disabled slots, and
+self-joins in the UI, but still treat firmware validation as authoritative.
+
 ## Filesystem integration
 
 Use `@RME FILE CAPS` during discovery and treat `/usb` as the only exported
@@ -270,6 +276,13 @@ actions:
 | `mmu` | MMU progress, slot/path help, error details | `DIALOG QUERY` |
 | `filament_load` / `filament_unload` | Native load/unload lifecycle, cancellation, skip and failure state | `DIALOG QUERY` only when waiting/error |
 | `tool_change` | Tool/dock status and retry/abort help | `DIALOG QUERY`, `TOOLMAP` |
+| `indx_tool_detection` | Unknown/lost tool guidance and homing status | `DIALOG QUERY` |
+| `indx_slot_selection` | Select the detected tool's dock, park it, or show a blocked dock | `DIALOG QUERY`; `INDX SLOT SELECT` only in `phase=select_slot` |
+| `indx_tool_change` | INDX pickup/park failure and abort confirmation | `DIALOG QUERY` |
+| `indx_dock_calibration` | Dock selection, measurement, three-cycle validation, success/failure | `DIALOG QUERY` |
+| `indx_tool_offset_calibration` | Tool pickup, probing/calibration, success/failure | `DIALOG QUERY` |
+| `indx_nozzle_cleaner_calibration` | X/Y positioning, measurement, cleaning, and evaluation | `DIALOG QUERY` |
+| `indx` | Forward-compatible INDX fallback | `DIALOG QUERY`; do not infer an action |
 | `filament_runout` | Material replacement workflow | `DIALOG QUERY` |
 | `filament_movement` | Spool/path movement fault with continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |
 | `extrusion_flow_limit` | Flow-pressure limit guidance with continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |
@@ -287,6 +300,14 @@ recovery state. Always query the current dialog before enabling buttons. Send
 named responses (`A"Retry"`) rather than numeric indexes because names remain
 stable across UI layouts and translations. Firmware rejects stale or invalid
 responses without cancelling the print.
+
+Parse the `RME_DIALOG workflow=<key> phase=<key> state=<key>` line before its
+`RME_PROMPT` line. Route by `workflow`, choose specific copy by `phase`, and
+enable only the actions in `RME_PROMPT`. The INDX unknown-tool dock picker is
+the one variant-valued exception: when the snapshot is exactly
+`workflow=indx_slot_selection phase=select_slot`, send `@RME INDX SLOT SELECT
+slot=<zero-based-index>`. Never retain that selection across another dialog
+snapshot, reconnect, or event-sequence gap.
 
 ## Reliability requirements
 
@@ -318,6 +339,14 @@ and failure, mid/post-print filtration start/PWM/stop, UI lock transitions,
 unknown commands, and emergency stop. Repeat with `legacy=1` to
 confirm both representations coexist, then with `legacy=0` to confirm only
 legacy notifications are replaced.
+On INDX, exercise unknown-tool detection and dock selection, lost-tool homing,
+pickup and park failures, abort confirmation, dock calibration (including
+three-cycle validation failure), tool-offset calibration, and nozzle-cleaner
+X/Y evaluation. Verify every phase reports its documented workflow, that
+normal buttons are accepted only for their active dialog, and that `INDX SLOT
+SELECT` is rejected before and after the slot-selection phase. Also verify
+parameterless `M104 S0`, `M107`, and `M105` while all tools are parked do not
+emit `Invalid extruder -1` or cause the host to blacklist T0.
 Also query statistics both idle and during a blocking heater wait, validate
 units and optional-field handling, and confirm the query never changes a
 counter or print state.
