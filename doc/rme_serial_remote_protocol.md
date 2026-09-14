@@ -351,10 +351,21 @@ For INDX automatic pressure-advance calibration, every manifest association is
 validated against enabled tool configuration before any tool-change or XY
 motion. Duplicate physical/logical entries and stale or disabled mappings are
 rejected. M976 keeps the selected tool through measurement, enters the cleaner
-only through its native keep-out-aware `G750` approach, extrudes in the open
-gap between the prime block and wiper, wipes each pellet free, and exits through
+only through its native keep-out-aware `G750` approach, extrudes at the prime
+block, wipes/breaks the strand, ejects the pellet, and exits through
 the native cleaner route. Hosts must not add purge-bucket moves or tool
 park/pick commands around M976.
+INDX M976 never probes or cleans on the bed: the legacy far-right loadcell
+cleanup rectangle overlaps the tool-8 dock and is a forbidden keep-out. Batch
+physical indices are passed directly to the physical toolchanger rather than
+being reinterpreted as mapped G-code tools. A fresh strand is wiped/broken
+before pellet ejection.
+
+After INDX XY homing, ordinary serial `G0`/`G1` destinations and the complete
+envelope of serial `G2`/`G3` arcs must remain inside `RME_ENVELOPE`. Firmware
+rejects moves into the dock, cleaner, purge-bucket, or other service-only area
+instead of clamping and reshaping the move. Only native tool-change and cleaner
+commands may enter those areas; they use calibrated segmented keep-out paths.
 
 ## Lifetime and job statistics
 

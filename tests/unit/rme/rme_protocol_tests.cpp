@@ -4,6 +4,7 @@
 #include <m976_material.hpp>
 #include <m976_temperature_policy.hpp>
 #include <m976_indx_policy.hpp>
+#include <indx_serial_motion_safety.hpp>
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
@@ -161,6 +162,25 @@ TEST_CASE("M976 rejects stale or unsafe INDX manifest mappings before motion", "
     CHECK_FALSE(safe_manifest_mapping(0, 7, 7, true, true));
     CHECK_FALSE(safe_manifest_mapping(7, 7, 7, false, true));
     CHECK_FALSE(safe_manifest_mapping(7, 7, 7, true, false));
+}
+
+TEST_CASE("M976 never uses legacy sheet-contact cleanup on INDX", "[rme][m976][indx][keepout][regression]") {
+    using buddy::m976_indx_policy::uses_sheet_contact_cleanup;
+
+    CHECK_FALSE(uses_sheet_contact_cleanup(true, true));
+    CHECK_FALSE(uses_sheet_contact_cleanup(true, false));
+    CHECK(uses_sheet_contact_cleanup(false, true));
+    CHECK_FALSE(uses_sheet_contact_cleanup(false, false));
+}
+
+TEST_CASE("INDX serial motion is confined to the printable rectangle", "[rme][indx][keepout][motion]") {
+    using namespace buddy::indx_serial_motion_safety;
+    constexpr Bounds bounds { -1, 250, 0, 206.5f };
+    STATIC_REQUIRE(point_is_safe(125, 100, bounds));
+    STATIC_REQUIRE_FALSE(point_is_safe(251, 100, bounds));
+    STATIC_REQUIRE_FALSE(point_is_safe(125, -0.1f, bounds));
+    STATIC_REQUIRE(arc_is_safe(125, 100, 20, bounds));
+    STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, bounds));
 }
 
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {

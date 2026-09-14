@@ -26,6 +26,8 @@
 #if ENABLED(ARC_SUPPORT)
 
 #include "../gcode.h"
+#include "../queue.h"
+#include <indx_serial_motion_safety.hpp>
 #include "../../module/motion.h"
 #include "../../module/planner.h"
 #include "../../module/temperature.h"
@@ -450,6 +452,24 @@ void GcodeSuite::G2_G3(const bool clockwise) {
     if (parser.seenval(achar)) arc_offset.a = parser.value_linear_units();
     if (parser.seenval(bchar)) arc_offset.b = parser.value_linear_units();
   }
+
+  #if HAS_INDX()
+    if (GCodeQueue::current_command_from_serial()
+        && axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
+      constexpr buddy::indx_serial_motion_safety::Bounds safe_bounds {
+        X_MIN_PRINT_POS, X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_MIN_PRINT_POS, Y_MAX_PRINT_POS
+      };
+      const xy_pos_t center = current_position.xy() + arc_offset;
+      const float radius = arc_offset.magnitude();
+      if (!buddy::indx_serial_motion_safety::point_is_safe(current_position.x, current_position.y, safe_bounds)
+          || !buddy::indx_serial_motion_safety::point_is_safe(destination.x, destination.y, safe_bounds)
+          || !buddy::indx_serial_motion_safety::arc_is_safe(center.x, center.y, radius, safe_bounds)) {
+        SERIAL_ERROR_MSG("Unsafe INDX arc outside printable area");
+        TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_IDLE));
+        return;
+      }
+    }
+  #endif
 
   if (TERN0(HAS_CANCEL_OBJECT(), buddy::cancel_object().is_current_object_cancelled())) {
     // Canceling an object, skip arc move
