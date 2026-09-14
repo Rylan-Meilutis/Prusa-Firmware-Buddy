@@ -1117,6 +1117,8 @@ struct CurrentStore
     // Offsets specific to every printer (relative to the absolute position of the nozzle cleaner)
     StoreItem<float, defaults::nozzle_cleaner_x_origin_offset, ItemFlag::hw_config, journal::hash("Nozzle cleaner X origin offset")> nozzle_cleaner_x_origin_offset;
     StoreItem<float, defaults::nozzle_cleaner_y_origin_offset, ItemFlag::hw_config, journal::hash("Nozzle cleaner Y origin offset")> nozzle_cleaner_y_origin_offset;
+    StoreItem<float, defaults::indx_dock_tolerance_x_mm, ItemFlag::hw_config, journal::hash("INDX dock tolerance X")> indx_dock_tolerance_x_mm;
+    StoreItem<float, defaults::indx_dock_tolerance_y_mm, ItemFlag::hw_config, journal::hash("INDX dock tolerance Y")> indx_dock_tolerance_y_mm;
 
 #endif
 

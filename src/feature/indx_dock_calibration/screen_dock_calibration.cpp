@@ -15,6 +15,8 @@
 #include <marlin_client.hpp>
 #include <marlin_vars.hpp>
 #include <module/prusa/toolchanger.h>
+#include <config_store/store_instance.hpp>
+#include <indx_dock_tolerance.hpp>
 #include <string_view_utf8.hpp>
 
 namespace {
@@ -104,7 +106,9 @@ public:
         const float expected_x = PrusaToolChanger::DOCK_DEFAULT_X_MM[d.dock_index];
         const float expected_y = PrusaToolChanger::DOCK_DEFAULT_Y_MM;
 
-        info.SetText(_(txt_failed).formatted(params, d.dock_index.to_raw() + 1, static_cast<double>(d.measured_x), static_cast<double>(d.measured_y), static_cast<double>(expected_x), static_cast<double>(expected_y), static_cast<double>(PrusaToolChanger::DOCK_INVALID_OFFSET_X_MM), static_cast<double>(PrusaToolChanger::DOCK_INVALID_OFFSET_Y_MM)));
+        const float tolerance_x = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_x_mm.get(), indx_dock_tolerance::default_x_mm);
+        const float tolerance_y = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_y_mm.get(), indx_dock_tolerance::default_y_mm);
+        info.SetText(_(txt_failed).formatted(params, d.dock_index.to_raw() + 1, static_cast<double>(d.measured_x), static_cast<double>(d.measured_y), static_cast<double>(expected_x), static_cast<double>(expected_y), static_cast<double>(tolerance_x), static_cast<double>(tolerance_y)));
     }
 
 private:

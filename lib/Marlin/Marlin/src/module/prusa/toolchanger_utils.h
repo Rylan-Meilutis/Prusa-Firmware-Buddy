@@ -48,8 +48,6 @@ public:
     // Dock geometry
     static constexpr StrongIndexArray<float, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::no> DOCK_DEFAULT_X_MM { indx_dock_position_defaults::x_mm };
     static constexpr auto DOCK_DEFAULT_Y_MM = indx_dock_position_defaults::y_mm;
-    static constexpr auto DOCK_INVALID_OFFSET_X_MM = 1.0f;
-    static constexpr auto DOCK_INVALID_OFFSET_Y_MM = 1.0f;
     static constexpr auto EPSILON_MM = 0.05f; ///< Tolerance slack so values displayed within limits (rounded to 0.1 mm) don't fail validation [mm]
 
     // Y offsets from dock_y (dock_y is the deepest/full-dock position)
