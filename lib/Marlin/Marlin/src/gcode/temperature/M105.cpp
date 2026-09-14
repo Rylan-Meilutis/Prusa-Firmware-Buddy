@@ -21,6 +21,7 @@
  */
 
 #include "../gcode.h"
+#include "../../module/motion.h"
 #include "../../module/temperature.h"
 #include <utils/variant_utils.hpp>
 
@@ -42,6 +43,25 @@
  * - `T` - Tool
  */
 void GcodeSuite::M105() {
+
+  // A toolchanger can legitimately have every tool parked.  M105 without an
+  // explicit T parameter is still a status query in that state; do not route
+  // it through get_target_physical_from_command(), which diagnoses NoTool as
+  // "Invalid extruder -1" and makes hosts such as OctoPrint permanently mark
+  // T0 invalid.  The temperature reporter already understands Marlin's
+  // no-tool sentinel and reports the shared nozzle plus all physical channels
+  // as unavailable while retaining bed/chamber temperatures.
+  if (!parser.seenval('T') && std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+    SERIAL_ECHOPGM(MSG_OK);
+
+    #if HAS_TEMP_SENSOR
+      thermalManager.print_heater_states(active_extruder);
+      SERIAL_EOL();
+    #else
+      SERIAL_ECHOLNPGM(" T:0");
+    #endif
+    return;
+  }
 
   const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
   if (!tool.has_value()) return;
