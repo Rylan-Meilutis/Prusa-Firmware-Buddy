@@ -27,6 +27,16 @@ Firmware Buddy 6.10.1.
   15 KiB automatic-PA sample buffer from permanent SRAM. M976 now acquires its
   bounded capture buffer only while measuring, releases it on every exit, and
   reports an explicit error if memory is unavailable.
+- Fixed the remaining INDX phase-stepping heap crash identified from a 6.9.0
+  crash dump. Spectral sweeps now evaluate their rectangular and Hann windows
+  directly, preserving the analysis while removing all transient DFT-window
+  heap allocations at the captured-signal memory peak.
+- Added independent persisted INDX dock-calibration tolerances. X defaults to
+  +/-2.5 mm and Y to +/-1.0 mm; both are adjustable from 0.5 through 5.0 mm on
+  dock settings screens and through `@RME DOCK QUERY/SET`.
+- Setup and control screens now remain at active brightness while non-print
+  head or bed motion is running. Their normal inactivity timer begins after
+  the operation completes, eliminating motion-time dim/bright oscillation.
 - Removed the remaining heap-backed progress callback from tool-offset
   calibration. Its callback now uses bounded inline storage and is checked at
   compile time to remain allocation-free.

@@ -47,6 +47,7 @@ GCodeQueue queue;
 #include <filament_manufacturer.hpp>
 #include <rme_protocol_parser.hpp>
 #include <rme_active_tool.hpp>
+#include <indx_dock_tolerance.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
 #include <print_utils.hpp>
@@ -549,6 +550,10 @@ static std::optional<std::string_view> remote_value(const std::string_view comma
 
 static std::optional<long> remote_number(const std::string_view command, const std::string_view key, const int base = 10) {
   return rme_protocol::signed_number(command, key, base);
+}
+
+static std::optional<float> remote_decimal(const std::string_view command, const std::string_view key) {
+  return rme_protocol::decimal_number(command, key);
 }
 
 static std::optional<uint32_t> remote_transaction(const std::string_view command) {
@@ -1103,6 +1108,48 @@ static bool handle_remote_toolmap_service(const std::string_view command) {
 #endif
 }
 
+static void report_remote_dock_settings() {
+#if RME_HAS_INDX()
+  const float tolerance_x = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_x_mm.get(), indx_dock_tolerance::default_x_mm);
+  const float tolerance_y = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_y_mm.get(), indx_dock_tolerance::default_y_mm);
+  SERIAL_ECHOPGM("RME_DOCK tolerance_x="); SERIAL_ECHO(tolerance_x);
+  SERIAL_ECHOPGM(" tolerance_y="); SERIAL_ECHOLN(tolerance_y);
+#endif
+}
+
+static bool handle_remote_dock_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME DOCK ";
+  if (!command.starts_with(prefix)) return false;
+#if RME_HAS_INDX()
+  const auto action = command.substr(prefix.size());
+  if (rme_protocol::action_is(action, "QUERY")) {
+    report_remote_dock_settings();
+    return true;
+  }
+  if (!rme_protocol::action_is(action, "SET")) return false;
+  if (printer_lock::locked() || !marlin_server::printer_idle()) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=dock code=printer_busy");
+    return true;
+  }
+  const auto tolerance_x = remote_decimal(command, "tolerance_x");
+  const auto tolerance_y = remote_decimal(command, "tolerance_y");
+  if ((!tolerance_x && !tolerance_y)
+      || (tolerance_x && (*tolerance_x < indx_dock_tolerance::minimum_mm || *tolerance_x > indx_dock_tolerance::maximum_mm))
+      || (tolerance_y && (*tolerance_y < indx_dock_tolerance::minimum_mm || *tolerance_y > indx_dock_tolerance::maximum_mm))) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=dock code=invalid_tolerance min=0.5 max=5.0");
+    return true;
+  }
+  if (tolerance_x) config_store().indx_dock_tolerance_x_mm.set(*tolerance_x);
+  if (tolerance_y) config_store().indx_dock_tolerance_y_mm.set(*tolerance_y);
+  report_remote_dock_settings();
+  SerialPrinting::notify_configuration("dock", "tolerance", true, remote_transaction(command).value_or(0));
+  return true;
+#else
+  SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=dock code=unsupported feature=indx");
+  return true;
+#endif
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
@@ -1117,6 +1164,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_machine_service(command)
       || handle_remote_stats_service(command)
       || handle_remote_toolmap_service(command)
+      || handle_remote_dock_service(command)
       || buddy_rme_firmware_service(payload)
       || buddy_rme_file_service(payload)
       || handle_dialog_service_response(payload)) return true;

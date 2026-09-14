@@ -731,6 +731,29 @@ Stuck-filament recovery and tool mapping provide dedicated operations:
 @RME TOOLMAP RESET
 ```
 
+INDX dock calibration has independent, persistent X and Y acceptance
+tolerances. The defaults are `tolerance_x=2.5` mm and `tolerance_y=1.0` mm;
+each value may be set from 0.5 through 5.0 mm in 0.1 mm increments. These are
+validation tolerances around the machine-defined dock positions, not changes
+to the dock positions themselves. The same saved values are shown by the dock
+settings and calibration-failure screens.
+
+```text
+@RME DOCK QUERY
+RME_DOCK tolerance_x=2.50 tolerance_y=1.00
+ok
+
+@RME DOCK SET tolerance_x=2.5 tolerance_y=1.0 tx=125
+RME_DOCK tolerance_x=2.50 tolerance_y=1.00
+RME_CHANGE domain=dock key=tolerance origin=host tx=125
+ok
+```
+
+`SET` accepts either axis by itself. It is idle-only and rejects missing,
+malformed, or out-of-range values with `workflow=dock`. Non-INDX machines
+return `code=unsupported feature=indx`; hosts should hide this setting after
+that response.
+
 Workflow identifiers are stable handler-routing keys. Current firmware emits
 `mmu`, `filament_load`, `filament_unload`, `tool_change`, `filament_runout`,
 `filament_movement`, `extrusion_flow_limit`, `stuck_filament`,

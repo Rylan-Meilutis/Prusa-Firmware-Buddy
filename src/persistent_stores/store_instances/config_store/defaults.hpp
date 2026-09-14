@@ -325,6 +325,8 @@ namespace defaults {
 
     inline constexpr float nozzle_cleaner_x_origin_offset { 0.0f };
     inline constexpr float nozzle_cleaner_y_origin_offset { 0.0f };
+    inline constexpr float indx_dock_tolerance_x_mm { 2.5f };
+    inline constexpr float indx_dock_tolerance_y_mm { 1.0f };
 #endif
 
 #if HAS_LOADCELL()

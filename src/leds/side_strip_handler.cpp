@@ -199,6 +199,11 @@ void SideStripHandler::update() {
         // It must not keep the chamber lights and LCD awake indefinitely.
         const bool guided_activity = guided_activity_active() && !host_idle_override && !marlin_server::finishing_or_finished();
         const bool terminal_print_state = printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Exit;
+        // Long-running local operations do not all own an FSM dialog. Keep an
+        // open setup/control screen readable while the head or bed is moving,
+        // then start the normal activity timeout when the operation ends.
+        // An explicit host idle override remains authoritative.
+        const bool machine_activity = machine_operation_holds_active(print_active, terminal_print_state, host_idle_override);
 
         if (print_active && !print_override_session_active) {
             print_brightness_overridden = false;
@@ -244,7 +249,7 @@ void SideStripHandler::update() {
                 change_state(SideStripState::active);
             } else if (startup_activity_active) {
                 change_state(SideStripState::active);
-            } else if (guided_activity) {
+            } else if (guided_activity || machine_activity) {
                 active_timestamp_ms = time_ms;
                 change_state(SideStripState::active);
             } else if (door_open_for_leds && door_holds_active) {

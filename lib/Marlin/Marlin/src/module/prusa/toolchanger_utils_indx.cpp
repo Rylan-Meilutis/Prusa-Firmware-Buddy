@@ -17,6 +17,7 @@
 #include <utils/badge.hpp>
 
 #include <config_store/store_instance.hpp>
+#include <indx_dock_tolerance.hpp>
 
 LOG_COMPONENT_DEF(PrusaToolChanger, logging::Severity::debug);
 
@@ -147,9 +148,9 @@ const PrusaToolInfo &PrusaToolChangerUtils::get_tool_info(PhysicalToolIndex tool
 
 bool PrusaToolChangerUtils::is_tool_info_valid(PhysicalToolIndex tool, const PrusaToolInfo &info) const {
     const PrusaToolInfo synthetic = create_default_tool_info(tool);
-    const auto dx = std::abs(info.dock_x - synthetic.dock_x);
-    const auto dy = std::abs(info.dock_y - synthetic.dock_y);
-    return dx <= (DOCK_INVALID_OFFSET_X_MM + EPSILON_MM) && dy <= (DOCK_INVALID_OFFSET_Y_MM + EPSILON_MM);
+    const float tolerance_x = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_x_mm.get(), indx_dock_tolerance::default_x_mm);
+    const float tolerance_y = indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_y_mm.get(), indx_dock_tolerance::default_y_mm);
+    return indx_dock_tolerance::accepts_offset(info.dock_x - synthetic.dock_x, info.dock_y - synthetic.dock_y, tolerance_x, tolerance_y, EPSILON_MM);
 }
 
 void PrusaToolChangerUtils::set_tool_info(PhysicalToolIndex tool, const PrusaToolInfo &info) {

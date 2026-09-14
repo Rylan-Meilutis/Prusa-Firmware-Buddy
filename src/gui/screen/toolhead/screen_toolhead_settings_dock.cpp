@@ -8,6 +8,7 @@
     #include <marlin_client.hpp>
     #include <gui/dialogs/window_dlg_wait.hpp>
     #include <utils/variant_utils.hpp>
+    #include <indx_dock_tolerance.hpp>
 #endif
 
 using namespace screen_toolhead_settings;
@@ -74,6 +75,28 @@ void MI_DOCK_CALIBRATE::click([[maybe_unused]] IWindowMenu &menu) {
 #endif
 
 #if HAS_INDX()
+static constexpr NumericInputConfig dock_tolerance_config {
+    .min_value = indx_dock_tolerance::minimum_mm,
+    .max_value = indx_dock_tolerance::maximum_mm,
+    .step = 0.1f,
+    .max_decimal_places = 1,
+    .unit = Unit::millimeter,
+};
+
+MI_DOCK_TOLERANCE_X::MI_DOCK_TOLERANCE_X()
+    : WiSpin(indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_x_mm.get(), indx_dock_tolerance::default_x_mm), dock_tolerance_config, _("Dock X Tolerance")) {}
+
+void MI_DOCK_TOLERANCE_X::OnClick() {
+    config_store().indx_dock_tolerance_x_mm.set(value());
+}
+
+MI_DOCK_TOLERANCE_Y::MI_DOCK_TOLERANCE_Y()
+    : WiSpin(indx_dock_tolerance::sanitize(config_store().indx_dock_tolerance_y_mm.get(), indx_dock_tolerance::default_y_mm), dock_tolerance_config, _("Dock Y Tolerance")) {}
+
+void MI_DOCK_TOLERANCE_Y::OnClick() {
+    config_store().indx_dock_tolerance_y_mm.set(value());
+}
+
 // * MI_DOCK_INVALIDATE_CALIBRATION
 MI_DOCK_INVALIDATE_CALIBRATION::MI_DOCK_INVALIDATE_CALIBRATION(Toolhead toolhead)
     : MI_TOOLHEAD_SPECIFIC_BASE(toolhead, _("Invalidate Calibration")) {
