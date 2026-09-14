@@ -64,6 +64,16 @@ store, and crash-dump changes are retained.
   firmware upload. Local and RME USB writers now share the transfer latch,
   and the bootloader cleanup marker is inspected once per media insertion
   after active storage work completes instead of reopening it every cycle.
+- `RME_SESSION` now reports `active_tool=<logical-index|none>` from the live
+  tool-selection state. INDX hosts can immediately clear a stale selected tool
+  when every tool is parked instead of retaining the last virtual tool.
+- Fixed the remaining INDX phase-stepping heap failure identified in the
+  released 6.9.0 dump. Forward and backward accelerometer captures are now
+  analyzed sequentially instead of being retained together, and peak
+  detection no longer allocates a temporary candidate list.
+- Crash-dump export now advertises its retained size and emits periodic busy
+  and byte-progress responses, preventing a slow USB write from being mistaken
+  for a failed RME command.
 
 ## Validation
 

@@ -545,43 +545,27 @@ stdext::inplace_vector<SignalPeak, max_peaks_per_harmonic> find_peaks(It begin, 
         return {};
     }
 
-    // Forward pass: find local maxima, record their left_min values, and track
-    // signal_max. Theoretical max ~signal_size/2 candidates; with
-    // speed_sweep_bins=400 that's at most 200 — less than the Python's 400 per
-    // left_min/right_min array.
-    struct PeakCandidate {
-        size_t idx;
-        float left_min;
-    };
-    sfl::segmented_vector<PeakCandidate, 64> candidates;
+    // Evaluate prominence as each local maximum is discovered. Re-scanning
+    // the short (normally 400-bin) response for its right minimum costs very
+    // little and, importantly, avoids another dynamically allocated candidate
+    // list while the captured accelerometer signals are resident.
     float signal_max = signal_val(0);
     float running_left_min = signal_val(0);
+    stdext::inplace_vector<SignalPeak, max_peaks_per_harmonic> peaks;
 
     for (size_t i = 1; i < signal_size; i++) {
         float val = signal_val(i);
         signal_max = std::max(signal_max, val);
         running_left_min = std::min(running_left_min, val);
-        if (i < signal_size - 1 && val > signal_val(i - 1) && val > signal_val(i + 1)) {
-            candidates.push_back({ i, running_left_min });
-        }
-    }
-
-    // Backward pass: walk the signal backward to compute running right_min.
-    // When we reach a candidate's index, compute its prominence and insert
-    // into the bounded result sorted by prominence (descending).
-    stdext::inplace_vector<SignalPeak, max_peaks_per_harmonic> peaks;
-    float running_right_min = signal_val(signal_size - 1);
-    size_t cand_cursor = candidates.size();
-
-    for (size_t i = signal_size - 2; i >= 1 && cand_cursor > 0; i--) {
-        running_right_min = std::min(running_right_min, signal_val(i));
-        if (candidates[cand_cursor - 1].idx != i) {
-            // Not a peak position, just updating running_right_min
+        if (i >= signal_size - 1 || val <= signal_val(i - 1) || val <= signal_val(i + 1)) {
             continue;
         }
 
-        cand_cursor--;
-        float abs_prominence = signal_val(i) - std::min(candidates[cand_cursor].left_min, running_right_min);
+        float right_min = signal_val(i);
+        for (size_t right = i + 1; right < signal_size; ++right) {
+            right_min = std::min(right_min, signal_val(right));
+        }
+        float abs_prominence = val - std::min(running_left_min, right_min);
         float prominence = abs_prominence / signal_max;
 
         if (prominence < min_prominence) {
@@ -1346,84 +1330,79 @@ measure_calibration_speeds(AxisEnum axis, const AxisCalibrationConfig &calibrati
 
     move_to_measurement_start(axis, move_characteristics);
 
-    // First, capture the speed sweep there and back
-    SignalContainer forward_samples;
-    forward_samples.reserve(static_cast<size_t>(MAX_ACC_SAMPLING_RATE * SAMPLE_BUFFER_MARGIN * move_characteristics.duration));
-    auto forward_annotation = capture_speed_sweep_samples(axis,
-        start_speed, end_speed, calibration_config.max_movement_revs,
-        [&](const auto &sample) {
-            forward_samples.push_back(sample);
-        });
-
-    if (!forward_annotation.movement_ok || forward_annotation.accel_error != accelerometer::Error::none) {
-        log_error(PhaseStepping, "Speed sweep movement failed: acc_error %u, movement_ok %d",
-            static_cast<unsigned>(forward_annotation.accel_error), forward_annotation.movement_ok);
-        return std::unexpected(CalibrateAxisError::speed_sweep_movement_failed);
-    }
-    ABORT_CHECK();
-    auto forward_signal = locate_signal(forward_annotation, forward_samples);
-    debug_dump_raw_measurement("forward", forward_samples, forward_annotation, forward_signal);
-    debug_assert(forward_signal.size() != 0);
-    ABORT_CHECK();
-
-    SignalContainer backward_samples;
-    backward_samples.reserve(static_cast<size_t>(MAX_ACC_SAMPLING_RATE * SAMPLE_BUFFER_MARGIN * move_characteristics.duration));
-    auto backward_annotation = capture_speed_sweep_samples(axis,
-        start_speed, end_speed, -calibration_config.max_movement_revs,
-        [&](const auto &sample) {
-            backward_samples.push_back(sample);
-        });
-
-    if (!backward_annotation.movement_ok || backward_annotation.accel_error != accelerometer::Error::none) {
-        log_error(PhaseStepping, "Speed sweep movement failed: acc_error %u, movement_ok %d",
-            static_cast<unsigned>(backward_annotation.accel_error), backward_annotation.movement_ok);
-        return std::unexpected(CalibrateAxisError::speed_sweep_movement_failed);
-    }
-    ABORT_CHECK();
-    auto backward_signal = locate_signal(backward_annotation, backward_samples);
-    debug_dump_raw_measurement("backward", backward_samples, backward_annotation, backward_signal);
-    debug_assert(backward_signal.size() != 0);
-    ABORT_CHECK();
-
-    // Then construct a combined signal for each harmonic from all measurements
-    std::vector<HarmonicT<MagnitudeContainer>> harmonic_signals;
+    // Accumulate each direction before capturing the next one. Keeping both
+    // raw captures alive at once consumed most of the remaining INDX heap and
+    // made every later segmented-vector growth dependent on fragmentation.
+    // The combined responses are small, so retain only those between sweeps.
+    stdext::inplace_vector<HarmonicT<MagnitudeContainer>, opts::CORRECTION_HARMONICS> harmonic_signals;
     for (int harmonic = 1; harmonic <= opts::CORRECTION_HARMONICS; harmonic++) {
-        if (!calibration_config.enabled_harmonics[harmonic - 1]) {
-            continue;
+        if (calibration_config.enabled_harmonics[harmonic - 1]) {
+            harmonic_signals.emplace_back(harmonic, MagnitudeContainer {});
+        }
+    }
+
+    auto capture_and_accumulate = [&](const SweepDirection direction) -> std::expected<void, CalibrateAxisError> {
+        SignalContainer samples;
+        samples.reserve(static_cast<size_t>(MAX_ACC_SAMPLING_RATE * SAMPLE_BUFFER_MARGIN * move_characteristics.duration));
+        const float revs = direction == SweepDirection::Up
+            ? calibration_config.max_movement_revs
+            : -calibration_config.max_movement_revs;
+        const auto annotation = capture_speed_sweep_samples(axis, start_speed, end_speed, revs,
+            [&](const auto &sample) { samples.push_back(sample); });
+
+        if (!annotation.movement_ok || annotation.accel_error != accelerometer::Error::none) {
+            log_error(PhaseStepping, "Speed sweep movement failed: acc_error %u, movement_ok %d",
+                static_cast<unsigned>(annotation.accel_error), annotation.movement_ok);
+            return std::unexpected(CalibrateAxisError::speed_sweep_movement_failed);
+        }
+        if (should_abort && should_abort()) {
+            return std::unexpected(CalibrateAxisError::aborted);
         }
 
-        MagnitudeContainer combined;
-        const float window_size = calibration_config.analysis_window_size_seconds;
-        const int ramp_samples = forward_signal.size() / 2;
-        const float time_step = ramp_samples / forward_annotation.sampling_freq / calibration_config.speed_sweep_bins;
-        for (SweepDirection dir : { SweepDirection::Up, SweepDirection::Down }) {
-            const auto &signal = dir == SweepDirection::Up ? forward_signal : backward_signal;
-            const auto &annotation = dir == SweepDirection::Up ? forward_annotation : backward_annotation;
+        const auto signal = locate_signal(annotation, samples);
+        debug_dump_raw_measurement(direction == SweepDirection::Up ? "forward" : "backward", samples, annotation, signal);
+        debug_assert(signal.size() != 0);
 
+        const int ramp_samples = signal.size() / 2;
+        const float time_step = ramp_samples / annotation.sampling_freq / calibration_config.speed_sweep_bins;
+        for (auto &combined_signal : harmonic_signals) {
+            const int harmonic = combined_signal.harmonic;
             auto [up_analysis, down_analysis] = motor_speed_dft_sweep(
                 signal, annotation.sampling_freq, start_speed, end_speed,
-                get_motor_steps(axis), harmonic, window_size, time_step);
+                get_motor_steps(axis), harmonic,
+                calibration_config.analysis_window_size_seconds, time_step);
             debug_assert(!up_analysis.samples.empty());
 
-            ABORT_CHECK();
+            if (should_abort && should_abort()) {
+                return std::unexpected(CalibrateAxisError::aborted);
+            }
 
-            debug_dump_dft_sweep_result("up", harmonic, dir == SweepDirection::Down, up_analysis);
-            debug_dump_dft_sweep_result("down", harmonic, dir == SweepDirection::Down, down_analysis);
+            debug_dump_dft_sweep_result("up", harmonic, direction == SweepDirection::Down, up_analysis);
+            debug_dump_dft_sweep_result("down", harmonic, direction == SweepDirection::Down, down_analysis);
 
-            if (dir == SweepDirection::Up) {
+            auto &combined = combined_signal.value;
+            if (combined.empty()) {
                 combined.resize(up_analysis.samples.size());
             }
 
-            int samples = std::min(combined.size(), up_analysis.samples.size());
-            for (int i = 0; i < samples; i++) {
+            const int count = std::min(combined.size(), up_analysis.samples.size());
+            for (int i = 0; i < count; i++) {
                 combined[i] += up_analysis.samples[i] + down_analysis.samples[i];
             }
         }
+        return {};
+    };
 
-        ABORT_CHECK();
+    if (auto captured = capture_and_accumulate(SweepDirection::Up); !captured) {
+        return std::unexpected(captured.error());
+    }
+    if (auto captured = capture_and_accumulate(SweepDirection::Down); !captured) {
+        return std::unexpected(captured.error());
+    }
 
+    for (const auto &combined_signal : harmonic_signals) {
+        const auto &combined = combined_signal.value;
         debug_assert(!combined.empty());
-        harmonic_signals.emplace_back(harmonic, std::move(combined));
     }
 
     // Locate the peak positions

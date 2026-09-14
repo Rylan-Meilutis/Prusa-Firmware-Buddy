@@ -170,7 +170,7 @@ void dump_reset() {
     storage.fetch_error();
 }
 
-bool save_dump_to_usb(const char *fn) {
+bool save_dump_to_usb(const char *fn, void (*progress)(size_t, size_t)) {
     FILE *fd;
     constexpr uint16_t dump_buff_size = 0x100;
     uint8_t buff[dump_buff_size];
@@ -202,6 +202,9 @@ bool save_dump_to_usb(const char *fn) {
             }
             bw_total += bw;
             offset += read_size;
+            if (progress && (offset % (16 * 1024) == 0 || offset == dump_info.dump_size)) {
+                progress(offset, dump_info.dump_size);
+            }
         }
         fclose(fd);
         if (bw_total != dump_info.dump_size) {

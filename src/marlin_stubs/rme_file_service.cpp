@@ -150,6 +150,16 @@ void report_upload_error(const char *code, const bool resumable) {
     SERIAL_ECHOLN(resumable ? 1 : 0);
 }
 
+void report_crash_dump_progress(const size_t written, const size_t total) {
+    // save_dump_to_usb is deliberately allocation-free but synchronous. Keep
+    // serial hosts alive during slow flash media and provide useful progress.
+    SERIAL_ECHOLNPGM("echo:busy: processing");
+    SERIAL_ECHOPGM("RME_FILE_CRASH_DUMP_PROGRESS written=");
+    SERIAL_ECHO(static_cast<uint32_t>(written));
+    SERIAL_ECHOPGM(" size=");
+    SERIAL_ECHOLN(static_cast<uint32_t>(total));
+}
+
 std::optional<std::string_view> value(const std::string_view command, const std::string_view key) {
     return rme_protocol::value(command, key);
 }
@@ -1248,8 +1258,12 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         } else if (!crash_dump::dump_is_valid()) {
             report_error("no_crash_dump");
         } else if (auto slot = transfers::Monitor::instance.allocate(
-                       transfers::Monitor::Type::Link, path->data(), 0)) {
-            const bool saved = crash_dump::save_dump_to_usb(path->data());
+                       transfers::Monitor::Type::Link, path->data(), crash_dump::dump_get_size())) {
+            SERIAL_ECHOPGM("RME_FILE_CRASH_DUMP_BEGIN path=");
+            SERIAL_ECHO(path->data() + 5);
+            SERIAL_ECHOPGM(" size=");
+            SERIAL_ECHOLN(static_cast<uint32_t>(crash_dump::dump_get_size()));
+            const bool saved = crash_dump::save_dump_to_usb(path->data(), report_crash_dump_progress);
             slot->done(saved ? transfers::Monitor::Outcome::Finished
                              : transfers::Monitor::Outcome::ErrorStorage);
             if (!saved) {
