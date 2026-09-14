@@ -7,7 +7,7 @@ namespace rme_indx_workflow {
 struct Descriptor {
     const char *workflow;
     const char *phase;
-    bool error;
+    bool waiting_for_host;
 };
 
 // Kept independent of the GUI/FSM implementation so every INDX phase can be
@@ -16,7 +16,7 @@ struct Descriptor {
 constexpr Descriptor nozzle_mismatch(const uint8_t phase) {
     switch (phase) {
     case 0:
-        return { "indx_tool_detection", "unknown_tool_detected", false };
+        return { "indx_tool_detection", "unknown_tool_detected", true };
     case 1:
         return { "indx_slot_selection", "select_slot", false };
     case 2:

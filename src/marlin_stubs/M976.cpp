@@ -39,6 +39,7 @@
 #endif
 #include <printers.h>
 #include <tool_index.hpp>
+#include <m976_indx_policy.hpp>
 
 #include <algorithm>
 #include <array>
@@ -88,6 +89,7 @@ public:
 };
 
 float probe_anchor_slot(uint8_t slot);
+bool park_for_free_air_calibration(uint8_t slot, float anchor_z);
 
 constexpr float mmu_cleaning_width = 32.0f;
 constexpr float mmu_cleaning_right_margin = 10.0f;
@@ -238,7 +240,13 @@ void emit_pressure_advance_gcode(const uint8_t tool, const uint8_t slot, const f
 
 void park_after_calibration() {
     if (all_axes_homed()) {
+#if HAS_INDX()
+        // Leave the cleaner through its calibrated keep-out route. Do not
+        // reinterpret the generic park point as an INDX cleaner coordinate.
+        nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::exit_cleaner);
+#else
         mapi::park(mapi::get_parking_position(mapi::ParkPosition::park));
+#endif
     }
 }
 
@@ -384,11 +392,12 @@ std::string_view base_material_name(const FilamentTypeParameters &params) {
 
 bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
     uint8_t logical_mask = 0;
+    uint8_t physical_mask = 0;
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
         if (entry.physical_tool >= EXTRUDERS || entry.logical_filament >= buddy::extrusion_calibration::max_logical_filaments
             || entry.temperature < thermalManager.extrude_min_temp || entry.temperature > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN
-            || (logical_mask & (1u << entry.logical_filament))) {
+            || (logical_mask & (1u << entry.logical_filament)) || (physical_mask & (1u << entry.physical_tool))) {
             return false;
         }
 #if ENABLED(PRUSA_MMU2)
@@ -396,7 +405,18 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
             return false;
         }
 #endif
+        const auto logical = VirtualToolIndex::from_raw(entry.logical_filament);
+        const auto physical = PhysicalToolIndex::from_raw(entry.physical_tool);
+        if (!buddy::m976_indx_policy::safe_manifest_mapping(entry.physical_tool,
+                entry.logical_filament, logical.to_physical().to_raw(), physical.is_enabled(), logical.is_enabled())) {
+            // Never let a stale slicer manifest select a dock which is not the
+            // configured mapping for this logical filament. INDX dock and
+            // cleaner regions are physical keep-out zones, so fail before any
+            // tool-change or XY motion.
+            return false;
+        }
         logical_mask |= 1u << entry.logical_filament;
+        physical_mask |= 1u << entry.physical_tool;
         const auto params = config_store().get_filament_type(entry.logical_filament).parameters();
         if (!buddy::m976_material::matches(entry.material.data(), params.name.data(), base_material_name(params))) {
             return false;
@@ -554,8 +574,11 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
         // the purge bucket. Silicone cleaner contact is excluded from the
         // retained loadcell capture.
         pressure_advance::set_calibration_mode(false);
-        mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
-        planner.synchronize();
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
+            capture.stop();
+            capture.release();
+            return {};
+        }
         capture.resume();
         pressure_advance::set_calibration_mode(true);
         extrude_flow(fast_flow, 0.25f);
@@ -681,7 +704,13 @@ float probe_anchor_slot(const uint8_t slot) {
 
 void cleanup(const uint8_t slot, const float anchor_z) {
 #if HAS_WASTEBIN()
+    #if HAS_INDX()
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
+        return;
+    }
+    #else
     mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
+    #endif
     mapi::extruder_move(-1.0f, 20.0f, true);
     planner.synchronize();
 #else
@@ -702,9 +731,20 @@ void cleanup(const uint8_t slot, const float anchor_z) {
 #endif
 }
 
-void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
+bool park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
 #if HAS_WASTEBIN()
-    mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::purge));
+    #if HAS_INDX()
+    if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
+        return false;
+    }
+    create_hotend_clearance();
+    // Enter through the native cleaner approach and stop in the open purge
+    // gap. Raw ParkPosition::purge targets the cleaner origin and is not an
+    // INDX PA extrusion position.
+    return nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position);
+    #else
+    return mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::purge));
+    #endif
 #else
     // The front service travel is outside the printable Y range on MK4,
     // CORE One and XL. Keep X aligned with the later cleanup slot so hanging
@@ -722,6 +762,7 @@ void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
     do_blocking_move_to_x(x, 50.0f);
     do_blocking_move_to_y(Y_MIN_POS + 1.0f, 50.0f);
     do_blocking_move_to_z(calibration_z, 5.0f);
+    return true;
 #endif
 }
 } // namespace
@@ -954,11 +995,14 @@ void PrusaGcodeSuite::M976() {
             return;
         }
     }
-    if (thermalManager.tooColdToExtrude(active_extruder)) {
+    if (thermalManager.tooColdToExtrude(*selected_tool)) {
         SERIAL_ERROR_MSG("M976 hotend too cold");
         return;
     }
-    park_for_free_air_calibration(slot, anchor_z);
+    if (!park_for_free_air_calibration(slot, anchor_z)) {
+        SERIAL_ERROR_MSG("M976 could not reach safe calibration purge position");
+        return;
+    }
     BlockEStallDetection block_legacy_e_stall;
     buddy::extrusion_calibration::suspend_pressure_monitor(true);
     auto high_precision = Loadcell::HighPrecisionEnabler(loadcell, !loadcell.IsHighPrecisionEnabled());
