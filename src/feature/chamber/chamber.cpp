@@ -59,7 +59,6 @@ constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
 
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 namespace {
-constexpr int16_t chamber_heating_bed_target = BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN;
 constexpr uint8_t chamber_heating_print_fan_pwm = 76; // 30%, enough to mix air without excessive nozzle cooling
 
     #if HAS_BED_FAN()
@@ -122,7 +121,6 @@ void Chamber::step() {
         control_temperature, target_temperature_, marlin_server::is_printing(), heating_wait_active_);
 
     if (should_assist && !heating_assist_active_) {
-        heating_assist_previous_bed_target_ = thermalManager.degTargetBed();
         heating_assist_previous_print_fan_ = thermalManager.get_print_fan_speed();
         heating_assist_active_ = true;
     #if HAS_BED_FAN()
@@ -132,18 +130,9 @@ void Chamber::step() {
     }
 
     if (should_assist) {
-        // Notice host/local changes made while we own an output and preserve
-        // those values for restoration. Chamber heat may raise, never lower,
-        // a separately requested bed or print-fan setting.
-        const auto bed_target = thermalManager.degTargetBed();
-        if (heating_assist_applied_bed_target_ != 0 && bed_target != heating_assist_applied_bed_target_) {
-            heating_assist_previous_bed_target_ = bed_target;
-        }
-        heating_assist_applied_bed_target_ = chamber_heating::assisted_output(heating_assist_previous_bed_target_, chamber_heating_bed_target);
-        if (bed_target != heating_assist_applied_bed_target_) {
-            thermalManager.setTargetBed(heating_assist_applied_bed_target_);
-        }
-
+        // Only circulate heat from the bed's independently configured target.
+        // M141/M191 must never rewrite it: doing so can leave a later M190
+        // waiting for a temperature transition the print did not request.
         const auto fan_pwm = thermalManager.get_print_fan_speed();
         if (heating_assist_applied_print_fan_ != 0 && fan_pwm != heating_assist_applied_print_fan_) {
             heating_assist_previous_print_fan_ = fan_pwm;
@@ -153,9 +142,6 @@ void Chamber::step() {
             thermalManager.set_print_fan_speed(heating_assist_applied_print_fan_);
         }
     } else if (heating_assist_active_) {
-        if (thermalManager.degTargetBed() == heating_assist_applied_bed_target_) {
-            thermalManager.setTargetBed(heating_assist_previous_bed_target_);
-        }
         if (thermalManager.get_print_fan_speed() == heating_assist_applied_print_fan_) {
             thermalManager.set_print_fan_speed(heating_assist_previous_print_fan_);
         }
@@ -166,7 +152,6 @@ void Chamber::step() {
         }
     #endif
         heating_assist_active_ = false;
-        heating_assist_applied_bed_target_ = 0;
         heating_assist_applied_print_fan_ = 0;
     }
 #endif
