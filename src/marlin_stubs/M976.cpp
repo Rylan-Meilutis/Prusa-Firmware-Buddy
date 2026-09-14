@@ -30,6 +30,7 @@
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
 #include <printers.h>
+#include <option/has_indx.h>
 #if HAS_WASTEBIN()
 #include <nozzle_cleaner.hpp>
 #endif
@@ -457,7 +458,7 @@ void extrude_flow(const float flow_mm3_s, const float seconds) {
     mapi::extruder_move(filament_speed * seconds, filament_speed, true);
 }
 
-buddy::extrusion_calibration::Score run_bursts(const float pa) {
+buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection) {
     // Match PrusaPATuner's asymmetric 0.8/8.0 mm/s filament square wave.
     // Queue the complete burst before synchronizing: PA must see continuous
     // slow/fast transitions, not a stop between every leg.
@@ -491,6 +492,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
         planner.synchronize();
     }
 #else
+    (void)indx_cycles_since_ejection;
     pressure_advance::set_calibration_mode(true);
     // Four cycles preserve enough independent transitions for the scorer's
     // rejection margin. A 0.5 s slow plateau still greatly exceeds the
@@ -862,6 +864,7 @@ void PrusaGcodeSuite::M976() {
     float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
     candidate_observation_count = 0;
+    uint8_t indx_cycles_since_ejection = 0;
     const auto record_observation = [&](const float candidate, const buddy::extrusion_calibration::Score &score) {
         if (score.valid && candidate_observation_count < candidate_observations.size()) {
             candidate_observations[candidate_observation_count++] = { candidate, score.transient };
@@ -875,7 +878,7 @@ void PrusaGcodeSuite::M976() {
             return buddy::extrusion_calibration::Score {};
         }
         const float bounded_candidate = constrain(candidate, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(bounded_candidate);
+        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection);
         report_measurement_debug(bounded_candidate, score, idle_noise);
         record_observation(bounded_candidate, score);
         if (score.valid && score.transient < best_cost) {
@@ -956,7 +959,7 @@ void PrusaGcodeSuite::M976() {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
             static_cast<uint8_t>(82 + (retry * 5) / std::max<uint8_t>(maximum_confidence_retries, 1)), slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
-        const auto score = run_bursts(best_pa);
+        const auto score = run_bursts(best_pa, indx_cycles_since_ejection);
         report_measurement_debug(best_pa, score, idle_noise);
         record_observation(best_pa, score);
         if (score.valid && score.transient < best_cost) {
@@ -964,6 +967,14 @@ void PrusaGcodeSuite::M976() {
             best_score = score;
         }
     }
+    #if HAS_INDX()
+    // Bound buildup during the search, then always finish the remainder in the
+    // requested order: wipe, eject. If the final measured cycle was exactly a
+    // fifth cycle, its periodic ejection already is the final ejection.
+    if (!eject_accumulated_indx_pellet(indx_cycles_since_ejection)) {
+        aborted = true;
+    }
+    #endif
     pa_fsm_change(PhasesPressureAdvanceCalibration::computing, 88, slot);
     if (pa_abort_requested(PhasesPressureAdvanceCalibration::computing)) aborted = true;
     if (aborted) {
