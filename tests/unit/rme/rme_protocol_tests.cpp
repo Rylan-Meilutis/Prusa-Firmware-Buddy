@@ -3,6 +3,8 @@
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
 #include <m976_temperature_policy.hpp>
+#include <m976_indx_policy.hpp>
+#include <indx_serial_motion_safety.hpp>
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
@@ -10,9 +12,12 @@
 #include <rme_light_hold.hpp>
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
+#include <rme_indx_workflow.hpp>
 #include <indx_dock_tolerance.hpp>
 #include <g427_tool_selection.hpp>
 #include <task_stack_requirements.hpp>
+#include <unknown_axis_motion.hpp>
+#include <host_keepalive_policy.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -29,6 +34,43 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("Host keepalive remains active when calibration suspends auto reports", "[rme][serial][regression]") {
+    using buddy::host_keepalive_policy::should_emit;
+
+    // Auto-report state is deliberately absent from this policy. M97x/G426 and
+    // similar long operations may suppress telemetry, never the host heartbeat.
+    CHECK(should_emit(2, true));
+    CHECK_FALSE(should_emit(0, true));
+    CHECK_FALSE(should_emit(2, false));
+}
+
+TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
+    using rme_indx_workflow::nozzle_mismatch;
+    CHECK(std::string_view(nozzle_mismatch(0).workflow) == "indx_tool_detection"sv);
+    CHECK(std::string_view(nozzle_mismatch(0).phase) == "unknown_tool_detected"sv);
+    CHECK(nozzle_mismatch(0).waiting_for_host);
+    CHECK(std::string_view(nozzle_mismatch(1).workflow) == "indx_slot_selection"sv);
+    CHECK(std::string_view(nozzle_mismatch(3).phase) == "dock_not_empty"sv);
+    CHECK(nozzle_mismatch(3).waiting_for_host);
+    CHECK(std::string_view(nozzle_mismatch(4).phase) == "tool_lost"sv);
+    CHECK(std::string_view(nozzle_mismatch(6).phase) == "pickup_failed"sv);
+    CHECK(std::string_view(nozzle_mismatch(7).phase) == "park_failed"sv);
+    CHECK(std::string_view(nozzle_mismatch(8).phase) == "confirm_abort"sv);
+    CHECK(std::string_view(nozzle_mismatch(255).workflow) == "indx"sv);
+}
+
+TEST_CASE("RME names every INDX calibration phase", "[rme][indx]") {
+    using namespace rme_indx_workflow;
+    CHECK(std::string_view(dock_calibration_phase(3)) == "select_docks"sv);
+    CHECK(std::string_view(dock_calibration_phase(11)) == "validating"sv);
+    CHECK(std::string_view(dock_calibration_phase(14)) == "failed"sv);
+    CHECK(std::string_view(nozzle_cleaner_phase(8)) == "measuring_x"sv);
+    CHECK(std::string_view(nozzle_cleaner_phase(14)) == "evaluating_y"sv);
+    CHECK(std::string_view(tool_offsets_phase(5)) == "calibrating"sv);
+    CHECK(std::string_view(tool_offsets_phase(7)) == "failed"sv);
+    CHECK(std::string_view(tool_offsets_phase(8)) == "unknown"sv);
+}
 
 TEST_CASE("RME active tool reports a parked toolchanger as none", "[rme][tool][regression]") {
     struct TestTool {
@@ -121,6 +163,38 @@ TEST_CASE("M976 MMU service temperature stays above cold extrusion cutoff", "[rm
     CHECK_FALSE(wait_for_restored_target);
 }
 
+TEST_CASE("M976 rejects stale or unsafe INDX manifest mappings before motion", "[rme][m976][indx][regression]") {
+    using buddy::m976_indx_policy::safe_manifest_mapping;
+
+    CHECK(safe_manifest_mapping(0, 0, 0, true, true));
+    CHECK(safe_manifest_mapping(7, 7, 7, true, true));
+    CHECK(safe_manifest_mapping(7, 0, 7, true, true));
+    CHECK_FALSE(safe_manifest_mapping(7, 0, 0, true, true));
+    CHECK_FALSE(safe_manifest_mapping(0, 7, 7, true, true));
+    CHECK_FALSE(safe_manifest_mapping(7, 7, 7, false, true));
+    CHECK_FALSE(safe_manifest_mapping(7, 7, 7, true, false));
+}
+
+TEST_CASE("M976 never uses legacy sheet-contact cleanup on INDX", "[rme][m976][indx][keepout][regression]") {
+    using buddy::m976_indx_policy::uses_sheet_contact_cleanup;
+
+    CHECK_FALSE(uses_sheet_contact_cleanup(true, true));
+    CHECK_FALSE(uses_sheet_contact_cleanup(true, false));
+    CHECK(uses_sheet_contact_cleanup(false, true));
+    CHECK_FALSE(uses_sheet_contact_cleanup(false, false));
+}
+
+TEST_CASE("INDX serial motion is confined to the printable rectangle", "[rme][indx][keepout][motion]") {
+    using namespace buddy::indx_serial_motion_safety;
+    constexpr ServiceBoundary boundary { 250, 0 };
+    STATIC_REQUIRE(point_is_safe(125, 100, boundary));
+    STATIC_REQUIRE(point_is_safe(-20, 220, boundary)); // ordinary endstops handle non-service sides
+    STATIC_REQUIRE_FALSE(point_is_safe(251, 100, boundary));
+    STATIC_REQUIRE_FALSE(point_is_safe(125, -0.1f, boundary));
+    STATIC_REQUIRE(arc_is_safe(125, 100, 20, boundary));
+    STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
+}
+
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {
     using buddy::filament_material::authoritative_name;
 
@@ -186,6 +260,51 @@ TEST_CASE("RME numeric parameters reject malformed and overflowing values", "[rm
     CHECK_FALSE(rme_protocol::signed_number("@RME X value=999999999999999999999"sv, "value"));
     CHECK(rme_protocol::unsigned_number("@RME FILE READ offset=1073741824"sv, "offset") == UINT32_C(1073741824));
     CHECK_FALSE(rme_protocol::unsigned_number("@RME FILE READ offset=-1"sv, "offset"));
+
+    CHECK(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2.5"sv, "tolerance_x") == 2.5f);
+    CHECK(rme_protocol::decimal_number("@RME DOCK SET tolerance_y=1"sv, "tolerance_y") == 1.0f);
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=-2.5"sv, "tolerance_x"));
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2.5mm"sv, "tolerance_x"));
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2..5"sv, "tolerance_x"));
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2."sv, "tolerance_x"));
+}
+
+TEST_CASE("G427 explicit tool list is authoritative and bounded", "[gcode][g427][indx]") {
+    const auto absent = g427_tool_selection::parse("G427 R2 P3", 8);
+    CHECK_FALSE(absent.present);
+    CHECK_FALSE(absent.mask.has_value());
+
+    const auto selected = g427_tool_selection::parse("G427 T0,7 R2 P3", 8);
+    REQUIRE(selected.present);
+    REQUIRE(selected.mask.has_value());
+    CHECK(*selected.mask == ((uint32_t { 1 } << 0) | (uint32_t { 1 } << 7)));
+
+    CHECK_FALSE(g427_tool_selection::parse("G427 T", 8).mask.has_value());
+    CHECK_FALSE(g427_tool_selection::parse("G427 T0,0", 8).mask.has_value());
+    CHECK_FALSE(g427_tool_selection::parse("G427 T0,8", 8).mask.has_value());
+    CHECK_FALSE(g427_tool_selection::parse("G427 T0,x", 8).mask.has_value());
+}
+
+TEST_CASE("INDX dock calibration uses independent configurable axis tolerances", "[rme][indx][dock]") {
+    using namespace indx_dock_tolerance;
+
+    CHECK(default_x_mm == 2.5f);
+    CHECK(default_y_mm == 1.0f);
+    CHECK(accepts_offset(2.5f, 1.0f, default_x_mm, default_y_mm));
+    CHECK(accepts_offset(-2.5f, -1.0f, default_x_mm, default_y_mm));
+    CHECK_FALSE(accepts_offset(2.56f, 0.0f, default_x_mm, default_y_mm));
+    CHECK_FALSE(accepts_offset(0.0f, 1.06f, default_x_mm, default_y_mm));
+    CHECK(accepts_offset(3.0f, 0.75f, 3.0f, 0.75f));
+    CHECK(sanitize(std::numeric_limits<float>::quiet_NaN(), default_x_mm) == default_x_mm);
+}
+
+TEST_CASE("Unhomed toolchanger axes use conservative hardware boundaries", "[motion][toolchanger][regression]") {
+    using namespace buddy::unknown_axis_motion;
+    CHECK(assumed_position(AssumedBoundary::minimum, 0, 360) == 0);
+    CHECK(assumed_position(AssumedBoundary::maximum, 0, 360) == 360);
+    CHECK(constrain(-1, 0, 360) == 0);
+    CHECK(constrain(361, 0, 360) == 360);
+    CHECK(constrain(125, 0, 360) == 125);
 }
 
 TEST_CASE("RME service frames remain isolated from ordinary G-code", "[rme]") {
