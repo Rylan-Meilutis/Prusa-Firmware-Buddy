@@ -40,6 +40,7 @@
 #include <printers.h>
 #include <tool_index.hpp>
 #include <m976_indx_policy.hpp>
+#include <m976_indx_pellet_policy.hpp>
 
 #if HAS_INDX()
 static_assert(!buddy::m976_indx_policy::uses_sheet_contact_cleanup(true, ENABLED(PROBE_CLEANUP_SUPPORT)));
@@ -572,7 +573,27 @@ void extrude_flow(const float flow_mm3_s, const float seconds) {
     mapi::extruder_move(filament_speed * seconds, filament_speed, true);
 }
 
-buddy::extrusion_calibration::Score run_bursts(const float pa) {
+#if HAS_INDX()
+bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
+    if (!buddy::m976_indx_pellet_policy::final_ejection_needed(cycles_since_ejection)) {
+        return true;
+    }
+    // First wipe the strand free, then eject the cooled pellet. Returning to
+    // the prime block is deferred until another measured cycle actually needs
+    // it, avoiding repeated cleaner traversals between every high/low pair.
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)
+        || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+        return false;
+    }
+    cycles_since_ejection = 0;
+    #if HAS_WASTEBIN_FILL_TRACKING()
+    WastebinWatcher::instance().account_ejected_pellet();
+    #endif
+    return true;
+}
+#endif
+
+buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection) {
     constexpr float slow_flow = 0.8f * filament_area;
     constexpr float fast_flow = 8.0f * filament_area;
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
@@ -584,6 +605,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
 #if HAS_INDX()
     capture.pause();
 #else
+    (void)indx_cycles_since_ejection;
     pressure_advance::set_calibration_mode(true);
 #endif
     // Four cycles preserve enough independent transitions for the scorer's
@@ -591,11 +613,11 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
     // analysis window while avoiding 0.4 mm of unneeded filament per cycle.
     for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
 #if HAS_INDX()
-        // Every measured cycle starts at the calibrated free-air pose over
-        // the purge bucket. Silicone cleaner contact is excluded from the
-        // retained loadcell capture.
+        // Keep consecutive high/low cycles at the calibrated prime-block
+        // position. Cleaner contact is excluded from the retained capture.
         pressure_advance::set_calibration_mode(false);
-        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
+        if ((cycle == 0 || indx_cycles_since_ejection == 0)
+            && !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
             capture.stop();
             capture.release();
             return {};
@@ -607,18 +629,12 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
         planner.synchronize();
         pressure_advance::set_calibration_mode(false);
         capture.pause();
-        // Break the fresh strand on the wiper before ejecting the pellet.  In
-        // the opposite order a still-attached pellet can curl onto the nozzle
-        // or extruder instead of falling into the wastebin.
-        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)
-            || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+        if (buddy::m976_indx_pellet_policy::record_cycle_and_should_eject(indx_cycles_since_ejection)
+            && !eject_accumulated_indx_pellet(indx_cycles_since_ejection)) {
             capture.stop();
             capture.release();
             return {};
         }
-    #if HAS_WASTEBIN_FILL_TRACKING()
-        WastebinWatcher::instance().account_ejected_pellet();
-    #endif
 #else
         extrude_flow(slow_flow, 0.5f);
         extrude_flow(fast_flow, 0.25f);
@@ -1046,6 +1062,7 @@ void PrusaGcodeSuite::M976() {
     float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
     candidate_observation_count = 0;
+    uint8_t indx_cycles_since_ejection = 0;
     const auto record_observation = [&](const float candidate, const buddy::extrusion_calibration::Score &score) {
         if (score.valid && candidate_observation_count < candidate_observations.size()) {
             candidate_observations[candidate_observation_count++] = { candidate, score.transient };
@@ -1059,7 +1076,7 @@ void PrusaGcodeSuite::M976() {
             return buddy::extrusion_calibration::Score {};
         }
         const float bounded_candidate = std::clamp(candidate, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(bounded_candidate);
+        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection);
         report_measurement_debug(bounded_candidate, score, idle_noise);
         record_observation(bounded_candidate, score);
         if (score.valid && score.transient < best_cost) {
@@ -1149,7 +1166,7 @@ void PrusaGcodeSuite::M976() {
             aborted = true;
             break;
         }
-        const auto score = run_bursts(best_pa);
+        const auto score = run_bursts(best_pa, indx_cycles_since_ejection);
         report_measurement_debug(best_pa, score, idle_noise);
         record_observation(best_pa, score);
         if (score.valid && score.transient < best_cost) {
@@ -1157,6 +1174,14 @@ void PrusaGcodeSuite::M976() {
             best_score = score;
         }
     }
+    #if HAS_INDX()
+    // Bound buildup during the search, then always finish the remainder in the
+    // requested order: wipe, eject. If the final measured cycle was exactly a
+    // fifth cycle, its periodic ejection already is the final ejection.
+    if (!eject_accumulated_indx_pellet(indx_cycles_since_ejection)) {
+        aborted = true;
+    }
+    #endif
     pa_fsm_change(PhasesPressureAdvanceCalibration::computing, 88, slot);
     if (pa_abort_requested(PhasesPressureAdvanceCalibration::computing)) {
         aborted = true;

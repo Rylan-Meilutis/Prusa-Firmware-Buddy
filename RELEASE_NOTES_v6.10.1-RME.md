@@ -142,3 +142,10 @@ and carry the `6.10.1-RME` firmware suffix.
 - The INDX heatbreak fan remains temperature controlled when tools are parked:
   it runs above the nozzle/controller safety thresholds and for the existing
   two-minute cooldown, rather than following the logical active-tool field.
+- INDX automatic PA now keeps consecutive high/low measurement cycles at the
+  calibrated prime-block position instead of traversing the cleaner after
+  every cycle. It wipes and ejects after each five cycles to bound buildup,
+  then always wipes and ejects the final remainder.
+- Serial-print aborts no longer emit the media-only `Done printing file`
+  marker, preventing OctoPrint from continuing with a desynchronized numbered
+  command stream after a calibration failure.
