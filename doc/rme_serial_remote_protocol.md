@@ -829,6 +829,13 @@ dock, nozzle-cleaner, and tool-offset wizard commands (`M1982`, `M1983`, and
 the normal activity timeout when the command returns; it does not alter saved
 brightness or timeout settings.
 
+Tool-offset calibration also publishes live workflow events for both the local
+wizard and serial `G427` runs. Hosts should route
+`workflow=indx_tool_offset_calibration`; phase names are `intro`, nozzle-cleaning
+or nozzle-confirmation phases, `moving_away`, `homing`, `picking_tool`,
+`calibrating`, and the terminal `success` or `failed`. `G427` includes bounded
+per-tool progress and a final 100-percent success event.
+
 INDX dock calibration has independent, persistent X and Y acceptance
 tolerances. The defaults are `tolerance_x=2.5` mm and `tolerance_y=1.0` mm;
 each value may be set from 0.5 through 5.0 mm in 0.1 mm increments. These are

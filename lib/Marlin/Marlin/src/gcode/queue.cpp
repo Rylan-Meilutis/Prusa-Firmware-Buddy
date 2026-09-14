@@ -68,6 +68,7 @@ GCodeQueue queue;
 #endif
 #if RME_HAS_INDX()
   #include <common/marlin_server_types/fsm/nozzle_mismatch_phases.hpp>
+  #include <feature/tool_offset_wizard/has_tool_offset_nozzle_cleaning_wizard.hpp>
 #endif
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
@@ -1298,7 +1299,7 @@ static void report_service_queue_status() {
         break;
       case ClientFSM::ToolOffsetsCalibration:
         workflow = "indx_tool_offset_calibration";
-        phase = rme_indx_workflow::tool_offsets_phase(raw_phase);
+        phase = rme_indx_workflow::tool_offsets_phase(raw_phase, HAS_TOOL_OFFSET_NOZZLE_CLEANING_WIZARD(), true);
         state = raw_phase == std::to_underlying(PhaseToolOffsetsCalibration::calibration_failed) ? "waiting" : "active";
         break;
       default: break;

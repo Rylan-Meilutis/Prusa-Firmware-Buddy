@@ -89,6 +89,11 @@ Firmware Buddy 6.10.1.
 - `G427 T0,7 R2 P3` can now declare the exact physical tools used by a serial
   print, avoiding the legacy all-enabled-tool fallback when file metadata is
   unavailable. Tool-offset purging also ejects the newly-created final pellet.
+- Local and serial INDX tool-offset calibration now emit the documented
+  `indx_tool_offset_calibration` phases and per-tool progress to RME clients.
+- INDX automatic PA now uses the native prime position and a dedicated short
+  push/reverse break-off motion before pellet ejection. This keeps curling
+  strands out of the toolhead instead of using the long general-purpose scrub.
 
 ## Validation
 

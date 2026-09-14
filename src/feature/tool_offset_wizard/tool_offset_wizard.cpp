@@ -4,6 +4,8 @@
 #include <common/fsm_base_types.hpp>
 #include <common/mapi/calibration_preamble.hpp>
 #include <common/selftest_result.hpp>
+#include <common/rme_indx_workflow.hpp>
+#include <common/serial_printing.hpp>
 #include <config_store/store_instance.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
 #include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
@@ -85,6 +87,9 @@ namespace {
 
         void fsm_change(PhaseToolOffsetsCalibration phase, fsm::PhaseData data = {}) {
             marlin_server::fsm_change(phase, data);
+            SerialPrinting::notify_workflow("indx_tool_offset_calibration",
+                rme_indx_workflow::tool_offsets_phase(static_cast<uint8_t>(phase), HAS_TOOL_OFFSET_NOZZLE_CLEANING_WIZARD(), true),
+                "Tool offset calibration");
         }
 
 #if HAS_TOOL_OFFSET_NOZZLE_CLEANING_WIZARD()

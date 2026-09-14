@@ -81,18 +81,52 @@ constexpr const char *nozzle_cleaner_phase(const uint8_t phase) {
     return phase < sizeof(names) / sizeof(names[0]) ? names[phase] : "unknown";
 }
 
-constexpr const char *tool_offsets_phase(const uint8_t phase) {
-    constexpr const char *names[] = {
-        "intro",
-        "clean_nozzles",
-        "moving_away",
-        "picking_tool",
-        "homing",
-        "calibrating",
-        "success",
-        "failed",
-    };
-    return phase < sizeof(names) / sizeof(names[0]) ? names[phase] : "unknown";
+constexpr const char *tool_offsets_phase(const uint8_t phase, const bool has_cleaning_wizard, const bool homing_before_pick) {
+    if (has_cleaning_wizard) {
+        switch (phase) {
+        case 0:
+            return "intro";
+        case 1:
+            return "clean_nozzles_cold";
+        case 2:
+            return "clean_nozzles_hot";
+        case 3:
+            return "moving_away";
+        case 4:
+            return homing_before_pick ? "homing" : "picking_tool";
+        case 5:
+            return homing_before_pick ? "picking_tool" : "homing";
+        case 6:
+            return "calibrating";
+        case 7:
+            return "success";
+        case 8:
+            return "failed";
+        default:
+            return "unknown";
+        }
+    }
+
+    switch (phase) {
+    case 0:
+        return "intro";
+    case 1:
+        return "ensure_nozzles_clean";
+    case 2:
+        return "moving_away";
+    case 3:
+        return homing_before_pick ? "homing" : "picking_tool";
+    case 4:
+        return homing_before_pick ? "picking_tool" : "homing";
+    case 5:
+        return "calibrating";
+    case 6:
+        return "success";
+    case 7:
+        return "failed";
+    default:
+        return "unknown";
+    }
 }
 
 } // namespace rme_indx_workflow
