@@ -126,9 +126,11 @@ and carry the `6.10.1-RME` firmware suffix.
 - Post-home and post-tool-change travel now stages through the native INDX
   cleaner approach, including its dock escape and segmented keep-out path,
   before any cleaner-local move.
-- Ordinary homed INDX serial linear moves and complete arc envelopes are now
-  confined to the printable area. Unsafe print G-code or manual serial moves
-  into tool-dock, cleaner, and purge-bucket keep-outs are rejected explicitly.
+- Ordinary homed INDX serial linear moves and complete arc envelopes now reject
+  entry into tool-dock, cleaner, and purge-bucket keep-outs explicitly.
+- Corrected the keep-out guard so Z-only/E-only commands remain valid while a
+  native tool operation is in a service area, and ordinary non-service travel
+  continues to use the existing software endstops.
 - Unknown-but-detected INDX tools now report a waiting RME workflow so a host
   can acknowledge detection and then use guarded dock selection.
 - The Josef Prusa (`pepa`) portrait is rendered in its original colors instead
