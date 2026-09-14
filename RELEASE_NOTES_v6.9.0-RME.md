@@ -9,6 +9,11 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- A parameterless `M105` is now valid while every INDX tool is parked. It
+  returns the normal no-tool temperature snapshot without emitting
+  `echo: Invalid extruder -1`, so OctoPrint does not incorrectly blacklist T0
+  before a serial print selects its first tool. Explicit invalid `M105 Tn`
+  requests remain errors.
 - Fixed tool-offset calibration exhausting the heap after its first recorded
   sweep. The large segmented load-cell sample buffer is now moved into the
   analysis result instead of being copied, and the result is compile-time
