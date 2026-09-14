@@ -229,10 +229,13 @@ TEST_CASE("INDX serial motion protects service hardware without blocking front Y
     STATIC_REQUIRE(point_is_safe(-20, 220, boundary)); // ordinary endstops handle non-service sides
     STATIC_REQUIRE_FALSE(point_is_safe(251, 100, boundary));
     STATIC_REQUIRE_FALSE(point_is_safe(125, -0.1f, boundary));
-    STATIC_REQUIRE(linear_move_is_safe(125, 0, 125, -1.5f, boundary));
-    STATIC_REQUIRE(linear_move_is_safe(125, -1.5f, 125, 0, boundary));
-    STATIC_REQUIRE_FALSE(linear_move_is_safe(125, -1.5f, 126, -1.5f, boundary));
-    STATIC_REQUIRE_FALSE(linear_move_is_safe(249, 100, 251, 100, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(125, 0, 125, -1.5f, false, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(125, -1.5f, 125, 0, false, boundary));
+    // Tool and mesh transforms may make a Y-only command appear to shift X.
+    STATIC_REQUIRE(linear_move_is_safe(88.10f, 73, 88.08f, 71.5f, false, boundary));
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(125, -1.5f, 126, -1.5f, true, boundary));
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(249, 100, 251, 100, true, boundary));
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(251, 100, 251, 98.5f, false, boundary));
     STATIC_REQUIRE(arc_is_safe(125, 100, 20, boundary));
     STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
 }
