@@ -312,8 +312,19 @@ packet throughput. Any line-coding rate other than 57600 selects normal Marlin
 communications; 57600 remains reserved for diagnostic USB logging. RME,
 numbered G-code, M20-M32, `ok`/resend, and older hosts remain supported. Larger
 multi-packet CDC RX/TX FIFOs absorb file and firmware transfer bursts.
+For example, a parked INDX reports:
+
+```text
+RME_SESSION lease=1 printer_state=IDLE active_tool=none legacy=0 preferred_baud=1000000 fallback_baud=250000,230400,115200
+```
+
 `RME_SESSION` replies advertise `preferred_baud=1000000` and a comma-separated
-fallback list. Older handlers may ignore these appended fields.
+fallback list. They also include `active_tool=<logical-index|none>`. The value
+is read from the live tool-selection state on every `OPEN`, `QUERY`, and
+`KEEPALIVE`; `none` explicitly means that every tool is parked. Hosts must
+clear any cached active tool when they receive `active_tool=none` and must not
+interpret Marlin's internal no-tool sentinel as another tool. Older handlers
+may ignore these appended fields.
 
 ## Machine discovery
 
