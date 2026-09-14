@@ -4,6 +4,7 @@
 #include "PrusaGcodeSuite.hpp"
 #include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
 #include <g427_tool_selection.hpp>
+#include <common/serial_printing.hpp>
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -57,7 +58,17 @@ void G427() {
         return;
     }
 
-    tool_offset_calibration::run(r_param, p_param, tool_offset_calibration::Context::Print, {}, tool_selection.mask);
+    SerialPrinting::notify_workflow("indx_tool_offset_calibration", "calibrating", "Tool offset calibration", 0);
+    const auto progress_cb = [](const tool_offset_calibration::ProgressReport &progress) {
+        const int percent = progress.total_steps
+            ? (static_cast<int>(progress.step - 1) * 100) / progress.total_steps
+            : 0;
+        SerialPrinting::notify_workflow("indx_tool_offset_calibration", "calibrating", "Calibrating tool offsets", percent);
+        return true;
+    };
+    const bool success = tool_offset_calibration::run(r_param, p_param, tool_offset_calibration::Context::Print, progress_cb, tool_selection.mask);
+    SerialPrinting::notify_workflow("indx_tool_offset_calibration", success ? "success" : "failed",
+        success ? "Tool offset calibration complete" : "Tool offset calibration failed", success ? 100 : -1);
 }
 
 } // namespace PrusaGcodeSuite

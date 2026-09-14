@@ -91,9 +91,18 @@ TEST_CASE("RME names every INDX calibration phase", "[rme][indx]") {
     CHECK(std::string_view(dock_calibration_phase(14)) == "failed"sv);
     CHECK(std::string_view(nozzle_cleaner_phase(8)) == "measuring_x"sv);
     CHECK(std::string_view(nozzle_cleaner_phase(14)) == "evaluating_y"sv);
-    CHECK(std::string_view(tool_offsets_phase(5)) == "calibrating"sv);
-    CHECK(std::string_view(tool_offsets_phase(7)) == "failed"sv);
-    CHECK(std::string_view(tool_offsets_phase(8)) == "unknown"sv);
+    CHECK(std::string_view(tool_offsets_phase(1, true, true)) == "clean_nozzles_cold"sv);
+    CHECK(std::string_view(tool_offsets_phase(2, true, true)) == "clean_nozzles_hot"sv);
+    CHECK(std::string_view(tool_offsets_phase(4, true, true)) == "homing"sv);
+    CHECK(std::string_view(tool_offsets_phase(5, true, true)) == "picking_tool"sv);
+    CHECK(std::string_view(tool_offsets_phase(6, true, true)) == "calibrating"sv);
+    CHECK(std::string_view(tool_offsets_phase(8, true, true)) == "failed"sv);
+    CHECK(std::string_view(tool_offsets_phase(1, false, false)) == "ensure_nozzles_clean"sv);
+    CHECK(std::string_view(tool_offsets_phase(3, false, false)) == "picking_tool"sv);
+    CHECK(std::string_view(tool_offsets_phase(4, false, false)) == "homing"sv);
+    CHECK(std::string_view(tool_offsets_phase(5, false, false)) == "calibrating"sv);
+    CHECK(std::string_view(tool_offsets_phase(7, false, false)) == "failed"sv);
+    CHECK(std::string_view(tool_offsets_phase(8, false, false)) == "unknown"sv);
 }
 
 TEST_CASE("RME active tool reports a parked toolchanger as none", "[rme][tool][regression]") {

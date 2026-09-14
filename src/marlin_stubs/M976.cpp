@@ -581,7 +581,7 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
     // First wipe the strand free, then eject the cooled pellet. Returning to
     // the open extrusion gap is deferred until another measured cycle actually
     // needs it, avoiding repeated cleaner traversals between high/low pairs.
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_wipe)
         || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
         return false;
     }
