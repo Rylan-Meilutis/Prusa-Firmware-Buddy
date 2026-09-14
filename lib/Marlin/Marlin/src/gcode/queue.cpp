@@ -1298,7 +1298,7 @@ static void report_service_queue_status() {
         break;
       case ClientFSM::ToolOffsetsCalibration:
         workflow = "indx_tool_offset_calibration";
-        phase = rme_indx_workflow::tool_offsets_phase(raw_phase);
+        phase = rme_indx_workflow::tool_offsets_phase(raw_phase, false, false);
         state = raw_phase == std::to_underlying(PhaseToolOffsetsCalibration::calibration_failed) ? "waiting" : "active";
         break;
       default: break;

@@ -77,9 +77,11 @@ enum class Sequence : uint16_t {
     // Internal-only sequences below; not invocable via G12.
     _cnt_external,
     enter_cleaner_from_inside = _cnt_external,
-    /// Move to the open waste-bin gap between the INDX prime block and wiper.
-    /// Internal-only: unlike purge_clean this does not extrude or wipe.
+    /// Move to the native INDX prime position before PA extrusion.
     pa_calibration_extrusion_position,
+    /// Push a PA strand into the gap, then reverse across the edge to detach it
+    /// from the nozzle. Internal-only and deliberately shorter than a scrub.
+    pa_calibration_wipe,
 #endif
     _cnt,
 };

@@ -282,6 +282,7 @@ actions:
 | `indx_dock_calibration` | Dock selection, measurement, three-cycle validation, success/failure | `DIALOG QUERY` |
 | `indx_tool_offset_calibration` | Tool pickup, probing/calibration, success/failure | `DIALOG QUERY` |
 | `indx_nozzle_cleaner_calibration` | X/Y positioning, measurement, cleaning, and evaluation | `DIALOG QUERY` |
+| `indx_tool_offset_calibration` | Tool-offset preparation, current tool/progress, and success/failure | Workflow event subscription; `DIALOG QUERY` for wizard prompts |
 | `indx` | Forward-compatible INDX fallback | `DIALOG QUERY`; do not infer an action |
 | `filament_runout` | Material replacement workflow | `DIALOG QUERY` |
 | `filament_movement` | Spool/path movement fault with continue, unload, or abort | `STUCK QUERY` / `DIALOG QUERY` |

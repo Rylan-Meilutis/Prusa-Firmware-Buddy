@@ -156,15 +156,23 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
         { Sequence::pa_calibration_extrusion_position, {
                                                            .filename = "pa_calibration_extrusion_position",
                                                            .directory = directory,
-                                                           // Y93 is the rear limit reached by the prime-block
-                                                           // eject motion and Y98.5 is the front edge used to
-                                                           // enter the wiper. Y95.5 leaves the nozzle over the
-                                                           // open waste-bin gap, clear of both surfaces.
-                                                           // G750 applies the measured cleaner offsets. The
-                                                           // caller must first use nozzle_cleaner_approach;
-                                                           // A only makes this final move asynchronous.
-                                                           .default_gcode = "G750 X0 Y95.5 F21000 A",
+                                                           // Use the proven native purge location. Extruding
+                                                           // beside the wiper lets a curling strand climb the
+                                                           // toolhead; the following dedicated wipe pushes this
+                                                           // strand off the block into the open bin gap instead.
+                                                           .default_gcode = "G750 X0 Y87 F21000 A",
                                                        } },
+        { Sequence::pa_calibration_wipe, {
+                                             .filename = "pa_calibration_wipe",
+                                             .directory = directory,
+                                             // This is the native purge_clean break-off direction:
+                                             // push the strand through the gap toward the wiper,
+                                             // then reverse across the block edge to peel it away
+                                             // from the nozzle. Do not use quick_clean here; its
+                                             // long scrub can fold a PA strand into the toolhead.
+                                             .default_gcode = "G750 X0 Y98.5 F21000\n"
+                                                              "G750 X0 Y91.5 F21000",
+                                         } },
 #else
     { Sequence::clean, {
                            .filename = "clean",
