@@ -80,6 +80,7 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
 
     if (!chamber().capabilities().temperature_control()) {
         SERIAL_ERROR_MSG("Chamber does not allow temperature control");
+        return;
     }
 
     auto target = args.target_temp;
@@ -93,6 +94,8 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
     if (!args.wait_for_cooling && !args.wait_for_heating) {
         return;
     }
+
+    chamber().set_heating_wait_active(args.wait_for_heating);
 
     /// How long we should wait until displaying a warning that we're failing to reach the temperature
     static constexpr int32_t warning_timeout_ms = 30 * 60 * 1000;
@@ -160,4 +163,5 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
     }
 
     marlin_server::clear_warning(WarningType::FailedToReachChamberTemperature);
+    chamber().set_heating_wait_active(false);
 }

@@ -9,7 +9,13 @@
 #include <option/has_chamber_vents.h>
 #include <option/has_xbuddy_extension.h>
 #include <feature/safety_timer/safety_timer.hpp>
+#include <feature/chamber/heating_policy.hpp>
+#include <module/temperature.h>
 #include "chamber_enums.hpp"
+
+#if HAS_BED_FAN()
+    #include <feature/bed_fan/controller.hpp>
+#endif
 
 #if HAS_CHAMBER_VENTS()
     #include <marlin_stubs/feature/automatic_chamber_vents/automatic_chamber_vents.hpp>
@@ -51,6 +57,18 @@ constexpr buddy::Temperature chamber_maxtemp_safety_margin = 5;
     #error
 #endif
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+namespace {
+constexpr int16_t chamber_heating_bed_target = BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN;
+constexpr uint8_t chamber_heating_print_fan_pwm = 76; // 30%, enough to mix air without excessive nozzle cooling
+
+    #if HAS_BED_FAN()
+constexpr uint8_t chamber_heating_bed_fan_pwm = 128;
+std::optional<bed_fan::Controller::Mode> previous_bed_fan_mode;
+    #endif
+} // namespace
+#endif
+
 #if HAS_CHAMBER_VENTS()
 namespace {
 bool selected_core_one_plus() {
@@ -86,6 +104,73 @@ void Chamber::step() {
     thermistor_temperature_ = xbuddy_extension().chamber_temperature();
 #endif
 
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    auto control_temperature = thermistor_temperature_;
+    const auto bed_temperature = thermalManager.degBed();
+    static constexpr Temperature compensation_min_temp = 20.f;
+    if (control_temperature.has_value() && bed_temperature > *control_temperature && *control_temperature > compensation_min_temp) {
+        static constexpr Temperature bed_max = BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN;
+    #if PRINTER_IS_PRUSA_COREONEL()
+        static constexpr Temperature compensation = 8.f / ((bed_max - compensation_min_temp) * std::sqrt(chamber_maxtemp - compensation_min_temp));
+    #else
+        static constexpr Temperature compensation = 6.f / ((bed_max - compensation_min_temp) * std::sqrt(chamber_maxtemp - compensation_min_temp));
+    #endif
+        control_temperature = *control_temperature
+            + compensation * (bed_temperature - *control_temperature) * std::sqrt(*control_temperature - compensation_min_temp);
+    }
+    const bool should_assist = chamber_heating::should_assist(
+        control_temperature, target_temperature_, marlin_server::is_printing(), heating_wait_active_);
+
+    if (should_assist && !heating_assist_active_) {
+        heating_assist_previous_bed_target_ = thermalManager.degTargetBed();
+        heating_assist_previous_print_fan_ = thermalManager.get_print_fan_speed();
+        heating_assist_active_ = true;
+    #if HAS_BED_FAN()
+        previous_bed_fan_mode = bed_fan::controller().get_mode();
+        bed_fan::controller().set_mode(bed_fan::Controller::ManualMode { .pwm = chamber_heating_bed_fan_pwm });
+    #endif
+    }
+
+    if (should_assist) {
+        // Notice host/local changes made while we own an output and preserve
+        // those values for restoration. Chamber heat may raise, never lower,
+        // a separately requested bed or print-fan setting.
+        const auto bed_target = thermalManager.degTargetBed();
+        if (heating_assist_applied_bed_target_ != 0 && bed_target != heating_assist_applied_bed_target_) {
+            heating_assist_previous_bed_target_ = bed_target;
+        }
+        heating_assist_applied_bed_target_ = chamber_heating::assisted_output(heating_assist_previous_bed_target_, chamber_heating_bed_target);
+        if (bed_target != heating_assist_applied_bed_target_) {
+            thermalManager.setTargetBed(heating_assist_applied_bed_target_);
+        }
+
+        const auto fan_pwm = thermalManager.get_print_fan_speed();
+        if (heating_assist_applied_print_fan_ != 0 && fan_pwm != heating_assist_applied_print_fan_) {
+            heating_assist_previous_print_fan_ = fan_pwm;
+        }
+        heating_assist_applied_print_fan_ = chamber_heating::assisted_output(heating_assist_previous_print_fan_, chamber_heating_print_fan_pwm);
+        if (fan_pwm != heating_assist_applied_print_fan_) {
+            thermalManager.set_print_fan_speed(heating_assist_applied_print_fan_);
+        }
+    } else if (heating_assist_active_) {
+        if (thermalManager.degTargetBed() == heating_assist_applied_bed_target_) {
+            thermalManager.setTargetBed(heating_assist_previous_bed_target_);
+        }
+        if (thermalManager.get_print_fan_speed() == heating_assist_applied_print_fan_) {
+            thermalManager.set_print_fan_speed(heating_assist_previous_print_fan_);
+        }
+    #if HAS_BED_FAN()
+        if (previous_bed_fan_mode.has_value()) {
+            bed_fan::controller().set_mode(*previous_bed_fan_mode);
+            previous_bed_fan_mode.reset();
+        }
+    #endif
+        heating_assist_active_ = false;
+        heating_assist_applied_bed_target_ = 0;
+        heating_assist_applied_print_fan_ = 0;
+    }
+#endif
+
     METRIC_DEF(metric_chamber_temp, "chamber_temp", METRIC_VALUE_FLOAT, 1000, METRIC_ENABLED);
     if (thermistor_temperature_.has_value()) {
         metric_record_float(&metric_chamber_temp, thermistor_temperature_.value());
@@ -108,6 +193,9 @@ Chamber::Capabilities Chamber::capabilities_nolock() const {
     case Backend::xbuddy_extension:
         return Capabilities {
             .temperature_reporting = true,
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+            .heating = true,
+    #endif
             .cooling = xbuddy_extension().can_auto_cool(),
             // Always show temperature control menu items, even if auto cooling is disabled
                 .always_show_temperature_control = true,
@@ -122,6 +210,16 @@ Chamber::Capabilities Chamber::capabilities_nolock() const {
         return Capabilities {};
     }
     bsod_unreachable();
+}
+
+void Chamber::set_heating_wait_active(bool active) {
+    debug_assert(marlin_server::is_marlin_server_thread());
+    std::lock_guard _lg(mutex_);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    heating_wait_active_ = active;
+#else
+    (void)active;
+#endif
 }
 
 Chamber::Capabilities Chamber::capabilities() const {
