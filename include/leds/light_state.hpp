@@ -51,4 +51,11 @@ constexpr bool startup_activity_within_window(
     return now_ms - started_ms < duration_ms;
 }
 
+/// Non-print machine operations (for example setup-screen head/bed moves)
+/// keep the active lighting state until the operation completes.
+constexpr bool machine_operation_holds_active(
+    bool print_active, bool terminal_state, bool host_idle_override) {
+    return !print_active && !terminal_state && !host_idle_override;
+}
+
 } // namespace leds

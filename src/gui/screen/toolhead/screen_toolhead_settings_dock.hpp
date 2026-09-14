@@ -29,6 +29,18 @@ public:
 #endif
 
 #if HAS_INDX()
+class MI_DOCK_TOLERANCE_X : public WiSpin {
+public:
+    MI_DOCK_TOLERANCE_X();
+    void OnClick() final;
+};
+
+class MI_DOCK_TOLERANCE_Y : public WiSpin {
+public:
+    MI_DOCK_TOLERANCE_Y();
+    void OnClick() final;
+};
+
 class MI_DOCK_INVALIDATE_CALIBRATION : public MI_TOOLHEAD_SPECIFIC_BASE<IWindowMenuItem> {
 public:
     MI_DOCK_INVALIDATE_CALIBRATION(Toolhead toolhead = default_toolhead);
@@ -47,6 +59,8 @@ using ScreenToolheadDetailDock_ = ScreenMenu<EFooter::Off,
 #endif
 #if HAS_INDX()
     ,
+    MI_DOCK_TOLERANCE_X,
+    MI_DOCK_TOLERANCE_Y,
     MI_DOCK_INVALIDATE_CALIBRATION
 #endif
     >;

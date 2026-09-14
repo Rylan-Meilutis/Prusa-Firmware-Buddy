@@ -30,3 +30,10 @@ TEST_CASE("Persisted screen brightness uses the UI limits", "[leds][brightness]"
     CHECK(((sanitized >> 16) & 0xff) == 15);
     CHECK(((sanitized >> 24) & 0xff) == 100);
 }
+
+TEST_CASE("Machine motion holds active lighting without overriding print or explicit idle", "[leds][activity]") {
+    CHECK(leds::machine_operation_holds_active(false, false, false));
+    CHECK_FALSE(leds::machine_operation_holds_active(true, false, false));
+    CHECK_FALSE(leds::machine_operation_holds_active(false, true, false));
+    CHECK_FALSE(leds::machine_operation_holds_active(false, false, true));
+}

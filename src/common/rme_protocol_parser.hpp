@@ -78,6 +78,46 @@ inline std::optional<long> signed_number(const std::string_view command, const s
     return parsed;
 }
 
+inline std::optional<float> decimal_number(const std::string_view command, const std::string_view key) {
+    const auto text = value(command, key);
+    if (!text || text->empty() || text->size() > 10) {
+        return std::nullopt;
+    }
+
+    uint32_t whole = 0;
+    uint32_t fraction = 0;
+    uint32_t divisor = 1;
+    bool decimal_seen = false;
+    bool digit_seen = false;
+    for (const char c : *text) {
+        if (c == '.' && !decimal_seen) {
+            decimal_seen = true;
+            continue;
+        }
+        if (c < '0' || c > '9') {
+            return std::nullopt;
+        }
+        digit_seen = true;
+        const uint32_t digit = static_cast<uint32_t>(c - '0');
+        if (!decimal_seen) {
+            if (whole > (std::numeric_limits<uint32_t>::max() - digit) / 10) {
+                return std::nullopt;
+            }
+            whole = whole * 10 + digit;
+        } else {
+            if (divisor > 100'000'000U) {
+                return std::nullopt;
+            }
+            fraction = fraction * 10 + digit;
+            divisor *= 10;
+        }
+    }
+    if (!digit_seen || (decimal_seen && text->back() == '.')) {
+        return std::nullopt;
+    }
+    return static_cast<float>(whole) + static_cast<float>(fraction) / divisor;
+}
+
 inline std::optional<uint32_t> unsigned_number(const std::string_view command, const std::string_view key) {
     const auto text = value(command, key);
     if (!text || text->empty() || text->size() > 10) {

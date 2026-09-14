@@ -9,6 +9,7 @@
 #include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
 #include <rme_active_tool.hpp>
+#include <indx_dock_tolerance.hpp>
 #include <task_stack_requirements.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
@@ -171,6 +172,26 @@ TEST_CASE("RME numeric parameters reject malformed and overflowing values", "[rm
     CHECK_FALSE(rme_protocol::signed_number("@RME X value=999999999999999999999"sv, "value"));
     CHECK(rme_protocol::unsigned_number("@RME FILE READ offset=1073741824"sv, "offset") == UINT32_C(1073741824));
     CHECK_FALSE(rme_protocol::unsigned_number("@RME FILE READ offset=-1"sv, "offset"));
+
+    CHECK(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2.5"sv, "tolerance_x") == 2.5f);
+    CHECK(rme_protocol::decimal_number("@RME DOCK SET tolerance_y=1"sv, "tolerance_y") == 1.0f);
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=-2.5"sv, "tolerance_x"));
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2.5mm"sv, "tolerance_x"));
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2..5"sv, "tolerance_x"));
+    CHECK_FALSE(rme_protocol::decimal_number("@RME DOCK SET tolerance_x=2."sv, "tolerance_x"));
+}
+
+TEST_CASE("INDX dock calibration uses independent configurable axis tolerances", "[rme][indx][dock]") {
+    using namespace indx_dock_tolerance;
+
+    CHECK(default_x_mm == 2.5f);
+    CHECK(default_y_mm == 1.0f);
+    CHECK(accepts_offset(2.5f, 1.0f, default_x_mm, default_y_mm));
+    CHECK(accepts_offset(-2.5f, -1.0f, default_x_mm, default_y_mm));
+    CHECK_FALSE(accepts_offset(2.56f, 0.0f, default_x_mm, default_y_mm));
+    CHECK_FALSE(accepts_offset(0.0f, 1.06f, default_x_mm, default_y_mm));
+    CHECK(accepts_offset(3.0f, 0.75f, 3.0f, 0.75f));
+    CHECK(sanitize(std::numeric_limits<float>::quiet_NaN(), default_x_mm) == default_x_mm);
 }
 
 TEST_CASE("RME service frames remain isolated from ordinary G-code", "[rme]") {

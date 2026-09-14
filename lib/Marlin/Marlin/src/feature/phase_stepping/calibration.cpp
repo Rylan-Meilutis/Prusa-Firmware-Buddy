@@ -2,6 +2,7 @@
 #include "axes.hpp"
 #include "phase_stepping.hpp"
 #include "calibration_config.hpp"
+#include "direct_hann_window.hpp"
 #include "i18n.h"
 
 #include <bsod/bsod.h>
@@ -371,61 +372,6 @@ static SignalView locate_signal(const SamplesAnnotation &annot, const SignalCont
     return SignalView(signal, start_marker_idx + signal_start, start_marker_idx + signal_end);
 }
 
-// A rolling-over window for computing windowed DFT of a signal. Hides the
-// complexity of index manipulation. You just push new correlation samples one
-// after another and get the magnitude of the DFT.
-class SlidingDftWindow {
-private:
-    std::vector<std::tuple<float, float>> buffer;
-    std::vector<float> hann_window;
-    int current_pos = 0;
-    float sin_sum = 0;
-    float cos_sum = 0;
-
-public:
-    SlidingDftWindow(int size)
-        : buffer(size) {}
-
-    void push_sample(std::tuple<float, float> sample) {
-        auto [sin_sub, cos_sub] = buffer[current_pos];
-        sin_sum -= sin_sub;
-        cos_sum -= cos_sub;
-
-        buffer[current_pos] = sample;
-
-        auto [sin_add, cos_add] = sample;
-        sin_sum += sin_add;
-        cos_sum += cos_add;
-
-        current_pos = (current_pos + 1) % buffer.size();
-    }
-
-    float get_magnitude() const {
-        return sqrt(sin_sum * sin_sum + cos_sum * cos_sum) * 2 / buffer.size();
-    }
-
-    float get_windowed_power() {
-        if (hann_window.empty()) {
-            std::size_t size = buffer.size();
-            hann_window.reserve(size);
-            for (std::size_t i = 0; i < size; i++) {
-                float x = 2 * std::numbers::pi_v<float> * i / (size - 1);
-                hann_window.push_back(0.5f * (1 - std::cos(x)));
-            }
-        }
-
-        float sin_sum = 0;
-        float cos_sum = 0;
-
-        for (std::size_t i = 0; i < buffer.size(); i++) {
-            auto [sin_val, cos_val] = buffer[(i + current_pos) % buffer.size()];
-            sin_sum += sin_val * hann_window[i];
-            cos_sum += cos_val * hann_window[i];
-        }
-        return sin_sum * sin_sum + cos_sum * cos_sum;
-    }
-};
-
 static std::tuple<int, int, int> compute_calibration_tweak(
     const CalibrationSweep &params, float relative_position) {
     relative_position = std::fabs(relative_position);
@@ -491,17 +437,11 @@ static DftSweepResult motor_harmonic_dft_sweep(
     };
     result.samples.reserve(total_steps + 1);
 
-    SlidingDftWindow window(window_half_size * 2 + 1);
-    // Fill the window for the initial sample:
-    int next_sample_idx = -window_half_size;
-    for (int i = 0; i != window_half_size * 2; i++, next_sample_idx++) {
-        window.push_sample(sample_correlation(next_sample_idx));
-    }
-
-    for (int i = 0; i < signal.size(); i++, next_sample_idx++) {
-        window.push_sample(sample_correlation(next_sample_idx));
+    for (int i = 0; i < signal.size(); i++) {
         if (i % step_size_idx == 0) {
-            result.samples.push_back(window.get_magnitude());
+            result.samples.push_back(direct_rectangular_window_magnitude(window_half_size, [&](const int relative_idx) {
+                return sample_correlation(i + relative_idx);
+            }));
         }
     }
     return result;
@@ -570,21 +510,18 @@ static std::array<DftSweepResult, 2> motor_speed_dft_sweep(SignalView signal,
         int initial_idx = ramp == SweepDirection::Up ? 0 : signal.size() - 1;
         int direction = ramp == SweepDirection::Up ? 1 : -1;
 
-        SlidingDftWindow window(window_half_size * 2 + 1);
-        // Fill the window for the initial sample:
-        int next_sample_idx = initial_idx - direction * window_half_size;
-        for (int i = 0; i != window_half_size * 2; i++) {
-            window.push_sample(sample_correlation(next_sample_idx));
-            next_sample_idx += direction;
-        }
-
-        // And sweep it across the signal:
+        // Evaluate the Hann window directly from the source signal. The old
+        // SlidingDftWindow allocated a tuple buffer and then a second Hann
+        // buffer while both captured sweeps were resident. On memory-heavy
+        // INDX builds that transient allocation exhausted the heap. Direct
+        // evaluation has the same sample ordering and needs no heap storage.
         for (int i = 0; i != ramp_samples; i++) {
-            window.push_sample(sample_correlation(next_sample_idx));
-            next_sample_idx += direction;
             if (i % step_size_idx == 0) {
+                const float power = direct_hann_window_power(window_half_size, [&](const int relative_idx) {
+                    return sample_correlation(initial_idx + direction * (i + relative_idx));
+                });
                 float speed = start_speed + (top_speed - start_speed) * static_cast<float>(i) / ramp_samples;
-                res.samples.push_back(window.get_windowed_power() / speed);
+                res.samples.push_back(power / speed);
             }
         }
         debug_assert(!res.samples.empty());
