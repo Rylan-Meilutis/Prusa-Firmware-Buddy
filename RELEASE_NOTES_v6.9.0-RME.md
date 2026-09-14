@@ -105,3 +105,18 @@ and carry the `6.9.0-RME` firmware suffix.
 - Serial-print aborts no longer emit the media-only `Done printing file`
   marker, preventing OctoPrint from continuing with a desynchronized numbered
   command stream after a calibration failure.
+- Corrected the INDX serial keep-out policy to allow straight Y-only entry and
+  exit at the front priming strip. Lateral X travel there and entry into the
+  cleaner remain blocked, so valid slicer priming moves no longer cancel with
+  `Unsafe INDX move outside printable area`.
+- INDX automatic PA now performs the native purge autoretract before its
+  five-cycle wipe/eject operation, preventing a still-fed strand from following
+  the nozzle and accumulating on the toolhead.
+- Standard `M141`/`M191` chamber targets now support heatbed-assisted heating
+  on CORE One-family machines with a chamber sensor. Low-speed toolhead air
+  circulation (plus CORE One L under-bed fans) spreads heat, prior bed/fan
+  settings are restored after assistance, active prints retain control, and
+  the existing xBuddy Extension cooling method remains unchanged.
+- INDX automatic PA now runs the toolhead fan while a wiped purge pellet cools
+  for four seconds before ejection. The pellet is solid enough to leave the
+  waste bin instead of folding into it and merging with later purges.
