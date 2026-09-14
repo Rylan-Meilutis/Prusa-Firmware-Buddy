@@ -2,88 +2,56 @@
 #include "indx_head_leds.hpp"
 
 #include <puppies/INDX.hpp>
-#include <leds/status_leds_handler.hpp>
 #include <indx_head/leds.hpp>
 #include <config_store/store_instance.hpp>
 #include <utils/color.hpp>
-#include <utils/enum_array.hpp>
 
+#include <algorithm>
 #include <cstdint>
-#include <optional>
 
 namespace indx_head_leds {
 
 namespace {
 
-    using indx_head::leds::Mode;
-    using leds::StateAnimation;
-
-    struct LedSetting {
-        Color color;
-        Mode mode;
-        uint16_t period_ms;
+    struct HeadState {
+        bool enabled {};
+        Color color {};
+        constexpr bool operator==(const HeadState &) const = default;
     };
 
-    static constexpr LedSetting off = { .color = Color::from_rgb(0, 0, 0), .mode = Mode::solid, .period_ms = 500 };
-    static constexpr LedSetting red = { .color = Color::from_rgb(127, 0, 0), .mode = Mode::solid, .period_ms = 500 };
-    static constexpr LedSetting green = { .color = Color::from_rgb(0, 127, 0), .mode = Mode::solid, .period_ms = 500 };
-    static constexpr LedSetting blue = { .color = Color::from_rgb(0, 0, 127), .mode = Mode::solid, .period_ms = 500 };
-
-    constexpr EnumArray<StateAnimation, LedSetting, static_cast<int>(StateAnimation::_last) + 1> palette {
-        { StateAnimation::Idle, off },
-        { StateAnimation::Printing, blue },
-        { StateAnimation::Finishing, green },
-        { StateAnimation::Filtering, green },
-        { StateAnimation::Aborting, off },
-        { StateAnimation::Warning, red },
-        { StateAnimation::PowerPanic, red },
-        { StateAnimation::PowerUp, green },
-        { StateAnimation::Error, red },
-    };
-
-    constexpr Color color_off = Color::from_rgb(0, 0, 0);
-
-    std::optional<StateAnimation> compute_state() {
-        if (!config_store().tool_leds_enabled.get()) {
-            return std::nullopt;
-        }
-        return leds::StatusLedsHandler::instance().current_animation();
+    constexpr uint8_t rgb_with_white(uint8_t component, uint8_t white) {
+        return static_cast<uint8_t>(std::min<uint16_t>(static_cast<uint16_t>(component) + white, 255));
     }
 
-    void apply_state(const std::optional<StateAnimation> &state) {
+    HeadState compute_state(leds::ColorRGBW front_status_color) {
+        if (!config_store().tool_leds_enabled.get()) {
+            return {};
+        }
+        return {
+            true,
+            Color::from_rgb(
+                rgb_with_white(front_status_color.r, front_status_color.w),
+                rgb_with_white(front_status_color.g, front_status_color.w),
+                rgb_with_white(front_status_color.b, front_status_color.w)),
+        };
+    }
+
+    void apply_state(const HeadState &state) {
         auto &indx = buddy::puppies::indx;
-        if (!state.has_value()) {
+        if (!state.enabled) {
             indx.set_leds_enabled(false);
             return;
         }
-
-        const LedSetting &setting = palette[*state];
-        switch (setting.mode) {
-        case Mode::off:
-            indx.set_leds_enabled(false);
-            break;
-        case Mode::solid:
-            indx.set_leds_solid_color(setting.color, setting.period_ms);
-            break;
-        case Mode::blinking:
-            indx.set_leds_blinking(setting.color, color_off, setting.period_ms);
-            break;
-        case Mode::pulsing:
-            indx.set_leds_pulsing(setting.color, color_off, setting.period_ms);
-            break;
-        case Mode::match_nozzle_temp:
-            indx.set_leds_to_follow_nozle_temp();
-            break;
-        }
+        indx.set_leds_solid_color(state.color, 0);
     }
 
 } // namespace
 
-void update() {
+void update(leds::ColorRGBW front_status_color) {
     // LEDManager::update() already rate-limits us; only push to the head on a real change.
-    static std::optional<StateAnimation> last_state;
+    static HeadState last_state;
 
-    const auto state = compute_state();
+    const auto state = compute_state(front_status_color);
     if (last_state == state) {
         return;
     }
