@@ -1329,6 +1329,14 @@ models with overtravel or service areas: CORE One X is 250 mm, MINI Z is 180 mm,
 and XL Z is 360 mm; all minima are zero. Docking, wiping, purge, homing, and
 tool-offset reach remain firmware-private motion geometry.
 
+Treat an unhomed serial jog as a bounded move from a conservative assumed
+position. INDX assumes X at its maximum and Y at zero so it can retreat from
+the purge bucket/front docks; XL assumes Y at its maximum because its docks
+are at the rear. Keep the guard restricted to external G0/G1 commands so
+homing and machine-owned calibration paths remain authoritative. Dock
+calibration must validate each newly measured dock with three complete,
+sensor-verified pick/park cycles before persisting success or moving on.
+
 Run `rme_protocol_tests`; the release gate is 400,145 assertions across 15
 cases before the complete firmware matrix.
 

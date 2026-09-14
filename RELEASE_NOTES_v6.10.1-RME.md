@@ -74,6 +74,11 @@ Firmware Buddy 6.10.1.
 - Crash-dump export now advertises its retained size and emits periodic busy
   and byte-progress responses, preventing a slow USB write from being mistaken
   for a failed RME command.
+- Added conservative unhomed serial-jog boundaries for toolchanger machines.
+  INDX assumes X at maximum and Y at zero to protect the purge bucket and
+  front docks; XL assumes Y at maximum to protect its rear docks.
+- Dock calibration now performs three complete, sensor-verified pick/park
+  cycles at every measured dock before accepting it and advancing.
 
 ## Validation
 

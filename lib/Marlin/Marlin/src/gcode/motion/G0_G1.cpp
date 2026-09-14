@@ -22,7 +22,9 @@
 
 #include "../gcode.h"
 #include "../../module/motion.h"
+#include "../queue.h"
 #include <option/has_crash_detection.h>
+#include <unknown_axis_motion.hpp>
 
 #if ENABLED(NANODLP_Z_SYNC)
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -85,7 +87,50 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
     #endif
   #endif
 
+  // Serial jogs may arrive before XY has ever been homed. Rebase unknown axes
+  // to the conservative side opposite nearby hardware, mirroring the existing
+  // unhomed-Z boundary assumption. Internal homing/calibration moves bypass it.
+  const bool external_move = GCodeQueue::current_command_from_serial();
+  if (external_move) {
+    static bool unknown_x_rebased = false;
+    static bool unknown_y_rebased = false;
+    if (axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise)) unknown_x_rebased = false;
+    if (axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise)) unknown_y_rebased = false;
+    bool rebased = false;
+    #if HAS_INDX()
+      if (!axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise) && !unknown_x_rebased) {
+        current_position.x = X_MAX_POS; // keep an unknown head away from the purge bucket
+        unknown_x_rebased = true;
+        rebased = true;
+      }
+      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise) && !unknown_y_rebased) {
+        current_position.y = 0; // INDX docks are at the front
+        unknown_y_rebased = true;
+        rebased = true;
+      }
+    #elif PRINTER_IS_PRUSA_XL()
+      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise) && !unknown_y_rebased) {
+        current_position.y = Y_MAX_POS; // XL docks are at the rear
+        unknown_y_rebased = true;
+        rebased = true;
+      }
+    #endif
+    if (rebased) sync_plan_position();
+  }
+
   get_destination_from_command();                 // Get X Y [Z[I[J[K]]]] [E] F (and set cutter power)
+
+  if (external_move) {
+    #if HAS_INDX()
+      if (!axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise))
+        destination.x = buddy::unknown_axis_motion::constrain(destination.x, X_MIN_POS, X_MAX_POS);
+      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
+        destination.y = buddy::unknown_axis_motion::constrain(destination.y, 0, Y_MAX_POS);
+    #elif PRINTER_IS_PRUSA_XL()
+      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
+        destination.y = buddy::unknown_axis_motion::constrain(destination.y, Y_MIN_POS, Y_MAX_POS);
+    #endif
+  }
 
   #if HAS_CANCEL_OBJECT()
     // !!! MUST BE after get_destination_from_command

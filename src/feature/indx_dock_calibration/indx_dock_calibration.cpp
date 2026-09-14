@@ -403,6 +403,31 @@ private:
             // Persist dock positions after each successful calibration
             prusa_toolchanger.save_tool_info();
 
+            // Exercise the measured coordinates before accepting the dock.
+            // Three complete cycles catch marginal engage/release positions
+            // while the user is still inside the calibration workflow.
+            fsm_change(PhaseDockCalibration::validating, serialize_dock_data(tool));
+            bool validation_ok = true;
+            for (uint8_t cycle = 0; cycle < 3; ++cycle) {
+                if (!prusa_toolchanger.tool_change(tool, tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false)
+                    || !prusa_toolchanger.tool_change(NoTool {}, tool_return_t::no_return, {}, tool_change_lift_t::no_lift, false)) {
+                    validation_ok = false;
+                    break;
+                }
+            }
+            if (!validation_ok) {
+                auto calibrated_mask = config_store().indx_dock_calibrated_mask.get();
+                calibrated_mask.reset(tool.to_raw());
+                config_store().indx_dock_calibrated_mask.set(calibrated_mask);
+                log_error(DockCalibration, "Dock %u failed three-cycle pickup validation", tool.to_raw());
+                fsm_change(PhaseDockCalibration::calibration_failed,
+                    DockCalibrationFailedData { tool, measured.dock_x, measured.dock_y }.serialize());
+                if (wait_for_response(PhaseDockCalibration::calibration_failed) == Response::Retry) {
+                    continue;
+                }
+                return Result::failed;
+            }
+
             log_info(DockCalibration,
                 "Dock %u calibrated: x=%.2f y=%.2f",
                 tool.to_raw(), static_cast<double>(measured.dock_x), static_cast<double>(measured.dock_y));
