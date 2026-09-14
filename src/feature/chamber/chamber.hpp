@@ -78,6 +78,11 @@ public: // Temperature control
     /// !!! MARLIN THREAD ONLY - we don't want to change it under g-code and thermal model hands
     std::optional<Temperature> set_target_temperature(std::optional<Temperature> target);
 
+    /// Allow the heatbed-assisted heater while a blocking M191 is running.
+    /// Serial prints enter the printing state before their start G-code has
+    /// finished, so M191 needs an explicit, narrowly scoped exception.
+    void set_heating_wait_active(bool active);
+
 #if HAS_CHAMBER_VENTS()
     /// Check the state of chamber grills (vents). Can be open/closed based on chamber target temperature
     /// @param fil_target The target chamber temperature to base the vent decision on
@@ -102,6 +107,15 @@ private:
 
     std::optional<Temperature> thermistor_temperature_;
     std::optional<Temperature> target_temperature_;
+
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    bool heating_wait_active_ = false;
+    bool heating_assist_active_ = false;
+    int16_t heating_assist_previous_bed_target_ = 0;
+    int16_t heating_assist_applied_bed_target_ = 0;
+    uint8_t heating_assist_previous_print_fan_ = 0;
+    uint8_t heating_assist_applied_print_fan_ = 0;
+#endif
 
 #if HAS_CHAMBER_VENTS()
     /// Nullopt = unknown state

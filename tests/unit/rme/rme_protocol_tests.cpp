@@ -69,6 +69,11 @@ TEST_CASE("INDX PA bounds pellet buildup without ejecting every cycle", "[rme][m
     CHECK(final_ejection_needed(pending)); // final remainder is always ejected
 }
 
+TEST_CASE("INDX PA lets a wiped pellet solidify before ejection", "[rme][m976][indx][pellet]") {
+    CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms >= 3000);
+    CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms <= 5000);
+}
+
 TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
     using rme_indx_workflow::nozzle_mismatch;
     CHECK(std::string_view(nozzle_mismatch(0).workflow) == "indx_tool_detection"sv);

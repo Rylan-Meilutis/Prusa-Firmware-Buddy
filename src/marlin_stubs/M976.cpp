@@ -578,11 +578,20 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
     if (!buddy::m976_indx_pellet_policy::final_ejection_needed(cycles_since_ejection)) {
         return true;
     }
-    // First wipe the strand free, then eject the cooled pellet. Returning to
-    // the open extrusion gap is deferred until another measured cycle actually
-    // needs it, avoiding repeated cleaner traversals between high/low pairs.
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_wipe)
-        || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+    // First wipe the strand free, then actively cool it before ejection. A
+    // freshly purged pellet is still soft enough to fold into the waste bin
+    // instead of being knocked clear, where subsequent purges merge into it.
+    // Put the fan change into the wipe's planner blocks so it is applied while
+    // the four-second dwell runs, then preserve the caller's fan setting.
+    const uint8_t previous_fan_pwm = thermalManager.get_print_fan_speed();
+    thermalManager.set_print_fan_speed(255);
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_wipe)) {
+        thermalManager.set_print_fan_speed(previous_fan_pwm);
+        return false;
+    }
+    GcodeSuite::dwell(buddy::m976_indx_pellet_policy::cooling_delay_ms);
+    thermalManager.set_print_fan_speed(previous_fan_pwm);
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
         return false;
     }
     cycles_since_ejection = 0;

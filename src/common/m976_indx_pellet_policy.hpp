@@ -5,6 +5,7 @@
 namespace buddy::m976_indx_pellet_policy {
 
 inline constexpr uint8_t cycles_per_ejection = 5;
+inline constexpr uint16_t cooling_delay_ms = 4000;
 
 constexpr bool record_cycle_and_should_eject(uint8_t &cycles_since_ejection) {
     ++cycles_since_ejection;
