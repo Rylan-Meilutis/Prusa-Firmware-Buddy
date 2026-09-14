@@ -46,6 +46,8 @@
 #include <feature/stepper_timeout/stepper_timeout.hpp>
 #include <mapi/motion.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
+#include <transfers/monitor.hpp>
+#include <firmware_cleanup_gate.hpp>
 
 #include <option/has_leds.h>
 #if HAS_LEDS()
@@ -4024,7 +4026,13 @@ static void _server_update_vars() {
     }();
 
     const bool media = usb_host::is_media_inserted();
-    if (media) {
+    // The cleanup marker only needs to be inspected once after boot/media
+    // insertion. Reopening it on every server cycle creates needless FatFs
+    // contention and can block the watchdog behind a concurrent upload or
+    // crash-dump export. Defer the one inspection while any storage producer
+    // owns the shared transfer slot.
+    static firmware_update_handoff::CleanupGate firmware_cleanup_gate;
+    if (firmware_cleanup_gate.should_check(media, transfers::Monitor::instance.id().has_value())) {
         // A UI-selected or serial-staged BBF is copied/uploaded to the shared
         // short bootloader-safe filename. Consume it after the application
         // returns from the requested bootloader attempt. This must not depend
