@@ -40,6 +40,12 @@ This audit records the version-specific safety work for the RME port from
    advertised preset to link within every memory region.
 6. Publish only artifacts produced by that successful final matrix and verify
    their GitHub SHA-256 digests.
+7. Run the exhaustive INDX workflow/phase mapping tests and verify a CORE One
+   INDX build reports tool detection, guarded dock selection, pickup/park
+   failures, and all calibration FSMs through `DIALOG QUERY`.
+8. Verify a dock selection cannot be submitted outside its active FSM phase,
+   and parameterless `M104 S0`, `M107`, and `M105` remain valid with all tools
+   parked.
 
 Passing host tests and linker limits substantially reduce regression risk but
 do not replace an on-printer smoke test of boot, RME session open, upload
