@@ -54,6 +54,9 @@ store, and crash-dump changes are retained.
   firmware upload. Local and RME USB writers now share the transfer latch,
   and the bootloader cleanup marker is inspected once per media insertion
   after active storage work completes instead of reopening it every cycle.
+- `RME_SESSION` now reports `active_tool=<logical-index|none>` from the live
+  tool-selection state. INDX hosts can immediately clear a stale selected tool
+  when every tool is parked instead of retaining the last virtual tool.
 
 ## Validation
 
