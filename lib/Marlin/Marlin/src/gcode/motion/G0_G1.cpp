@@ -25,6 +25,7 @@
 #include "../queue.h"
 #include <option/has_crash_detection.h>
 #include <unknown_axis_motion.hpp>
+#include <indx_serial_motion_safety.hpp>
 
 #if ENABLED(NANODLP_Z_SYNC)
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -126,6 +127,16 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
         destination.x = buddy::unknown_axis_motion::constrain(destination.x, X_MIN_POS, X_MAX_POS);
       if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
         destination.y = buddy::unknown_axis_motion::constrain(destination.y, 0, Y_MAX_POS);
+      if (axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
+        constexpr buddy::indx_serial_motion_safety::Bounds safe_bounds {
+          X_MIN_PRINT_POS, X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_MIN_PRINT_POS, Y_MAX_PRINT_POS
+        };
+        if (!buddy::indx_serial_motion_safety::point_is_safe(current_position.x, current_position.y, safe_bounds)
+            || !buddy::indx_serial_motion_safety::point_is_safe(destination.x, destination.y, safe_bounds)) {
+          SERIAL_ERROR_MSG("Unsafe INDX move outside printable area");
+          return;
+        }
+      }
     #elif PRINTER_IS_PRUSA_XL()
       if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
         destination.y = buddy::unknown_axis_motion::constrain(destination.y, Y_MIN_POS, Y_MAX_POS);

@@ -41,6 +41,10 @@
 #include <tool_index.hpp>
 #include <m976_indx_policy.hpp>
 
+#if HAS_INDX()
+static_assert(!buddy::m976_indx_policy::uses_sheet_contact_cleanup(true, ENABLED(PROBE_CLEANUP_SUPPORT)));
+#endif
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -140,7 +144,18 @@ void park_before_mmu_unload(const uint8_t slot) {
 }
 
 void clean_before_pa_probe() {
-#if ENABLED(PROBE_CLEANUP_SUPPORT)
+#if HAS_INDX()
+    // Never use cleanup_probe() on INDX.  Its legacy far-right sheet rectangle
+    // overlaps the tool-8 dock and can drive the selected nozzle into a parked
+    // tool.  Both sequences below use calibrated G750 machine coordinates and
+    // therefore retain the cleaner keep-outs.  Wipe/break the strand before
+    // ejecting it so the pellet cannot curl back onto the toolhead.
+    if (!mapi::park(mapi::get_parking_position(mapi::ParkPosition::nozzle_cleaner_approach))
+        || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)
+        || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+        SERIAL_ECHO_MSG("PA_CALIBRATION INDX nozzle cleaning incomplete");
+    }
+#elif ENABLED(PROBE_CLEANUP_SUPPORT)
     // MMU ramming can leave a short purge tail on the nozzle. Remove it on
     // the sacrificial front-right cleaning strip before any move crosses the
     // printable bed. The nozzle is already homed during PA batches, so the
@@ -494,9 +509,15 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         }
 #else
         CalibrationCommandGuard calibration_command_guard;
-        char tool_command[8];
-        snprintf(tool_command, sizeof(tool_command), "T%u", entry.physical_tool);
-        GcodeSuite::process_subcommands_now(tool_command);
+        const auto requested_tool = PhysicalToolIndex::from_raw(entry.physical_tool);
+        // Batch manifests identify a physical INDX tool.  A textual T command
+        // is a G-code/virtual tool selection and can be remapped while a job is
+        // active, causing the wrong dock to be visited.  Select the validated
+        // physical tool directly and do not cycle a tool that is already held.
+        if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), requested_tool)
+            && !tool_change(requested_tool, tool_return_t::no_return)) {
+            return false;
+        }
         if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), PhysicalToolIndex::from_raw(entry.physical_tool))) {
             return false;
         }
@@ -586,7 +607,11 @@ buddy::extrusion_calibration::Score run_bursts(const float pa) {
         planner.synchronize();
         pressure_advance::set_calibration_mode(false);
         capture.pause();
-        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+        // Break the fresh strand on the wiper before ejecting the pellet.  In
+        // the opposite order a still-attached pellet can curl onto the nozzle
+        // or extruder instead of falling into the wastebin.
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)
+            || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
             capture.stop();
             capture.release();
             return {};
@@ -683,7 +708,12 @@ float material_flow_limit(const uint8_t logical_filament) {
 }
 
 float probe_anchor_slot(const uint8_t slot) {
-#if HAS_WASTEBIN()
+#if HAS_INDX()
+    // INDX calibration is entirely free-air over the purge bucket. Keep this
+    // independent of wastebin feature flags so it can never regain a bed path.
+    (void)slot;
+    return NAN;
+#elif HAS_WASTEBIN()
     (void)slot;
     return NAN;
 #else
@@ -703,14 +733,14 @@ float probe_anchor_slot(const uint8_t slot) {
 }
 
 void cleanup(const uint8_t slot, const float anchor_z) {
-#if HAS_WASTEBIN()
-    #if HAS_INDX()
+#if HAS_INDX()
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
         return;
     }
-    #else
+#elif HAS_WASTEBIN()
     mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
-    #endif
+#endif
+#if HAS_INDX() || HAS_WASTEBIN()
     mapi::extruder_move(-1.0f, 20.0f, true);
     planner.synchronize();
 #else
@@ -732,19 +762,19 @@ void cleanup(const uint8_t slot, const float anchor_z) {
 }
 
 bool park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
-#if HAS_WASTEBIN()
-    #if HAS_INDX()
+#if HAS_INDX()
     if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
         return false;
     }
     create_hotend_clearance();
-    // Enter through the native cleaner approach and stop in the open purge
-    // gap. Raw ParkPosition::purge targets the cleaner origin and is not an
-    // INDX PA extrusion position.
-    return nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position);
-    #else
+    // Explicitly stage outside the cleaner. After G28 the carriage is in the
+    // dock-side home region; entering directly with G750 can cross a dock or
+    // brush diagonally. Parking applies the INDX post-home dock escape and
+    // segmented cleaner keep-out path before the native entry sequence.
+    return mapi::park(mapi::get_parking_position(mapi::ParkPosition::nozzle_cleaner_approach))
+        && nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position);
+#elif HAS_WASTEBIN()
     return mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::purge));
-    #endif
 #else
     // The front service travel is outside the printable Y range on MK4,
     // CORE One and XL. Keep X aligned with the later cleanup slot so hanging
