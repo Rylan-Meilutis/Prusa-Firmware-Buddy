@@ -170,7 +170,12 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                              // then reverse across the block edge to peel it away
                                              // from the nozzle. Do not use quick_clean here; its
                                              // long scrub can fold a PA strand into the toolhead.
-                                             .default_gcode = "G750 X0 Y98.5 F21000\n"
+                                             // Use the native purge autoretract before contact;
+                                             // otherwise a still-fed strand can follow the nozzle
+                                             // upward and accumulate on the toolhead.
+                                             .default_gcode = "M1705 N\n"
+                                                              "M400\n"
+                                                              "G750 X0 Y98.5 F21000\n"
                                                               "G750 X0 Y91.5 F21000",
                                          } },
 #else
