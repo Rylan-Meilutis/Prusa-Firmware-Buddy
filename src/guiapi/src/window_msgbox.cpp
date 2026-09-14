@@ -204,7 +204,10 @@ Rect16 MsgBoxIconned::getTextRect() {
 // MsgBoxIconPepaCentered
 MsgBoxIconPepaCentered::MsgBoxIconPepaCentered(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
     const string_view_utf8 &txt, is_multiline multiline, const img::Resource *ic)
-    : MsgBoxIconned(rect, resp, def_btn, txt, multiline, ic) {
+    : MsgBoxBase(rect, resp, def_btn, txt, multiline)
+    // Pepa is a full-color portrait, not a monochrome UI glyph. Use the
+    // zero-state original-color icon type so this does not enlarge every icon.
+    , icon(this, ic, { int16_t(rect.Left()), int16_t(rect.Top()) }, GuiDefaults::Padding) {
     icon.SetRect(getIconRect());
     icon.SetAlignment(Align_t::CenterTop());
 

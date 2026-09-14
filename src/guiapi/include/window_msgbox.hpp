@@ -111,12 +111,13 @@ protected:
 
 /*****************************************************************************/
 // MsgBoxPepaCentered
-class MsgBoxIconPepaCentered : public MsgBoxIconned {
+class MsgBoxIconPepaCentered : public MsgBoxBase {
 public:
     MsgBoxIconPepaCentered(Rect16 rect, const PhaseResponses &resp, size_t def_btn,
         const string_view_utf8 &txt, is_multiline multiline, const img::Resource *icon);
 
 protected:
+    window_icon_original_t icon;
     Rect16 getTextRect();
     Rect16 getIconRect();
 };
