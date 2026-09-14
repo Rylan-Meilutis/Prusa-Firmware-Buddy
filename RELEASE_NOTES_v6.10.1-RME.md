@@ -79,6 +79,8 @@ Firmware Buddy 6.10.1.
   front docks; XL assumes Y at maximum to protect its rear docks.
 - Dock calibration now performs three complete, sensor-verified pick/park
   cycles at every measured dock before accepting it and advancing.
+- INDX head LEDs now mirror the rendered center pixel of the front status bar,
+  including configured colors, state brightness, and live animation frames.
 
 ## Validation
 

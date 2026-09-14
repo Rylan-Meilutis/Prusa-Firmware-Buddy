@@ -315,8 +315,8 @@ void LEDManager::update() {
 #endif // HAS_SIDE_LEDS
 
 #if HAS_INDX()
-    // INDX head LEDs express the printer state (idle / busy / heating / warning).
-    indx_head_leds::update();
+    // Mirror the same rendered pixel that is sent to the center of the front bar.
+    indx_head_leds::update(data[1]);
 #endif
 }
 
