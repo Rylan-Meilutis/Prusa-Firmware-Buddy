@@ -47,6 +47,9 @@ Firmware Buddy 6.10.1.
 - Pickup validation now checks the attached physical nozzle rather than
   `active_extruder`. Before M701 loads filament, an INDX virtual slot is
   intentionally inactive, so the old check falsely rejected every nozzle.
+- Restored the INDX interactive loading metadata sequence. Selecting a
+  material now continues to color and manufacturer selection, and M701
+  preserves both choices when committing the loaded virtual filament slot.
 
 ## Validation
 
