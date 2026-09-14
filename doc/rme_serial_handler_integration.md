@@ -295,6 +295,11 @@ actions:
 | `filtration` | Mid-print/post-print filtering and commanded PWM percentage | no assumed action |
 | `printer` | Generic notification fallback | query if `state=waiting` |
 
+For INDX M976, send only the tools present in the sliced manifest. Firmware
+validates the enabled mapping before moving and owns the complete pickup,
+keep-out-aware cleaner entry, purge-gap extrusion, pellet wipe, and cleaner
+exit. The host must not synthesize intermediate tool changes or purge moves.
+
 An error event is a notification that firmware entered or is about to enter a
 recovery state. Always query the current dialog before enabling buttons. Send
 named responses (`A"Retry"`) rather than numeric indexes because names remain

@@ -1281,7 +1281,7 @@ static void report_service_queue_status() {
         const auto descriptor = rme_indx_workflow::nozzle_mismatch(raw_phase);
         workflow = descriptor.workflow;
         phase = descriptor.phase;
-        state = descriptor.error ? "waiting" : "active";
+        state = descriptor.waiting_for_host ? "waiting" : "active";
         break;
       }
       case ClientFSM::DockCalibration:

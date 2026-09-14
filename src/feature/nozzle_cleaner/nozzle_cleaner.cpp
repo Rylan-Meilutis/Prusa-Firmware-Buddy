@@ -153,6 +153,15 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                    .default_gcode = "G750 Y98.5 F21000 A\n"
                                                                     "G750 X0 F21000 A",
                                                } },
+        { Sequence::pa_calibration_purge_position, {
+                                                       .filename = "pa_calibration_purge_position",
+                                                       .directory = directory,
+                                                       // X0 is the calibrated purge lane. Y87 is the
+                                                       // open gap between the prime block and wiper.
+                                                       // G750 applies the measured cleaner offsets and
+                                                       // its A approach observes the cleaner keep-outs.
+                                                       .default_gcode = "G750 X0 Y87 F21000 A",
+                                                   } },
 #else
     { Sequence::clean, {
                            .filename = "clean",
