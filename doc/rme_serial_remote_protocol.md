@@ -686,8 +686,12 @@ are refused while printing:
 ```
 
 When `crash_dump=1` is advertised, `CRASH_DUMP` exports the retained Buddy
-crash dump to the requested `/usb` path and reports
-`RME_FILE_CRASH_DUMP_SAVED`; `no_crash_dump` means there is no valid retained
+crash dump to the requested `/usb` path. It first reports
+`RME_FILE_CRASH_DUMP_BEGIN path=<path> size=<bytes>`, periodically emits
+`echo:busy: processing` and
+`RME_FILE_CRASH_DUMP_PROGRESS written=<bytes> size=<bytes>`, and finishes with
+`RME_FILE_CRASH_DUMP_SAVED`. Hosts must extend their command timeout on either
+progress response. `no_crash_dump` means there is no valid retained
 dump, `printer_busy` defers export until filesystem activity is safe, and
 `crash_dump_write_failed` identifies media/export failure.
 

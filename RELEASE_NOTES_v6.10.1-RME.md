@@ -67,6 +67,13 @@ Firmware Buddy 6.10.1.
 - `RME_SESSION` now reports `active_tool=<logical-index|none>` from the live
   tool-selection state. INDX hosts can clear a stale selected tool as soon as
   every tool is parked instead of retaining the last virtual tool.
+- Fixed the remaining INDX phase-stepping heap failure identified in the
+  released 6.9.0 dump. Forward and backward accelerometer captures are now
+  analyzed sequentially instead of being retained together, and peak
+  detection no longer allocates a temporary candidate list.
+- Crash-dump export now advertises its retained size and emits periodic busy
+  and byte-progress responses, preventing a slow USB write from being mistaken
+  for a failed RME command.
 
 ## Validation
 

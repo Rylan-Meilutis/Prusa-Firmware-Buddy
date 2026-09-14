@@ -86,9 +86,11 @@ void dump_set_exported();
 /**
  * @brief Store dump to USB.
  * @param fn Filename to store dump to
+ * @param progress Optional allocation-free progress callback. It is invoked
+ * periodically after committed writes so a serial caller can remain alive.
  * @return true on success
  */
-bool save_dump_to_usb(const char *fn);
+bool save_dump_to_usb(const char *fn, void (*progress)(size_t, size_t) = nullptr);
 
 /**
  * @brief Read data of dump
