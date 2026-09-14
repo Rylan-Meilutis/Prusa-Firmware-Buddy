@@ -742,6 +742,12 @@ validation tolerances around the machine-defined dock positions, not changes
 to the dock positions themselves. The same saved values are shown by the dock
 settings and calibration-failure screens.
 
+After measuring a dock, firmware must successfully pick and park that tool
+three consecutive times before marking the dock calibrated and advancing to
+the next selected dock. A failed validation cycle invalidates that dock and
+enters the normal dock retry/abort screen; hosts should keep presenting the
+`dock_calibration` workflow until it succeeds or is aborted.
+
 ```text
 @RME DOCK QUERY
 RME_DOCK tolerance_x=2.50 tolerance_y=1.00
@@ -757,6 +763,13 @@ ok
 malformed, or out-of-range values with `workflow=dock`. Non-INDX machines
 return `code=unsupported feature=indx`; hosts should hide this setting after
 that response.
+
+Before XY is homed, serial `G0`/`G1` jogging uses conservative assumed
+coordinates so a host cannot unknowingly drive into tool hardware. INDX starts
+unknown Y at 0 and unknown X at its maximum (protecting the front docks and
+right-side purge bucket); XL starts unknown Y at its maximum because its docks
+are at the rear. Requested motion is clamped to the remaining safe interval.
+Internal homing and calibration motion is not rewritten by this host guard.
 
 Workflow identifiers are stable handler-routing keys. Current firmware emits
 `mmu`, `filament_load`, `filament_unload`, `tool_change`, `filament_runout`,

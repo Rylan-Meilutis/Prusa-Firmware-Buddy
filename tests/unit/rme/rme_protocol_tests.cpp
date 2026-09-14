@@ -11,6 +11,7 @@
 #include <rme_active_tool.hpp>
 #include <indx_dock_tolerance.hpp>
 #include <task_stack_requirements.hpp>
+#include <unknown_axis_motion.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -192,6 +193,15 @@ TEST_CASE("INDX dock calibration uses independent configurable axis tolerances",
     CHECK_FALSE(accepts_offset(0.0f, 1.06f, default_x_mm, default_y_mm));
     CHECK(accepts_offset(3.0f, 0.75f, 3.0f, 0.75f));
     CHECK(sanitize(std::numeric_limits<float>::quiet_NaN(), default_x_mm) == default_x_mm);
+}
+
+TEST_CASE("Unhomed toolchanger axes use conservative hardware boundaries", "[motion][toolchanger][regression]") {
+    using namespace buddy::unknown_axis_motion;
+    CHECK(assumed_position(AssumedBoundary::minimum, 0, 360) == 0);
+    CHECK(assumed_position(AssumedBoundary::maximum, 0, 360) == 360);
+    CHECK(constrain(-1, 0, 360) == 0);
+    CHECK(constrain(361, 0, 360) == 360);
+    CHECK(constrain(125, 0, 360) == 125);
 }
 
 TEST_CASE("RME service frames remain isolated from ordinary G-code", "[rme]") {

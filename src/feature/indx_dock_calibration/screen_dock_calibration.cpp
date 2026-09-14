@@ -29,6 +29,7 @@ constexpr auto txt_moving_away = N_("Lowering bed for clearance");
 constexpr auto txt_parking_tool = N_("Parking tool");
 constexpr auto txt_lock_position = N_("Motors are now locked.\n\nEnsure your hands are outside the printer enclosure.\n\nVerify the head is in the correct position, then press Continue to start measuring.");
 constexpr auto txt_measuring = N_("Measuring dock position\n\nDo not touch the printer.");
+constexpr auto txt_validating = N_("Validating dock pickup\n\nThe tool will be picked and parked three times.");
 constexpr auto txt_success = N_("Dock positions have been successfully calibrated and saved.");
 constexpr auto txt_failed = N_("Dock %d calibration failed.\n\nMeasured: X=%.1f Y=%.1f\n\nExpected: X=%.1f Y=%.1f\nTolerance: X=+-%.1f Y=+-%.1f");
 
@@ -138,6 +139,7 @@ using Frames = FrameDefinitionList<ScreenDockCalibration::FrameStorage,
     FrameDefinition<PhaseDockCalibration::ask_position_dock, FrameDockPosition, PhaseDockCalibration::ask_position_dock, txt_intro /* unused, overridden by update */>,
     FrameDefinition<PhaseDockCalibration::lock_position, FrameTextPrompt, PhaseDockCalibration::lock_position, txt_lock_position>,
     FrameDefinition<PhaseDockCalibration::measuring, FrameWait, txt_measuring>,
+    FrameDefinition<PhaseDockCalibration::validating, FrameWait, txt_validating>,
     FrameDefinition<PhaseDockCalibration::loosen_each_bolt, FrameScrewInstructions, PhaseDockCalibration::loosen_each_bolt, txt_title_loosen_each_screw, txt_loosen_each_screw, img_loosen_each_screw>,
     FrameDefinition<PhaseDockCalibration::calibration_success, FrameTextPrompt, PhaseDockCalibration::calibration_success, txt_success>,
     FrameDefinition<PhaseDockCalibration::calibration_failed, FrameCalibrationFailed, PhaseDockCalibration::calibration_failed, txt_failed>>;
