@@ -153,16 +153,18 @@ static constexpr EnumArray<Sequence, GCodeFile, static_cast<int>(Sequence::_cnt)
                                                    .default_gcode = "G750 Y98.5 F21000 A\n"
                                                                     "G750 X0 F21000 A",
                                                } },
-        { Sequence::pa_calibration_purge_position, {
-                                                       .filename = "pa_calibration_purge_position",
-                                                       .directory = directory,
-                                                       // X0/Y87 is the calibrated prime-block purge
-                                                       // position used by native INDX purge_clean.
-                                                       // G750 applies the measured cleaner offsets. The
-                                                       // caller must first use nozzle_cleaner_approach;
-                                                       // A only makes this final move asynchronous.
-                                                       .default_gcode = "G750 X0 Y87 F21000 A",
-                                                   } },
+        { Sequence::pa_calibration_extrusion_position, {
+                                                           .filename = "pa_calibration_extrusion_position",
+                                                           .directory = directory,
+                                                           // Y93 is the rear limit reached by the prime-block
+                                                           // eject motion and Y98.5 is the front edge used to
+                                                           // enter the wiper. Y95.5 leaves the nozzle over the
+                                                           // open waste-bin gap, clear of both surfaces.
+                                                           // G750 applies the measured cleaner offsets. The
+                                                           // caller must first use nozzle_cleaner_approach;
+                                                           // A only makes this final move asynchronous.
+                                                           .default_gcode = "G750 X0 Y95.5 F21000 A",
+                                                       } },
 #else
     { Sequence::clean, {
                            .filename = "clean",

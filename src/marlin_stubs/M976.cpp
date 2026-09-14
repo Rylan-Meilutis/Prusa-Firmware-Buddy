@@ -579,8 +579,8 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
         return true;
     }
     // First wipe the strand free, then eject the cooled pellet. Returning to
-    // the prime block is deferred until another measured cycle actually needs
-    // it, avoiding repeated cleaner traversals between every high/low pair.
+    // the open extrusion gap is deferred until another measured cycle actually
+    // needs it, avoiding repeated cleaner traversals between high/low pairs.
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)
         || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
         return false;
@@ -613,11 +613,11 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cyc
     // analysis window while avoiding 0.4 mm of unneeded filament per cycle.
     for (uint8_t cycle = 0; cycle < 4 && !planner.draining(); ++cycle) {
 #if HAS_INDX()
-        // Keep consecutive high/low cycles at the calibrated prime-block
-        // position. Cleaner contact is excluded from the retained capture.
+        // Keep consecutive high/low cycles over the open gap between the
+        // prime block and wiper. Cleaner contact is excluded from capture.
         pressure_advance::set_calibration_mode(false);
         if ((cycle == 0 || indx_cycles_since_ejection == 0)
-            && !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
+            && !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_extrusion_position)) {
             capture.stop();
             capture.release();
             return {};
@@ -750,7 +750,7 @@ float probe_anchor_slot(const uint8_t slot) {
 
 void cleanup(const uint8_t slot, const float anchor_z) {
 #if HAS_INDX()
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position)) {
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_extrusion_position)) {
         return;
     }
 #elif HAS_WASTEBIN()
@@ -788,7 +788,7 @@ bool park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
     // brush diagonally. Parking applies the INDX post-home dock escape and
     // segmented cleaner keep-out path before the native entry sequence.
     return mapi::park(mapi::get_parking_position(mapi::ParkPosition::nozzle_cleaner_approach))
-        && nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_purge_position);
+        && nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_extrusion_position);
 #elif HAS_WASTEBIN()
     return mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::purge));
 #else
