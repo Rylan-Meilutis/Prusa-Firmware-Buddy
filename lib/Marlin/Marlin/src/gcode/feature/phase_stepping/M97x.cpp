@@ -8,6 +8,10 @@
 #include <feature/phase_stepping/phase_stepping.hpp>
 
 #include <option/has_phase_stepping_calibration.h>
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+    #include <leds/side_strip_handler.hpp>
+#endif
 #if HAS_PHASE_STEPPING_CALIBRATION()
     #include <feature/phase_stepping/calibration.hpp>
 #endif
@@ -343,6 +347,9 @@ public:
  * Calibrates given motor and sets the newly found compensation.
  **/
 void GcodeSuite::M972() {
+    #if HAS_SIDE_LEDS()
+    leds::ScopedActiveLightHold active_light_hold;
+    #endif
     TEMPORARY_AUTO_REPORT_OFF(suspend_auto_report);
 
     bool valid = true;

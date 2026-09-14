@@ -50,6 +50,8 @@ public:
     void event_ping();
     void idle_ping();
     void print_finished_ping();
+    void begin_operation_hold();
+    void end_operation_hold();
     void set_door_open(bool open, uint16_t raw_data);
 
     void set_custom_color(ColorRGBW color, uint32_t duration_ms, uint32_t transition_ms);
@@ -165,8 +167,21 @@ private:
     bool print_override_session_active = false;
     uint32_t startup_activity_started_ms = 0;
     bool startup_activity_active = true;
+    uint8_t operation_hold_count = 0;
     std::optional<CustomColorState> custom_color;
     rme_light_hold::State rme_hold;
+};
+
+} // namespace leds
+
+namespace leds {
+
+class ScopedActiveLightHold {
+public:
+    ScopedActiveLightHold() { SideStripHandler::instance().begin_operation_hold(); }
+    ~ScopedActiveLightHold() { SideStripHandler::instance().end_operation_hold(); }
+    ScopedActiveLightHold(const ScopedActiveLightHold &) = delete;
+    ScopedActiveLightHold &operator=(const ScopedActiveLightHold &) = delete;
 };
 
 } // namespace leds

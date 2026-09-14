@@ -735,6 +735,44 @@ Stuck-filament recovery and tool mapping provide dedicated operations:
 @RME TOOLMAP RESET
 ```
 
+Spool joins can be inspected and configured without using the human-readable
+`M864` interface:
+
+```text
+@RME SPOOLJOIN QUERY
+RME_SPOOLJOIN count=2
+RME_SPOOLJOIN_ENTRY index=0 from=0 to=2
+RME_SPOOLJOIN_ENTRY index=1 from=2 to=4
+ok
+
+@RME SPOOLJOIN ADD from=0 to=2 tx=126
+RME_CHANGE domain=spooljoin key=joins origin=host tx=126
+ok
+
+@RME SPOOLJOIN RESET tx=127
+RME_CHANGE domain=spooljoin key=joins origin=host tx=127
+ok
+```
+
+`SET` is accepted as an alias for `ADD`. Adding to the source of an existing
+chain appends to that chain, matching the printer UI and `M864 J` behavior.
+Self-joins, disabled or out-of-range tools, duplicate destinations, and loops
+return `workflow=spool_join code=invalid_join`. Spool joins are print-session
+configuration: they are not written as a persistent user setting, although
+power-panic recovery preserves them with the interrupted job. `RESET` removes
+all joins. Machines without spool-join support return
+`workflow=spool_join code=unsupported feature=spool_join`; hosts should hide
+the controls after that response.
+
+Long-running calibration commands issued over serial keep the configured
+`active` lighting state for the complete operation, even when no print or GUI
+wizard is active. This includes `G427` tool-offset calibration, `M976`
+pressure-advance calibration, `M972` phase-stepping calibration, and the INDX
+dock, nozzle-cleaner, and tool-offset wizard commands (`M1982`, `M1983`, and
+`M1985`). The hold is scoped to command execution and starts
+the normal activity timeout when the command returns; it does not alter saved
+brightness or timeout settings.
+
 INDX dock calibration has independent, persistent X and Y acceptance
 tolerances. The defaults are `tolerance_x=2.5` mm and `tolerance_y=1.0` mm;
 each value may be set from 0.5 through 5.0 mm in 0.1 mm increments. These are
