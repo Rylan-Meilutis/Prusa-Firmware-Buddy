@@ -711,7 +711,16 @@ which screen is visible:
 @RME DIALOG RESPOND S0
 ```
 
-`QUERY` reports the actions offered by the active firmware prompt. A response
+`QUERY` first reports a machine-readable dialog route, followed by the actions
+offered by the active firmware prompt:
+
+```text
+RME_DIALOG workflow=indx_tool_change phase=pickup_failed state=waiting
+RME_PROMPT Retry,Abort
+ok
+```
+
+A response
 is accepted only when it belongs to that prompt. MMU failures use this same
 guarded dialog workflow:
 
@@ -721,6 +730,25 @@ guarded dialog workflow:
 @RME DIALOG RESPOND A"Unload"
 @RME DIALOG RESPOND A"MMU_disable"
 ```
+
+The unknown-tool INDX dock picker transfers a slot value rather than a normal
+button response. Select it with the guarded operation below (zero-based slot,
+so `slot=3` is the UI's Dock 4):
+
+```text
+@RME DIALOG QUERY
+RME_DIALOG workflow=indx_slot_selection phase=select_slot state=active
+RME_PROMPT none
+ok
+@RME INDX SLOT SELECT slot=3
+ok
+```
+
+The selection is accepted only while that exact firmware phase is active and
+only for a slot the local screen would offer. Errors report
+`workflow=indx_slot_selection` with `invalid_slot`, `disabled_slot`, or
+`no_active_selection`; non-INDX machines report the structured `unsupported`
+response. This prevents delayed plugin input from parking an unrelated tool.
 
 Stuck-filament recovery and tool mapping provide dedicated operations:
 
@@ -814,6 +842,15 @@ Workflow identifiers are stable handler-routing keys. Current firmware emits
 `filament_movement`, `extrusion_flow_limit`, `stuck_filament`,
 `pressure_advance`, `probing`, `heating`, `firmware_update`,
 `waste_bin`, `chamber_vent`, `filtration`, and the generic `printer` fallback.
+INDX adds `indx_tool_detection`, `indx_slot_selection`, `indx_tool_change`,
+`indx_dock_calibration`, `indx_tool_offset_calibration`,
+`indx_nozzle_cleaner_calibration`, and the generic `indx` fallback. The
+associated `phase` distinguishes detected/unknown or lost tools, dock
+selection and parking, pickup/park failures, each calibration stage, and its
+success or failure. Hosts should use `workflow` for routing and `phase` for
+the specific screen or error text; `state=waiting` means the firmware expects
+an action. Unknown future INDX phases deliberately use `workflow=indx
+phase=unknown` instead of being mislabeled as an unrelated failure.
 MMU progress events expose stable snake-case states for idler, selector,
 FINDA, extruder, nozzle, cut, eject, homing, ramming, and hardware-test phases;
 repeated reports are limited to state changes or five-percent progress changes.
