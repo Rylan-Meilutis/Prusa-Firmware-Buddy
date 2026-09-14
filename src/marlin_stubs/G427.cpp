@@ -3,6 +3,7 @@
 
 #include "PrusaGcodeSuite.hpp"
 #include <feature/tool_offset_calibration/tool_offset_calibration.hpp>
+#include <g427_tool_selection.hpp>
 
 /** \addtogroup G-Codes
  * @{
@@ -19,11 +20,14 @@
  *#### Usage
  *
  *    G427 [R | P]
+ *    G427 T0,7 [R | P]
  *
  *#### Parameters
  *
  * - `R` - millimeters of random jitter on X & Y axis during z_probing each tool <0;255>
  * - `P` - number of Z probe repetitions per point to average (default 1) <1;255>
+ * - `T` - comma-separated physical tools to calibrate. When supplied, this is
+ *   authoritative and avoids relying on file metadata during serial printing.
  */
 namespace PrusaGcodeSuite {
 
@@ -40,7 +44,13 @@ void G427() {
     (void)parser.store_option_if_present('P', p_param);
     p_param = std::max<uint8_t>(p_param, 1);
 
-    tool_offset_calibration::run(r_param, p_param);
+    const auto tool_selection = g427_tool_selection::parse(parser.gcode(), PhysicalToolIndex::count);
+    if (tool_selection.present && !tool_selection.mask.has_value()) {
+        SERIAL_ERROR_MSG("G427 invalid physical tool list");
+        return;
+    }
+
+    tool_offset_calibration::run(r_param, p_param, tool_offset_calibration::Context::Print, {}, tool_selection.mask);
 }
 
 } // namespace PrusaGcodeSuite

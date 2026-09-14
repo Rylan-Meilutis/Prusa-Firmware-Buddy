@@ -2,6 +2,7 @@
 /// @brief Tool offset calibration (Z-offset via probing + XY-offset with tool_offset board)
 #pragma once
 
+#include <optional>
 #include <inplace_function.hpp>
 
 #include <feature/contactless_offset/contactless_offset.hpp>
@@ -46,8 +47,10 @@ static_assert(sizeof(ProgressCallback) <= sizeof(void *) * 4);
 /// @param probe_count number of Z probe repetitions per point to average
 /// @param context see Context
 /// @param progress_cb optional progress reporter (called once per tool)
+/// @param physical_tool_mask explicit authoritative physical tools, or nullopt
+///        to discover them from print metadata (with the legacy all-tool fallback)
 /// @return true if calibration was successful
-bool run(uint8_t r_param, uint8_t probe_count, Context context = Context::Print, const ProgressCallback &progress_cb = {});
+bool run(uint8_t r_param, uint8_t probe_count, Context context = Context::Print, const ProgressCallback &progress_cb = {}, std::optional<uint32_t> physical_tool_mask = std::nullopt);
 
 /// Run XY offset calibration for a single tool, without touching Z offset or other tools.
 /// @param tool The tool to calibrate

@@ -213,6 +213,12 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
             return false;
         }
+        // purge_clean starts by removing any previous blob, then creates a new
+        // cleaning pellet. Detach that newly-created final pellet immediately;
+        // otherwise the last calibrated tool can leave it hanging indefinitely.
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+            return false;
+        }
 
         // Cool down to probing temperature with print fan on to speed it up
         thermalManager.setTargetHotend(temps.z_probing, tool);
@@ -490,7 +496,7 @@ xy_pos_t apply_stored_sensor_displacement(tool_offset::ProbingConfig &config) {
 }
 #endif
 
-bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb) {
+bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCallback &progress_cb, std::optional<uint32_t> physical_tool_mask) {
     if (!is_hardware_available()) {
         bsod("Tool offset sensor requested, but not available on this printer");
     }
@@ -531,10 +537,20 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     // GCodeInfo retains the last print's data, so it must not be consulted
     // outside of Context::Print.
     PhysicalToolSet used_physical_tools;
-    if (context == Context::Print) {
+    if (physical_tool_mask.has_value()) {
+        for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+            if (*physical_tool_mask & (uint32_t { 1 } << tool.to_raw())) {
+                used_physical_tools.set(tool.to_raw());
+            }
+        }
+    } else if (context == Context::Print) {
         used_physical_tools = collect_used_physical_tools();
     }
-    if (used_physical_tools.none()) {
+    if (physical_tool_mask.has_value() && used_physical_tools.to_ullong() != *physical_tool_mask) {
+        log_error(ToolOffsetCalib, "Explicit tool list contains a disabled or unavailable tool");
+        return false;
+    }
+    if (!physical_tool_mask.has_value() && used_physical_tools.none()) {
         used_physical_tools = collect_all_enabled_tools();
     }
 
