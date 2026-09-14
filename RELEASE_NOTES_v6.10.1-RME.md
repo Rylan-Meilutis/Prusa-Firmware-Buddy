@@ -135,3 +135,10 @@ and carry the `6.10.1-RME` firmware suffix.
   can acknowledge detection and then use guarded dock selection.
 - The Josef Prusa (`pepa`) portrait is rendered in its original colors instead
   of being recolored by the selected UI theme.
+- Host `echo:busy: processing` heartbeats now remain active when a long
+  calibration intentionally suspends temperature/status auto reports. This
+  prevents OctoPrint timeouts during INDX tool-offset, phase-stepping, homing,
+  and related synchronous service operations.
+- The INDX heatbreak fan remains temperature controlled when tools are parked:
+  it runs above the nozzle/controller safety thresholds and for the existing
+  two-minute cooldown, rather than following the logical active-tool field.
