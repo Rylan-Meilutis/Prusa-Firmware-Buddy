@@ -8,6 +8,7 @@
 #include <firmware_update_handoff.hpp>
 #include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
+#include <rme_active_tool.hpp>
 #include <task_stack_requirements.hpp>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
@@ -25,6 +26,22 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("RME active tool reports a parked toolchanger as none", "[rme][tool][regression]") {
+    struct TestTool {
+        uint8_t value;
+        uint8_t to_raw() const { return value; }
+    };
+    struct TestNoTool {};
+
+    const auto parked = rme_active_tool::snapshot(std::variant<TestTool, TestNoTool> { TestNoTool {} });
+    CHECK_FALSE(parked.selected);
+
+    const auto selected = rme_active_tool::snapshot(
+        std::variant<TestTool, TestNoTool> { TestTool { 2 } });
+    CHECK(selected.selected);
+    CHECK(selected.index == 2);
+}
 
 TEST_CASE("RME Marlin task stack retains crash-derived guard space", "[rme][stack][regression]") {
     using namespace buddy::task_stack_requirements;

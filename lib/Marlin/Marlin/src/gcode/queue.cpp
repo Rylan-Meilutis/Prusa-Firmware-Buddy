@@ -46,6 +46,7 @@ GCodeQueue queue;
 #include <filament.hpp>
 #include <filament_manufacturer.hpp>
 #include <rme_protocol_parser.hpp>
+#include <rme_active_tool.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
 #include <print_utils.hpp>
@@ -1042,6 +1043,10 @@ static void report_remote_session() {
   // this communications lease for printer activity.
   SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
   SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
+  const auto active_tool = rme_active_tool::snapshot(VirtualToolIndex::currently_selected());
+  SERIAL_ECHOPGM(" active_tool=");
+  if (active_tool.selected) SERIAL_ECHO(active_tool.index);
+  else SERIAL_ECHOPGM("none");
   SERIAL_ECHOPGM(" legacy="); SERIAL_ECHO(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
   SERIAL_ECHOLNPGM(" preferred_baud=1000000 fallback_baud=250000,230400,115200");
 }
