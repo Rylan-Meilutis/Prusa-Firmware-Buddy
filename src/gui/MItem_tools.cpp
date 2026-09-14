@@ -32,6 +32,7 @@
 #include <config_store/store_instance.hpp>
 #include "connect/marlin_printer.hpp"
 #include <crash_dump/dump.hpp>
+#include <transfers/monitor.hpp>
 #include <feature/prusa/e-stall_detector.h>
 #include <option/bootloader.h>
 #include <option/filament_sensor.h>
@@ -374,11 +375,19 @@ void MI_SAVE_DUMP::click(IWindowMenu & /*window_menu*/) {
         return;
     }
 
+    auto transfer_slot = transfers::Monitor::instance.allocate(
+        transfers::Monitor::Type::Link, "/usb/dump.bin", crash_dump::dump_get_size());
+    if (!transfer_slot) {
+        MsgBoxWarning(_("A file transfer is already in progress. Try again after it finishes."), Responses_Ok);
+        return;
+    }
+
     bool save_result = false;
     window_dlg_wait_t::wait_until(_("A crash dump is being saved."), [&] {
         save_result = crash_dump::save_dump_to_usb("/usb/dump.bin");
         return true;
     });
+    transfer_slot->done(save_result ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
 
     if (save_result) {
         MsgBoxInfo(_("A crash dump report (file dump.bin) has been saved to the USB drive."), Responses_Ok);
