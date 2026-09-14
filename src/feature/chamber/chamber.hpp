@@ -111,8 +111,6 @@ private:
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool heating_wait_active_ = false;
     bool heating_assist_active_ = false;
-    int16_t heating_assist_previous_bed_target_ = 0;
-    int16_t heating_assist_applied_bed_target_ = 0;
     uint8_t heating_assist_previous_print_fan_ = 0;
     uint8_t heating_assist_applied_print_fan_ = 0;
 #endif
