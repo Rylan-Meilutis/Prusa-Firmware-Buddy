@@ -9,6 +9,13 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Corrected the remaining print-start bounds rejection after `G12 S30`.
+  Serial Y-only purging is allowed within cleaner-local X +/-0.5 mm and
+  Y 76..101.5 mm, using the calibrated cleaner origin and applied tool offset.
+  Both endpoints must be inside this lane; lateral entry and Z moves do not
+  receive this exception. The previous front-strip fix did not cover the
+  cleaner position used by the slicer after bed probing.
+
 - A parameterless `M105` is now valid while every INDX tool is parked. It
   returns the normal no-tool temperature snapshot without emitting
   `echo: Invalid extruder -1`, so OctoPrint does not incorrectly blacklist T0

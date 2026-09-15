@@ -7,6 +7,18 @@ struct ServiceBoundary {
     float dock_max_y;
 };
 
+// Native G12 leaves the nozzle in this lane for slicer-controlled purging.
+// Both endpoints must already be in the lane; this cannot authorize entry
+// across the cleaner wall or lateral travel toward parked tools.
+constexpr bool cleaner_purge_move_is_safe(float from_x, float from_y,
+    float to_x, float to_y, bool x_requested, bool z_requested) {
+    return !x_requested && !z_requested
+        && from_x >= -0.5f && from_x <= 0.5f
+        && to_x >= -0.5f && to_x <= 0.5f
+        && from_y >= 76.f && from_y <= 101.5f
+        && to_y >= 76.f && to_y <= 101.5f;
+}
+
 constexpr bool point_is_safe(const float x, const float y, const ServiceBoundary boundary) {
     return x <= boundary.cleaner_min_x && y >= boundary.dock_max_y;
 }
