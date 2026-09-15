@@ -26,6 +26,9 @@
 #include <option/has_crash_detection.h>
 #include <unknown_axis_motion.hpp>
 #include <indx_serial_motion_safety.hpp>
+#if HAS_INDX()
+  #include <config_store/store_instance.hpp>
+#endif
 
 #if ENABLED(NANODLP_Z_SYNC)
   // #error dead code found by automatic analyses (see BFW-5461)
@@ -89,6 +92,7 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
   #endif
 
   const bool x_move_requested = parser.seen('X');
+  const bool z_move_requested = parser.seen('Z');
   const bool xy_move_requested = x_move_requested || parser.seen('Y');
 
   // Serial jogs may arrive before XY has ever been homed. Rebase unknown axes
@@ -134,7 +138,20 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
         constexpr buddy::indx_serial_motion_safety::ServiceBoundary service_boundary {
           X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS
         };
-        if (!buddy::indx_serial_motion_safety::linear_move_is_safe(
+        // G12 S30 ends at cleaner-local X0 Y87. Orca follows it with
+        // relative Y extrusion moves. Evaluate that narrow lane in the
+        // same calibrated nozzle coordinates used by G750.
+        const auto from_machine = current_machine_position();
+        const auto to_machine = to_machine_pos(destination);
+        const float cleaner_x = X_NOZZLE_CLEANER_ORIGIN + config_store().nozzle_cleaner_x_origin_offset.get()
+          - hotend_currently_applied_offset.x;
+        const float cleaner_y = Y_NOZZLE_CLEANER_ORIGIN + config_store().nozzle_cleaner_y_origin_offset.get()
+          - hotend_currently_applied_offset.y;
+        const bool cleaner_purge = buddy::indx_serial_motion_safety::cleaner_purge_move_is_safe(
+          from_machine.x - cleaner_x, from_machine.y - cleaner_y,
+          to_machine.x - cleaner_x, to_machine.y - cleaner_y,
+          x_move_requested, z_move_requested);
+        if (!cleaner_purge && !buddy::indx_serial_motion_safety::linear_move_is_safe(
                 current_position.x, current_position.y, destination.x, destination.y, x_move_requested, service_boundary)) {
           SERIAL_ERROR_MSG("Unsafe INDX move outside printable area");
           return;
