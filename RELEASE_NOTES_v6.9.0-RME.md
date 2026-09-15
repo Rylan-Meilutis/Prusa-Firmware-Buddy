@@ -9,6 +9,36 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Fixed post-print filtration countdown and early-stop state. Required cycles
+  start their configured duration at print completion, including parked INDX
+  tools; stopping a cycle cannot restart it on the next controller tick.
+- Added Start/Stop Filter Cycle to Chamber Filtration, exposed Chamber Fans
+  With Filter and Filter Fan Offset, and moved Empty Wastebin directly below
+  Return in the Filament menu. Door prompts also work for manual cycles.
+
+- Fixed the serial printing screen remaining on "Nozzle cleaning" after the
+  operation finishes. Live status now looks through custom host messages to
+  active operations instead of falling back to completed message history.
+  Documented print-time RME session heartbeats required to retain the host icon.
+
+- Fixed false INDX first-layer G2/G3 rejection: validate the actual directed
+  arc sweep rather than requiring the entire supporting circle to fit.
+  Endpoint and swept-extrema protection remain enabled; full circles still
+  receive full-circle checks. Regression tests cover the reported N578 arc,
+  reversed direction, unsafe extrema, full circles, and sampled sweeps.
+
+- Corrected the remaining print-start bounds rejection after `G12 S30`.
+  Serial Y-only purging is allowed within cleaner-local X +/-0.5 mm and
+  Y 76..101.5 mm, using the calibrated cleaner origin and applied tool offset.
+  Both endpoints must be inside this lane; lateral entry and Z moves do not
+  receive this exception. The previous front-strip fix did not cover the
+  cleaner position used by the slicer after bed probing.
+
+- A parameterless `M105` is now valid while every INDX tool is parked. It
+  returns the normal no-tool temperature snapshot without emitting
+  `echo: Invalid extruder -1`, so OctoPrint does not incorrectly blacklist T0
+  before a serial print selects its first tool. Explicit invalid `M105 Tn`
+  requests remain errors.
 - Fixed tool-offset calibration exhausting the heap after its first recorded
   sweep. The large segmented load-cell sample buffer is now moved into the
   analysis result instead of being copied, and the result is compile-time

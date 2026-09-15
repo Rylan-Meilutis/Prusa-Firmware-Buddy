@@ -24,11 +24,52 @@ other blocking commands.
    disables remote UI input. `QUERY` deliberately does not renew the lease.
    Close the session when deliberately disconnecting.
 
+   Keep this heartbeat running during printing, pausing, and blocking start
+   G-code as well as while idle. Periodic `SESSION QUERY` is not a substitute.
+   If a response reports `lease=0`, reopen the session and restore subscriptions;
+   `KEEPALIVE` does not reopen an expired session. The RME header icon indicates
+   a live RME session (or transfer), not merely a connected serial printer.
+   An icon that disappears only during prints should be investigated in the
+   host's print-time heartbeat scheduling before changing firmware visibility.
+
 `RME_SESSION lease=1` means only that the protocol lease is live. Read the
 actual state from the adjacent `printer_state` field. Keepalives and read-only queries are passive and may
 continue while the printer transitions to idle and applies its idle display
 and lighting policy. Use the `state` on structured events for device state;
 do not synthesize an active printer state from protocol traffic.
+
+## Serial printing display regression checks
+
+### Filtration controls
+
+Chamber Filtration includes Start/Stop Filter Cycle (idle only, with a backend
+and post-print filtration enabled), Chamber Fans With Filter, and Filter Fan
+Offset for the official XBuddy-extension filter backend. The latter controls
+already-existing fan behavior; neither overrides heater or fan safety controls.
+Manual cycles use the configured post-print duration and power (`M154.8 S1` to
+start, `M154.8 S0` to stop).
+
+Verify required post-print filtration starts with the full configured duration
+after a print ends, including when INDX tools are parked during end G-code.
+Verify the countdown/stop control appears on the finished screen; opening the
+door offers early stop. Answering No preserves the cycle, Yes stops it without
+restart on the next controller tick. Test manual start/stop from idle, duration
+expiry, disabled filtration, and a subsequent print rearming automatic filtration.
+The Filament menu places Empty Wastebin immediately after Return.
+
+### Operation page
+
+The full-screen operation page uses live firmware operations, not the last
+operation in message history. After nozzle cleaning, heating, or probing ends,
+the screen must return to print progress unless another operation is active.
+Host `M117` clock/ETA messages must not hide a genuinely active operation or
+resurrect a completed one. History remains available separately.
+
+On a supervised print, verify that cleaning is shown while running, progress
+returns afterward, and a subsequent cleaning operation appears and clears
+again. Check with periodic `M117` traffic enabled. Separately, verify the RME
+icon remains visible with a live session throughout printing; intentionally
+expired sessions must still lose the icon and remote-input authorization.
 
 All `@RME` service frames are excluded from the local chamber-light activity
 timer. Explicit remote UI input still wakes the display. If a temporary print

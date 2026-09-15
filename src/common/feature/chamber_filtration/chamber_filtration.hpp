@@ -28,6 +28,7 @@ public:
         std::optional<bool> needs_filtration;
         uint32_t last_print_s = 0;
         uint32_t unaccounted_filter_time_used_start_s = 0;
+        std::optional<uint32_t> last_filtration_need_s;
     };
 
     /// \returns translatable name of the provided filtration backend
@@ -93,6 +94,7 @@ private:
     bool is_printing_prev_ = false;
     std::optional<bool> needs_filtration_;
     uint32_t last_print_s_ = 0;
+    std::optional<uint32_t> last_filtration_need_s_;
 
     /// ticks_s() of the start of filter usage (output_pwm > 0) that has not yet been emitted in the config_store
     uint32_t unaccounted_filter_time_used_start_s_ = 0;

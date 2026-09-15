@@ -40,6 +40,7 @@ void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
             output_pwm_ = {};
             is_printing_prev_ = false;
             needs_filtration_ = false;
+            last_filtration_need_s_.reset();
             unaccounted_filter_time_used_start_s_ = 0;
         } else {
             unaccounted_filter_time_used_start_s_ = output_pwm_.value != 0 ? now_s : 0;
@@ -107,13 +108,15 @@ void ChamberFiltration::step() {
 
     std::lock_guard _lg(mutex_);
     const auto previous_output_pwm = output_pwm_;
+    const auto now_s = ticks_s();
 
     if (!is_enabled()) {
         commit_unaccounted_filter_usage(ticks_s());
         unaccounted_filter_time_used_start_s_ = 0;
         output_pwm_ = {};
+        last_filtration_need_s_ = std::nullopt;
+        needs_filtration_.reset();
         is_printing_prev_ = false;
-        needs_filtration_ = false;
         if (previous_output_pwm.value != 0) {
             SerialPrinting::notify_workflow("filtration", "closed", "Chamber filtration stopped", 100);
         }
@@ -122,25 +125,34 @@ void ChamberFiltration::step() {
 
     const auto print_state = marlin_vars().print_state.get();
     const bool print_state_active = marlin_server::is_printing_state(print_state) || marlin_server::is_extended_paused_state(print_state) || marlin_server::is_abort_state(print_state);
-
-    // Only start filtering after we've extruded first filament
-    // We don't want the filtering fans to slow down the chamber heatup
-    const bool is_printing = print_state_active && (planner.max_printed_z > 0);
-    const bool was_printing = is_printing_prev_;
-    is_printing_prev_ = is_printing;
-
-    if (is_printing && !was_printing) {
-        // Checking is a bit expensive, do it only at the beginning of the print
+    if (print_state_active && !is_printing_prev_) {
+        needs_filtration_.reset();
+        last_filtration_need_s_.reset();
         update_needs_filtration();
     }
-
-    const auto now_s = ticks_s();
-
+    const bool required = needs_filtration_.value_or(false);
+    if (print_state_active && required) {
+        last_filtration_need_s_ = now_s;
+    }
+    if (!print_state_active && is_printing_prev_) {
+        // Start the full configured duration at completion, not at the last
+        // hot-nozzle sample (INDX tools may already have been parked).
+        needs_filtration_ = last_filtration_need_s_.has_value();
+        last_print_s_ = now_s;
+    }
+    is_printing_prev_ = print_state_active;
     // Determine output PWM of the fans
-    if (!needs_filtration_.value_or(false)) {
-        output_pwm_ = {};
-
-    } else if (is_printing) {
+    if (!print_state_active && needs_filtration_.has_value()) {
+        const bool cycle_active = *needs_filtration_
+            && ticks_diff(now_s, last_print_s_) < config_store().chamber_post_print_filtration_duration_min.get() * 60;
+        output_pwm_ = cycle_active && config_store().chamber_post_print_filtration_enable.get()
+            ? config_store().chamber_post_print_filtration_pwm.get()
+            : PWM255(0);
+        if (!cycle_active) {
+            needs_filtration_ = false;
+        }
+    } else if (required) {
+        // Filtration is currently needed
         output_pwm_ = config_store().chamber_print_filtration_enable.get() ? config_store().chamber_mid_print_filtration_pwm.get() : PWM255(0);
         last_print_s_ = now_s;
 
@@ -149,6 +161,8 @@ void ChamberFiltration::step() {
 
     } else if (config_store().chamber_post_print_filtration_enable.get() && ticks_diff(now_s, last_print_s_) <= config_store().chamber_post_print_filtration_duration_min.get() * 60) {
         output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();
+        needs_filtration_ = true;
+        last_print_s_ = *last_filtration_need_s_;
 
     } else {
         output_pwm_ = {};
@@ -223,7 +237,7 @@ uint32_t ChamberFiltration::filter_lifetime_s() const {
 
 uint32_t ChamberFiltration::post_print_remaining_s() const {
     std::lock_guard _lg(mutex_);
-    if (output_pwm_.value == 0 || !config_store().chamber_post_print_filtration_enable.get()) {
+    if (is_printing_prev_ || needs_filtration_ != true || output_pwm_.value == 0 || !config_store().chamber_post_print_filtration_enable.get()) {
         return 0;
     }
 
@@ -238,7 +252,8 @@ void ChamberFiltration::stop_post_print_filtration() {
     commit_unaccounted_filter_usage(ticks_s());
     unaccounted_filter_time_used_start_s_ = 0;
     output_pwm_ = {};
-    needs_filtration_ = std::nullopt;
+    needs_filtration_ = false;
+    last_filtration_need_s_.reset();
     if (was_running) {
         SerialPrinting::notify_workflow("filtration", "closed", "Post-print filtration stopped", 100);
     }
@@ -277,6 +292,7 @@ ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
         .needs_filtration = needs_filtration_,
         .last_print_s = last_print_s_,
         .unaccounted_filter_time_used_start_s = unaccounted_filter_time_used_start_s_,
+        .last_filtration_need_s = last_filtration_need_s_,
     };
 }
 
@@ -287,6 +303,7 @@ void ChamberFiltration::restore_snapshot(const Snapshot &snapshot) {
     needs_filtration_ = snapshot.needs_filtration;
     last_print_s_ = snapshot.last_print_s;
     unaccounted_filter_time_used_start_s_ = snapshot.unaccounted_filter_time_used_start_s;
+    last_filtration_need_s_ = snapshot.last_filtration_need_s;
 }
 
 void ChamberFiltration::check_filter_expiration() {
