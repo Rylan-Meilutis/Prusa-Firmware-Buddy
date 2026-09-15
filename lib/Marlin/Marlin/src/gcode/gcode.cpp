@@ -56,6 +56,7 @@ GcodeSuite gcode;
 
 #include "../Marlin.h" // for idle() and suspend_auto_report
 #include <host_keepalive_policy.hpp>
+#include <serial_remote_control.hpp>
 
 #include "odometer.hpp"
 
@@ -817,6 +818,10 @@ void GcodeSuite::process_subcommands_now(char * gcode) {
    * while the machine is not accepting commands.
    */
   void GcodeSuite::host_keepalive() {
+    // A synchronous handler prevents the host's queued heartbeat from running.
+    // Preserve only an already-open lease while that handler makes progress.
+    if (busy_state == IN_HANDLER || busy_state == IN_PROCESS)
+      serial_remote_control::keepalive_session();
     // Do not log keeaplive messages, only print to serial
     SerialLoggingDisabler sld;
 

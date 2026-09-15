@@ -9,6 +9,18 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Restored per-print chamber, screen, and status-LED brightness controls in
+  Tune on supported hardware. These use temporary overrides, leaving saved
+  lighting defaults unchanged.
+- Suppress routine nozzle-cleaning live-screen and host status messages.
+- Preserve an existing RME lease during synchronous command processing,
+  when the host cannot deliver its queued heartbeat.
+- Automatic PA retains five-cycle wipe/ejection batches for all materials.
+  PETG and other high-temperature materials cool for 12 seconds before ejection;
+  lower-temperature materials retain four seconds.
+  Cooling starts after wipe motion completes and the fan stays on through
+  ejection. These timings require hardware validation for each material.
+
 - Fixed post-print filtration countdown and early-stop state. Required cycles
   start their configured duration at print completion, including parked INDX
   tools; stopping a cycle cannot restart it on the next controller tick.

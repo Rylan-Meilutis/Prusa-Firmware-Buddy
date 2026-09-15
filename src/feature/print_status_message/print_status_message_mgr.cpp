@@ -5,6 +5,23 @@
 
 PrintStatusMessageManager print_status_message_instance;
 
+static bool suppressed_cleaning_message(const PrintStatusMessage::Type type) {
+    switch (type) {
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+    case PrintStatusMessage::nozzle_cleaning:
+#endif
+#if HAS_NOZZLE_CLEANER()
+    case PrintStatusMessage::nozzle_cleaner:
+#endif
+#if HAS_NOZZLE_CLEANER_LITE()
+    case PrintStatusMessage::nozzle_cleaner_lite:
+#endif
+        return true;
+    default:
+        return false;
+    }
+}
+
 PrintStatusMessageManager &print_status_message() {
     return print_status_message_instance;
 }
@@ -24,6 +41,9 @@ static int serial_progress_percent(float current, float target) {
 }
 
 void report_print_status_to_serial_host(const PrintStatusMessage &message) {
+    if (suppressed_cleaning_message(message.type)) {
+        return;
+    }
 #if PRINTER_IS_PRUSA_MINI()
     // MINI release builds are at the physical flash limit. Its serial UI still
     // observes these records, but richer outbound operation notifications are
@@ -107,14 +127,14 @@ void report_print_status_to_serial_host(const PrintStatusMessage &message) {
 PrintStatusMessageManager::Record PrintStatusMessageManager::current_message(bool exclude_custom) const {
     std::scoped_lock mutex_guard(mutex_);
 
-    if (temporary_message_.data && (!exclude_custom || temporary_message_.data.message.type != PrintStatusMessage::custom)) {
+    if (temporary_message_.data && !suppressed_cleaning_message(temporary_message_.data.message.type) && (!exclude_custom || temporary_message_.data.message.type != PrintStatusMessage::custom)) {
         return temporary_message_.data;
     }
 
     auto guard = active_guard_;
     while (guard) {
         const auto &data = guard->record();
-        if (data.message.type != PrintStatusMessage::none && (!exclude_custom || data.message.type != PrintStatusMessage::custom)) {
+        if (data.message.type != PrintStatusMessage::none && !suppressed_cleaning_message(data.message.type) && (!exclude_custom || data.message.type != PrintStatusMessage::custom)) {
             return data;
         }
 

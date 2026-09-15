@@ -574,7 +574,7 @@ void extrude_flow(const float flow_mm3_s, const float seconds) {
 }
 
 #if HAS_INDX()
-bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
+bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection, const uint8_t slot) {
     if (!buddy::m976_indx_pellet_policy::final_ejection_needed(cycles_since_ejection)) {
         return true;
     }
@@ -582,18 +582,24 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
     // freshly purged pellet is still soft enough to fold into the waste bin
     // instead of being knocked clear, where subsequent purges merge into it.
     // Put the fan change into the wipe's planner blocks so it is applied while
-    // the four-second dwell runs, then preserve the caller's fan setting.
+    // the cooling dwell runs, then preserve the caller's fan setting.
+    const auto params = config_store().get_filament_type(slot).parameters();
+    const auto cooling_ms = buddy::m976_indx_pellet_policy::cooling_delay_for(
+        buddy::m976_material::authoritative_name(params.name.data(), base_material_name(params)), params.nozzle_temperature);
     const uint8_t previous_fan_pwm = thermalManager.get_print_fan_speed();
     thermalManager.set_print_fan_speed(255);
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_wipe)) {
         thermalManager.set_print_fan_speed(previous_fan_pwm);
         return false;
     }
-    GcodeSuite::dwell(buddy::m976_indx_pellet_policy::cooling_delay_ms);
-    thermalManager.set_print_fan_speed(previous_fan_pwm);
+    planner.synchronize();
+    GcodeSuite::dwell(cooling_ms);
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
+        thermalManager.set_print_fan_speed(previous_fan_pwm);
         return false;
     }
+    planner.synchronize();
+    thermalManager.set_print_fan_speed(previous_fan_pwm);
     cycles_since_ejection = 0;
     #if HAS_WASTEBIN_FILL_TRACKING()
     WastebinWatcher::instance().account_ejected_pellet();
@@ -602,7 +608,7 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection) {
 }
 #endif
 
-buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection) {
+buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection, const uint8_t slot) {
     constexpr float slow_flow = 0.8f * filament_area;
     constexpr float fast_flow = 8.0f * filament_area;
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
@@ -614,6 +620,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cyc
 #if HAS_INDX()
     capture.pause();
 #else
+    (void)slot;
     (void)indx_cycles_since_ejection;
     pressure_advance::set_calibration_mode(true);
 #endif
@@ -639,7 +646,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cyc
         pressure_advance::set_calibration_mode(false);
         capture.pause();
         if (buddy::m976_indx_pellet_policy::record_cycle_and_should_eject(indx_cycles_since_ejection)
-            && !eject_accumulated_indx_pellet(indx_cycles_since_ejection)) {
+            && !eject_accumulated_indx_pellet(indx_cycles_since_ejection, slot)) {
             capture.stop();
             capture.release();
             return {};
@@ -1085,7 +1092,7 @@ void PrusaGcodeSuite::M976() {
             return buddy::extrusion_calibration::Score {};
         }
         const float bounded_candidate = std::clamp(candidate, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection);
+        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection, slot);
         report_measurement_debug(bounded_candidate, score, idle_noise);
         record_observation(bounded_candidate, score);
         if (score.valid && score.transient < best_cost) {
@@ -1175,7 +1182,7 @@ void PrusaGcodeSuite::M976() {
             aborted = true;
             break;
         }
-        const auto score = run_bursts(best_pa, indx_cycles_since_ejection);
+        const auto score = run_bursts(best_pa, indx_cycles_since_ejection, slot);
         report_measurement_debug(best_pa, score, idle_noise);
         record_observation(best_pa, score);
         if (score.valid && score.transient < best_cost) {
@@ -1185,9 +1192,9 @@ void PrusaGcodeSuite::M976() {
     }
     #if HAS_INDX()
     // Bound buildup during the search, then always finish the remainder in the
-    // requested order: wipe, eject. If the final measured cycle was exactly a
-    // fifth cycle, its periodic ejection already is the final ejection.
-    if (!eject_accumulated_indx_pellet(indx_cycles_since_ejection)) {
+    // requested order: wipe, cool, eject. If the final measured cycle ended a
+    // material-specific batch, its periodic ejection is the final ejection.
+    if (!eject_accumulated_indx_pellet(indx_cycles_since_ejection, slot)) {
         aborted = true;
     }
     #endif
