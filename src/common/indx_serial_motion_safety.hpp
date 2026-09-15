@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 namespace buddy::indx_serial_motion_safety {
 
 struct ServiceBoundary {
@@ -44,6 +46,53 @@ constexpr bool arc_is_safe(const float center_x, const float center_y, const flo
     return radius >= 0
         && center_x + radius <= boundary.cleaner_min_x
         && center_y - radius >= boundary.dock_max_y;
+}
+
+// Check only extrema on the commanded sweep, not the unused part of its circle.
+// full_circle must use the planner's endpoint-coincidence rule.
+inline bool arc_sweep_is_safe(float from_x, float from_y, float to_x, float to_y,
+    float center_x, float center_y, bool clockwise, bool full_circle, ServiceBoundary boundary) {
+    if (!std::isfinite(from_x) || !std::isfinite(from_y)
+        || !std::isfinite(to_x) || !std::isfinite(to_y)
+        || !std::isfinite(center_x) || !std::isfinite(center_y)
+        || !point_is_safe(from_x, from_y, boundary) || !point_is_safe(to_x, to_y, boundary)) {
+        return false;
+    }
+    const float sx = from_x - center_x, sy = from_y - center_y;
+    const float ex = to_x - center_x, ey = to_y - center_y;
+    const float radius = std::hypot(sx, sy);
+    if (!std::isfinite(radius) || radius == 0) {
+        return false;
+    }
+    if (full_circle) {
+        return arc_is_safe(center_x, center_y, radius, boundary);
+    }
+    constexpr float tau = 6.2831853071795864769f;
+    const auto directed_angle = [clockwise](float angle) {
+        if (clockwise) {
+            angle = -angle;
+        }
+        return angle < 0 ? angle + tau : angle;
+    };
+    const float sweep = directed_angle(std::atan2(sx * ey - sy * ex, sx * ex + sy * ey));
+    // Match plan_arc: a zero angular travel queues no arc.
+    if (sweep == 0) {
+        return true;
+    }
+    const float to_right = directed_angle(std::atan2(-sy, sx));
+    const float to_bottom = directed_angle(std::atan2(-sx, -sy));
+    // Include the ideal circular endpoint as well as the commanded endpoint:
+    // rounded G-code endpoints can have slightly different radii.
+    const float end_radius = std::hypot(ex, ey);
+    if (!(end_radius > 0) || !std::isfinite(end_radius)) {
+        return false;
+    }
+    if (!point_is_safe(center_x + radius * ex / end_radius,
+            center_y + radius * ey / end_radius, boundary)) {
+        return false;
+    }
+    return (to_right > sweep || center_x + radius <= boundary.cleaner_min_x)
+        && (to_bottom > sweep || center_y - radius >= boundary.dock_max_y);
 }
 
 } // namespace buddy::indx_serial_motion_safety
