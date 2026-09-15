@@ -40,6 +40,15 @@ do not synthesize an active printer state from protocol traffic.
 
 ## Serial printing display regression checks
 
+### Per-print lighting
+
+Tune exposes Print Chamber Lights (Print Side Strip on other supported models),
+Print Screen, and Print Status LED on hardware with the corresponding lighting
+backend. These are temporary overrides, separate from the saved Lights settings.
+During a serial print, change each brightness and verify the output responds;
+start a subsequent print and verify the saved defaults return. Check that the
+same controls remain available during an SD/USB print.
+
 ### Filtration controls
 
 Chamber Filtration includes Start/Stop Filter Cycle (idle only, with a backend
@@ -405,3 +414,17 @@ windows, eight-frame raw windows, CRC NACK/restart, offset NACK/restart, binary
 abort, disconnect cleanup, wrong SHA-256, full media, atomic completion, print
 queueing, and signed-BBF flash handoff. Confirm that legacy hosts which ignore
 new `CAPS` fields continue to work unchanged.
+# Long-command leases and PETG PA purge handling
+
+Firmware renews an already-open RME session while synchronous G-code handlers
+are processing. This does not open a missing session or retain one merely
+because the printer is idle. Routine nozzle-cleaning status messages are
+suppressed from live status and serial notifications; cleaning still executes.
+
+INDX PA uses five-cycle purge batches for all materials, then wipes, waits for
+motion completion, cools, and ejects with the fan still enabled. PET-family,
+ASA, ABS, PC, PA/PPA, and HIPS materials use 12 seconds of cooling, as do unknown
+materials with a configured nozzle temperature of at least 230 C. Other materials
+use four seconds. The final partial batch is also cleared. Ejection counting records commanded
+ejections, not sensor-confirmed pellet detachment. Verify detachment on hardware;
+stop calibration if plastic accumulates rather than repeating obstructed purges.

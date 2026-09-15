@@ -26,6 +26,8 @@
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_lights_menu.h>
+#include <option/has_side_leds.h>
+#include <option/has_leds.h>
 #include <device/board.h>
 #include <gui/screen/screen_m600.hpp>
 
@@ -63,6 +65,15 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_HEATBED,
     MI_PRINTFAN,
     MI_TEMPERATURE_AND_FANS,
+#if HAS_SIDE_LEDS()
+    MI_PRINT_CHAMBER_LIGHTS_ENABLE,
+#endif
+#if HAS_SIDE_LEDS() || HAS_LEDS()
+    MI_PRINT_SCREEN_BRIGHTNESS,
+#endif
+#if HAS_LEDS()
+    MI_PRINT_STATUS_LEDS_ENABLE,
+#endif
 #if HAS_CHAMBER_FILTRATION_API()
     MI_CHAMBER_FILTRATION,
 #endif

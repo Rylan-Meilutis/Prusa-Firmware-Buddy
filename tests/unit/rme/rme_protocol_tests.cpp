@@ -74,6 +74,22 @@ TEST_CASE("INDX PA lets a wiped pellet solidify before ejection", "[rme][m976][i
     CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms <= 5000);
 }
 
+TEST_CASE("High-temperature PA keeps five cycles and cools longer", "[rme][m976][indx][pellet]") {
+    using namespace buddy::m976_indx_pellet_policy;
+    uint8_t pending = 0;
+    for (int i = 0; i < 4; ++i) {
+        CHECK_FALSE(record_cycle_and_should_eject(pending));
+    }
+    CHECK(record_cycle_and_should_eject(pending));
+    CHECK(pending == 5);
+    CHECK(final_ejection_needed(pending));
+    for (const auto material : { "PETG", "PCTG", "ASA", "ABS", "PC", "PA", "PPA", "HIPS" }) {
+        CHECK(cooling_delay_for(material, 220) == 12000);
+    }
+    CHECK(cooling_delay_for("custom", 230) == 12000);
+    CHECK(cooling_delay_for("PLA", 215) == 4000);
+}
+
 TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
     using rme_indx_workflow::nozzle_mismatch;
     CHECK(std::string_view(nozzle_mismatch(0).workflow) == "indx_tool_detection"sv);
