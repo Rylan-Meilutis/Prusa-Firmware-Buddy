@@ -14,3 +14,17 @@ exit the cleaner with the native `G12 S90` / `G12 S91` sequences.
 Regression coverage includes the post-ejection Y87 to Y85.5 purge, its return,
 and rejected lateral entry, Z motion, and out-of-lane endpoints. Hardware
 verification of a complete sliced print remains necessary.
+
+## First-layer arcs
+
+Serial G2/G3 checks use the commanded direction and sweep. Only the rightmost
+and bottommost circle extrema actually traversed are checked against service
+boundaries, together with both endpoints. Full circles retain full-circle
+validation using the planner's endpoint-coincidence rule. Nonfinite geometry
+is rejected. Short, large-radius arcs no longer fail because an unused part
+of their circle overlaps the docks.
+
+Regression coverage includes the reported G3 from X114.636 Y99.869 to
+X114.644 Y101.012 with I-177.041 J1.855, reversed direction, full circles,
+unsafe interior extrema, and sampled sweeps in both directions. No heap
+allocation is added by this check.

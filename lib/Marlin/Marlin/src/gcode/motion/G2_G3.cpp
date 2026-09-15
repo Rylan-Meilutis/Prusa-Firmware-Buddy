@@ -460,10 +460,10 @@ void GcodeSuite::G2_G3(const bool clockwise) {
         X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS
       };
       const xy_pos_t center = current_position.xy() + arc_offset;
-      const float radius = arc_offset.magnitude();
-      if (!buddy::indx_serial_motion_safety::point_is_safe(current_position.x, current_position.y, service_boundary)
-          || !buddy::indx_serial_motion_safety::point_is_safe(destination.x, destination.y, service_boundary)
-          || !buddy::indx_serial_motion_safety::arc_is_safe(center.x, center.y, radius, service_boundary)) {
+      const bool full_circle = NEAR(current_position.x, destination.x) && NEAR(current_position.y, destination.y);
+      if (!buddy::indx_serial_motion_safety::arc_sweep_is_safe(
+            current_position.x, current_position.y, destination.x, destination.y,
+            center.x, center.y, clockwise, full_circle, service_boundary)) {
         SERIAL_ERROR_MSG("Unsafe INDX arc outside printable area");
         TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_IDLE));
         return;

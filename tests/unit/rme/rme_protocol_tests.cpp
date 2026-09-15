@@ -240,6 +240,45 @@ TEST_CASE("INDX serial motion protects service hardware without blocking front Y
     STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
 }
 
+TEST_CASE("INDX arcs check the travelled sweep including full circles", "[rme][indx][keepout][regression]") {
+    using namespace buddy::indx_serial_motion_safety;
+    constexpr ServiceBoundary b { 250, 0 };
+    // Exact N577 -> N578 from the failed first layer.
+    CHECK(arc_sweep_is_safe(114.636f, 99.869f, 114.644f, 101.012f,
+        114.636f - 177.041f, 99.869f + 1.855f, false, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(114.636f, 99.869f, 114.644f, 101.012f,
+        114.636f - 177.041f, 99.869f + 1.855f, true, false, b));
+    CHECK(arc_sweep_is_safe(245, 90, 245, 110, 245, 100, true, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(245, 90, 245, 110, 245, 100, false, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(245, 90, 245, 90, 245, 100, false, true, b));
+    CHECK(arc_sweep_is_safe(125, 90, 125, 90, 125, 100, true, true, b));
+    CHECK_FALSE(arc_sweep_is_safe(110, 5, 90, 5, 100, 5, true, false, b));
+    CHECK(arc_sweep_is_safe(110, 5, 90, 5, 100, 5, false, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(251, 90, 245, 110, 245, 100, true, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(125, 100, 125, 100, 125, 100, false, true, b));
+    CHECK_FALSE(arc_sweep_is_safe(NAN, 100, 125, 100, 125, 90, false, false, b));
+    // Independent dense sampling: accepted arcs must not cross either boundary.
+    for (bool cw : { false, true }) {
+        for (int start = 0; start < 360; start += 15) {
+            for (int travel = 15; travel < 360; travel += 15) {
+                constexpr float rad = 0.017453292519943295f;
+                const float end = start + (cw ? -travel : travel);
+                const float x = 245 + 10 * std::cos(start * rad);
+                const float y = 5 + 10 * std::sin(start * rad);
+                const float tx = 245 + 10 * std::cos(end * rad);
+                const float ty = 5 + 10 * std::sin(end * rad);
+                if (arc_sweep_is_safe(x, y, tx, ty, 245, 5, cw, false, b)) {
+                    for (int step = 0; step <= travel; ++step) {
+                        const float angle = (start + (cw ? -step : step)) * rad;
+                        CHECK(245 + 10 * std::cos(angle) <= 250.0001f);
+                        CHECK(5 + 10 * std::sin(angle) >= -0.0001f);
+                    }
+                }
+            }
+        }
+    }
+}
+
 TEST_CASE("G12 eject followed by Orca relative purge stays in calibrated cleaner lane", "[rme][indx][keepout][regression]") {
     using buddy::indx_serial_motion_safety::cleaner_purge_move_is_safe;
     CHECK(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, false, false));
