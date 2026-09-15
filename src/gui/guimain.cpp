@@ -101,7 +101,6 @@ void open_end_filtration_prompt_on_door_open() {
     }
 
     if (door_just_opened
-        && marlin_vars().print_state == marlin_server::State::Finished
         && filtering
         && !prompt_open) {
         Screens::Access()->Open(ScreenFactory::Screen<ScreenEndFiltration>);

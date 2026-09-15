@@ -30,6 +30,7 @@ public:
         std::optional<bool> needs_filtration;
         uint32_t last_print_s = 0;
         uint32_t unaccounted_filter_time_used_start_s = 0;
+        std::optional<uint32_t> last_filtration_need_s;
     };
 
     /// \returns translatable name of the provided filtration backend
