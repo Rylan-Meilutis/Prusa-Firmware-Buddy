@@ -68,6 +68,11 @@ The Filament menu places Empty Wastebin immediately after Return.
 
 ### Operation page
 
+Routine nozzle-cleaning records and exact custom Cleaning nozzle, Nozzle cleaning,
+or Nozzle cleaned notices are not stored in Messages history. Verify both the
+standalone Messages screen and serial-print Messages page stay free of these
+notices, while cleaning-failure messages are retained.
+
 The full-screen operation page uses live firmware operations, not the last
 operation in message history. After nozzle cleaning, heating, or probing ends,
 the screen must return to print progress unless another operation is active.
