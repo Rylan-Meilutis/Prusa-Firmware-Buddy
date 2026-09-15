@@ -8,6 +8,12 @@ Firmware Buddy 6.10.1.
 
 ## Integration changes
 
+- Fixed false INDX first-layer G2/G3 rejection: validate the actual directed
+  arc sweep rather than requiring the entire supporting circle to fit.
+  Endpoint and swept-extrema protection remain enabled; full circles still
+  receive full-circle checks. Regression tests cover the reported N578 arc,
+  reversed direction, unsafe extrema, full circles, and sampled sweeps.
+
 - Corrected the remaining print-start bounds rejection after `G12 S30`.
   Serial Y-only purging is allowed within cleaner-local X +/-0.5 mm and
   Y 76..101.5 mm, using the calibrated cleaner origin and applied tool offset.
