@@ -240,6 +240,18 @@ TEST_CASE("INDX serial motion protects service hardware without blocking front Y
     STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
 }
 
+TEST_CASE("G12 eject followed by Orca relative purge stays in calibrated cleaner lane", "[rme][indx][keepout][regression]") {
+    using buddy::indx_serial_motion_safety::cleaner_purge_move_is_safe;
+    CHECK(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, false, false));
+    CHECK(cleaner_purge_move_is_safe(0, 85.5f, 0, 87, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(-12, 87, 0, 87, true, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, false, true));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 75.9f, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 101.6f, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0.6f, 87, 0.6f, 85.5f, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, true, false));
+}
+
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {
     using buddy::filament_material::authoritative_name;
 
