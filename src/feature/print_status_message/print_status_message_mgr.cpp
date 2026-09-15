@@ -104,17 +104,17 @@ void report_print_status_to_serial_host(const PrintStatusMessage &message) {
 #endif
 }
 
-PrintStatusMessageManager::Record PrintStatusMessageManager::current_message() const {
+PrintStatusMessageManager::Record PrintStatusMessageManager::current_message(bool exclude_custom) const {
     std::scoped_lock mutex_guard(mutex_);
 
-    if (temporary_message_.data) {
+    if (temporary_message_.data && (!exclude_custom || temporary_message_.data.message.type != PrintStatusMessage::custom)) {
         return temporary_message_.data;
     }
 
     auto guard = active_guard_;
     while (guard) {
         const auto &data = guard->record();
-        if (data.message.type != PrintStatusMessage::none) {
+        if (data.message.type != PrintStatusMessage::none && (!exclude_custom || data.message.type != PrintStatusMessage::custom)) {
             return data;
         }
 

@@ -252,19 +252,15 @@ float percent_from_raw_value(float value) {
 }
 
 PrintStatusMessageManager::Record current_non_custom_status_message(uint32_t minimum_id) {
-    auto current = print_status_message().current_message();
+    // M117 messages can mask an operation, but history is not evidence that
+    // the operation is still running. Look through custom messages in the
+    // active guard stack instead of resurrecting a completed cleaning stage.
+    const auto current = print_status_message().current_message(true);
     if (current && current.id > minimum_id && current.message.type != PrintStatusMessage::custom) {
         return current;
     }
 
-    PrintStatusMessageManager::Record latest;
-    print_status_message().walk_history([&latest, minimum_id](const PrintStatusMessageManager::Record &msg) {
-        if (msg.id > minimum_id && msg.message.type != PrintStatusMessage::custom) {
-            latest = msg;
-        }
-        return true;
-    });
-    return latest;
+    return {};
 }
 
 void copy_first_line(char *dst, size_t dst_size, const char *src) {

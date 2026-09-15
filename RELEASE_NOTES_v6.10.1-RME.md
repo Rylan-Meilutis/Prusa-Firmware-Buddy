@@ -8,6 +8,18 @@ Firmware Buddy 6.10.1.
 
 ## Integration changes
 
+- Fixed post-print filtration countdown and early-stop state. Required cycles
+  start their configured duration at print completion, including parked INDX
+  tools; stopping a cycle cannot restart it on the next controller tick.
+- Added Start/Stop Filter Cycle to Chamber Filtration, exposed Chamber Fans
+  With Filter and Filter Fan Offset, and moved Empty Wastebin directly below
+  Return in the Filament menu. Door prompts also work for manual cycles.
+
+- Fixed the serial printing screen remaining on "Nozzle cleaning" after the
+  operation finishes. Live status now looks through custom host messages to
+  active operations instead of falling back to completed message history.
+  Documented print-time RME session heartbeats required to retain the host icon.
+
 - Fixed false INDX first-layer G2/G3 rejection: validate the actual directed
   arc sweep rather than requiring the entire supporting circle to fit.
   Endpoint and swept-extrema protection remain enabled; full circles still
