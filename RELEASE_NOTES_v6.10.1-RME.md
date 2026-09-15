@@ -12,6 +12,8 @@ Firmware Buddy 6.10.1.
   Tune on supported hardware. These use temporary overrides, leaving saved
   lighting defaults unchanged.
 - Suppress routine nozzle-cleaning live-screen and host status messages.
+  Routine cleaning/cleaned notices are also omitted from Messages history;
+  cleaning failures remain visible.
 - Preserve an existing RME lease during synchronous command processing,
   when the host cannot deliver its queued heartbeat.
 - Automatic PA retains five-cycle wipe/ejection batches for all materials.

@@ -2,6 +2,7 @@
 
 #include <timing.h>
 #include <serial_printing.hpp>
+#include <strings.h>
 
 PrintStatusMessageManager print_status_message_instance;
 
@@ -191,6 +192,19 @@ void PrintStatusMessageManager::walk_history(const stdext::inplace_function<bool
 }
 
 void PrintStatusMessageManager::add_history_item_nolock(const Record &msg) {
+    // Routine cleaning records must not crowd out actionable messages in either
+    // Messages view. Match custom notices exactly so cleaning failures survive.
+    if (suppressed_cleaning_message(msg.message.type)) {
+        return;
+    }
+    if (const auto custom = std::get_if<PrintStatusMessageDataCustom>(&msg.message.data); custom && custom->message) {
+        const auto text = custom->message.get();
+        if (strcasecmp(text, "Nozzle cleaning") == 0
+            || strcasecmp(text, "Cleaning nozzle") == 0
+            || strcasecmp(text, "Nozzle cleaned") == 0) {
+            return;
+        }
+    }
     // If the message ID is the same, update history, otherwise advance it
     if (history_[history_pos_].id != msg.id) {
         history_pos_ = (history_pos_ + 1) % history_buffer_size;
