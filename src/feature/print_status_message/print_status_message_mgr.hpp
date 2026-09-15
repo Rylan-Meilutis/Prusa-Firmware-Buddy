@@ -24,7 +24,9 @@ public:
 
 public:
     /// \returns current message to be shown
-    Record current_message() const;
+    /// When excluding custom messages, look through them to the active operation.
+    /// Completed operations in history are never returned.
+    Record current_message(bool exclude_custom = false) const;
 
     /// ID boundary for consumers that only want messages created after a
     /// specific event, such as the beginning of a serial print.

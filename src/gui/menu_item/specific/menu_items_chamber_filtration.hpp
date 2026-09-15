@@ -25,6 +25,15 @@ private:
     size_t item_count_ = 0;
 };
 
+class MI_CHAMBER_FILTER_CYCLE : public IWindowMenuItem {
+public:
+    MI_CHAMBER_FILTER_CYCLE();
+
+protected:
+    void click(IWindowMenu &) override;
+    void Loop() override;
+};
+
 class MI_CHAMBER_PRINT_FILTRATION : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_CHAMBER_PRINT_FILTRATION();

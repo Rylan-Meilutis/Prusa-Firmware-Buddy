@@ -9,8 +9,27 @@
 #include <ScreenHandler.hpp>
 #include <option/has_xbuddy_extension.h>
 #include <option/xl_enclosure_support.h>
+#include <marlin_client.hpp>
+#include <marlin_server.hpp>
 
 using namespace buddy;
+
+MI_CHAMBER_FILTER_CYCLE::MI_CHAMBER_FILTER_CYCLE()
+    : IWindowMenuItem(_("Start Filter Cycle")) {}
+
+void MI_CHAMBER_FILTER_CYCLE::Loop() {
+    const auto state = marlin_vars().print_state.get();
+    set_enabled(chamber_filtration().is_enabled()
+        && config_store().chamber_post_print_filtration_enable.get()
+        && !marlin_server::is_printing_state(state)
+        && !marlin_server::is_extended_paused_state(state)
+        && !marlin_server::is_abort_state(state));
+    SetLabel(chamber_filtration().post_print_remaining_s() ? _("Stop Filter Cycle") : _("Start Filter Cycle"));
+}
+
+void MI_CHAMBER_FILTER_CYCLE::click(IWindowMenu &) {
+    marlin_client::gcode(chamber_filtration().post_print_remaining_s() ? "M154.8 S0" : "M154.8 S1");
+}
 
 // MI_CHAMBER_FILTRATION_BACKEND
 // ============================================
