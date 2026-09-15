@@ -9,6 +9,20 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Restored per-print chamber, screen, and status-LED brightness controls in
+  Tune on supported hardware. These use temporary overrides, leaving saved
+  lighting defaults unchanged.
+- Suppress routine nozzle-cleaning live-screen and host status messages.
+  Routine cleaning/cleaned notices are also omitted from Messages history;
+  cleaning failures remain visible.
+- Preserve an existing RME lease during synchronous command processing,
+  when the host cannot deliver its queued heartbeat.
+- Automatic PA retains five-cycle wipe/ejection batches for all materials.
+  PETG and other high-temperature materials cool for 12 seconds before ejection;
+  lower-temperature materials retain four seconds.
+  Cooling starts after wipe motion completes and the fan stays on through
+  ejection. These timings require hardware validation for each material.
+
 - Fixed post-print filtration countdown and early-stop state. Required cycles
   start their configured duration at print completion, including parked INDX
   tools; stopping a cycle cannot restart it on the next controller tick.
@@ -52,6 +66,16 @@ store, and crash-dump changes are retained.
   15 KiB automatic-PA sample buffer from permanent SRAM. M976 now acquires its
   bounded capture buffer only while measuring, releases it on every exit, and
   reports an explicit error if memory is unavailable.
+- Fixed the remaining INDX phase-stepping heap crash identified from a 6.9.0
+  crash dump. Spectral sweeps now evaluate their rectangular and Hann windows
+  directly, preserving the analysis while removing all transient DFT-window
+  heap allocations at the captured-signal memory peak.
+- Added independent persisted INDX dock-calibration tolerances. X defaults to
+  +/-2.5 mm and Y to +/-1.0 mm; both are adjustable from 0.5 through 5.0 mm on
+  dock settings screens and through `@RME DOCK QUERY/SET`.
+- Setup and control screens now remain at active brightness while non-print
+  head or bed motion is running. Their normal inactivity timer begins after
+  the operation completes, eliminating motion-time dim/bright oscillation.
 - Fixed a deterministic CORE One/CORE One L INDX boot crash. The persisted
   nozzle-PID startup path used Marlin's raw `HOTENDS` count and attempted to
   construct a physical tool from the internal `NoTool` sentinel. PID loading,
@@ -84,6 +108,31 @@ store, and crash-dump changes are retained.
   firmware upload. Local and RME USB writers now share the transfer latch,
   and the bootloader cleanup marker is inspected once per media insertion
   after active storage work completes instead of reopening it every cycle.
+- `RME_SESSION` now reports `active_tool=<logical-index|none>` from the live
+  tool-selection state. INDX hosts can immediately clear a stale selected tool
+  when every tool is parked instead of retaining the last virtual tool.
+- Fixed the remaining INDX phase-stepping heap failure identified in the
+  released 6.9.0 dump. Forward and backward accelerometer captures are now
+  analyzed sequentially instead of being retained together, and peak
+  detection no longer allocates a temporary candidate list.
+- Crash-dump export now advertises its retained size and emits periodic busy
+  and byte-progress responses, preventing a slow USB write from being mistaken
+  for a failed RME command.
+- Added conservative unhomed serial-jog boundaries for toolchanger machines.
+  INDX assumes X at maximum and Y at zero to protect the purge bucket and
+  front docks; XL assumes Y at maximum to protect its rear docks.
+- Dock calibration now performs three complete, sensor-verified pick/park
+  cycles at every measured dock before accepting it and advancing.
+- INDX head LEDs now mirror the rendered center pixel of the front status bar,
+  including configured colors, state brightness, and live animation frames.
+- `G427 T0,7 R2 P3` can now declare the exact physical tools used by a serial
+  print, avoiding the legacy all-enabled-tool fallback when file metadata is
+  unavailable. Tool-offset purging also ejects the newly-created final pellet.
+- Local and serial INDX tool-offset calibration now emit the documented
+  `indx_tool_offset_calibration` phases and per-tool progress to RME clients.
+- INDX automatic PA now uses the native prime position and a dedicated short
+  push/reverse break-off motion before pellet ejection. This keeps curling
+  strands out of the toolhead instead of using the long general-purpose scrub.
 
 ## Validation
 
@@ -117,6 +166,18 @@ and carry the `6.9.0-RME` firmware suffix.
   duplicate, or mismatched manifest mappings before motion; enters through the
   native cleaner keep-out route; purges between the prime block and wiper;
   wipes each pellet free; and exits without redundant dock cycling.
+- Fixed a remaining INDX M976 collision path where legacy far-right bed cleanup
+  overlapped the tool-8 dock. INDX automatic PA now performs no bed probing or
+  bed cleanup, selects validated physical tools without virtual remapping, and
+  wipes a strand before ejecting its pellet.
+- Post-home and post-tool-change travel now stages through the native INDX
+  cleaner approach, including its dock escape and segmented keep-out path,
+  before any cleaner-local move.
+- Ordinary homed INDX serial linear moves and complete arc envelopes now reject
+  entry into tool-dock, cleaner, and purge-bucket keep-outs explicitly.
+- Corrected the keep-out guard so Z-only/E-only commands remain valid while a
+  native tool operation is in a service area, and ordinary non-service travel
+  continues to use the existing software endstops.
 - Unknown-but-detected INDX tools now report a waiting RME workflow so a host
   can acknowledge detection and then use guarded dock selection.
 - The Josef Prusa (`pepa`) portrait is rendered in its original colors instead
@@ -129,9 +190,10 @@ and carry the `6.9.0-RME` firmware suffix.
   it runs above the nozzle/controller safety thresholds and for the existing
   two-minute cooldown, rather than following the logical active-tool field.
 - INDX automatic PA now keeps consecutive high/low measurement cycles at the
-  calibrated prime-block position instead of traversing the cleaner after
-  every cycle. It wipes and ejects after each five cycles to bound buildup,
-  then always wipes and ejects the final remainder.
+  open waste-bin gap between the prime block and wiper instead of depositing
+  on the block or traversing the cleaner after every cycle. It wipes and
+  ejects after each five cycles to bound buildup, then always wipes and ejects
+  the final remainder.
 - Serial-print aborts no longer emit the media-only `Done printing file`
   marker, preventing OctoPrint from continuing with a desynchronized numbered
   command stream after a calibration failure.
@@ -150,3 +212,7 @@ and carry the `6.9.0-RME` firmware suffix.
 - INDX automatic PA now runs the toolhead fan while a wiped purge pellet cools
   for four seconds before ejection. The pellet is solid enough to leave the
   waste bin instead of folding into it and merging with later purges.
+- INDX serial keep-out validation now identifies lateral motion from the
+  command's X field instead of transformed floating-point coordinates. This
+  prevents valid relative Y-only purge moves from being falsely rejected after
+  tool-offset or mesh transforms while retaining the cleaner hard boundary.
