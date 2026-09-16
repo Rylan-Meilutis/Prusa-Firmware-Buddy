@@ -33,18 +33,20 @@
  *
  *#### Usage
  *
- *    M221 [ S | T ]
+ *    M221 [ S | T | P ]
  *
  *#### Parameters
  *
  * - `S` - Flow percentage
  * - `T` - Tool
+ * - `P` - 1 addresses the physical/virtual slot directly; 0 (default) applies logical tool mapping
  *
  * Without parameters prints the current extrusion percentage
  */
 void GcodeSuite::M221() {
 
-  const std::optional<VirtualToolIndex> virtual_tool_opt = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command());
+  // P1 addresses the physical/virtual slot, independently of logical remapping.
+  const std::optional<VirtualToolIndex> virtual_tool_opt = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command_p());
   if (!virtual_tool_opt.has_value()) return;
 
   const auto virtual_tool = *virtual_tool_opt;

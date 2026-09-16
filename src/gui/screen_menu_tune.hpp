@@ -66,6 +66,7 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_PRINTFAN,
     MI_TEMPERATURE_AND_FANS,
 #if HAS_SIDE_LEDS()
+    MI_CHAMBER_LIGHT_MODE,
     MI_PRINT_CHAMBER_LIGHTS_ENABLE,
 #endif
 #if HAS_SIDE_LEDS() || HAS_LEDS()
@@ -81,6 +82,9 @@ using ScreenMenuTune__ = ScreenMenu<EFooter::On, MI_RETURN,
     MI_LIVE_ADJUST_Z, // position with loadcell
 #endif
     MI_FLOW_FACTOR,
+#if HAS_TOOL_MAPPING()
+    MenuItemVirtualSubmenu<N_("Tool Mapping"), MI_LIVE_TOOL_MAPPING, GcodeToolIndex::count, MI_LIVE_TOOL_MAPPING::index>,
+#endif
 #if EXTRUDERS > 1
     MenuItemVirtualSubmenu<N_("Flow Factors"), MI_FLOW_FACTOR, VirtualToolIndex::count, VirtualToolIndex::from_raw>,
 #endif

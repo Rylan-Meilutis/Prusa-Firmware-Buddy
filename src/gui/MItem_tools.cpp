@@ -195,6 +195,10 @@ void MI_STEALTH_MODE::OnChange(size_t old_index) {
     }
 }
 
+void MI_STEALTH_MODE::Loop() {
+    set_value(config_store().stealth_mode.get());
+}
+
 /*****************************************************************************/
 // MI_LIVE_ADJUST_Z
 MI_LIVE_ADJUST_Z::MI_LIVE_ADJUST_Z()
@@ -1171,6 +1175,19 @@ void MI_LIGHT_STATE_DOOR_ACTIVE::OnChange(size_t old_index) {
 
 /**********************************************************************************************/
 // MI_PRINT_CHAMBER_LIGHTS_ENABLE
+static constexpr std::array<const char *, 3> chamber_mode_labels { N_("Off"), N_("On"), N_("Locked") };
+
+MI_CHAMBER_LIGHT_MODE::MI_CHAMBER_LIGHT_MODE()
+    : MenuItemSwitch(_("Chamber Light"), chamber_mode_labels, leds::SideStripHandler::instance().chamber_mode()) {}
+
+void MI_CHAMBER_LIGHT_MODE::OnChange([[maybe_unused]] size_t old_index) {
+    leds::SideStripHandler::instance().set_chamber_mode(get_index());
+}
+
+void MI_CHAMBER_LIGHT_MODE::Loop() {
+    set_current_item(leds::SideStripHandler::instance().chamber_mode());
+}
+
 MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
     : WiSpin(
         brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness()),
@@ -1187,6 +1204,7 @@ void MI_PRINT_CHAMBER_LIGHTS_ENABLE::OnClick() {
 }
 
 void MI_PRINT_CHAMBER_LIGHTS_ENABLE::Loop() {
+    if (!is_edited()) set_value(brightness_pwm_to_percent(leds::SideStripHandler::instance().get_print_light_brightness()));
     set_enabled(true);
 }
 
