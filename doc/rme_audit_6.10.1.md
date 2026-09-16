@@ -7,6 +7,14 @@ session implementations.
 
 ## Release gates
 
+### 2026-09-16 lighting fix changelog
+
+Restart the LCD/idle status-LED countdown on chamber-mode changes and timed
+On expiry; release stale legacy host holds. Preserve print, door, operation and
+safety priorities. 52 regression tests / 432,320 assertions passed, and the
+changed INDX lighting translation unit compiled. Full release matrix and
+uploaded digest verification are required below; physical testing is pending.
+
 1. Run `rme_protocol_tests`, `transfers_tests`, `connect_tests`, and
    `eeprom_unit_tests` from a 6.10.1-configured host-test build.
 2. Build the complete final 6.10.1 matrix and require every advertised preset
