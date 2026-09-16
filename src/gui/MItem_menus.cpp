@@ -19,6 +19,14 @@
 #include "screen_menu_network.hpp"
 #include "screen_menu_fail_stat.hpp"
 #include "screen_menu_user_interface.hpp"
+#include "screen_menu_serial_printing.hpp"
+#include "screen_menu_lock_settings.hpp"
+#include "screen_menu_heater_safety.hpp"
+#include "screen_menu_pid.hpp"
+#include "screen_menu_led_colors.hpp"
+#if !HAS_MINI_DISPLAY()
+    #include <screen/filament/screen_filaments_loaded.hpp>
+#endif
 #include "screen_menu_lang_and_time.hpp"
 #include "screen_menu_hardware.hpp"
 #include "screen_menu_hardware_tune.hpp"
@@ -81,6 +89,10 @@
 
 #if HAS_LIGHTS_MENU()
     #include <screen/screen_menu_lights.hpp>
+    #include <screen/screen_menu_led_state.hpp>
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+        #include <screen/screen_menu_external_light_bar.hpp>
+    #endif
 #endif
 
 #if HAS_PHASE_STEPPING()
@@ -128,6 +140,15 @@ ScreenFactory::Creator::Func MI_SCREEN_CTOR<T>::get() {
 }
 
 template struct MI_SCREEN_CTOR<ScreenFilamentManagement>;
+template struct MI_SCREEN_CTOR<ScreenMenuSerialPrinting>;
+template struct MI_SCREEN_CTOR<ScreenMenuLockSettings>;
+template struct MI_SCREEN_CTOR<ScreenMenuHeaterSafety>;
+template struct MI_SCREEN_CTOR<ScreenMenuPid>;
+template struct MI_SCREEN_CTOR<ScreenMenuUiThemeColors>;
+#if !HAS_MINI_DISPLAY()
+template struct MI_SCREEN_CTOR<screen_loaded_color_assignment::ScreenCustomFilamentColors>;
+template struct MI_SCREEN_CTOR<screen_loaded_color_assignment::ScreenCustomManufacturers>;
+#endif
 template struct MI_SCREEN_CTOR<ScreenFilamentManagementList>;
 template struct MI_SCREEN_CTOR<ScreenFilamentsReorder>;
 template struct MI_SCREEN_CTOR<ScreenFilamentsVisibility>;
@@ -199,6 +220,16 @@ template struct MI_SCREEN_CTOR<ScreenMenuBoardInfo>;
 
 #if HAS_LIGHTS_MENU()
 template struct MI_SCREEN_CTOR<ScreenMenuLights>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedDeepIdle>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedIdle>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedActive>;
+template struct MI_SCREEN_CTOR<ScreenMenuLedPrinting>;
+    #if HAS_LEDS()
+template struct MI_SCREEN_CTOR<ScreenMenuStatusLedColors>;
+    #endif
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+template struct MI_SCREEN_CTOR<ScreenMenuExternalLightBar>;
+    #endif
 #endif
 
 #if HAS_TOUCH() && DEVELOPMENT_ITEMS()

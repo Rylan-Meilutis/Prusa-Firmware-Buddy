@@ -12,6 +12,7 @@
 
 using ScreenMenuUserInterface__ = BasicScreenMenu<
     MI_FOOTER_SETTINGS,
+    MI_UI_THEME_SETTINGS,
     MI_SOUND_MODE,
     MI_SORT_FILES,
     MI_PRINT_PROGRESS_TIME,
