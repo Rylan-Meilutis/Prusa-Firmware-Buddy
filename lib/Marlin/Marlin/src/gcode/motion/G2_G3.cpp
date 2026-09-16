@@ -454,8 +454,11 @@ void GcodeSuite::G2_G3(const bool clockwise) {
   }
 
   #if HAS_INDX()
-    if (GCodeQueue::current_command_from_serial()
-        && axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
+    if (GCodeQueue::current_command_from_serial()) {
+      if (axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS))) {
+        TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_IDLE));
+        return;
+      }
       constexpr buddy::indx_serial_motion_safety::ServiceBoundary service_boundary {
         X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS
       };
