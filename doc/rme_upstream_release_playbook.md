@@ -4,6 +4,16 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 ## Goal
 
+### RME menu parity regression
+
+On newer CORE One/INDX builds, verify Settings exposes the existing lighting
+state profiles (Deep Idle, Idle, Active, Printing), chamber mode and timers,
+supported status/external lights, serial printing, lock, heater safety, PID,
+USB settings export, custom filament metadata and UI theme pages. Keep model
+guards and static screen storage; compile the complete release matrix to
+catch missing constructors and flash/RAM regressions. Physical UI checks are
+still required after flashing.
+
 ### Shared idle lighting regression (2026-09-16)
 
 On both 6.9.0 and 6.10.1, chamber-mode changes and timed On expiry must
