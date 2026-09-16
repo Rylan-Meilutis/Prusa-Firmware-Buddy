@@ -9,6 +9,11 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Restore missing RME Settings links: lighting state profiles, chamber mode
+  and timers, supported status/external lights, Serial Printing, Printer Lock,
+  Heater Safety, PID, USB settings export, custom filament metadata and UI
+  Theme. Hardware-specific guards remain; physical menu validation is pending.
+
 - Restart the shared screen and idle status-LED countdown when the chamber
   light selector changes or timed On expires. Clear stale legacy RME active
   holds without overriding print, door-open, operation or safety behavior.

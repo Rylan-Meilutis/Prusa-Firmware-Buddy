@@ -1,5 +1,12 @@
 # RME 6.9.0 port audit
 
+## Settings navigation restoration
+
+Verify Settings > Lights exposes Deep Idle, Idle, Active and Printing profiles
+and supported chamber/status/external controls. Verify Serial Printing, Printer
+Lock, Heater Safety, PID, USB export, custom filament metadata and User Interface
+> UI Theme. Full matrix linking and physical menu checks are required.
+
 This audit records the version-specific safety work for the RME port from
 6.8.1 to upstream 6.9.0.
 
