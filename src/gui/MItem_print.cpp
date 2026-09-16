@@ -1,4 +1,23 @@
 #include "MItem_print.hpp"
+#include <module/prusa/tool_mapper.hpp>
+
+#if HAS_TOOL_MAPPING()
+MI_LIVE_TOOL_MAPPING::MI_LIVE_TOOL_MAPPING(int logical)
+    : IWindowMenuItem({}, nullptr, is_enabled_t::no), logical_(logical) {
+    Loop();
+}
+
+void MI_LIVE_TOOL_MAPPING::Loop() {
+    const auto tool = tool_mapper.to_virtual(GcodeToolIndex::from_raw(logical_));
+    const int physical = std::holds_alternative<VirtualToolIndex>(tool) ? std::get<VirtualToolIndex>(tool).to_raw() : -1;
+    if (physical == previous_) return;
+    previous_ = physical;
+    if (physical < 0) snprintf(label_, sizeof(label_), "G-code T%d -> Unmapped", logical_);
+    else snprintf(label_, sizeof(label_), "G-code T%d -> Tool %d", logical_, physical + 1);
+    SetLabel(string_view_utf8::MakeRAM(label_));
+    Invalidate();
+}
+#endif
 #include "marlin_client.hpp"
 #include "common/conversions.hpp"
 #include "menu_vars.h"
@@ -172,6 +191,11 @@ MI_SPEED::MI_SPEED()
 
 void MI_SPEED::OnClick() {
     marlin_client::set_print_speed(static_cast<uint16_t>(value()));
+}
+
+void MI_SPEED::Loop() {
+    WiSpin::Loop();
+    if (!is_edited()) set_value(marlin_vars().print_speed.get());
 }
 
 /*****************************************************************************/

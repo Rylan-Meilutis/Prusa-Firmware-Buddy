@@ -6,6 +6,21 @@
 #include <guiconfig/guiconfig.h>
 #include <option/has_indx.h>
 #include <WindowItemFormatableLabel.hpp>
+#include <option/has_tool_mapping.h>
+
+#if HAS_TOOL_MAPPING()
+// Read-only during a job: changing a mapping mid-extrusion is not a safe override.
+class MI_LIVE_TOOL_MAPPING : public IWindowMenuItem {
+public:
+    explicit MI_LIVE_TOOL_MAPPING(int logical);
+    static constexpr int index(int logical) { return logical; }
+    void Loop() override;
+private:
+    int logical_;
+    int previous_ = -2;
+    char label_[32] {};
+};
+#endif
 
 /// Nozzle target temperature (adjustable spin)
 class MI_NOZZLE_TARGET_TEMP : private NumericInputConfigHolder, public WiSpin {
@@ -94,6 +109,7 @@ class MI_SPEED : public WiSpin {
 public:
     MI_SPEED();
     virtual void OnClick() override;
+    virtual void Loop() override;
 };
 
 /// Flow factor (adjustable spin)

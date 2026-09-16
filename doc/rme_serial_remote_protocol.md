@@ -1,5 +1,28 @@
 # RME Out-of-Band Serial Control Protocol
 
+## Live print controls (capability `RME_MACHINE tune=1`)
+
+`@RME TUNE QUERY` streams one `RME_TUNE` snapshot with `speed` (percent),
+`stealth` (0/1), `light` (-1 unsupported, 0 off, 1 timed on, 2 locked on),
+and `F0` through the available virtual-slot flow factors. A `RME_TOOLMAP`
+snapshot follows on mapping-capable printers. Poll at most every two seconds
+with only one outstanding request; do not append snapshots to event history.
+
+Use `M220 S<percent>`, `M221 T<slot> P1 S<percent>`, and `M9140`/`M9150`
+for speed, physical-slot flow and stealth off/on. Without `P1`, M221 retains
+logical-tool mapping. These use the normal serialized G-code queue.
+`@RME LIGHT MODE value=0|1|2` selects Off/On/Locked through the shared light
+controller without allocating a GUI request. On expires after the configured
+activity timeout; Locked does not expire. These runtime modes do not rewrite
+saved light profiles and are cleared by session release, reboot, or a local
+brightness override. Printer Tune exposes the same mode and current tool map.
+Mapping remains read-only during a job. Tool labels on the LCD are one-based;
+G-code tool indices and wire-format slots are zero-based.
+
+Read back actual state rather than optimistically applying browser changes.
+Disable controls on stale status, printer lock, disconnect, or transport
+ownership by firmware/file transfer. Do not start a second serial writer.
+
 RME 6.5.7 and 6.6.3 expose a serial-local control channel for host plugins. It
 is intentionally separate from G-code: every frame starts with `@RME`, is
 consumed in the serial receiver, and is never placed in the motion-command

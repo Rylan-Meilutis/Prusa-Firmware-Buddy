@@ -90,6 +90,7 @@ class MI_STEALTH_MODE : public WI_ICON_SWITCH_OFF_ON_t {
 
 public:
     MI_STEALTH_MODE(); // @@TODO probably XL only
+    void Loop() override;
 
 protected:
     virtual void OnChange(size_t old_index) override;
@@ -681,6 +682,13 @@ public:
     virtual void OnChange(size_t old_index) override;
 };
     #endif
+
+class MI_CHAMBER_LIGHT_MODE : public MenuItemSwitch {
+public:
+    MI_CHAMBER_LIGHT_MODE();
+    void OnChange(size_t old_index) override;
+    void Loop() override;
+};
 
 class MI_PRINT_CHAMBER_LIGHTS_ENABLE : public WiSpin {
     static constexpr const char *const label =

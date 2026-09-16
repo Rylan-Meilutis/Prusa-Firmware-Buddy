@@ -56,6 +56,10 @@ GCodeQueue queue;
 #include <tool_index.hpp>
 #include <heap.h>
 #include <FreeRTOS.h>
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+  #include <leds/side_strip_handler.hpp>
+#endif
 #if ENABLED(PRUSA_TOOL_MAPPING)
   #include "../module/prusa/tool_mapper.hpp"
   extern void rme_report_tool_mapping();
@@ -703,6 +707,17 @@ static bool handle_remote_light_service(const std::string_view command) {
     SERIAL_ECHOPGM(" hold="); SERIAL_ECHO(lights.active_hold ? 1 : 0);
 #endif
     SERIAL_EOL();
+  } else if (rme_protocol::action_is(action, "MODE")) {
+#if HAS_SIDE_LEDS()
+    const auto mode = remote_number(command, "value");
+    if (!printer_lock::locked() && mode && *mode >= 0 && *mode <= 2) {
+      leds::SideStripHandler::instance().set_chamber_mode(*mode);
+    } else {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=invalid_or_locked");
+    }
+#else
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=unsupported");
+#endif
   } else if (action.starts_with("HOLD")) {
 #if HAS_SIDE_LEDS()
     if (!serial_remote_control::session_active()) {
@@ -973,6 +988,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM("RME_MACHINE hotends="); SERIAL_ECHO(PhysicalToolIndex::count);
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
+  SERIAL_ECHOPGM(" tune=1");
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
 
   // Host printer profiles need the slicer-usable build volume, not homing,
@@ -1239,6 +1255,29 @@ static bool handle_remote_indx_service(const std::string_view command) {
 #endif
 }
 
+// Fixed-size streaming snapshot: no JSON, heap allocation, event history, or
+// queued GUI requests. Local Tune changes and serial overrides share this state.
+static bool handle_remote_tune_service(const std::string_view command) {
+  if (command != "@RME TUNE QUERY") return false;
+  SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
+  SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
+  SERIAL_ECHOPGM(" light=");
+#if HAS_SIDE_LEDS()
+  SERIAL_ECHO(leds::SideStripHandler::instance().chamber_mode());
+#else
+  SERIAL_ECHO(-1);
+#endif
+  for (const auto tool : VirtualToolIndex::all()) {
+    SERIAL_ECHOPGM(" F"); SERIAL_ECHO(tool.to_raw()); SERIAL_CHAR('=');
+    SERIAL_ECHO(marlin_vars().virtual_tools[tool].flow_factor.get());
+  }
+  SERIAL_EOL();
+#if ENABLED(PRUSA_TOOL_MAPPING)
+  rme_report_tool_mapping();
+#endif
+  return true;
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
@@ -1248,6 +1287,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_lock_service(command)
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
+      || handle_remote_tune_service(command)
       || handle_remote_filament_service(command)
       || handle_remote_manufacturer_service(command)
       || handle_remote_machine_service(command)
