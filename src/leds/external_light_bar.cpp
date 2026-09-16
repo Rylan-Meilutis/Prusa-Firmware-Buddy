@@ -228,6 +228,9 @@ bool target_on([[maybe_unused]] bool chamber_light_on) {
     auto &side_strip = leds::SideStripHandler::instance();
     const auto state = side_strip.current_state();
     bool target = state_enabled(light_state_for_strip_state(state));
+    if (const auto mode = side_strip.chamber_mode_override(); mode >= 0) {
+        return mode != 0;
+    }
     if (side_strip.print_light_override_active()) {
         target = target && side_strip.print_light_override_brightness() > 0;
     }

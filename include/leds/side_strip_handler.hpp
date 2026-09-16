@@ -5,6 +5,7 @@
 #include "dimming_enabled.hpp"
 #include "light_state.hpp"
 #include <rme_light_hold.hpp>
+#include <rme_light_mode.hpp>
 
 #include <freertos/mutex.hpp>
 #include <optional>
@@ -112,6 +113,10 @@ public:
     void release_rme_active_hold_with_session();
     bool rme_active_hold() const;
     bool consume_rme_hold_automatic_release();
+    // Session-only chamber override: off, timed on, locked on. No EEPROM writes.
+    void set_chamber_mode(uint8_t mode);
+    uint8_t chamber_mode() const;
+    int8_t chamber_mode_override() const;
 
     leds::ColorRGBW color() const;
     /// Brightest currently driven RGBW channel, including off/dim/transition state.
@@ -170,6 +175,7 @@ private:
     uint8_t operation_hold_count = 0;
     std::optional<CustomColorState> custom_color;
     rme_light_hold::State rme_hold;
+    rme_light_mode::State chamber_mode_state;
 };
 
 } // namespace leds

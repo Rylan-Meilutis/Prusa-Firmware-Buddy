@@ -9,6 +9,16 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- Add synchronized live print controls with RME Compatibility 0.1.0b95:
+  Off/On/Locked chamber lighting, speed, per-slot flow, and stealth mode.
+  Firmware Tune and OctoPrint use shared read-back state; serial tool mapping
+  is visible in Tune and the host UI throughout the job.
+- Use a fixed-size status snapshot, one outstanding host poll and an
+  allocation-free light timer. Regression validation: 51 firmware tests,
+  432,308 assertions; plugin suite 198 tests with four skipped. Hardware
+  two-screen validation and a long-print heap/stack soak are still required;
+  this update is not a claim of verified crash-free operation on hardware.
+
 - INDX serial jogs no longer rebase unknown XY to the corner opposite its
   X-min/Y-max home. If homing is invalidated, XY jogs and arcs require homing
   again instead of inventing coordinates. Other models retain their behavior.

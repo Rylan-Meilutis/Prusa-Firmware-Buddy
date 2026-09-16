@@ -8,6 +8,17 @@ other blocking commands.
 
 ## Connection lifecycle
 
+Live print controls are capability-gated by `RME_MACHINE tune=1`; see the
+protocol's live-controls section. Unlike persistent configuration workflows,
+speed, slot flow, stealth and chamber-light mode may be changed while printing.
+Use one outstanding two-second snapshot poll, replace bounded state, and keep
+raw-transfer/recovery ownership checks. Firmware Tune and the host Control tab
+must display read-back values and the effective tool mapping, not request echoes.
+Hardware acceptance: change each override from both screens during a serial
+print; verify timed On returns to Off, Locked remains on, mapping stays correct
+after tool changes, and edits disable on disconnect/transfer. Run a long-print
+heap/stack soak before claiming hardware memory stability.
+
 1. Use the same serialized writer as normal G-code. Never open a competing
    process or serial descriptor.
 2. Send `@RME MACHINE QUERY`. Treat `RME_ENVELOPE` as a zero-origin usable

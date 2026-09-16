@@ -10,6 +10,7 @@
 #include <firmware_update_handoff.hpp>
 #include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
+#include <rme_light_mode.hpp>
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
 #include <rme_indx_workflow.hpp>
@@ -36,6 +37,24 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("Shared chamber mode expires once and survives clock rollover", "[rme][light]") {
+    rme_light_mode::State state;
+    CHECK(state.mode == -1);
+    CHECK_FALSE(state.set(3, 0));
+    REQUIRE(state.set(1, UINT32_MAX - 499));
+    CHECK_FALSE(state.expire(499, 1));
+    CHECK(state.expire(500, 1));
+    CHECK(state.mode == 0);
+    CHECK_FALSE(state.expire(501, 1));
+    REQUIRE(state.set(2, 0));
+    CHECK_FALSE(state.expire(UINT32_MAX, 0));
+    CHECK(state.mode == 2);
+    for (uint32_t i = 0; i < 10000; ++i) {
+        REQUIRE(state.set(1, i * 2000));
+        REQUIRE(state.expire(i * 2000 + 1000, 1));
+    }
+}
 
 TEST_CASE("Host keepalive remains active when calibration suspends auto reports", "[rme][serial][regression]") {
     using buddy::host_keepalive_policy::should_emit;
