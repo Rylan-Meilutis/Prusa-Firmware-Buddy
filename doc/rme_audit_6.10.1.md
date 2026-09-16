@@ -7,6 +7,14 @@ session implementations.
 
 ## Release gates
 
+### Independent lighting controls — 2026-09-16
+
+Ported the Active-profile internal/external channel-mask fix and independent
+LCD control from 6.9.0. TUNE streams LCD state and per-print brightness in
+one bounded snapshot; unsupported channels remain -1. The 54 RME host tests
+pass (432,343 assertions). Physical door wake, LCD timeout and profile-mask
+validation remains pending; see the release playbook checklist.
+
 ### Settings navigation restoration
 
 Restore existing RME settings screens lost during upstream menu refactoring.
