@@ -4,6 +4,41 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 ## Goal
 
+### Independent lighting control regression
+
+Disable internal/external lights individually in Active settings. Chamber
+On/Locked must not enable disabled channels. LCD Off must remain off when
+changing chamber mode; door/local activity must wake it. Verify Control LCD
+state follows firmware and idle timeout. During a print, adjust LCD/chamber/
+status brightness individually; other channels and saved profiles must not
+change. Print overrides reset at print end. Test local Tune and OctoPrint.
+
+### RME menu parity regression
+
+On newer CORE One/INDX builds, verify Settings exposes the existing lighting
+state profiles (Deep Idle, Idle, Active, Printing), chamber mode and timers,
+supported status/external lights, serial printing, lock, heater safety, PID,
+USB settings export, custom filament metadata and UI theme pages. Keep model
+guards and static screen storage; compile the complete release matrix to
+catch missing constructors and flash/RAM regressions. Physical UI checks are
+still required after flashing.
+
+### Shared idle lighting regression (2026-09-16)
+
+On both 6.9.0 and 6.10.1, chamber-mode changes and timed On expiry must
+restart the shared LCD/status idle countdown and clear legacy RME active
+holds/custom colors. Keep print, operation, door and safety priorities intact.
+Read-only polling must never refresh this timer. No new heap allocations or
+timers are used. Host regression gate: 52 cases / 432,320 assertions.
+Hardware checklist: Locked -> Off, timed On -> Off, legacy HOLD -> Off,
+continued host polling, and Active -> Idle -> Deep Idle screen/status profiles.
+Repeat during printing to check print indicators remain intact. These hardware
+checks remain pending; automated tests do not establish hardware validation.
+Door-wake follow-up: Off must yield to door transitions and local activity,
+restoring automatic chamber output alongside LCD wake; Locked remains on.
+Updated host gate: 53 cases / 432,334 assertions. Include this door test in
+the hardware checklist and rebuild all images after applying the follow-up.
+
 Bring the RME feature set onto the new upstream release with the smallest practical diff, build all supported firmware images, and produce release notes and BBFs on day one.
 
 The top-level wrapper holds `.dependencies/.rme-build.lock` for its complete
@@ -1329,6 +1364,14 @@ models with overtravel or service areas: CORE One X is 250 mm, MINI Z is 180 mm,
 and XL Z is 360 mm; all minima are zero. Docking, wiping, purge, homing, and
 tool-offset reach remain firmware-private motion geometry.
 
+Treat an unhomed serial jog as a bounded move from a conservative assumed
+position. INDX assumes X at its maximum and Y at zero so it can retreat from
+the purge bucket/front docks; XL assumes Y at its maximum because its docks
+are at the rear. Keep the guard restricted to external G0/G1 commands so
+homing and machine-owned calibration paths remain authoritative. Dock
+calibration must validate each newly measured dock with three complete,
+sensor-verified pick/park cycles before persisting success or moving on.
+
 Run `rme_protocol_tests`; the release gate is 400,145 assertions across 15
 cases before the complete firmware matrix.
 
@@ -1451,9 +1494,9 @@ Build the persistent 6.8.1 line with
 language variants. Keep MINI and xBuddy bitmap fonts in the managed resource
 image; linking `font_data` into the firmware executable overflows MINI.
 
-The initial 6.8.1 matrix passed 15/15 with zero failures. Translated MINI
-builds were the tightest flash target at 97.33%; CORE One INDX was the highest
-reported RAM target at 82.69%. The current RME parser/transfer core gate passes
+The current 6.8.1 matrix passes 15/15 with zero failures. The Japanese MINI
+build is the tightest flash target at 97.53%; XL is the highest aggregate RAM
+target at 84.20%. The current RME parser/transfer core gate passes
 400,179 assertions across 18 cases with 100% line and function coverage. The
 adjacent OctoPrint compatibility suite passes 103/103 host-transport tests.
 Transfer and Connect gates remain 514,733 assertions and 278 assertions.
