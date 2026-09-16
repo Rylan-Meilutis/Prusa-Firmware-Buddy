@@ -15,6 +15,10 @@ Hardware checklist: Locked -> Off, timed On -> Off, legacy HOLD -> Off,
 continued host polling, and Active -> Idle -> Deep Idle screen/status profiles.
 Repeat during printing to check print indicators remain intact. These hardware
 checks remain pending; automated tests do not establish hardware validation.
+Door-wake follow-up: Off must yield to door transitions and local activity,
+restoring automatic chamber output alongside LCD wake; Locked remains on.
+Updated host gate: 53 cases / 432,334 assertions. Include this door test in
+the hardware checklist and rebuild all images after applying the follow-up.
 
 Bring the RME feature set onto the new upstream release with the smallest practical diff, build all supported firmware images, and produce release notes and BBFs on day one.
 

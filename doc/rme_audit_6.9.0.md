@@ -12,6 +12,9 @@ On expiry; release stale legacy host holds. Preserve print, door, operation and
 safety priorities. Matching 6.10.1 host gate passed 52 regression tests /
 432,320 assertions. Require the full 6.9.0 matrix and uploaded digest check;
 physical idle-cycle testing remains pending.
+Follow-up: door/local activity now clears slider Off and restores automatic
+chamber lighting alongside the LCD. Updated 6.9 host gate: 53 cases / 432,334
+assertions passed. Rebuild both full matrices before publishing this follow-up.
 
 - Persistent store definitions and journal hashes
 - Serial-print finalization and cleanup
