@@ -4,6 +4,18 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 ## Goal
 
+### Shared idle lighting regression (2026-09-16)
+
+On both 6.9.0 and 6.10.1, chamber-mode changes and timed On expiry must
+restart the shared LCD/status idle countdown and clear legacy RME active
+holds/custom colors. Keep print, operation, door and safety priorities intact.
+Read-only polling must never refresh this timer. No new heap allocations or
+timers are used. Host regression gate: 52 cases / 432,320 assertions.
+Hardware checklist: Locked -> Off, timed On -> Off, legacy HOLD -> Off,
+continued host polling, and Active -> Idle -> Deep Idle screen/status profiles.
+Repeat during printing to check print indicators remain intact. These hardware
+checks remain pending; automated tests do not establish hardware validation.
+
 Bring the RME feature set onto the new upstream release with the smallest practical diff, build all supported firmware images, and produce release notes and BBFs on day one.
 
 The top-level wrapper holds `.dependencies/.rme-build.lock` for its complete

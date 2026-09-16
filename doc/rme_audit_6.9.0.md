@@ -5,6 +5,14 @@ This audit records the version-specific safety work for the RME port from
 
 ## High-risk upstream overlaps
 
+### 2026-09-16 lighting fix changelog
+
+Restart the LCD/idle status-LED countdown on chamber-mode changes and timed
+On expiry; release stale legacy host holds. Preserve print, door, operation and
+safety priorities. Matching 6.10.1 host gate passed 52 regression tests /
+432,320 assertions. Require the full 6.9.0 matrix and uploaded digest check;
+physical idle-cycle testing remains pending.
+
 - Persistent store definitions and journal hashes
 - Serial-print finalization and cleanup
 - INDX waste-bin park, cooldown, reheat, and return motion
