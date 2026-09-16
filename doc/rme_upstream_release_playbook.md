@@ -4,6 +4,31 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 ## Goal
 
+### Manual movement and material presentation regression
+
+After cold boot and after motor timeout, unknown XY must remain disabled in
+Move Axis; use Auto Home rather than inventing a machine corner. Verify INDX
+X-min/Y-max homing, interior travel, cleaner X boundary and dock Y boundary.
+Check XL rear dock exclusion and ordinary bed travel on other models. Direct
+G123 commands must not bypass UI limits, including with soft endstops disabled.
+Check Z limits with the configured machine height and unknown-axis rejection.
+Dedicated tool-change/cleaner/homing workflows retain their service paths.
+Confirm Pick Tool, tool-selection dialogs and Loaded Filaments show PLA/PETG
+plus the actual color swatch while keeping full profile IDs in metadata.
+
+### Idle chamber heating regression
+
+With no print active, set M141 S40 from a cold bed: temporary bed target should
+be 80 C. At chamber target it returns to the prior bed target; below target by
+more than 1 C assistance may restart. M141 S0 restores the original target.
+Verify manual M140/M190 (including a same-value target and Off) revokes the
+temporary ownership until another chamber request. Print start must release
+the boost without overwriting a print's already-issued bed target. Paused prints
+remain print-owned. Check heater safety timeout can stop the bed and is not
+restarted by automatic control; check invalid chamber telemetry releases boost.
+Temperature limits and existing fan cooling remain authoritative. No dynamic
+allocation or extra host polling is used. Test both CORE One and INDX paths.
+
 ### Independent lighting control regression
 
 Disable internal/external lights individually in Active settings. Chamber

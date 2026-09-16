@@ -3,6 +3,7 @@
 #include "int_to_cstr.h"
 
 #include "../Marlin/src/module/temperature.h"
+#include <manual_motion_limits.hpp>
 
 const std::pair<int, int> MenuVars::crash_sensitivity_range = {
 #if AXIS_DRIVER_TYPE_X(TMC2209)
@@ -16,16 +17,15 @@ const std::pair<int, int> MenuVars::crash_sensitivity_range = {
 
 std::pair<int, int> MenuVars::axis_range(uint8_t axis) {
     switch (axis) {
-    case X_AXIS:
-        return { X_MIN_POS, X_MAX_POS };
+    case X_AXIS: {
+        const auto range = buddy::manual_motion_safety::x_range();
+        return { int(std::ceil(range.min)), int(std::floor(range.max)) };
+    }
 
-    case Y_AXIS:
-#if PRINTER_IS_PRUSA_XL()
-        // restrict movement of the tool for user to the bed area only to prevent crashes of the tool at toolchange area
-        return { Y_MIN_POS, Y_MAX_PRINT_POS };
-#else
-        return { Y_MIN_POS, Y_MAX_POS };
-#endif
+    case Y_AXIS: {
+        const auto range = buddy::manual_motion_safety::y_range();
+        return { int(std::ceil(range.min)), int(std::floor(range.max)) };
+    }
 
     case Z_AXIS:
         return { static_cast<int>(std::lround(Z_MIN_POS)), static_cast<int>(get_z_max_pos_mm_rounded()) };

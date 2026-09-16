@@ -7,6 +7,8 @@
 #include <gcode/queue.h>
 #include <raii/scope_guard.hpp>
 #include <marlin_vars.hpp>
+#include <manual_motion_limits.hpp>
+#include <config_store/store_c_api.h>
 
 #include <option/has_auto_retract.h>
 #if HAS_AUTO_RETRACT()
@@ -42,6 +44,40 @@ void PrusaGcodeSuite::G123() {
     p.store_option_if_present('Y', target_pos.y);
     p.store_option_if_present('Z', target_pos.z);
     p.store_option_if_present('E', target_pos.e);
+
+    const bool xy_move = target_pos.x != current_position.x || target_pos.y != current_position.y;
+    uint8_t required_axes = xy_move ? (_BV(X_AXIS) | _BV(Y_AXIS)) : 0;
+    if (target_pos.z != current_position.z) {
+        required_axes |= _BV(Z_AXIS);
+    }
+    if (axis_unhomed_error(required_axes, AxisHomeLevel::imprecise)) {
+        return;
+    }
+
+    using namespace buddy::manual_motion_safety;
+    if (!axis_move_is_safe(current_position.x, target_pos.x, x_range())
+        || !axis_move_is_safe(current_position.y, target_pos.y, y_range())
+        || !axis_move_is_safe(current_position.z, target_pos.z, { Z_MIN_POS, float(get_z_max_pos_mm_rounded()) })
+        || !std::isfinite(target_pos.e)) {
+        SERIAL_ECHO_MSG("Manual move blocked by travel limits");
+        return;
+    }
+#if HAS_INDX() || PRINTER_IS_PRUSA_XL()
+    // No lateral sweep through docks, even while returning from service travel.
+    const auto yr = y_range();
+    if (target_pos.x != current_position.x && (current_position.y < yr.min || current_position.y > yr.max)) {
+        SERIAL_ECHO_MSG("Manual move blocked by dock keep-out");
+        return;
+    }
+#endif
+#if HAS_INDX()
+    // A cleaner service position needs the native cleaner exit path, not a
+    // straight manual traverse through its wall.
+    if (xy_move && current_position.x > x_range().max) {
+        SERIAL_ECHO_MSG("Exit nozzle cleaner before manual XY move");
+        return;
+    }
+#endif
 
     static const xyze_float_t feedrate = xyze_float_t { { MANUAL_FEEDRATE } } / 60;
     static const xyze_float_t feedrate_inv = xyze_float_t { { { 1, 1, 1, 1 } } } / feedrate;
