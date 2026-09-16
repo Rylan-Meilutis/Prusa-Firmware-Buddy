@@ -38,8 +38,25 @@
     #include <screen/openprinttag/screen_opt_settings.hpp>
 #endif
 
+class MI_EXPORT_RME_SETTINGS final : public IWindowMenuItem {
+public:
+    MI_EXPORT_RME_SETTINGS();
+
+protected:
+    void click(IWindowMenu &) override;
+};
+
 using ScreenMenuSettingsBase = BasicScreenMenu<
     MI_USER_INTERFACE,
+    MI_SERIAL_PRINTING_SETTINGS,
+    MI_LOCK_SETTINGS,
+    MI_HEATER_SAFETY_SETTINGS,
+    MI_PID_SETTINGS,
+    MI_EXPORT_RME_SETTINGS,
+#if !HAS_MINI_DISPLAY()
+    MI_CUSTOM_FILAMENT_COLORS,
+    MI_CUSTOM_FILAMENT_MANUFACTURERS,
+#endif
     MI_TOOLHEAD_SETTINGS,
 #if HAS_FILAMENT_SENSORS_MENU()
     MI_FILAMENT_SENSORS,

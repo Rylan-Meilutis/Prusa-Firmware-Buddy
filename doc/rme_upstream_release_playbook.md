@@ -4,6 +4,32 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 ## Goal
 
+### RME menu parity regression
+
+On newer CORE One/INDX builds, verify Settings exposes the existing lighting
+state profiles (Deep Idle, Idle, Active, Printing), chamber mode and timers,
+supported status/external lights, serial printing, lock, heater safety, PID,
+USB settings export, custom filament metadata and UI theme pages. Keep model
+guards and static screen storage; compile the complete release matrix to
+catch missing constructors and flash/RAM regressions. Physical UI checks are
+still required after flashing.
+
+### Shared idle lighting regression (2026-09-16)
+
+On both 6.9.0 and 6.10.1, chamber-mode changes and timed On expiry must
+restart the shared LCD/status idle countdown and clear legacy RME active
+holds/custom colors. Keep print, operation, door and safety priorities intact.
+Read-only polling must never refresh this timer. No new heap allocations or
+timers are used. Host regression gate: 52 cases / 432,320 assertions.
+Hardware checklist: Locked -> Off, timed On -> Off, legacy HOLD -> Off,
+continued host polling, and Active -> Idle -> Deep Idle screen/status profiles.
+Repeat during printing to check print indicators remain intact. These hardware
+checks remain pending; automated tests do not establish hardware validation.
+Door-wake follow-up: Off must yield to door transitions and local activity,
+restoring automatic chamber output alongside LCD wake; Locked remains on.
+Updated host gate: 53 cases / 432,334 assertions. Include this door test in
+the hardware checklist and rebuild all images after applying the follow-up.
+
 Bring the RME feature set onto the new upstream release with the smallest practical diff, build all supported firmware images, and produce release notes and BBFs on day one.
 
 The top-level wrapper holds `.dependencies/.rme-build.lock` for its complete

@@ -58,6 +58,32 @@ public:
 using MI_FILAMENT_MANAGEMENT
     = MI_SCREEN<N_("Manage Filaments"), class ScreenFilamentManagement>;
 
+using MI_SERIAL_PRINTING_SETTINGS = MI_SCREEN<N_("Serial Printing"), class ScreenMenuSerialPrinting>;
+using MI_LOCK_SETTINGS = MI_SCREEN<N_("Printer Lock"), class ScreenMenuLockSettings>;
+using MI_HEATER_SAFETY_SETTINGS = MI_SCREEN<N_("Heater Safety"), class ScreenMenuHeaterSafety>;
+using MI_PID_SETTINGS = MI_SCREEN<N_("PID Settings"), class ScreenMenuPid>;
+using MI_UI_THEME_SETTINGS = MI_SCREEN<N_("UI Theme"), class ScreenMenuUiThemeColors>;
+#if !HAS_MINI_DISPLAY()
+namespace screen_loaded_color_assignment {
+class ScreenCustomFilamentColors;
+class ScreenCustomManufacturers;
+} // namespace screen_loaded_color_assignment
+using MI_CUSTOM_FILAMENT_COLORS = MI_SCREEN<N_("Custom Filament Colors"), screen_loaded_color_assignment::ScreenCustomFilamentColors>;
+using MI_CUSTOM_FILAMENT_MANUFACTURERS = MI_SCREEN<N_("Custom Manufacturers"), screen_loaded_color_assignment::ScreenCustomManufacturers>;
+#endif
+#if HAS_LIGHTS_MENU()
+using MI_LED_DEEP_IDLE = MI_SCREEN<N_("Deep Idle"), class ScreenMenuLedDeepIdle>;
+using MI_LED_IDLE = MI_SCREEN<N_("Idle"), class ScreenMenuLedIdle>;
+using MI_LED_ACTIVE = MI_SCREEN<N_("Active"), class ScreenMenuLedActive>;
+using MI_LED_PRINTING = MI_SCREEN<N_("Printing"), class ScreenMenuLedPrinting>;
+    #if HAS_LEDS()
+using MI_STATUS_LED_COLORS = MI_SCREEN<N_("Status LED Colors"), class ScreenMenuStatusLedColors>;
+    #endif
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+using MI_EXTERNAL_LIGHT_BAR = MI_SCREEN<N_("External Light Bar"), class ScreenMenuExternalLightBar>;
+    #endif
+#endif
+
 using MI_EDIT_FILAMENTS
     = MI_SCREEN<N_("Edit Filaments"), class ScreenFilamentManagementList>;
 
