@@ -8,6 +8,13 @@ Firmware Buddy 6.10.1.
 
 ## Integration changes
 
+- Restore missing RME Settings links: Lights now exposes Deep Idle, Idle,
+  Active and Printing profiles plus chamber mode/timers and supported status
+  and external-light controls. Serial Printing, Printer Lock, Heater Safety,
+  PID, USB settings export, custom filament colors/manufacturers and UI Theme
+  are reachable again on supported displays. Hardware menu validation remains
+  pending; unavailable hardware controls remain guarded.
+
 - Restart the shared screen and idle status-LED countdown when the chamber
   light selector changes or timed On expires. Clear stale legacy RME active
   holds without overriding print, door-open, operation or safety behavior.

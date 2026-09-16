@@ -7,6 +7,15 @@ session implementations.
 
 ## Release gates
 
+### Settings navigation restoration
+
+Restore existing RME settings screens lost during upstream menu refactoring.
+Verify Settings > Lights state profiles, chamber mode/timers, status colors
+and external bar where supported; Settings > User Interface > UI Theme;
+and Serial Printing, Printer Lock, Heater Safety, PID, USB settings export
+and custom filament metadata entries. Validate all model links and memory
+budgets with the full matrix; physical navigation testing remains pending.
+
 ### 2026-09-16 lighting fix changelog
 
 Restart the LCD/idle status-LED countdown on chamber-mode changes and timed
