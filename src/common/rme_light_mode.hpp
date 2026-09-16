@@ -3,6 +3,9 @@
 #include <rme_light_hold.hpp>
 
 namespace rme_light_mode {
+constexpr uint8_t active_profile_brightness(int8_t mode, bool enabled, uint8_t brightness) {
+    return mode > 0 && enabled ? brightness : 0;
+}
 // Shared LCD/status idle timer must resume even after a legacy locked hold.
 inline void restart_idle_countdown(rme_light_hold::State &hold, uint32_t &timestamp, uint32_t now) {
     hold.release_automatically();
