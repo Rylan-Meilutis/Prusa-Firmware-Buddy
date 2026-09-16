@@ -84,6 +84,9 @@ void SideStripHandler::startup_activity_ping() {
 
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    if (chamber_mode_state.resume_on_activity()) {
+        state = SideStripState::unknown;
+    }
     rme_hold.release_automatically();
     startup_activity_active = false;
     host_idle_override = false;
@@ -92,6 +95,9 @@ void SideStripHandler::activity_ping() {
 
 void SideStripHandler::event_ping() {
     std::lock_guard lock(mutex);
+    if (chamber_mode_state.resume_on_activity()) {
+        state = SideStripState::unknown;
+    }
     rme_hold.release_automatically();
     startup_activity_active = false;
     host_idle_override = false;
@@ -172,6 +178,9 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     }
 
     if (open || was_open) {
+        if (chamber_mode_state.resume_on_activity()) {
+            state = SideStripState::unknown;
+        }
         host_idle_override = false;
         active_timestamp_ms = ticks_ms();
         const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds());

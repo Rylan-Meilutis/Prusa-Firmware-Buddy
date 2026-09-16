@@ -11,6 +11,14 @@ inline void restart_idle_countdown(rme_light_hold::State &hold, uint32_t &timest
 
 // Caller owns synchronization. Fixed storage; no timers, queues or allocation.
 struct State {
+    // Off is temporary darkness, not a lock against normal printer activity.
+    bool resume_on_activity() {
+        if (mode != 0) {
+            return false;
+        }
+        mode = -1;
+        return true;
+    }
     int8_t mode = -1;
     uint32_t started_ms = 0;
     bool set(uint8_t value, uint32_t now) {
