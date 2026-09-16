@@ -410,7 +410,18 @@ TEST_CASE("INDX dock calibration uses independent configurable axis tolerances",
     CHECK(sanitize(std::numeric_limits<float>::quiet_NaN(), default_x_mm) == default_x_mm);
 }
 
-TEST_CASE("Unhomed toolchanger axes use conservative hardware boundaries", "[motion][toolchanger][regression]") {
+TEST_CASE("INDX homed back-left corner permits travel over the bed", "[motion][indx][regression]") {
+    using namespace buddy::indx_serial_motion_safety;
+    constexpr ServiceBoundary boundary { 250, -0.9f };
+    // Native INDX X-min / Y-max home, not regular CORE One's opposite corner.
+    CHECK(linear_move_is_safe(-1, 206.5f, 9, 206.5f, true, boundary));
+    CHECK(linear_move_is_safe(-1, 206.5f, -1, 196.5f, false, boundary));
+    CHECK(linear_move_is_safe(4, 201.5f, 125, 100, true, boundary));
+    CHECK_FALSE(linear_move_is_safe(245, 100, 255, 100, true, boundary));
+    CHECK_FALSE(linear_move_is_safe(125, -10, 135, -10, true, boundary));
+}
+
+TEST_CASE("Unknown-axis range helpers clamp to configured boundaries", "[motion][toolchanger][regression]") {
     using namespace buddy::unknown_axis_motion;
     CHECK(assumed_position(AssumedBoundary::minimum, 0, 360) == 0);
     CHECK(assumed_position(AssumedBoundary::maximum, 0, 360) == 360);

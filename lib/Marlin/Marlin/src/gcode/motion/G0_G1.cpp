@@ -95,45 +95,34 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
   const bool z_move_requested = parser.seen('Z');
   const bool xy_move_requested = x_move_requested || parser.seen('Y');
 
-  // Serial jogs may arrive before XY has ever been homed. Rebase unknown axes
-  // to the conservative side opposite nearby hardware, mirroring the existing
-  // unhomed-Z boundary assumption. Internal homing/calibration moves bypass it.
   const bool external_move = GCodeQueue::current_command_from_serial();
+  #if HAS_INDX()
+    // INDX homes at X-min / Y-max. Never invent the opposite corner when
+    // motors time out and invalidate homing: that reverses allowed jog travel.
+    // Unknown XY cannot be checked against physical docks or the cleaner.
+    if (external_move && xy_move_requested && axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS))) {
+      TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_IDLE));
+      return;
+    }
+  #elif PRINTER_IS_PRUSA_XL()
+  // Preserve the existing XL-specific unknown-Y behavior.
   if (external_move) {
-    static bool unknown_x_rebased = false;
     static bool unknown_y_rebased = false;
-    if (axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise)) unknown_x_rebased = false;
     if (axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise)) unknown_y_rebased = false;
     bool rebased = false;
-    #if HAS_INDX()
-      if (!axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise) && !unknown_x_rebased) {
-        current_position.x = X_MAX_POS; // keep an unknown head away from the purge bucket
-        unknown_x_rebased = true;
-        rebased = true;
-      }
-      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise) && !unknown_y_rebased) {
-        current_position.y = 0; // INDX docks are at the front
-        unknown_y_rebased = true;
-        rebased = true;
-      }
-    #elif PRINTER_IS_PRUSA_XL()
-      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise) && !unknown_y_rebased) {
-        current_position.y = Y_MAX_POS; // XL docks are at the rear
-        unknown_y_rebased = true;
-        rebased = true;
-      }
-    #endif
+    if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise) && !unknown_y_rebased) {
+      current_position.y = Y_MAX_POS; // XL docks are at the rear
+      unknown_y_rebased = true;
+      rebased = true;
+    }
     if (rebased) sync_plan_position();
   }
+  #endif
 
   get_destination_from_command();                 // Get X Y [Z[I[J[K]]]] [E] F (and set cutter power)
 
   if (external_move) {
     #if HAS_INDX()
-      if (!axes_home_level.is_homed(X_AXIS, AxisHomeLevel::imprecise))
-        destination.x = buddy::unknown_axis_motion::constrain(destination.x, X_MIN_POS, X_MAX_POS);
-      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
-        destination.y = buddy::unknown_axis_motion::constrain(destination.y, 0, Y_MAX_POS);
       if (xy_move_requested && axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
         constexpr buddy::indx_serial_motion_safety::ServiceBoundary service_boundary {
           X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS

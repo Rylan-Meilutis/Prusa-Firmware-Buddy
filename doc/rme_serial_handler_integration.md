@@ -40,6 +40,16 @@ do not synthesize an active printer state from protocol traffic.
 
 ## Serial printing display regression checks
 
+### INDX jogging after homing
+
+INDX homes toward X minimum and Y maximum. Serial G0/G1 must preserve the
+resulting coordinates; positive X and negative Y from the back-left home
+must allow movement toward the bed within the normal limits. Test immediately
+after G28 XY and after stepper disable/idle invalidates homing. In the latter
+case XY jogs and G2/G3 must report Home XY First without moving or rebasing
+position. Rehome before jogging again. Cleaner and dock keep-outs remain active;
+this INDX policy does not change other models' homing behavior.
+
 ### Per-print lighting
 
 Tune exposes Print Chamber Lights (Print Side Strip on other supported models),

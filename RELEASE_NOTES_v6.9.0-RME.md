@@ -9,6 +9,9 @@ store, and crash-dump changes are retained.
 
 ## RME integration changes
 
+- INDX serial jogs no longer rebase unknown XY to the corner opposite its
+  X-min/Y-max home. If homing is invalidated, XY jogs and arcs require homing
+  again instead of inventing coordinates. Other models retain their behavior.
 - Restored per-print chamber, screen, and status-LED brightness controls in
   Tune on supported hardware. These use temporary overrides, leaving saved
   lighting defaults unchanged.
