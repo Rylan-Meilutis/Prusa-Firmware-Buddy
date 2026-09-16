@@ -79,6 +79,24 @@ TEST_CASE("Chamber mode transitions restart shared screen and status idle countd
     CHECK(uint32_t(0 - timestamp) == 1);
 }
 
+TEST_CASE("Door and local activity resume automatic lighting after slider Off", "[rme][light][regression]") {
+    rme_light_mode::State state;
+    REQUIRE(state.set(0, 100));
+    CHECK(state.resume_on_activity());
+    CHECK(state.mode == -1);
+    CHECK_FALSE(state.resume_on_activity());
+    REQUIRE(state.set(1, 100));
+    REQUIRE(state.expire(1100, 1));
+    CHECK(state.resume_on_activity());
+    CHECK(state.mode == -1);
+    REQUIRE(state.set(2, 100));
+    CHECK_FALSE(state.resume_on_activity());
+    CHECK(state.mode == 2);
+    REQUIRE(state.set(0, 100));
+    CHECK_FALSE(state.expire(10000, 1));
+    CHECK(state.mode == 0); // Timer updates/polling are not activity.
+}
+
 TEST_CASE("Host keepalive remains active when calibration suspends auto reports", "[rme][serial][regression]") {
     using buddy::host_keepalive_policy::should_emit;
 

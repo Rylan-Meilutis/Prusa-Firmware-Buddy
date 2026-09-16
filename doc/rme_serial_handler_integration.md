@@ -22,6 +22,8 @@ Idle lighting acceptance: select Locked then Off, and separately let timed On
 expire. With no door/operation hold, verify the LCD and idle status LEDs advance
 through their configured Active/Idle/Deep Idle profiles despite continued host
 polling. Repeat after a legacy LIGHT HOLD; printing/error indications must remain.
+Then open the door or use the printer: slider Off must yield to automatic Active
+lighting, and read-back must reflect the actual chamber output. Locked remains on.
 
 1. Use the same serialized writer as normal G-code. Never open a competing
    process or serial descriptor.

@@ -20,6 +20,8 @@ Mode changes and timed On expiry restart the shared LCD/idle-status countdown
 and release legacy host active holds. Locked locks only chamber output; it does
 not lock the screen or idle status LEDs on. Printing, door-open and operation
 holds retain their normal priority. Read-only polling does not reset the timer.
+Off is cleared by a door transition or local activity/event, restoring the
+normal Active light profile. It is not a persistent lockout of activity lighting.
 Mapping remains read-only during a job. Tool labels on the LCD are one-based;
 G-code tool indices and wire-format slots are zero-based.
 
