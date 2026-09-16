@@ -11,7 +11,9 @@ Firmware Buddy 6.10.1.
 - Restart the shared screen and idle status-LED countdown when the chamber
   light selector changes or timed On expires. Clear stale legacy RME active
   holds without overriding print, door-open, operation or safety behavior.
-  Regression suite: 52 tests, 432,320 assertions. Hardware idle-cycle validation
+  Door transitions and local activity also clear slider Off so the chamber
+  lights wake with the LCD. Locked remains on; polling is not activity.
+  Regression suite: 53 tests, 432,334 assertions. Hardware idle-cycle validation
   remains outstanding.
 
 - Add synchronized live print controls with RME Compatibility 0.1.0b95:

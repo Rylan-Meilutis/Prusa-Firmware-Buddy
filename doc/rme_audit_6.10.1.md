@@ -14,6 +14,9 @@ On expiry; release stale legacy host holds. Preserve print, door, operation and
 safety priorities. 52 regression tests / 432,320 assertions passed, and the
 changed INDX lighting translation unit compiled. Full release matrix and
 uploaded digest verification are required below; physical testing is pending.
+Follow-up: door/local activity now clears slider Off and restores automatic
+chamber lighting alongside the LCD. Updated shared host gate: 53 cases /
+432,334 assertions passed. Rebuild both matrices before publishing this change.
 
 1. Run `rme_protocol_tests`, `transfers_tests`, `connect_tests`, and
    `eeprom_unit_tests` from a 6.10.1-configured host-test build.
