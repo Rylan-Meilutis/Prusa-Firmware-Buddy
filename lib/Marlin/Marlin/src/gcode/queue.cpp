@@ -49,6 +49,10 @@ GCodeQueue queue;
 #include <odometer.hpp>
 #include <heap.h>
 #include <FreeRTOS.h>
+#include <option/has_side_leds.h>
+#if HAS_SIDE_LEDS()
+  #include <leds/side_strip_handler.hpp>
+#endif
 #if ENABLED(PRUSA_TOOL_MAPPING)
   #include "../module/prusa/tool_mapper.hpp"
   extern void rme_report_tool_mapping();
@@ -676,6 +680,17 @@ static bool handle_remote_light_service(const std::string_view command) {
     SERIAL_ECHOPGM(" hold="); SERIAL_ECHO(lights.active_hold ? 1 : 0);
 #endif
     SERIAL_EOL();
+  } else if (rme_protocol::action_is(action, "MODE")) {
+#if HAS_SIDE_LEDS()
+    const auto mode = remote_number(command, "value");
+    if (!printer_lock::locked() && mode && *mode >= 0 && *mode <= 2) {
+      leds::SideStripHandler::instance().set_chamber_mode(*mode);
+    } else {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=invalid_or_locked");
+    }
+#else
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=unsupported");
+#endif
   } else if (action.starts_with("HOLD")) {
 #if HAS_SIDE_LEDS()
     if (!serial_remote_control::session_active()) {
@@ -941,9 +956,13 @@ static bool handle_remote_machine_service(const std::string_view command) {
   if (!command.starts_with("@RME MACHINE ")) return false;
   if (!command.starts_with(query)) return false;
 
+  // HOTENDS/EXTRUDERS include Marlin's internal NoTool sentinel on a
+  // toolchanger. Never expose that sentinel as a ninth INDX tool.
   SERIAL_ECHOPGM("RME_MACHINE hotends="); SERIAL_ECHO(HOTENDS);
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
-  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(HOTENDS == 1 ? 1 : 0);
+  SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(EXTRUDERS);
+  SERIAL_ECHOPGM(" tune=1");
+  SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
 
   // Host printer profiles need the slicer-usable build volume, not homing,
   // docking, wiping, or service travel.  Those travel limits may extend
@@ -1105,7 +1124,7 @@ static bool handle_remote_spool_join_service(const std::string_view command) {
   if (rme_protocol::action_is(action, "ADD") || rme_protocol::action_is(action, "SET")) {
     const auto from = remote_number(command, "from");
     const auto to = remote_number(command, "to");
-    if (!from || !to || !rme_spool_join::valid_pair(*from, *to, VirtualToolIndex::count)) {
+    if (!from || !to || !rme_spool_join::valid_pair(*from, *to, EXTRUDERS)) {
       SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=spool_join code=invalid_join");
       return true;
     }
@@ -1170,6 +1189,67 @@ static bool handle_remote_dock_service(const std::string_view command) {
 #endif
 }
 
+static bool handle_remote_indx_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME INDX ";
+  if (!command.starts_with(prefix)) return false;
+#if RME_HAS_INDX()
+  if (!command.substr(prefix.size()).starts_with("SLOT SELECT")) return false;
+  const auto slot = remote_number(command, "slot");
+  if (!slot || *slot < 0 || static_cast<size_t>(*slot) >= HOTENDS) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx_slot_selection code=invalid_slot");
+    return true;
+  }
+  const auto selected = PhysicalToolIndex::from_raw(static_cast<uint8_t>(*slot));
+  bool selection_active = false;
+  marlin_vars().peek_fsm_states([&](const fsm::States &states) {
+    const auto top = states.get_top();
+    selection_active = top && top->fsm_type == ClientFSM::NozzleMismatch
+      && top->data.GetPhase() == std::to_underlying(PhaseNozzleMismatch::dock_selection);
+  });
+  if (!selection_active) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx_slot_selection code=no_active_selection");
+    return true;
+  }
+  // Match the local dock-selection screen: normally offer enabled docks, but
+  // permit every physical dock when none is configured yet after reset.
+  if (!selected.is_enabled() && PhysicalToolIndex::enabled_range_size() != 0) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx_slot_selection code=disabled_slot");
+    return true;
+  }
+  marlin_server::set_response(EncodedFSMResponse {
+    .response = FSMResponseVariant::make<uint8_t>(selected.to_raw()),
+    .fsm_and_phase = PhaseNozzleMismatch::dock_selection,
+  });
+  return true;
+#else
+  SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx code=unsupported feature=indx");
+  return true;
+#endif
+}
+
+// Fixed-size streaming snapshot: no JSON, heap allocation, event history, or
+// queued GUI requests. Local Tune changes and serial overrides share this state.
+static bool handle_remote_tune_service(const std::string_view command) {
+  if (command != "@RME TUNE QUERY") return false;
+  SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
+  SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
+  SERIAL_ECHOPGM(" light=");
+#if HAS_SIDE_LEDS()
+  SERIAL_ECHO(leds::SideStripHandler::instance().chamber_mode());
+#else
+  SERIAL_ECHO(-1);
+#endif
+  for (uint8_t tool = 0; tool < EXTRUDERS; ++tool) {
+    SERIAL_ECHOPGM(" F"); SERIAL_ECHO(tool); SERIAL_CHAR('=');
+    SERIAL_ECHO(planner.flow_percentage[tool]);
+  }
+  SERIAL_EOL();
+#if ENABLED(PRUSA_TOOL_MAPPING)
+  rme_report_tool_mapping();
+#endif
+  return true;
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
@@ -1179,6 +1259,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_lock_service(command)
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
+      || handle_remote_tune_service(command)
       || handle_remote_filament_service(command)
       || handle_remote_manufacturer_service(command)
       || handle_remote_machine_service(command)

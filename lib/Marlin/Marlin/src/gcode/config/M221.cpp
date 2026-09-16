@@ -34,12 +34,13 @@
  *
  *#### Usage
  *
- *    M221 [ S | T ]
+ *    M221 [ S | T | P ]
  *
  *#### Parameters
  *
  * - `S` - Flow percentage
  * - `T` - Tool
+ * - `P` - 1 addresses the physical/virtual slot directly; 0 (default) applies logical tool mapping
  *
  * Without parameters prints the current extrusion percentage
  */

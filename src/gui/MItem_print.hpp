@@ -7,6 +7,21 @@
 #include <option/has_mmu2.h>
 #include <guiconfig/guiconfig.h>
 #include <WindowItemFormatableLabel.hpp>
+#include <option/has_tool_mapping.h>
+
+#if HAS_TOOL_MAPPING()
+// Read-only during a job: changing a mapping mid-extrusion is not a safe override.
+class MI_LIVE_TOOL_MAPPING : public IWindowMenuItem {
+public:
+    explicit MI_LIVE_TOOL_MAPPING(int logical);
+    static constexpr int index(int logical) { return logical; }
+    void Loop() override;
+private:
+    int logical_;
+    int previous_ = -2;
+    char label_[32] {};
+};
+#endif
 
 class MI_NOZZLE_ABSTRACT : public WiSpin {
     static constexpr const char *const generic_label =
@@ -109,6 +124,7 @@ class MI_SPEED : public WiSpin {
 public:
     MI_SPEED();
     virtual void OnClick() override;
+    virtual void Loop() override;
 };
 
 class MI_FLOWFACT_ABSTRACT : public WiSpin {
