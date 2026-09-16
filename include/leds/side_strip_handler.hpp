@@ -123,6 +123,7 @@ public:
     uint8_t current_brightness() const;
 
 private:
+    void restart_idle_countdown(uint32_t now);
     void change_state(SideStripState state);
 
     ColorRGBW get_color_for_state(SideStripState state) const;
