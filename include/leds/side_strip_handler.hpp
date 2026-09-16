@@ -115,6 +115,7 @@ public:
     bool consume_rme_hold_automatic_release();
     // Session-only chamber override: off, timed on, locked on. No EEPROM writes.
     void set_chamber_mode(uint8_t mode);
+    void set_screen_on(bool on);
     uint8_t chamber_mode() const;
     int8_t chamber_mode_override() const;
 
@@ -177,6 +178,7 @@ private:
     std::optional<CustomColorState> custom_color;
     rme_light_hold::State rme_hold;
     rme_light_mode::State chamber_mode_state;
+    bool screen_forced_off = false;
 };
 
 } // namespace leds

@@ -1,5 +1,11 @@
 # 6.10.1-RME Firmware
 
+## Independent lighting controls — 2026-09-16
+
+- Chamber On/Locked respect internal/external Active-profile enable settings.
+- Independent LCD on/off protocol and live LCD/per-print brightness snapshots.
+- CORE One INDX build and 54 RME unit tests passed; physical validation pending.
+
 ## Summary
 
 6.10.1-RME carries the complete RME serial, transfer, firmware-update,

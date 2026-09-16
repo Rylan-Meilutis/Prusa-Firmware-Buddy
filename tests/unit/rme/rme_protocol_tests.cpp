@@ -11,6 +11,7 @@
 #include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
 #include <rme_light_mode.hpp>
+
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
 #include <rme_indx_workflow.hpp>
@@ -37,6 +38,14 @@
 #include <vector>
 
 using namespace std::string_view_literals;
+
+TEST_CASE("Chamber On and Locked respect the Active channel profile") {
+    for (int8_t mode = 0; mode <= 2; ++mode) {
+        CHECK(rme_light_mode::active_profile_brightness(mode, false, 255) == 0);
+        CHECK(rme_light_mode::active_profile_brightness(mode, true, 0) == 0);
+        CHECK(rme_light_mode::active_profile_brightness(mode, true, 73) == (mode ? 73 : 0));
+    }
+}
 
 TEST_CASE("Shared chamber mode expires once and survives clock rollover", "[rme][light]") {
     rme_light_mode::State state;

@@ -719,6 +719,17 @@ static bool handle_remote_light_service(const std::string_view command) {
 #else
     SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=unsupported");
 #endif
+  } else if (rme_protocol::action_is(action, "LCD")) {
+#if HAS_SIDE_LEDS()
+    const auto on = remote_number(command, "value");
+    if (!printer_lock::locked() && on && (*on == 0 || *on == 1)) {
+      leds::SideStripHandler::instance().set_screen_on(*on != 0);
+    } else {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=invalid_or_locked");
+    }
+#else
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=light code=unsupported");
+#endif
   } else if (action.starts_with("HOLD")) {
 #if HAS_SIDE_LEDS()
     if (!serial_remote_control::session_active()) {
@@ -1268,6 +1279,11 @@ static bool handle_remote_tune_service(const std::string_view command) {
 #else
   SERIAL_ECHO(-1);
 #endif
+  const auto lights = serial_remote_control::light_status();
+  SERIAL_ECHOPGM(" lcd="); SERIAL_ECHO(lights.current_screen < 0 ? -1 : lights.current_screen > 0 ? 1 : 0);
+  SERIAL_ECHOPGM(" screen_print="); SERIAL_ECHO(lights.print_screen);
+  SERIAL_ECHOPGM(" chamber_print="); SERIAL_ECHO(lights.print_chamber);
+  SERIAL_ECHOPGM(" status_print="); SERIAL_ECHO(lights.print_status);
   for (const auto tool : VirtualToolIndex::all()) {
     SERIAL_ECHOPGM(" F"); SERIAL_ECHO(tool.to_raw()); SERIAL_CHAR('=');
     SERIAL_ECHO(marlin_vars().virtual_tools[tool].flow_factor.get());
