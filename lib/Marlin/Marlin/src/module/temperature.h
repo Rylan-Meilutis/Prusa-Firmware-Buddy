@@ -354,7 +354,9 @@ class Temperature {
 
       #endif
 
-      static void setTargetBed(const int16_t celsius);
+      // Only Chamber::step uses chamber_assist: automatic regulation must not
+      // reset the heater safety timeout or revoke its own temporary ownership.
+      static void setTargetBed(const int16_t celsius, const bool chamber_assist = false);
 
       /// @returns whether the bed has stabilized on the target temperature (or if the target temp is 0)
       static bool is_bed_temperature_reached();

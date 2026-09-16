@@ -9,6 +9,7 @@
 #include <freertos/mutex.hpp>
 #include <printers.h>
 #include <utils/compact_optional.hpp>
+#include <feature/chamber/heating_policy.hpp>
 
 // TODO: Migrate XL Enclosure to use this API (& unify)
 // TODO: Add support for controlling MK4 enclosure through GPIO expander
@@ -83,6 +84,9 @@ public: // Temperature control
     /// finished, so M191 needs an explicit, narrowly scoped exception.
     void set_heating_wait_active(bool active);
 
+    /// Explicit bed commands and safety shutdown revoke idle bed assistance.
+    void bed_target_overridden();
+
 #if HAS_CHAMBER_VENTS()
     /// Check the state of chamber grills (vents). Can be open/closed based on chamber target temperature
     /// @param fil_target The target chamber temperature to base the vent decision on
@@ -110,6 +114,7 @@ private:
 
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool heating_wait_active_ = false;
+    chamber_heating::IdleBedAssist idle_bed_assist_;
     bool heating_assist_active_ = false;
     uint8_t heating_assist_previous_print_fan_ = 0;
     uint8_t heating_assist_applied_print_fan_ = 0;

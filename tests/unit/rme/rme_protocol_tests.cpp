@@ -5,6 +5,8 @@
 #include <m976_temperature_policy.hpp>
 #include <m976_indx_policy.hpp>
 #include <indx_serial_motion_safety.hpp>
+#include <manual_motion_safety.hpp>
+
 #include <filament_material.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
@@ -28,6 +30,19 @@
 #else
     #include <catch2/catch.hpp>
 #endif
+
+TEST_CASE("manual axes respect model ranges without trapping homed boundary positions") {
+    using buddy::manual_motion_safety::axis_move_is_safe;
+    CHECK(axis_move_is_safe(4, 100, { -1, 250 }));
+    CHECK_FALSE(axis_move_is_safe(100, 260, { -1, 250 }));
+    CHECK_FALSE(axis_move_is_safe(100, -2, { -1, 250 }));
+    CHECK(axis_move_is_safe(-2, 4, { -1, 250 }));
+    CHECK_FALSE(axis_move_is_safe(-2, -3, { -1, 250 }));
+    CHECK(axis_move_is_safe(410, 200, { 0, 360 }));
+    CHECK_FALSE(axis_move_is_safe(410, 420, { 0, 360 }));
+    CHECK_FALSE(axis_move_is_safe(NAN, 100, { 0, 250 }));
+    CHECK_FALSE(axis_move_is_safe(100, NAN, { 0, 250 }));
+}
 
 #include <array>
 #include <algorithm>

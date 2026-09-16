@@ -58,17 +58,10 @@ MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t too
         }
 
         sb.append_string(": ");
-        sb.append_string(filament_type_.parameters().name.data());
+        sb.append_string(filament_material_name(filament_type_.parameters()).data());
         color_ = filament_color::loaded(tool);
         if (color_) {
-            const auto color_profile = filament_color::profile_for(*color_);
-            sb.append_string(" / ");
-            sb.append_string(color_profile.name.data());
             extension_width = filament_color_gui::swatch_and_arrow_extension_width;
-        }
-        if (const auto manufacturer = filament_manufacturer::loaded(tool_.to_raw())) {
-            sb.append_string(" / ");
-            sb.append_string(manufacturer->name.data());
         }
 
         SetLabel(string_view_utf8::MakeRAM(label_buffer_.data()));
