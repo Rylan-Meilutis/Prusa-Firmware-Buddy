@@ -84,6 +84,7 @@ void SideStripHandler::startup_activity_ping() {
 
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    screen_forced_off = false;
     if (chamber_mode_state.resume_on_activity()) {
         state = SideStripState::unknown;
     }
@@ -178,6 +179,7 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     }
 
     if (open || was_open) {
+        screen_forced_off = false;
         if (chamber_mode_state.resume_on_activity()) {
             state = SideStripState::unknown;
         }
@@ -327,6 +329,14 @@ void SideStripHandler::set_chamber_mode(const uint8_t mode) {
     chamber_mode_state.set(mode, now);
     restart_idle_countdown(now);
     state = SideStripState::unknown;
+}
+
+void SideStripHandler::set_screen_on(const bool on) {
+    std::lock_guard lock(mutex);
+    screen_forced_off = !on;
+    screen_brightness_wake_until_ms = on ? ticks_ms() + screen_brightness_wake_ms : 0;
+    screen_brightness_wake_percent = active_screen_brightness();
+    screen_brightness_wake_from_print_override = false;
 }
 
 void SideStripHandler::restart_idle_countdown(const uint32_t now) {
@@ -521,6 +531,9 @@ void SideStripHandler::set_screen_brightness(LightState state, uint8_t value) {
 
 uint8_t SideStripHandler::current_screen_brightness() const {
     std::lock_guard lock(mutex);
+    if (screen_forced_off) {
+        return 0;
+    }
     if (screen_brightness_wake_from_print_override && screen_brightness_wake_until_ms
         && ticks_diff(ticks_ms(), screen_brightness_wake_until_ms) < 0
         && print_active_for_leds() && print_screen_brightness_overridden && print_screen_brightness_override < 15) {
@@ -538,6 +551,13 @@ uint8_t SideStripHandler::current_screen_brightness() const {
 
 bool SideStripHandler::wake_screen_from_dim_idle() {
     std::lock_guard lock(mutex);
+    if (screen_forced_off) {
+        screen_forced_off = false;
+        screen_brightness_wake_percent = active_screen_brightness();
+        screen_brightness_wake_until_ms = ticks_ms() + screen_brightness_wake_ms;
+        screen_brightness_wake_from_print_override = false;
+        return true;
+    }
     if ((screen_brightness_wake_from_print_override && screen_brightness_wake_until_ms
             && ticks_diff(ticks_ms(), screen_brightness_wake_until_ms) < 0
             && print_active_for_leds() && print_screen_brightness_overridden && print_screen_brightness_override < 15)
@@ -649,7 +669,7 @@ void SideStripHandler::set_print_brightness(uint8_t value) {
 uint8_t SideStripHandler::get_print_light_brightness() const {
     std::lock_guard lock(mutex);
     if (chamber_mode_state.mode >= 0) {
-        return chamber_mode_state.mode == 0 ? 0 : max_brightness;
+        return rme_light_mode::active_profile_brightness(chamber_mode_state.mode, main_light_state_mask & light_state_bit(LightState::active), max_brightness);
     }
     return print_active_for_leds() && print_brightness_overridden ? print_brightness_override : print_brightness;
 }
@@ -683,6 +703,7 @@ uint8_t SideStripHandler::get_print_screen_brightness() const {
 
 void SideStripHandler::set_print_screen_brightness(uint8_t value) {
     std::lock_guard lock(mutex);
+    screen_forced_off = false;
     print_screen_brightness_override = std::min<uint8_t>(value, 100);
     print_screen_brightness_overridden = true;
     screen_brightness_wake_until_ms = 0;
@@ -745,7 +766,7 @@ void SideStripHandler::change_state(SideStripState state) {
 ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
     if (chamber_mode_state.mode >= 0) {
-        return base_color.clamp(chamber_mode_state.mode == 0 ? 0 : max_brightness);
+        return base_color.clamp(rme_light_mode::active_profile_brightness(chamber_mode_state.mode, main_light_state_mask & light_state_bit(LightState::active), max_brightness));
     }
 
     const LightState light_state = light_state_for_strip_state(state);

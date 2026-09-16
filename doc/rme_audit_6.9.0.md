@@ -1,5 +1,13 @@
 # RME 6.9.0 port audit
 
+## Independent lighting controls — 2026-09-16
+
+Chamber On/Locked honor Active-profile channel masks. LCD Off/On uses a
+separate runtime flag and wake window, not the chamber selector. TUNE publishes
+LCD state and supported current-print brightness values in a bounded snapshot.
+INDX build and 54 RME tests pass. Hardware door-wake, timeout and disabled-channel
+checks remain required before release.
+
 ## Settings navigation restoration
 
 Verify Settings > Lights exposes Deep Idle, Idle, Active and Printing profiles

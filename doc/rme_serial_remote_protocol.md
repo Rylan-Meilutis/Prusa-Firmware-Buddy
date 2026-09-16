@@ -2,6 +2,17 @@
 
 ## Live print controls (capability `RME_MACHINE tune=1`)
 
+Lighting extension: `RME_TUNE` includes `lcd` (-1 unsupported, 0 off, 1 on),
+`screen_print`, `chamber_print`, and `status_print` percentages (-1 unsupported).
+`@RME LIGHT LCD value=0|1` independently controls the LCD on side-strip machines.
+Off lasts until local activity/door wake or explicit On. On wakes the saved
+Active LCD brightness for 30 seconds before normal policy resumes. Neither
+changes chamber mode or saved brightness. Local print LCD brightness changes
+clear LCD Off. Single-channel `@RME LIGHT TEMP screen=35`, `chamber=50`, or
+`status=20` leaves omitted channels unchanged. Chamber On/Locked honor both
+internal and external Active-profile enable flags. Clients hide unsupported
+controls based on these fields; no additional polling is needed.
+
 `@RME TUNE QUERY` streams one `RME_TUNE` snapshot with `speed` (percent),
 `stealth` (0/1), `light` (-1 unsupported, 0 off, 1 timed on, 2 locked on),
 and `F0` through the available virtual-slot flow factors. A `RME_TOOLMAP`

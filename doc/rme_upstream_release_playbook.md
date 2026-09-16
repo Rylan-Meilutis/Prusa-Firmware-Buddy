@@ -4,6 +4,15 @@ Use this when Prusa publishes a new Firmware Buddy release and the RME firmware 
 
 ## Goal
 
+### Independent lighting control regression
+
+Disable internal/external lights individually in Active settings. Chamber
+On/Locked must not enable disabled channels. LCD Off must remain off when
+changing chamber mode; door/local activity must wake it. Verify Control LCD
+state follows firmware and idle timeout. During a print, adjust LCD/chamber/
+status brightness individually; other channels and saved profiles must not
+change. Print overrides reset at print end. Test local Tune and OctoPrint.
+
 ### RME menu parity regression
 
 On newer CORE One/INDX builds, verify Settings exposes the existing lighting
