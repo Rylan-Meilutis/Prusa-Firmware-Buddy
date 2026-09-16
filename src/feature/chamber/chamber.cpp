@@ -117,6 +117,10 @@ void Chamber::step() {
         control_temperature = *control_temperature
             + compensation * (bed_temperature - *control_temperature) * std::sqrt(*control_temperature - compensation_min_temp);
     }
+    if (const auto bed_target = idle_bed_assist_.update(control_temperature, target_temperature_,
+            marlin_server::is_printing(), thermalManager.degTargetBed(), BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN)) {
+        thermalManager.setTargetBed(*bed_target, true);
+    }
     const bool should_assist = chamber_heating::should_assist(
         control_temperature, target_temperature_, marlin_server::is_printing(), heating_wait_active_);
 
@@ -130,9 +134,8 @@ void Chamber::step() {
     }
 
     if (should_assist) {
-        // Only circulate heat from the bed's independently configured target.
-        // M141/M191 must never rewrite it: doing so can leave a later M190
-        // waiting for a temperature transition the print did not request.
+        // During printing, circulate only the independently configured bed
+        // heat (M191 exception). Idle bed assistance above never owns a print.
         const auto fan_pwm = thermalManager.get_print_fan_speed();
         if (heating_assist_applied_print_fan_ != 0 && fan_pwm != heating_assist_applied_print_fan_) {
             heating_assist_previous_print_fan_ = fan_pwm;
@@ -270,6 +273,9 @@ std::optional<Temperature> Chamber::set_target_temperature(std::optional<Tempera
 
     std::lock_guard _lg(mutex_);
     target_temperature_ = target;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    idle_bed_assist_.request();
+#endif
 
     const auto max_temp = capabilities_nolock().max_temp;
     if (max_temp.has_value() && target_temperature_.has_value()) {
@@ -280,6 +286,13 @@ std::optional<Temperature> Chamber::set_target_temperature(std::optional<Tempera
     metric_record_float(&metric_chamber_ttemp, target_temperature_.value_or(NAN));
 
     return target_temperature_;
+}
+
+void Chamber::bed_target_overridden() {
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    std::lock_guard _lg(mutex_);
+    idle_bed_assist_.override_bed();
+#endif
 }
 
 void Chamber::reset() {

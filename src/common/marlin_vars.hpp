@@ -311,6 +311,7 @@ public:
      * curr_pos is taken from Marlin's current_position variable which is the target of current move before MBL is compensated.
      */
     MarlinVariable<float> native_pos[4]; ///< immediate position XYZE (native coordinates) [mm]
+    MarlinVariable<uint8_t> manual_homed_axes; ///< XYZ validity for manual movement; never inferred from coordinates
     MarlinVariable<float> logical_pos[4]; ///< immediate position XYZE (logical coordinates) [mm]
     MarlinVariable<float> native_curr_pos[4]; ///< current position XYZE (native coordinates) [mm]
     MarlinVariable<float> logical_curr_pos[4]; ///< current position XYZE (logical coordinates) [mm]

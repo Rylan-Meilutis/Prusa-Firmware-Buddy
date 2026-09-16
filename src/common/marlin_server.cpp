@@ -3935,6 +3935,7 @@ static void _server_update_vars() {
     marlin_vars().gqueue = queue.length;
     marlin_vars().inject_queue_empty = inject_queue.is_empty();
     marlin_vars().is_processing = is_processing();
+    marlin_vars().manual_homed_axes = uint8_t(0x07 & ~axes_need_homing(0x07, AxisHomeLevel::imprecise));
 
     // Get native position
     {

@@ -8,6 +8,7 @@
 #include "WindowItemFormatableLabel.hpp"
 #include "MItem_filament.hpp"
 #include <window_menu_callback_item.hpp>
+#include <MItem_tools.hpp>
 
 namespace screen_menu_move {
 
@@ -39,7 +40,7 @@ using MI_AXIS_E = WithConstructorArgs<I_MI_AXIS, E_AXIS>;
 
 using MI_COOLDOWN = WithConstructorArgs<WindowMenuCallbackItem, N_("Cooldown"), nullptr>;
 
-using ScreenMenuMove_ = ScreenMenu<EFooter::On, MI_RETURN, MI_AXIS_X, MI_AXIS_Y, MI_AXIS_Z, MI_AXIS_E, DUMMY_AXIS_E, MI_COOLDOWN>;
+using ScreenMenuMove_ = ScreenMenu<EFooter::On, MI_RETURN, MI_AUTO_HOME, MI_AXIS_X, MI_AXIS_Y, MI_AXIS_Z, MI_AXIS_E, DUMMY_AXIS_E, MI_COOLDOWN>;
 
 } // namespace screen_menu_move
 
@@ -60,4 +61,6 @@ private:
     xyze_float_t queued_pos { { NAN, NAN, NAN, NAN } };
     float e_axis_offset = 0;
     bool initialized = false;
+    uint8_t homed_axes = 0xff;
+    bool was_processing = false;
 };

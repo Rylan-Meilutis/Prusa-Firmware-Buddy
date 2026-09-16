@@ -14,6 +14,7 @@
 #include <dynamic_index_mapping.hpp>
 #include <string_builder.hpp>
 #include <config_store/store_instance.hpp>
+#include <loaded_tool_info.hpp>
 
 namespace {
 
@@ -31,12 +32,11 @@ static constexpr auto index_mapping_items = std::to_array<DynamicIndexMappingRec
 
 class SelectToolMenu;
 
-class MI_TOOL final : public WiInfo<64> {
+class MI_TOOL final : public LoadedToolInfo {
 
 public:
     MI_TOOL(SelectToolMenu &menu, VirtualToolIndex tool)
-        : WiInfo(string_view_utf8 {})
-        , menu_(menu)
+        : menu_(menu)
         , tool_(tool) {
 
         SetLabel(tool.display_name(label_params_));
@@ -45,10 +45,7 @@ public:
             SetIconId(&img::arrow_right_10x16);
         }
 
-        StringBuilder sb(value_array_);
-        tool_.build_details(sb);
-        value_ = string_view_utf8::MakeRAM(value_array_.data());
-        update_extension_width();
+        set_loaded_tool(tool_);
     }
 
     void click(IWindowMenu &) override;

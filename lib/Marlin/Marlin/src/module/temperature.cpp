@@ -1561,9 +1561,14 @@ void Temperature::isr() {
       return temp_bed.target <= 0 || std::abs(temp_bed.target - temp_bed.celsius) <= TEMP_BED_HYSTERESIS;
     }
 
-    void Temperature::setTargetBed(const int16_t celsius) {
+    void Temperature::setTargetBed(const int16_t celsius, const bool chamber_assist) {
       // We cannot overwrite target temps while the safety_timer is active, deactivate it first
-      buddy::safety_timer().reset_restore_nonblocking();
+      if (!chamber_assist) {
+        buddy::safety_timer().reset_restore_nonblocking();
+        #if HAS_CHAMBER_API()
+        buddy::chamber().bed_target_overridden();
+        #endif
+      }
 
     #if ENABLED(AUTO_POWER_CONTROL)
         if (celsius) {
