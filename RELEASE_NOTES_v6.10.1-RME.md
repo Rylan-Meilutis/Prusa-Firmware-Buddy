@@ -1,6 +1,13 @@
 # 6.10.1-RME Firmware
 
-## Pending: manual movement and loaded-material UI
+## Build validation — 2026-09-16 chamber/motion update
+
+All 15 release images passed; firmware source edf912b4d. Shared regression
+suites pass: 55 RME cases and six chamber-policy cases. Hardware heating,
+manual-motion and display validation remains pending. Normal print-motion
+handlers G0/G1/G2/G3 are unchanged by this update.
+
+## Manual movement and loaded-material UI — 2026-09-16
 
 - Enforce model-specific manual travel limits inside G123, not only serial
   G0/G1. INDX excludes cleaner/dock service areas; XL excludes rear docks.
@@ -9,9 +16,9 @@
   protect queued or manually supplied G123 commands.
 - Tool selection and Loaded Filaments show the base material and loaded-color
   swatch, not profile identifiers such as PLA-00D. Stored profiles are unchanged.
-- Physical jog/keep-out and display validation remains required before release.
+- Physical jog/keep-out and display validation remains pending.
 
-## Pending: idle chamber bed assistance
+## Idle chamber bed assistance — 2026-09-16
 
 - A chamber target set while idle can heat the bed automatically on CORE One,
   CORE One INDX and CORE One L. Temporary boost is chamber target +40 C,
@@ -259,8 +266,8 @@ and carry the `6.10.1-RME` firmware suffix.
   the nozzle and accumulating on the toolhead.
 - Standard `M141`/`M191` chamber targets now use an independently heated bed
   on CORE One-family machines with a chamber sensor. Low-speed toolhead air
-  circulation (plus CORE One L under-bed fans) spreads heat without ever
-  changing the bed target, active prints retain control, and
+  circulation (plus CORE One L under-bed fans) spreads heat. Idle bed assistance
+  is described above; active prints retain control of the bed target, and
   the existing xBuddy Extension cooling method remains unchanged.
 - INDX automatic PA now runs the toolhead fan while a wiped purge pellet cools
   for four seconds before ejection. The pellet is solid enough to leave the

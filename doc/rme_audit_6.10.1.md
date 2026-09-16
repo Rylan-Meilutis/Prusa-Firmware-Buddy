@@ -7,7 +7,7 @@ session implementations.
 
 ## Release gates
 
-### Manual movement and material UI — 2026-09-16 (unreleased)
+### Manual movement and material UI — 2026-09-16
 
 G123 now enforces per-model manual ranges and requires known positions;
 Move Axis exposes Auto Home and disables unknown axes. Dedicated service
@@ -16,9 +16,11 @@ Filaments use the authoritative material family plus color swatches, keeping
 profile IDs intact in storage. RME regression gate: 55 cases / 432,352
 assertions; chamber policy: six cases / 35 assertions. CORE One, INDX,
 CORE One L, MINI and XL final validation builds passed, including the cleaner
-exit guard and post-homing display refresh. Hardware checks remain pending.
+exit guard and post-homing display refresh. The complete 15-image final release
+matrix subsequently passed (9m22s), firmware source edf912b4d. INDX flash
+66.87%, RAM 77.45%; MINI language flash 99.93%. Hardware checks remain pending.
 
-### Idle chamber bed assistance — 2026-09-16 (unreleased)
+### Idle chamber bed assistance — 2026-09-16
 
 RME Compatibility b99 was published first with passive INDX temperature
 presentation and active-tool/bed/chamber controls. Firmware now owns a temporary
