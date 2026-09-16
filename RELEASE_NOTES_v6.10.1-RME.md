@@ -4,7 +4,7 @@
 
 - Chamber On/Locked respect internal/external Active-profile enable settings.
 - Independent LCD on/off protocol and live LCD/per-print brightness snapshots.
-- CORE One INDX build and 54 RME unit tests passed; physical validation pending.
+- Full 15-image release matrix and 54 RME unit tests passed; physical validation pending.
 
 ## Summary
 
