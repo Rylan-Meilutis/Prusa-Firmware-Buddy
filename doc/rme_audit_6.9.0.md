@@ -6,7 +6,10 @@ Ported the 6.10.1 idle bed-assist policy, model-specific G123 manual movement
 guards, homing-aware Move Axis UI and material/color labels. Internal spool
 identifiers remain intact. Normal G0/G1/G2/G3 print paths are unchanged.
 Explicit bed commands, safety shutdown and print start revoke idle bed boost.
-Full release build validation is pending. Hardware thermal response, safety
+Full 15-image release matrix passed (9m17s), built from cfbac674e. Shared
+RME policy tests: 55 cases / 432,352 assertions; chamber: six / 35 assertions.
+INDX flash 66.88%, RAM 77.47%; MINI language flash 99.92%.
+Hardware thermal response, safety
 timeout, print transitions, manual jogs and material-label checks remain pending.
 
 ## Independent lighting controls — 2026-09-16
