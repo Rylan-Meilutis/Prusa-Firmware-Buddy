@@ -1,5 +1,27 @@
 # 6.9.0-RME Firmware
 
+## Pending: manual movement and loaded-material UI
+
+- Enforce model-specific manual travel limits inside G123, not only serial
+  G0/G1. INDX excludes cleaner/dock service areas; XL excludes rear docks.
+- Move Axis offers Auto Home and disables unknown axes instead of presenting
+  an invented home corner as a usable position. Backend homing checks also
+  protect queued or manually supplied G123 commands.
+- Tool selection and Loaded Filaments show the base material and loaded-color
+  swatch, not profile identifiers such as PLA-00D. Stored profiles are unchanged.
+- Physical jog/keep-out and display validation remains required before release.
+
+## Pending: idle chamber bed assistance
+
+- A chamber target set while idle can heat the bed automatically on CORE One,
+  CORE One INDX and CORE One L. Temporary boost is chamber target +40 C,
+  capped at 100 C and the machine's bed limit; existing higher bed targets stay.
+- Restore the previous bed target at chamber temperature, target Off or print
+  start. Explicit bed commands and safety shutdown take priority until the next
+  chamber request. Automatic updates do not reset heater safety timeouts.
+- Normal print bed targets and print cooling remain unchanged. Existing chamber
+  cooling controls remain in effect. Hardware heating/cooling validation pending.
+
 ## Independent lighting controls — 2026-09-16
 
 - Chamber On/Locked respect internal/external Active-profile enable settings.

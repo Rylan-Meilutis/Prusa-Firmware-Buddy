@@ -90,6 +90,29 @@ void ScreenMenuMove::windowEvent(window_t *sender, GUI_event_t event, void *para
 }
 
 void ScreenMenuMove::loop() {
+
+    const auto valid_axes = marlin_vars().manual_homed_axes.get();
+    const bool processing = marlin_vars().is_processing.get() || marlin_vars().gqueue.get() != 0;
+    if (was_processing && !processing && IWindowMenuItem::edited_item() == nullptr) {
+        // Homing may establish validity before its final backoff finishes.
+        // Also restore the actual position after an interrupted/rejected jog.
+        homed_axes = 0xff;
+    }
+    was_processing = processing;
+    if (homed_axes != valid_axes) {
+        homed_axes = valid_axes;
+        const bool xy_known = (homed_axes & 3) == 3;
+        const bool z_known = (homed_axes & 4) != 0;
+        Item<MI_AXIS_X>().set_enabled(xy_known);
+        Item<MI_AXIS_Y>().set_enabled(xy_known);
+        Item<MI_AXIS_Z>().set_enabled(z_known);
+        // Disabled unknown axes display zero, not a guessed home position.
+        Item<MI_AXIS_X>().set_value(xy_known ? marlin_vars().native_pos[X_AXIS].get() : 0);
+        Item<MI_AXIS_Y>().set_value(xy_known ? marlin_vars().native_pos[Y_AXIS].get() : 0);
+        Item<MI_AXIS_Z>().set_value(z_known ? marlin_vars().native_pos[Z_AXIS].get() : 0);
+        queued_pos = { { Item<MI_AXIS_X>().value(), Item<MI_AXIS_Y>().value(), Item<MI_AXIS_Z>().value(), e_axis_offset } };
+    }
+
     const bool is_temp_set = (marlin_vars().active_hotend().target_nozzle > 0);
 
     // Update whether we can move the extruder or not
@@ -133,12 +156,16 @@ void ScreenMenuMove::plan_moves() {
     }
 
     ArrayStringBuilder<MARLIN_MAX_REQUEST> gcode;
-    gcode.append_printf("G123 X%f Y%f Z%f E%f",
-        (double)target_pos.x,
-        (double)target_pos.y,
-        (double)target_pos.z,
-        (double)target_pos.e //
-    );
+    gcode.append_string("G123");
+    if ((homed_axes & 3) == 3) {
+        gcode.append_printf(" X%f Y%f", (double)target_pos.x, (double)target_pos.y);
+    }
+    if (homed_axes & 4) {
+        gcode.append_printf(" Z%f", (double)target_pos.z);
+    }
+    if (active_extruder < EXTRUDERS) {
+        gcode.append_printf(" E%f", (double)target_pos.e);
+    }
     if (marlin_client::gcode_try(gcode.str()) != marlin_client::GcodeTryResult::Submitted) {
         return;
     }

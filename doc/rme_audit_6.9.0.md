@@ -1,5 +1,14 @@
 # RME 6.9.0 port audit
 
+## Idle chamber heating, manual motion and material labels — 2026-09-16
+
+Ported the 6.10.1 idle bed-assist policy, model-specific G123 manual movement
+guards, homing-aware Move Axis UI and material/color labels. Internal spool
+identifiers remain intact. Normal G0/G1/G2/G3 print paths are unchanged.
+Explicit bed commands, safety shutdown and print start revoke idle bed boost.
+Full release build validation is pending. Hardware thermal response, safety
+timeout, print transitions, manual jogs and material-label checks remain pending.
+
 ## Independent lighting controls — 2026-09-16
 
 Chamber On/Locked honor Active-profile channel masks. LCD Off/On uses a
