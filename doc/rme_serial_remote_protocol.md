@@ -16,6 +16,10 @@ controller without allocating a GUI request. On expires after the configured
 activity timeout; Locked does not expire. These runtime modes do not rewrite
 saved light profiles and are cleared by session release, reboot, or a local
 brightness override. Printer Tune exposes the same mode and current tool map.
+Mode changes and timed On expiry restart the shared LCD/idle-status countdown
+and release legacy host active holds. Locked locks only chamber output; it does
+not lock the screen or idle status LEDs on. Printing, door-open and operation
+holds retain their normal priority. Read-only polling does not reset the timer.
 Mapping remains read-only during a job. Tool labels on the LCD are one-based;
 G-code tool indices and wire-format slots are zero-based.
 
