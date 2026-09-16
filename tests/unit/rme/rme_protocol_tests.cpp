@@ -56,6 +56,29 @@ TEST_CASE("Shared chamber mode expires once and survives clock rollover", "[rme]
     }
 }
 
+TEST_CASE("Chamber mode transitions restart shared screen and status idle countdown", "[rme][light][regression]") {
+    rme_light_mode::State mode;
+    rme_light_hold::State hold;
+    uint32_t timestamp = 0;
+    REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
+    REQUIRE(mode.set(0, 1234));
+    rme_light_mode::restart_idle_countdown(hold, timestamp, 1234);
+    CHECK_FALSE(hold.active());
+    CHECK(hold.consume_automatic_release());
+    CHECK(timestamp == 1234);
+
+    REQUIRE(mode.set(1, 2000));
+    REQUIRE(mode.expire(3000, 1));
+    rme_light_mode::restart_idle_countdown(hold, timestamp, 3000);
+    CHECK(timestamp == 3000);
+    CHECK_FALSE(mode.expire(4000, 1));
+    CHECK(timestamp == 3000); // Subsequent polls must not extend the timer.
+
+    rme_light_mode::restart_idle_countdown(hold, timestamp, 0);
+    CHECK(timestamp != 0);
+    CHECK(uint32_t(0 - timestamp) == 1);
+}
+
 TEST_CASE("Host keepalive remains active when calibration suspends auto reports", "[rme][serial][regression]") {
     using buddy::host_keepalive_policy::should_emit;
 

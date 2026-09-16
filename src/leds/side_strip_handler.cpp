@@ -198,6 +198,7 @@ void SideStripHandler::update() {
     std::lock_guard lock(mutex);
     const uint32_t time_ms = ticks_ms();
     if (chamber_mode_state.expire(time_ms, activity_timeout_s)) {
+        restart_idle_countdown(time_ms);
         state = SideStripState::unknown;
     }
     const auto printer_state = marlin_vars().print_state.get();
@@ -309,18 +310,35 @@ rme_light_hold::SetResult SideStripHandler::set_rme_active_hold(const bool activ
 }
 
 void SideStripHandler::set_chamber_mode(const uint8_t mode) {
-    if (mode > 2) return;
+    if (mode > 2) {
+        return;
+    }
     std::lock_guard lock(mutex);
-    chamber_mode_state.set(mode, ticks_ms());
+    const uint32_t now = ticks_ms();
+    chamber_mode_state.set(mode, now);
+    restart_idle_countdown(now);
     state = SideStripState::unknown;
+}
+
+void SideStripHandler::restart_idle_countdown(const uint32_t now) {
+    // Caller holds mutex. The chamber selector supersedes legacy host holds
+    // and custom colors, but must not override printing, operations or doors.
+    rme_light_mode::restart_idle_countdown(rme_hold, active_timestamp_ms, now);
+    custom_color.reset();
+    startup_activity_active = false;
+    host_idle_override = false;
 }
 
 uint8_t SideStripHandler::chamber_mode() const {
     std::lock_guard lock(mutex);
-    if (chamber_mode_state.mode >= 0) return chamber_mode_state.mode;
-    if (rme_hold.active()) return 2;
+    if (chamber_mode_state.mode >= 0) {
+        return chamber_mode_state.mode;
+    }
+    if (rme_hold.active()) {
+        return 2;
+    }
     const auto color = get_color_for_state(state);
-    return std::max({color.r, color.g, color.b, color.w}) > 0 ? 1 : 0;
+    return std::max({ color.r, color.g, color.b, color.w }) > 0 ? 1 : 0;
 }
 
 int8_t SideStripHandler::chamber_mode_override() const {
@@ -621,7 +639,9 @@ void SideStripHandler::set_print_brightness(uint8_t value) {
 
 uint8_t SideStripHandler::get_print_light_brightness() const {
     std::lock_guard lock(mutex);
-    if (chamber_mode_state.mode >= 0) return chamber_mode_state.mode == 0 ? 0 : max_brightness;
+    if (chamber_mode_state.mode >= 0) {
+        return chamber_mode_state.mode == 0 ? 0 : max_brightness;
+    }
     return print_active_for_leds() && print_brightness_overridden ? print_brightness_override : print_brightness;
 }
 
@@ -715,7 +735,9 @@ void SideStripHandler::change_state(SideStripState state) {
 
 ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
-    if (chamber_mode_state.mode >= 0) return base_color.clamp(chamber_mode_state.mode == 0 ? 0 : max_brightness);
+    if (chamber_mode_state.mode >= 0) {
+        return base_color.clamp(chamber_mode_state.mode == 0 ? 0 : max_brightness);
+    }
 
     const LightState light_state = light_state_for_strip_state(state);
     if (!(main_light_state_mask & light_state_bit(light_state))) {

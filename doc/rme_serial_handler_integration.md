@@ -18,6 +18,10 @@ Hardware acceptance: change each override from both screens during a serial
 print; verify timed On returns to Off, Locked remains on, mapping stays correct
 after tool changes, and edits disable on disconnect/transfer. Run a long-print
 heap/stack soak before claiming hardware memory stability.
+Idle lighting acceptance: select Locked then Off, and separately let timed On
+expire. With no door/operation hold, verify the LCD and idle status LEDs advance
+through their configured Active/Idle/Deep Idle profiles despite continued host
+polling. Repeat after a legacy LIGHT HOLD; printing/error indications must remain.
 
 1. Use the same serialized writer as normal G-code. Never open a competing
    process or serial descriptor.
