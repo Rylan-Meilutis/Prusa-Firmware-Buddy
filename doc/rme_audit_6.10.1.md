@@ -35,7 +35,7 @@ PA retains five-cycle batching, increases all material cooling to 15 seconds,
 then uses quick_clean after the dedicated strand-break wipe and cooling,
 before eject_blob. Native cleaner offsets and keep-outs remain authoritative.
 Host suites: 14 extrusion cases / 32 assertions; 56 RME cases / 432,364
-assertions. INDX release build with both restored menu switches passes
+assertions. INDX release build with both restored menu switches passes from 73c32dc4c
 (66.89% flash, 77.45% RAM); no new heap
 allocations. Publish scope is INDX on 6.10.1 and a matching 6.9.0 port;
 other machine images remain unchanged. Hardware checks remain pending.

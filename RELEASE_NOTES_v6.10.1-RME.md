@@ -24,8 +24,8 @@ even if you already have 6.10.1-RME. Other machine images remain the September
   native calibrated main-wiper pass before pellet ejection.
 - Host regressions: 14 extrusion cases / 32 assertions and 56 RME cases /
   432,364 assertions pass. INDX release build with restored menu switches
-  passes (66.89% flash, 77.45%
-  RAM); no new heap allocations. Physical filament-break recovery, cancelled-print
+  passes from source 73c32dc4c (66.89% flash, 77.45% RAM);
+  no new heap allocations. Physical filament-break recovery, cancelled-print
   filtration, and cooled-pellet/main-wiper behavior require hardware testing.
   Hardware validation is pending; this INDX update is provided for testing.
 
