@@ -1,5 +1,17 @@
 # RME 6.9.0 port audit
 
+## Door-open RME lighting priority — 2026-09-17
+
+Ported the 6.10.1 level-triggered door hold. Temporary chamber Off/On cannot
+override an already-open door when Door Holds Active is enabled. Apply the
+policy on host selection and before timer expiry; keep configured active
+channel masks/brightness, Locked mode and independent LCD controls intact.
+Chamber toggles do not restart the idle countdown while the door holds active;
+the existing closing edge starts the normal timeout. No sensor calibration
+changes or heap allocations. Shared regression suite: 58 cases / 432,403
+assertions. Both-version INDX compilation is required before publishing;
+physical door/toggle testing remains pending. Other machine images unchanged.
+
 ## INDX loadcell, cancellation filtration and PA cleanup — 2026-09-17
 
 Ported the 6.10.1 step-gap tolerance and velocity averaging for loadcell

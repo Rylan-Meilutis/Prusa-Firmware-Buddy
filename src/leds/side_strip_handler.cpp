@@ -208,6 +208,9 @@ void SideStripHandler::set_custom_color(ColorRGBW color, uint32_t duration_ms, u
 void SideStripHandler::update() {
     std::lock_guard lock(mutex);
     const uint32_t time_ms = ticks_ms();
+    if (chamber_mode_state.apply_door_hold(door_open_for_leds && door_holds_active)) {
+        state = SideStripState::unknown;
+    }
     if (chamber_mode_state.expire(time_ms, activity_timeout_s)) {
         restart_idle_countdown(time_ms);
         state = SideStripState::unknown;
@@ -327,6 +330,7 @@ void SideStripHandler::set_chamber_mode(const uint8_t mode) {
     std::lock_guard lock(mutex);
     const uint32_t now = ticks_ms();
     chamber_mode_state.set(mode, now);
+    chamber_mode_state.apply_door_hold(door_open_for_leds && door_holds_active);
     restart_idle_countdown(now);
     state = SideStripState::unknown;
 }
@@ -342,7 +346,7 @@ void SideStripHandler::set_screen_on(const bool on) {
 void SideStripHandler::restart_idle_countdown(const uint32_t now) {
     // Caller holds mutex. The chamber selector supersedes legacy host holds
     // and custom colors, but must not override printing, operations or doors.
-    rme_light_mode::restart_idle_countdown(rme_hold, active_timestamp_ms, now);
+    rme_light_mode::restart_idle_countdown(rme_hold, active_timestamp_ms, now, door_open_for_leds && door_holds_active);
     custom_color.reset();
     startup_activity_active = false;
     host_idle_override = false;
