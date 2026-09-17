@@ -37,8 +37,8 @@ before eject_blob. Native cleaner offsets and keep-outs remain authoritative.
 Host suites: 14 extrusion cases / 32 assertions; 56 RME cases / 432,364
 assertions. INDX release build with both restored menu switches passes
 (66.89% flash, 77.45% RAM); no new heap
-allocations. Publish scope is the INDX 6.10.1 image only; the other machine
-images and 6.9.0 release remain unchanged. Hardware checks remain pending.
+allocations. Publish scope is INDX on 6.10.1 and a matching 6.9.0 port;
+other machine images remain unchanged. Hardware checks remain pending.
 
 ### Manual movement and material UI — 2026-09-16
 
