@@ -1,6 +1,41 @@
 # 6.9.0-RME Firmware
 
-## Pending: manual movement and loaded-material UI
+## INDX test update — flow monitoring and cleanup, 2026-09-17
+
+This update replaces only `coreone_indx_6.9.0-RME.bbf`. Download it again
+even if you already have 6.9.0-RME. Other machine images remain the September
+16 build; the shared fixes described below are not yet rebuilt for them.
+
+- Restore Loadcell Filament Runout and Loadcell Filament Movement switches
+  in INDX Settings and in-print Tune. Both save through the existing M591
+  permanent-setting handlers. Slicer-issued M591 overrides still apply.
+
+- Preserve loadcell fault evidence across up to 150 ms between executed E
+  steps. Quantized motor feedback must not reset the monitor on every sample;
+  real travel/retraction still resets evidence. Detection still requires a
+  valid PA pressure reference and enabled M591 runout/movement policies.
+- Treat Aborted as a terminal job state for filtration, so a qualifying
+  cancelled print starts the configured post-print cycle while its result
+  screen remains open. Keep finishing/unloading/parking in active job mode.
+  The manual filter-cycle control is also available on the Aborted screen.
+- All INDX Auto PA materials now receive 15 seconds of fan-assisted pellet
+  cooling (previously 4 or 12 seconds). Keep five high/low cycles per cleanup
+  plus a final partial batch. After strand break-off and cooling, run the
+  native calibrated main-wiper pass before pellet ejection.
+- Host regressions: 14 extrusion cases / 32 assertions and 56 RME cases /
+  432,364 assertions pass. INDX release compilation is required before
+  publication; no new heap allocations. Physical filament-break recovery, cancelled-print
+  filtration, and cooled-pellet/main-wiper behavior require hardware testing.
+  Hardware validation is pending; this INDX update is provided for testing.
+
+## Build validation — 2026-09-16 chamber/motion update
+
+All 15 release images passed; firmware source cfbac674e. Shared regression
+suites pass: 55 RME cases and six chamber-policy cases. Hardware heating,
+manual-motion and display validation remains pending. Normal print-motion
+handlers G0/G1/G2/G3 are unchanged by this update.
+
+## Manual movement and loaded-material UI — 2026-09-16
 
 - Enforce model-specific manual travel limits inside G123, not only serial
   G0/G1. INDX excludes cleaner/dock service areas; XL excludes rear docks.
@@ -9,9 +44,9 @@
   protect queued or manually supplied G123 commands.
 - Tool selection and Loaded Filaments show the base material and loaded-color
   swatch, not profile identifiers such as PLA-00D. Stored profiles are unchanged.
-- Physical jog/keep-out and display validation remains required before release.
+- Physical jog/keep-out and display validation remains pending.
 
-## Pending: idle chamber bed assistance
+## Idle chamber bed assistance — 2026-09-16
 
 - A chamber target set while idle can heat the bed automatically on CORE One,
   CORE One INDX and CORE One L. Temporary boost is chamber target +40 C,
@@ -26,7 +61,7 @@
 
 - Chamber On/Locked respect internal/external Active-profile enable settings.
 - Independent LCD on/off protocol and live LCD/per-print brightness snapshots.
-- CORE One INDX build and 54 RME unit tests passed; physical validation pending.
+- Full 15-image release matrix and 54 RME unit tests passed; physical validation pending.
 
 ## Summary
 
@@ -36,6 +71,19 @@ Buddy 6.9.0. The upstream 6.9.0 INDX, nozzle-cleaner, UI, motion, persistent
 store, and crash-dump changes are retained.
 
 ## RME integration changes
+
+- Restore missing RME Settings links: lighting state profiles, chamber mode
+  and timers, supported status/external lights, Serial Printing, Printer Lock,
+  Heater Safety, PID, USB settings export, custom filament metadata and UI
+  Theme. Hardware-specific guards remain; physical menu validation is pending.
+
+- Restart the shared screen and idle status-LED countdown when the chamber
+  light selector changes or timed On expires. Clear stale legacy RME active
+  holds without overriding print, door-open, operation or safety behavior.
+  Door transitions and local activity also clear slider Off so the chamber
+  lights wake with the LCD. Locked remains on; polling is not activity.
+  Regression suite: 53 tests, 432,334 assertions. Hardware idle-cycle validation
+  remains outstanding.
 
 - Add synchronized live print controls with RME Compatibility 0.1.0b95:
   Off/On/Locked chamber lighting, speed, per-slot flow, and stealth mode.
@@ -247,8 +295,8 @@ and carry the `6.9.0-RME` firmware suffix.
   the nozzle and accumulating on the toolhead.
 - Standard `M141`/`M191` chamber targets now use an independently heated bed
   on CORE One-family machines with a chamber sensor. Low-speed toolhead air
-  circulation (plus CORE One L under-bed fans) spreads heat without ever
-  changing the bed target, active prints retain control, and
+  circulation (plus CORE One L under-bed fans) spreads heat. Idle bed assistance
+  is described above; active prints retain control of the bed target, and
   the existing xBuddy Extension cooling method remains unchanged.
 - INDX automatic PA now runs the toolhead fan while a wiped purge pellet cools
   for four seconds before ejection. The pellet is solid enough to leave the

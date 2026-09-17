@@ -82,6 +82,29 @@ M976 exit paths.
 
 Keep pressure-monitor suspension reference-counted. PA batches, generic filament load/unload, and MMU command guards overlap during calibration and tool changes; monitoring must remain disabled until the outermost operation finishes. On final release, discard the pre-maintenance E/time baseline, refresh the idle baseline after settled layer travel, require three seconds and 3 mm of continuous forward extrusion before pressure evidence qualifies, then require both five continuous seconds and 5 mm of missing/collapsed pressure before raising a fault. A healthy-pressure sample, pause, retraction, load, or unload resets that bad-evidence timer and distance. Sustained high pressure alone is a soft max-flow marker; it becomes a `flow_breakout` fault only after pressure subsequently collapses. Runtime expected pressure must use the calibrated load difference, not the absolute tared low-speed load. Regression-test that thick purge lines, layer transitions, and final MMU unload cannot raise `M1601`, that every PA-related MMU unload is followed by front-strip nozzle cleaning before any cross-bed move, that the nozzle parks clear of the anchor before target restoration/cooldown, and that results below 0.75 confidence retry before completing successfully with the fallback after the bounded safety limit. A weak result must not use `SERIAL_ERROR_MSG`, because serial hosts interpret it as a print-cancel condition. Stuck-filament recovery must expose Continue, Unload, and Abort, acknowledge/rearm the fault latch, restore any displaced X/Y/Z axis before successful resume, and never emit a host resume after abort. Preserve direct paused-host actions `M1601 C`, `M1601 U`, and `M1601 A`; these must be consumed from serial RX while the foreground M1601 is blocked and ignored safely when no matching prompt is active. Aborting from the stuck-filament dialog must retain the printing FSM through normal cleanup and show the stopped-result screen. Connect may report Finished/Stopped only while the matching normal or serial result UI is active; once the home screen is active it must report Idle.
 
+The loadcell monitor must tolerate bounded gaps between discrete executed E
+steps (150 ms maximum), without counting a stationary sample as new forward
+motion or resetting evidence at every sample. Average step velocity across
+the gap; real travel/retraction still resets evidence. Runout has a separate
+fast qualification path; do not conflate it with the longer collapse policy.
+Preserve explicit M591 enable/disable settings and the valid-reference gate.
+Expose both Loadcell Filament Runout and Loadcell Filament Movement in INDX
+Settings and in-print Tune; do not exclude them with a !HAS_INDX menu guard.
+Test quantized healthy extrusion followed by a break, not only smooth E ramps.
+
+Post-print filtration must start on both Finished and Aborted, retaining
+eligibility through unload/park cleanup. Do not use is_abort_state alone as
+the active-job test: it includes Aborted. Keep the manual filter-cycle menu
+on the same state predicate. Validate a cancelled serial print while leaving
+its result screen open, including the door early-stop prompt.
+
+INDX PA cleanup remains every five high/low cycles plus a final remainder:
+dedicated strand-break wipe, 15-second fan-assisted cooling for every material,
+native main-wiper quick_clean pass, then pellet ejection. Do not scrub the
+main wiper before cooling the long PA strand. Use calibrated cleaner routes,
+not raw manual coordinates. Validate pellet release physically; elapsed time
+alone cannot guarantee solidification for every material and chamber condition.
+
 Keep two serial recovery slots outside the normal `BUFSIZE` streaming limit and
 leave them active at all times, including blocking heater waits before a
 pause/error FSM exists. The first absorbs a line already in flight and the

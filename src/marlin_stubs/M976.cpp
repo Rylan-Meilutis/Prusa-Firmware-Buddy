@@ -458,7 +458,7 @@ void extrude_flow(const float flow_mm3_s, const float seconds) {
     mapi::extruder_move(filament_speed * seconds, filament_speed, true);
 }
 
-buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection) {
+buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection, const uint8_t slot) {
     // Match PrusaPATuner's asymmetric 0.8/8.0 mm/s filament square wave.
     // Queue the complete burst before synchronizing: PA must see continuous
     // slow/fast transitions, not a stop between every leg.
