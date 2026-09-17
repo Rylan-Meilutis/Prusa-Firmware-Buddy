@@ -99,4 +99,13 @@ inline bool is_extended_paused_state(State state) {
     }
 }
 
+// Filtration follows the job through cleanup, but terminal result screens
+// must not hold it in mid-print mode (is_abort_state includes Aborted).
+inline bool is_filtration_job_active(State state) {
+    return is_printing_state(state) || is_extended_paused_state(state)
+        || (is_abort_state(state) && state != State::Aborted)
+        || state == State::Finishing_UnloadFilament
+        || state == State::Finishing_ParkHead;
+}
+
 } // namespace marlin_server

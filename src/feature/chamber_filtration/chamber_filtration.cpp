@@ -130,7 +130,7 @@ void ChamberFiltration::step() {
     }
 
     const auto print_state = marlin_vars().print_state.get();
-    const bool print_state_active = marlin_server::is_printing_state(print_state) || marlin_server::is_extended_paused_state(print_state) || marlin_server::is_abort_state(print_state);
+    const bool print_state_active = marlin_server::is_filtration_job_active(print_state);
     const bool required = needs_filtration();
     if (print_state_active && !is_printing_prev_) {
         needs_filtration_.reset();

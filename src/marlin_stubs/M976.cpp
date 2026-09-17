@@ -594,6 +594,13 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection, const uint8_t
     }
     planner.synchronize();
     GcodeSuite::dwell(cooling_ms);
+    // Scrub the main wiper after the dedicated strand break and cooling,
+    // not while a freshly molten strand can fold onto the toolhead. Native
+    // cleaner coordinates retain the calibrated wiper offsets/keep-outs.
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)) {
+        thermalManager.set_print_fan_speed(previous_fan_pwm);
+        return false;
+    }
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
         thermalManager.set_print_fan_speed(previous_fan_pwm);
         return false;

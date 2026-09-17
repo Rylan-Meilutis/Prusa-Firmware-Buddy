@@ -24,6 +24,7 @@
 #include <host_keepalive_policy.hpp>
 #include <m976_indx_pellet_policy.hpp>
 #include <serial_print_finalize_policy.hpp>
+#include <marlin_server_types/marlin_server_state.h>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
     #include <catch2/catch_test_macros.hpp>
@@ -154,11 +155,10 @@ TEST_CASE("INDX PA bounds pellet buildup without ejecting every cycle", "[rme][m
 }
 
 TEST_CASE("INDX PA lets a wiped pellet solidify before ejection", "[rme][m976][indx][pellet]") {
-    CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms >= 3000);
-    CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms <= 5000);
+    CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms == 15000);
 }
 
-TEST_CASE("High-temperature PA keeps five cycles and cools longer", "[rme][m976][indx][pellet]") {
+TEST_CASE("Every PA material keeps five cycles and cools for fifteen seconds", "[rme][m976][indx][pellet]") {
     using namespace buddy::m976_indx_pellet_policy;
     uint8_t pending = 0;
     for (int i = 0; i < 4; ++i) {
@@ -168,10 +168,22 @@ TEST_CASE("High-temperature PA keeps five cycles and cools longer", "[rme][m976]
     CHECK(pending == 5);
     CHECK(final_ejection_needed(pending));
     for (const auto material : { "PETG", "PCTG", "ASA", "ABS", "PC", "PA", "PPA", "HIPS" }) {
-        CHECK(cooling_delay_for(material, 220) == 12000);
+        CHECK(cooling_delay_for(material, 220) == 15000);
     }
-    CHECK(cooling_delay_for("custom", 230) == 12000);
-    CHECK(cooling_delay_for("PLA", 215) == 4000);
+    CHECK(cooling_delay_for("custom", 230) == 15000);
+    CHECK(cooling_delay_for("PLA", 215) == 15000);
+}
+
+TEST_CASE("Filtration leaves active job mode on both terminal result screens") {
+    using namespace marlin_server;
+    for (const auto state : { State::Printing, State::Paused, State::Aborting_Begin,
+             State::Aborting_WaitIdle, State::Aborting_UnloadFilament, State::Aborting_ParkHead,
+             State::Finishing_WaitIdle, State::Finishing_UnloadFilament, State::Finishing_ParkHead }) {
+        CHECK(is_filtration_job_active(state));
+    }
+    for (const auto state : { State::Aborted, State::Finished, State::Exit, State::Idle }) {
+        CHECK_FALSE(is_filtration_job_active(state));
+    }
 }
 
 TEST_CASE("RME exposes every INDX nozzle mismatch phase as a stable workflow", "[rme][indx]") {
