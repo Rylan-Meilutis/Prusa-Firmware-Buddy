@@ -5,6 +5,8 @@
 Updated INDX image only; download `coreone_indx_6.9.0-RME.bbf` again.
 Other machine images remain unchanged.
 
+INDX build passed from 717f7bedc; 58 RME cases / 432,403 assertions pass.
+
 - With Door Holds Active enabled, an already-open door now cancels temporary
   RME Off/On overrides continuously. It uses the configured active profile;
   it does not enable every LED channel or force full brightness.

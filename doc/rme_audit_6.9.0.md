@@ -9,7 +9,7 @@ channel masks/brightness, Locked mode and independent LCD controls intact.
 Chamber toggles do not restart the idle countdown while the door holds active;
 the existing closing edge starts the normal timeout. No sensor calibration
 changes or heap allocations. Shared regression suite: 58 cases / 432,403
-assertions. Both-version INDX compilation is required before publishing;
+assertions. INDX build passed from 717f7bedc (66.90% flash, 77.47% RAM);
 physical door/toggle testing remains pending. Other machine images unchanged.
 
 ## INDX loadcell, cancellation filtration and PA cleanup — 2026-09-17
