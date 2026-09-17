@@ -10,7 +10,8 @@ result screen; finishing cleanup retains eligibility. Manual cycle controls
 use the same predicate. PA cleanup stays at five cycles with 15-second
 fan-assisted cooling for every material and a main-wiper pass before ejection.
 Shared host regressions pass: 14 extrusion cases / 32 assertions and 56 RME
-cases / 432,364 assertions. INDX release build is the publication gate;
+cases / 432,364 assertions. INDX release build passed from 319ef9f2a
+(66.90% flash, 77.47% RAM);
 hardware break recovery, filtration and pellet release remain unverified.
 Only the INDX image is updated; other machine images remain unchanged.
 
