@@ -122,6 +122,42 @@ TEST_CASE("Door and local activity resume automatic lighting after slider Off", 
     CHECK(state.mode == 0); // Timer updates/polling are not activity.
 }
 
+TEST_CASE("An already open door overrides temporary RME light modes without restarting idle", "[rme][light][regression]") {
+    rme_light_mode::State mode;
+    rme_light_hold::State hold;
+    uint32_t timestamp = 100;
+    for (const uint8_t requested : { 0, 1, 0, 1 }) {
+        REQUIRE(mode.set(requested, 200));
+        CHECK(mode.apply_door_hold(true));
+        rme_light_mode::restart_idle_countdown(hold, timestamp, 200, true);
+        CHECK(mode.mode == -1); // Report/use the normal active-state profile.
+        CHECK(timestamp == 100);
+        CHECK_FALSE(mode.expire(10000, 1));
+        CHECK_FALSE(mode.apply_door_hold(true)); // Stable sensor polls.
+    }
+    // Closing the door resumes the normal countdown from closing time.
+    CHECK_FALSE(mode.apply_door_hold(false));
+    rme_light_mode::restart_idle_countdown(hold, timestamp, 11000, false);
+    CHECK(timestamp == 11000);
+    REQUIRE(mode.set(1, 11000));
+    CHECK_FALSE(mode.apply_door_hold(false));
+    CHECK(mode.expire(12000, 1));
+}
+
+TEST_CASE("Door lighting policy retains Locked and respects disabled door hold", "[rme][light]") {
+    rme_light_mode::State mode;
+    REQUIRE(mode.set(2, 100));
+    CHECK_FALSE(mode.apply_door_hold(true));
+    CHECK(mode.mode == 2);
+    CHECK_FALSE(mode.expire(10000, 1));
+    REQUIRE(mode.set(0, 100));
+    CHECK_FALSE(mode.apply_door_hold(false));
+    CHECK(mode.mode == 0);
+    REQUIRE(mode.set(1, 100));
+    CHECK_FALSE(mode.apply_door_hold(false));
+    CHECK(mode.expire(1100, 1));
+}
+
 TEST_CASE("Host keepalive remains active when calibration suspends auto reports", "[rme][serial][regression]") {
     using buddy::host_keepalive_policy::should_emit;
 
