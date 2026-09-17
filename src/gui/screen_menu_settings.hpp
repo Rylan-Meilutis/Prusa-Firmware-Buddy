@@ -67,8 +67,11 @@ using ScreenMenuSettingsBase = BasicScreenMenu<
     MI_LIGHTS,
 #endif
     MI_NETWORK,
-#if HAS_LOADCELL() && !HAS_INDX()
+#if HAS_LOADCELL()
     MI_STUCK_FILAMENT_DETECTION,
+    #if HAS_INDX()
+    MI_FILAMENT_MOVEMENT_DETECTION,
+    #endif
 #endif
 #if HAS_SWITCHABLE_AUTO_RETRACT()
     MI_AUTO_RETRACT_ENABLE,

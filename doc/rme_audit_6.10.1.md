@@ -7,6 +7,39 @@ session implementations.
 
 ## Release gates
 
+### INDX loadcell, cancellation filtration and PA cleanup — 2026-09-17
+
+Settings and Tune previously excluded INDX from the runout item and omitted
+the existing movement item entirely. Both now expose the two existing INDX
+switches, retaining M591 S/U with P persistence and queue-failure rollback.
+Non-INDX menu contents are unchanged. Check both menus on hardware; explicit
+slicer M591 overrides can still disable a detector after enabling it here.
+
+The sample-level pressure monitor previously discarded all forward/fault
+evidence whenever executed E was unchanged between loadcell samples. Added
+bounded 150 ms step-gap tolerance and velocity averaging over those gaps;
+no motion evidence is accrued during the gap itself, and real travel or
+negative E still resets evidence. Quantized healthy extrusion, subsequent
+pressure collapse, missing pressure, and travel/retraction regressions pass.
+This does not enable disabled M591 policies or create a reference when PA
+calibration has not supplied one. Confirm the failing job's M591 settings.
+
+Filtration used is_abort_state(), which includes the terminal Aborted screen.
+The shared filtration job predicate now excludes Aborted and includes all
+finishing cleanup states; the manual cycle menu uses the same predicate.
+Configured material/temperature eligibility and post-print enable remain in
+effect. State regression covers Printing, Paused, abort cleanup, finish
+cleanup, Aborted, Finished, Exit and Idle.
+
+PA retains five-cycle batching, increases all material cooling to 15 seconds,
+then uses quick_clean after the dedicated strand-break wipe and cooling,
+before eject_blob. Native cleaner offsets and keep-outs remain authoritative.
+Host suites: 14 extrusion cases / 32 assertions; 56 RME cases / 432,364
+assertions. INDX release build with both restored menu switches passes
+(66.89% flash, 77.45% RAM); no new heap
+allocations. Publish scope is the INDX 6.10.1 image only; the other machine
+images and 6.9.0 release remain unchanged. Hardware checks remain pending.
+
 ### Manual movement and material UI — 2026-09-16
 
 G123 now enforces per-model manual ranges and requires known positions;

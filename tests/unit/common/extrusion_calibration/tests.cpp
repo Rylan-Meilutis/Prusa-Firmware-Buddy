@@ -83,6 +83,65 @@ TEST_CASE("runtime monitor detects missing pressure during executed E motion") {
     REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
 }
 
+TEST_CASE("runtime runout survives samples between discrete extruder steps") {
+    using namespace buddy::extrusion_calibration;
+    Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    reset_pressure_monitor();
+    set_pressure_monitor_detection(true, false);
+    configure_pressure_monitor(reference, 0.8f, 8.0f);
+    record_loadcell_sample(1'000, 0, 0);
+    // 200 Hz loadcell sampling, 100 Hz discrete E steps: every other
+    // sample has no position change despite continuous 1 mm/s extrusion.
+    for (uint32_t i = 1; i <= 1'800; ++i) {
+        record_loadcell_sample(1'000 + i * 5'000, 0, (i / 2) * 0.01f);
+    }
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
+}
+
+TEST_CASE("runtime runout still resets across real travel and retraction") {
+    using namespace buddy::extrusion_calibration;
+    Score reference { .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    for (const bool retract : { false, true }) {
+        reset_pressure_monitor();
+        set_pressure_monitor_detection(true, false);
+        configure_pressure_monitor(reference, 0.8f, 8.0f);
+        uint32_t time = 1'000;
+        float e = 0;
+        record_loadcell_sample(time, 0, e);
+        for (unsigned segment = 0; segment < 12; ++segment) {
+            for (unsigned i = 0; i < 200; ++i) {
+                e += 0.005f;
+                record_loadcell_sample(time += 5'000, 0, e);
+            }
+            for (unsigned i = 0; i < 60; ++i) {
+                if (retract) {
+                    e -= 0.005f;
+                }
+                record_loadcell_sample(time += 5'000, 0, e);
+            }
+        }
+        REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+    }
+}
+
+TEST_CASE("quantized healthy extrusion is accepted and a later break is detected") {
+    using namespace buddy::extrusion_calibration;
+    Score reference { .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    reset_pressure_monitor();
+    set_pressure_monitor_detection(true, true);
+    configure_pressure_monitor(reference, 0.8f, 8.0f);
+    record_loadcell_sample(1'000, 0, 0);
+    uint32_t i = 1;
+    for (; i <= 1'000; ++i) {
+        record_loadcell_sample(1'000 + i * 5'000, 25, (i / 2) * 0.01f);
+    }
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+    for (; i <= 2'500; ++i) {
+        record_loadcell_sample(1'000 + i * 5'000, 0, (i / 2) * 0.01f);
+    }
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::pressure_collapse);
+}
+
 TEST_CASE("runtime runout detection is fast but requires continuous meaningful extrusion") {
     using namespace buddy::extrusion_calibration;
     Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };

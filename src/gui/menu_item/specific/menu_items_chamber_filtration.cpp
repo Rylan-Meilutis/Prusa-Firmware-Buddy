@@ -21,9 +21,7 @@ void MI_CHAMBER_FILTER_CYCLE::Loop() {
     const auto state = marlin_vars().print_state.get();
     set_enabled(chamber_filtration().is_enabled()
         && config_store().chamber_post_print_filtration_enable.get()
-        && !marlin_server::is_printing_state(state)
-        && !marlin_server::is_extended_paused_state(state)
-        && !marlin_server::is_abort_state(state));
+        && !marlin_server::is_filtration_job_active(state));
     SetLabel(chamber_filtration().post_print_remaining_s() ? _("Stop Filter Cycle") : _("Start Filter Cycle"));
 }
 
