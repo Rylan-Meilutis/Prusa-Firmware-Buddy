@@ -18,7 +18,7 @@ timestamp during an enabled open-door hold. The existing closing edge starts
 the timer. No door-sensor calibration or LCD override behavior is modified.
 Regression coverage includes repeated Off/On with a stable open sensor,
 expiry suppression, close/restart, Locked and disabled door hold.
-All 58 RME cases / 432,403 assertions pass. INDX final build passes
+All 58 RME cases / 432,403 assertions pass. INDX final build from 1a4533e79 passes
 (66.90% flash, 77.45% RAM). Publication covers INDX on 6.10.1 and 6.9.0;
 physical testing remains pending.
 
