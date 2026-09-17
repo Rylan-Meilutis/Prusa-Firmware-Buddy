@@ -7,6 +7,21 @@ session implementations.
 
 ## Release gates
 
+### Open-door lighting priority — 2026-09-17
+
+set_door_open exits early for unchanged sensor levels, so an RME Off/On set
+after opening could survive until another door edge. Apply door-hold priority
+both in set_chamber_mode and before temporary-mode expiry in update. Off/On
+return to automatic configured active lighting while Locked stays Locked.
+The shared countdown helper releases legacy holds but does not rewrite the
+timestamp during an enabled open-door hold. The existing closing edge starts
+the timer. No door-sensor calibration or LCD override behavior is modified.
+Regression coverage includes repeated Off/On with a stable open sensor,
+expiry suppression, close/restart, Locked and disabled door hold.
+All 58 RME cases / 432,403 assertions pass. INDX final build passes
+(66.90% flash, 77.45% RAM). Publication covers INDX on 6.10.1 and 6.9.0;
+physical testing remains pending.
+
 ### INDX loadcell, cancellation filtration and PA cleanup — 2026-09-17
 
 Settings and Tune previously excluded INDX from the runout item and omitted

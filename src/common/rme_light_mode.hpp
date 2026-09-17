@@ -7,13 +7,24 @@ constexpr uint8_t active_profile_brightness(int8_t mode, bool enabled, uint8_t b
     return mode > 0 && enabled ? brightness : 0;
 }
 // Shared LCD/status idle timer must resume even after a legacy locked hold.
-inline void restart_idle_countdown(rme_light_hold::State &hold, uint32_t &timestamp, uint32_t now) {
+inline void restart_idle_countdown(rme_light_hold::State &hold, uint32_t &timestamp, uint32_t now, bool door_holds_active = false) {
     hold.release_automatically();
-    timestamp = now ? now : UINT32_MAX; // Zero is inactive; bias one tick into the past.
+    if (!door_holds_active) {
+        timestamp = now ? now : UINT32_MAX; // Zero is inactive; bias one tick into the past.
+    }
 }
 
 // Caller owns synchronization. Fixed storage; no timers, queues or allocation.
 struct State {
+    // An open-door hold is a level, not only an opening event. Temporary
+    // Off/On must not defeat it; explicit Locked retains its semantics.
+    bool apply_door_hold(bool held) {
+        if (!held || (mode != 0 && mode != 1)) {
+            return false;
+        }
+        mode = -1;
+        return true;
+    }
     // Off is temporary darkness, not a lock against normal printer activity.
     bool resume_on_activity() {
         if (mode != 0) {

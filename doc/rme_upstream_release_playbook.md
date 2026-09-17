@@ -92,6 +92,13 @@ Expose both Loadcell Filament Runout and Loadcell Filament Movement in INDX
 Settings and in-print Tune; do not exclude them with a !HAS_INDX menu guard.
 Test quantized healthy extrusion followed by a break, not only smooth E ramps.
 
+Door Holds Active is level-triggered for chamber lighting: temporary RME
+Off/On must not defeat a door that is already open or expire during that hold.
+Do not restart the shared idle timer on chamber toggles while held; the closing
+edge starts it. Preserve configured active channel masks/brightness, Locked,
+disabled door-hold behavior, and independent LCD controls. Test toggles without
+any intervening sensor edge, not just opening after Off.
+
 Post-print filtration must start on both Finished and Aborted, retaining
 eligibility through unload/park cleanup. Do not use is_abort_state alone as
 the active-job test: it includes Aborted. Keep the manual filter-cycle menu

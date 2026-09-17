@@ -1,5 +1,18 @@
 # 6.10.1-RME Firmware
 
+## INDX test update — door-open RME lighting priority, 2026-09-17
+
+Updated INDX image only; download `coreone_indx_6.10.1-RME.bbf` again.
+Other machine images remain unchanged.
+
+- With Door Holds Active enabled, an already-open door now cancels temporary
+  RME Off/On overrides continuously. It uses the configured active profile;
+  it does not enable every LED channel or force full brightness.
+- RME chamber toggles no longer restart the shared idle countdown during an
+  open-door hold. Closing the door starts the usual activity timeout.
+- Locked mode, disabled door-hold behavior and the separate LCD control are
+  preserved. Physical door/toggle validation remains pending.
+
 ## INDX test update — flow monitoring and cleanup, 2026-09-17
 
 This update replaces only `coreone_indx_6.10.1-RME.bbf`. Download it again
