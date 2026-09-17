@@ -226,9 +226,14 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     }
 
     monitor_filtered_load += 0.12f * (load_g - monitor_filtered_load);
-    const float velocity = de / dt;
-    if (velocity <= 0.05f) {
+    if (de / dt <= 0.05f) {
         monitor_idle_time += dt;
+        // Executed E is quantized to motor steps. A loadcell sample between
+        // steps is not a travel/retraction and must not erase fault evidence.
+        // Do not count these samples as forward extrusion either.
+        if (de >= 0 && monitor_idle_time <= 0.15f) {
+            return;
+        }
         // Layer changes and travel can shift the loadcell's mechanical zero.
         // Follow the settled non-extruding baseline quickly enough that the
         // next long perimeter is not compared with the preceding layer.
@@ -244,8 +249,12 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     if (monitor_forward_time == 0 && monitor_idle_time > 0.15f) {
         monitor_idle_baseline = monitor_filtered_load;
     }
+    // Average executed velocity over the short step gap as well, rather
+    // than interpreting a discrete step as a high-speed pressure demand.
+    const float forward_dt = dt + (monitor_idle_time <= 0.15f ? monitor_idle_time : 0.0f);
+    const float velocity = de / forward_dt;
     monitor_idle_time = 0;
-    monitor_forward_time += dt;
+    monitor_forward_time += forward_dt;
     monitor_forward_e += std::max(0.0f, de);
     const float pressure = monitor_sign * (monitor_filtered_load - monitor_idle_baseline);
     const float expected = std::max(monitor_noise * 5.0f,
@@ -264,7 +273,7 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.20f;
     const bool missing_from_start = presence_qualified && pressure_missing && monitor_peak_pressure <= expected * 0.65f;
     const bool bad_pressure = (qualified && pressure_collapsed) || missing_from_start;
-    monitor_bad_time = bad_pressure ? monitor_bad_time + dt : 0;
+    monitor_bad_time = bad_pressure ? monitor_bad_time + forward_dt : 0;
     monitor_bad_e = bad_pressure ? monitor_bad_e + std::max(0.0f, de) : 0;
     monitor_collapse_seen = bad_pressure ? (monitor_collapse_seen || pressure_collapsed) : false;
 
@@ -272,7 +281,7 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // pressure curve is the soft melt-limit signal; a later collapse is skip.
     const bool breakout = qualified && velocity > monitor_low_velocity * 2.0f
         && pressure > expected + std::max(monitor_noise * 8.0f, monitor_low_pressure * 1.5f);
-    monitor_breakout_time = breakout ? monitor_breakout_time + dt : 0;
+    monitor_breakout_time = breakout ? monitor_breakout_time + forward_dt : 0;
     monitor_breakout_seen = monitor_breakout_seen || monitor_breakout_time > 1.0f;
 
     ExtrusionFault wanted = ExtrusionFault::none;

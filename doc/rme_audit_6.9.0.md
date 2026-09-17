@@ -1,5 +1,19 @@
 # RME 6.9.0 port audit
 
+## INDX loadcell, cancellation filtration and PA cleanup — 2026-09-17
+
+Ported the 6.10.1 step-gap tolerance and velocity averaging for loadcell
+pressure monitoring, plus both detection switches in Settings and Tune.
+M591 enable/disable policies and valid PA reference requirements remain.
+Filtration now exits active-job mode at Aborted, not only after leaving the
+result screen; finishing cleanup retains eligibility. Manual cycle controls
+use the same predicate. PA cleanup stays at five cycles with 15-second
+fan-assisted cooling for every material and a main-wiper pass before ejection.
+Shared host regressions pass: 14 extrusion cases / 32 assertions and 56 RME
+cases / 432,364 assertions. INDX release build is the publication gate;
+hardware break recovery, filtration and pellet release remain unverified.
+Only the INDX image is updated; other machine images remain unchanged.
+
 ## Idle chamber heating, manual motion and material labels — 2026-09-16
 
 Ported the 6.10.1 idle bed-assist policy, model-specific G123 manual movement

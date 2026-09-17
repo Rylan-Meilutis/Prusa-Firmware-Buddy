@@ -1,5 +1,33 @@
 # 6.9.0-RME Firmware
 
+## INDX test update — flow monitoring and cleanup, 2026-09-17
+
+This update replaces only `coreone_indx_6.9.0-RME.bbf`. Download it again
+even if you already have 6.9.0-RME. Other machine images remain the September
+16 build; the shared fixes described below are not yet rebuilt for them.
+
+- Restore Loadcell Filament Runout and Loadcell Filament Movement switches
+  in INDX Settings and in-print Tune. Both save through the existing M591
+  permanent-setting handlers. Slicer-issued M591 overrides still apply.
+
+- Preserve loadcell fault evidence across up to 150 ms between executed E
+  steps. Quantized motor feedback must not reset the monitor on every sample;
+  real travel/retraction still resets evidence. Detection still requires a
+  valid PA pressure reference and enabled M591 runout/movement policies.
+- Treat Aborted as a terminal job state for filtration, so a qualifying
+  cancelled print starts the configured post-print cycle while its result
+  screen remains open. Keep finishing/unloading/parking in active job mode.
+  The manual filter-cycle control is also available on the Aborted screen.
+- All INDX Auto PA materials now receive 15 seconds of fan-assisted pellet
+  cooling (previously 4 or 12 seconds). Keep five high/low cycles per cleanup
+  plus a final partial batch. After strand break-off and cooling, run the
+  native calibrated main-wiper pass before pellet ejection.
+- Host regressions: 14 extrusion cases / 32 assertions and 56 RME cases /
+  432,364 assertions pass. INDX release compilation is required before
+  publication; no new heap allocations. Physical filament-break recovery, cancelled-print
+  filtration, and cooled-pellet/main-wiper behavior require hardware testing.
+  Hardware validation is pending; this INDX update is provided for testing.
+
 ## Build validation — 2026-09-16 chamber/motion update
 
 All 15 release images passed; firmware source cfbac674e. Shared regression
