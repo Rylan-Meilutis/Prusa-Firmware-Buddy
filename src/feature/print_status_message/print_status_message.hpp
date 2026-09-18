@@ -158,6 +158,17 @@ struct PrintStatusMessage {
     Type type = Type::none;
     Data data;
 
+    // Routine heater progress belongs in the temperature/progress UI, not
+    // serial notification popups or the serial Messages page. Use the type
+    // rather than translated text so actual thermal errors remain visible.
+    constexpr bool is_temperature_wait() const {
+        return type == waiting_for_hotend_temp || type == waiting_for_bed_temp
+#if HAS_CHAMBER_API()
+            || type == waiting_for_chamber_temp
+#endif
+            ;
+    }
+
     bool operator==(const PrintStatusMessage &) const = default;
 
 private:

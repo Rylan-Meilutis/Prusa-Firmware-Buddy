@@ -2,6 +2,16 @@
 
 ## Unreleased — persistent INDX Auto PA cache
 
+- Keep serial-print result screens visible after cancellation as well as
+  success, including legacy serial UI mode. Settings opens filtration controls;
+  Continue dismisses the result without resuming the aborted job. Reprint asks
+  for bed-clear confirmation and requests a full restart through the matching
+  RME Compatibility plugin, which owns the streamed file.
+
+- Suppress routine hotend/bed/chamber temperature-wait notifications and their
+  current/target temperature text from the serial Messages page. Normal heater
+  progress, temperature telemetry and thermal errors are unchanged.
+
 - Fix RME light Off flickering back on during serial prints: streamed job
   commands no longer count as user lighting activity. Idle commands, local
   interaction and the configured door-open hold retain their wake behavior.

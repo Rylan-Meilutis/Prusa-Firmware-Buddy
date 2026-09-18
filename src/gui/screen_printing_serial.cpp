@@ -13,6 +13,7 @@
 #include "img_resources.hpp"
 #include "screen_printing_end_result.hpp"
 #include <serial_printing.hpp>
+#include <serial_print_finalize_policy.hpp>
 #include <fsm_loadunload_type.hpp>
 #include <fsm/filament_change_phases.hpp>
 #include <marlin_server_types/client_response.hpp>
@@ -38,6 +39,7 @@
 #include <option/has_chamber_filtration_api.h>
 #if HAS_CHAMBER_FILTRATION_API()
     #include <feature/chamber_filtration/chamber_filtration.hpp>
+    #include <gui/screen/screen_chamber_filtration.hpp>
 #endif
 #if HAS_LEDS()
     #include <leds/led_manager.hpp>
@@ -47,6 +49,10 @@
 #endif
 
 namespace {
+bool is_print_result(marlin_server::State state) {
+    return buddy::serial_print_finalize_policy::is_result(state);
+}
+
 point_i16_t get_terminal_location() {
     constexpr int16_t term_width = width(GuiDefaults::DefaultFont) * screen_printing_serial_data_t::terminal_columns;
     constexpr auto x = GuiDefaults::RectScreenBody.Left() + (GuiDefaults::RectScreenBody.Width() - term_width) / 2;
@@ -364,19 +370,6 @@ const char *cold_pull_status_label(PhasesColdPull phase) {
 }
 #endif
 
-bool post_print_filtration_active() {
-#if HAS_CHAMBER_FILTRATION_API()
-    return buddy::chamber_filtration().post_print_remaining_s() > 0;
-#else
-    return false;
-#endif
-}
-
-void stop_post_print_filtration() {
-#if HAS_CHAMBER_FILTRATION_API()
-    buddy::chamber_filtration().stop_post_print_filtration();
-#endif
-}
 } // namespace
 
 screen_printing_serial_data_t::screen_printing_serial_data_t()
@@ -398,7 +391,7 @@ screen_printing_serial_data_t::screen_printing_serial_data_t()
     , w_message_value(this, message_value_rect, is_multiline::yes)
     , time_dots(this, time_dots_rect, static_cast<uint8_t>(TimeItem::_count))
     , page_dots(this, page_dots_rect, 2)
-    , last_state(marlin_server::State::Aborted) {
+    , last_state(marlin_server::State::Idle) {
     ClrMenuTimeoutClose();
     ClrOnSerialClose();
 
@@ -464,13 +457,13 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
     marlin_server::State state = marlin_vars().print_state;
 
     if (state != last_state) {
-        if (state == marlin_server::State::Finished) {
-            header.SetText(_("PRINT FINISHED"));
+        if (is_print_result(state)) {
+            header.SetText(state == marlin_server::State::Finished ? _("PRINT FINISHED") : _("PRINT CANCELED"));
             finished_stat = FinishedStat::duration;
             last_finished_stat_switch_s = ticks_s();
             update_finished_summary();
             set_page(Page::message);
-        } else if (last_state == marlin_server::State::Finished) {
+        } else if (is_print_result(last_state)) {
             header.SetText(_(caption));
         }
 
@@ -495,14 +488,14 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             lock_buttons_applied = false;
             update_action_buttons(state);
         }
-        if (!printer_lock::locked() && state == marlin_server::State::Finished) {
+        if (!printer_lock::locked() && is_print_result(state)) {
             update_action_buttons(state);
         }
 
         update_progress();
         update_status();
         update_messages();
-        if (state == marlin_server::State::Finished) {
+        if (is_print_result(state)) {
             update_finished_summary();
         } else {
             if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy) {
@@ -659,16 +652,11 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
 
     switch (state) {
     case marlin_server::State::Finished:
-        if (post_print_filtration_active()) {
-            EnableButton(BtnSocket::Middle);
-            SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Stop, LabelRes::StopFilter);
-        } else {
-            DisableButton(BtnSocket::Middle);
-        }
-        SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
-        break;
     case marlin_server::State::Aborted:
-        DisableButton(BtnSocket::Middle);
+        // Filtration controls remain under Settings, leaving the result
+        // actions identical whether or not a filter cycle is running.
+        EnableButton(BtnSocket::Middle);
+        SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
         SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
         break;
     case marlin_server::State::Paused:
@@ -972,6 +960,11 @@ void screen_printing_serial_data_t::update_messages() {
 
         serial_data_seen = true;
 
+        if (msg.message.is_temperature_wait()) {
+            last_message_id = msg.id;
+            return true;
+        }
+
         ArrayStringBuilder<256> buf;
         PrintStatusMessageFormatterBuddy::format(buf, msg.message);
         if (should_show_host_message(buf.str())) {
@@ -993,7 +986,7 @@ bool screen_printing_serial_data_t::status_page_available() const {
 }
 
 void screen_printing_serial_data_t::set_page(Page page) {
-    if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy && marlin_vars().print_state != marlin_server::State::Finished) {
+    if (SerialPrinting::ui_mode() == SerialPrintingUiMode::legacy && !is_print_result(marlin_vars().print_state)) {
         page = Page::legacy;
     }
 
@@ -1040,7 +1033,7 @@ void screen_printing_serial_data_t::toggle_page() {
     }
 
     user_selected_page = true;
-    if (marlin_vars().print_state == marlin_server::State::Finished) {
+    if (is_print_result(marlin_vars().print_state)) {
         advance_finished_stat(true);
         update_finished_summary();
         return;
@@ -1049,7 +1042,7 @@ void screen_printing_serial_data_t::toggle_page() {
 }
 
 bool screen_printing_serial_data_t::can_toggle_pages() const {
-    if (marlin_vars().print_state == marlin_server::State::Finished) {
+    if (is_print_result(marlin_vars().print_state)) {
         return finished_stat_count() > 1;
     }
     return SerialPrinting::ui_mode() == SerialPrintingUiMode::progress && !status_page_available() && page_count() > 1;
@@ -1073,7 +1066,7 @@ void screen_printing_serial_data_t::advance_page() {
 }
 
 void screen_printing_serial_data_t::retreat_page() {
-    if (marlin_vars().print_state == marlin_server::State::Finished) {
+    if (is_print_result(marlin_vars().print_state)) {
         advance_finished_stat(false);
         update_finished_summary();
         return;
@@ -1095,7 +1088,7 @@ void screen_printing_serial_data_t::retreat_page() {
 }
 
 size_t screen_printing_serial_data_t::page_count() const {
-    if (marlin_vars().print_state == marlin_server::State::Finished) {
+    if (is_print_result(marlin_vars().print_state)) {
         return finished_stat_count();
     }
 
@@ -1112,7 +1105,7 @@ size_t screen_printing_serial_data_t::page_count() const {
 }
 
 size_t screen_printing_serial_data_t::current_page_index() const {
-    if (marlin_vars().print_state == marlin_server::State::Finished) {
+    if (is_print_result(marlin_vars().print_state)) {
         return finished_stat_index();
     }
 
@@ -1142,10 +1135,16 @@ void screen_printing_serial_data_t::update_page_dots() {
 void screen_printing_serial_data_t::tuneAction() {
     if (printer_lock::locked()) {
         if (unlock_machine()) {
-            last_state = marlin_server::State::Aborted;
+            last_state = marlin_server::State::Idle;
         }
         return;
     }
+#if HAS_CHAMBER_FILTRATION_API()
+    if (is_print_result(marlin_vars().print_state)) {
+        Screens::Access()->Open(ScreenFactory::Screen<ScreenChamberFiltration>);
+        return;
+    }
+#endif
     Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuTune>);
 }
 
@@ -1157,8 +1156,12 @@ void screen_printing_serial_data_t::pauseAction() {
     marlin_server::State state = marlin_vars().print_state;
     switch (state) {
     case marlin_server::State::Finished:
-        stop_post_print_filtration();
-        update_action_buttons(state);
+    case marlin_server::State::Aborted:
+        // A serial file belongs to the host. Never resume an aborted job or
+        // try replaying the media filename retained from an unrelated print.
+        if (MsgBoxWarning(_("Clear the bed before restarting. Restart this print through RME?"), Responses_YesNo, 1) == Response::Yes) {
+            marlin_client::gcode("M118 A1 action:rme_retry");
+        }
         break;
     case marlin_server::State::Paused:
         marlin_client::print_resume();
@@ -1190,7 +1193,7 @@ void screen_printing_serial_data_t::stopAction() {
         return;
     }
 
-    // abort print, disable button and wait for screen to close from marlin server
+    // Abort print, disable button until the server reaches the result state.
     marlin_client::print_abort();
     DisableButton(BtnSocket::Right);
 }
