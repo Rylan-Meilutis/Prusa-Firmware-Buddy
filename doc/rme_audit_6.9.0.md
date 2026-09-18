@@ -1,5 +1,14 @@
 # RME 6.9.0 port audit
 
+## September 18 release validation
+
+Final complete matrix from 5ee44226c: 15/15 presets passed in 5m26s.
+INDX flash 67.01%, aggregate RAM 77.47%, CCMRAM 97.16%; MINI flash peaks
+at 99.95%. Shared policy and regression source matches 6.10.1; suites pass
+60 RME cases / 432426 assertions and 17 extrusion cases / 59 assertions.
+Plugin 0.1.0b107 is published targeting beta with 222 Python tests and the
+lighting/retry-notice DOM test passing. Hardware gates below remain pending.
+
 ## Serial results and confirmed host retry — 2026-09-18
 
 Ported a9cfbafbc from 6.10.1. Both Finished and Aborted retain the serial
