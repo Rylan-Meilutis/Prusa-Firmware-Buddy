@@ -3,6 +3,12 @@
 #include <rme_light_hold.hpp>
 
 namespace rme_light_mode {
+// Streamed job commands are machine activity, not a user waking the lights.
+// Idle jog/heating commands still resume automatic lighting normally.
+constexpr bool serial_commands_wake_lights(bool serial_print_active) {
+    return !serial_print_active;
+}
+
 constexpr uint8_t active_profile_brightness(int8_t mode, bool enabled, uint8_t brightness) {
     return mode > 0 && enabled ? brightness : 0;
 }

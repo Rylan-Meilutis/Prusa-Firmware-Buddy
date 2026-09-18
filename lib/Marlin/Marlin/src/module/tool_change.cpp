@@ -24,6 +24,21 @@
 
 #include "tool_change.h"
 #include <serial_printing.hpp>
+#include <option/has_indx.h>
+#if HAS_INDX()
+  #include <feature/extrusion_calibration.hpp>
+  #include <feature/pressure_advance/pressure_advance_config.hpp>
+
+void buddy::extrusion_calibration::apply_selected_indx_result() {
+    const auto logical = VirtualToolIndex::currently_selected_opt();
+    const size_t slot = logical ? logical->to_raw() : max_logical_filaments;
+    select_job_result(slot);
+    if (const auto *result = job_result(slot)) {
+        pressure_advance::set_axis_e_config({ result->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
+        planner.set_max_volumetric_flow(slot, result->max_flow_mm3_s);
+    }
+}
+#endif
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()

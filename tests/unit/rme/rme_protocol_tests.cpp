@@ -122,6 +122,23 @@ TEST_CASE("Door and local activity resume automatic lighting after slider Off", 
     CHECK(state.mode == 0); // Timer updates/polling are not activity.
 }
 
+TEST_CASE("Streamed print moves do not cancel RME lighting Off", "[rme][light][regression]") {
+    rme_light_mode::State state;
+    REQUIRE(state.set(0, 100));
+    for (int move = 0; move < 1000; ++move) {
+        if (rme_light_mode::serial_commands_wake_lights(true)) {
+            state.resume_on_activity();
+        }
+    }
+    CHECK(state.mode == 0);
+    CHECK_FALSE(rme_light_mode::serial_commands_wake_lights(true));
+    REQUIRE(rme_light_mode::serial_commands_wake_lights(false));
+    CHECK(state.resume_on_activity()); // Idle jog wakes the light.
+    REQUIRE(state.set(0, 200));
+    CHECK(state.apply_door_hold(true)); // Door behavior is unchanged.
+    CHECK(state.mode == -1);
+}
+
 TEST_CASE("An already open door overrides temporary RME light modes without restarting idle", "[rme][light][regression]") {
     rme_light_mode::State mode;
     rme_light_hold::State hold;
@@ -192,6 +209,7 @@ TEST_CASE("INDX PA bounds pellet buildup without ejecting every cycle", "[rme][m
 
 TEST_CASE("INDX PA lets a wiped pellet solidify before ejection", "[rme][m976][indx][pellet]") {
     CHECK(buddy::m976_indx_pellet_policy::cooling_delay_ms == 15000);
+    CHECK(buddy::m976_indx_pellet_policy::main_wiper_passes == 2);
 }
 
 TEST_CASE("Every PA material keeps five cycles and cools for fifteen seconds", "[rme][m976][indx][pellet]") {

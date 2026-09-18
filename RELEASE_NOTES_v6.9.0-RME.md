@@ -1,5 +1,36 @@
 # 6.9.0-RME Firmware
 
+## Unreleased — persistent INDX Auto PA cache
+
+- Fix RME light Off flickering back on during serial prints: streamed job
+  commands no longer count as user lighting activity. Idle commands, local
+  interaction and the configured door-open hold retain their wake behavior.
+
+- Uncached INDX Auto PA runs the dock fan at full speed during heating,
+  calibration and cleanup, restoring its previous setting on exit.
+- Every PA pellet ejection now runs two full native main-wiper cleaning
+  sequences after strand separation, cooling and ejection. The five-cycle
+  ejection interval and 15-second cooling dwell remain unchanged.
+
+- Successful M976 measurements are saved per loaded slot in internal flash,
+  including PA, flow limit and the loadcell pressure reference.
+- Automatic batches skip cached slots before picking tools or heating/purging.
+  An entirely cached batch applies the results without calibration motion.
+- Cache matching includes profile/material, color, manufacturer, physical tool,
+  nozzle diameter, calibration/profile temperature and confidence/SNR settings.
+  Unloading clears the slot record. Unknown filament and low-confidence
+  fallback results are not persisted. Cache hits do not write flash. Records
+  use checksums and atomic file replacement without enlarging the EEPROM journal.
+- Manual calibration or `M976 F1 A 0:0:PLA:220` refreshes the cache (adapt the
+  manifest to the loaded tools; put `F1` before `A`). Use this after
+  replacing a nozzle with the same diameter or changing filament properties
+  without changing its metadata. A slot retains its latest successful result,
+  not a history of every spool/temperature combination.
+- Selected-tool PA and loadcell references are restored on INDX tool changes.
+  File access is bounded to one small record at a time; there is no resident
+  heap cache and no motion/keep-out exceptions are introduced.
+
+
 ## INDX test update — door-open RME lighting priority, 2026-09-17
 
 Updated INDX image only; download `coreone_indx_6.9.0-RME.bbf` again.

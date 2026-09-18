@@ -18,6 +18,10 @@
 #include <display_helper.h>
 
 #include <option/has_phase_stepping.h>
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <pa_calibration_cache_storage.hpp>
+#endif
 #if HAS_PHASE_STEPPING()
     #include <feature/phase_stepping/phase_stepping.hpp>
 #endif

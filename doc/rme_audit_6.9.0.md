@@ -1,5 +1,21 @@
 # RME 6.9.0 port audit
 
+## Persistent PA cache, dock fan and serial lighting — 2026-09-18
+
+Ported 1363f8565 from 6.10.1. Fixed-size CRC-protected PA records use
+atomic internal-flash file replacement without changing EEPROM journal size.
+Only accepted measurements persist; unload and relevant factory reset clear
+records. Exact metadata/nozzle/temperature matching skips cached automatic
+calibration, and tool selection restores the corresponding PA/flow/reference.
+Manual F1 refresh remains available for same-metadata filament replacement.
+Uncached calibration holds the dock fan at full speed and restores it on exit.
+Every five-cycle/final pellet ejection retains 15-second cooling and adds two
+native main-wiper cleaning sequences. No keep-out exceptions are introduced.
+Serial print traffic no longer releases temporary lighting Off; idle activity,
+local input and configured door holds retain wake behavior.
+Upstream validation: 59 RME cases / 432412 assertions and 17 extrusion cases /
+59 assertions. Version-specific full build and hardware validation pending.
+
 ## Door-open RME lighting priority — 2026-09-17
 
 Ported the 6.10.1 level-triggered door hold. Temporary chamber Off/On cannot
