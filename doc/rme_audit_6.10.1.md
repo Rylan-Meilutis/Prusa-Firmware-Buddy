@@ -7,7 +7,17 @@ session implementations.
 
 ## Release gates
 
-### Serial result screens and host retry — unreleased
+### September 18 release validation
+
+Final matrix from 1ecd7e2b2: 15/15 presets passed in 5m24s. Paired 6.9.0
+matrix from 5ee44226c: 15/15 passed in 5m26s. INDX flash 67.01%, aggregate
+RAM 77.45% (6.10.1) / 77.47% (6.9.0), CCMRAM 97.16%. MINI flash peaks
+at 99.96% / 99.95%. Shared suites pass 60 RME cases / 432426 assertions
+and 17 extrusion cases / 59 assertions. RME Compatibility b107 is published
+on beta; 222 Python tests and lighting/retry-notice DOM tests pass. Physical
+result-screen, host retry, lighting and cache/wiper checks remain pending.
+
+### Serial result screens and host retry — September 18 update
 
 Retain the serial printing FSM for both Finished and Aborted. Share result
 pagination, duration/end-time and filtration countdown handling in both UI
@@ -27,9 +37,9 @@ new jobs and filament/filtration dialogs do not resurrect an older result.
 Automated validation: COREONE INDX build passed (RAM unchanged at 77.45%);
 60 firmware protocol tests / 432426 assertions passed. Matching plugin merged
 with beta b106; 222 Python tests and lighting/retry-notice DOM tests passed.
-No release has been published for this change yet.
+Included in the September 18 persistent release update with plugin b107.
 
-### Serial temperature-wait messages — unreleased
+### Serial temperature-wait messages — September 18 update
 
 Filter typed temperature-wait records at outbound serial status reporting and
 serial Messages history consumption. This removes both waiting labels and the
@@ -37,7 +47,7 @@ formatter's current/target temperature lines without matching localized text
 or suppressing thermal errors. Current operation progress and raw temperature
 telemetry remain intact. History IDs advance even for filtered records.
 
-### Serial-print RME lighting override — unreleased
+### Serial-print RME lighting override — September 18 update
 
 SerialPrinting previously called activity_ping for every streamed G0/G1,
 which released temporary chamber Off and screen Off. Gate serial wakeups on
@@ -52,7 +62,7 @@ assertions. Companion plugin navbar/slider controls no longer expire after
 15 seconds of delayed telemetry; stale values are identified as last reported.
 Plugin lighting DOM regression and nine print-control backend tests pass.
 
-### Persistent INDX PA cache — unreleased
+### Persistent INDX PA cache — September 18 update
 
 INDX PA cooling/cleaning follow-up: scoped dock-fan full-speed control covers
 uncached batches and standalone calibrations, including heating and early

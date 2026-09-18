@@ -6,6 +6,12 @@ This update rebuilds the complete supported machine matrix, superseding the
 INDX-only updates below. Reprint requires the matching RME Compatibility plugin.
 Physical printer validation remains pending.
 
+Validation: all 15 final firmware presets passed from `1ecd7e2b2`.
+Shared regression suites passed: 60 RME cases / 432,426 assertions and
+17 extrusion-calibration cases / 59 assertions. INDX uses 67.01% flash and
+77.45% aggregate RAM; the tightest MINI flash target is 99.96%.
+Use RME Compatibility **0.1.0b107** (OctoPrint Beta channel) for host retry.
+
 - Keep serial-print result screens visible after cancellation as well as
   success, including legacy serial UI mode. Settings opens filtration controls;
   Continue dismisses the result without resuming the aborted job. Reprint asks

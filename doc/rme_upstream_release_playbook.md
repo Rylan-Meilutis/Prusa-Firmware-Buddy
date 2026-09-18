@@ -1,5 +1,18 @@
 # RME Upstream Release Playbook
 
+## September 18, 2026 release workbook
+
+Both final matrices passed: 6.9.0 from 5ee44226c (15/15, 5m26s), and
+6.10.1 from 1ecd7e2b2 (15/15, 5m24s). INDX flash 67.01%; aggregate RAM
+77.47% / 77.45%; MINI flash maximum 99.95% / 99.96%, respectively.
+Shared policy tests: 60 RME cases / 432426 assertions; extrusion: 17 / 59.
+RME Compatibility b107 targets beta and implements confirmed full host retry.
+Preserve one persistent firmware release per version; replace its BBFs and
+notes in place. Test result screens for success, cancel and bounds errors;
+filtration Settings, Continue and confirmed Reprint; lighting Off during long
+commands; PA reboot/cache hits, five-cycle cooling and two main-wiper cleans.
+Hardware behavior is not certified by these automated build gates.
+
 Use this when Prusa publishes a new Firmware Buddy release and the RME firmware needs to be rebuilt quickly on top of it.
 
 ## Goal
