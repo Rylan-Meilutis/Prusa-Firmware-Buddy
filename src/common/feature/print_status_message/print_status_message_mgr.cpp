@@ -6,6 +6,20 @@
 
 PrintStatusMessageManager print_status_message_instance;
 
+static bool suppressed_cleaning_message(const PrintStatusMessage::Type type) {
+    switch (type) {
+#if ENABLED(PROBE_CLEANUP_SUPPORT)
+    case PrintStatusMessage::nozzle_cleaning:
+#endif
+#if HAS_NOZZLE_CLEANER()
+    case PrintStatusMessage::nozzle_cleaner:
+#endif
+        return true;
+    default:
+        return false;
+    }
+}
+
 PrintStatusMessageManager &print_status_message() {
     return print_status_message_instance;
 }
@@ -25,6 +39,9 @@ static int serial_progress_percent(float current, float target) {
 }
 
 void report_print_status_to_serial_host(const PrintStatusMessage &message) {
+    if (suppressed_cleaning_message(message.type) || message.is_temperature_wait()) {
+        return;
+    }
 #if PRINTER_IS_PRUSA_MINI()
     // MINI release builds are at the physical flash limit. Its serial UI still
     // observes these records, but richer outbound operation notifications are

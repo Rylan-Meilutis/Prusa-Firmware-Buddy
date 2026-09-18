@@ -1,5 +1,19 @@
 # RME 6.9.0 port audit
 
+## Serial results and confirmed host retry — 2026-09-18
+
+Ported a9cfbafbc from 6.10.1. Both Finished and Aborted retain the serial
+result FSM, with filtration Settings, Continue and bed-clear-confirmed Reprint.
+Reprint queues the host action through the Marlin thread; the matching plugin
+validates file identity, connection, lock and job state before a full restart.
+No streamed-file replay or new persistent allocation is added to firmware.
+Typed temperature-wait messages are filtered from serial notifications and
+Messages history, without suppressing thermal errors or temperature telemetry.
+Upstream automated validation: 60 RME cases / 432426 assertions, INDX build,
+222 plugin Python tests and lighting/retry-notice DOM checks passed. Physical
+success/cancel/error results, filtration controls and confirmed restart remain
+hardware gates; a new print must never resurrect an older result screen.
+
 ## Persistent PA cache, dock fan and serial lighting — 2026-09-18
 
 Ported 1363f8565 from 6.10.1. Fixed-size CRC-protected PA records use
