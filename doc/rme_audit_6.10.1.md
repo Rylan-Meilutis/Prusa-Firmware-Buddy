@@ -7,6 +7,55 @@ session implementations.
 
 ## Release gates
 
+### Serial-print RME lighting override — unreleased
+
+SerialPrinting previously called activity_ping for every streamed G0/G1,
+which released temporary chamber Off and screen Off. Gate serial wakeups on
+serial_print_active: idle commands retain wake behavior, print-stream traffic
+does not. Local input and door holds are unchanged. Regression covers repeated
+stream activity preserving Off, idle wakeup and door wakeup. Hardware check:
+toggle chamber/LCD Off during an OctoPrint job with the door closed, then open
+the door and verify the configured wake behavior.
+
+Validation: INDX build passes; RME unit suite passes 59 cases / 432412
+assertions. Companion plugin navbar/slider controls no longer expire after
+15 seconds of delayed telemetry; stale values are identified as last reported.
+Plugin lighting DOM regression and nine print-control backend tests pass.
+
+### Persistent INDX PA cache — unreleased
+
+INDX PA cooling/cleaning follow-up: scoped dock-fan full-speed control covers
+uncached batches and standalone calibrations, including heating and early
+returns. All-cache hits do not change the dock fan. Every periodic/final
+pellet ejection uses two native `Sequence::clean` main-wiper sequences after
+ejection; five-cycle grouping and 15-second cooling remain unchanged. Native
+G750 calibration and motion checks are retained. Hardware validation must
+confirm dock airflow and actual wiper contact, including custom cleaner files.
+
+Versioned `/internal/pa-cache-v1-<slot>.bin` files store fixed-size records per
+loaded virtual slot with CRC32 and atomic temporary-file replacement. The
+EEPROM journal lacks capacity for eight reference records, so its size and
+headroom gates remain unchanged. Factory reset clears these files when
+calibrations, hardware, printer state or user profiles are reset.
+Automatic M976 validates the full manifest first, then
+restores cache hits before any tool-change, heating or purge work. All-hit
+batches return before opening the calibration FSM. Partial batches visit
+only misses. Manual batches propagate F1 to nested commands, invalidating
+old entries before measurement. Only accepted measurements are persisted;
+the low-confidence fallback path remains job-only. Unload clears the record.
+Exact keys include metadata, physical tool, nozzle, temperature and acceptance
+settings. Same-metadata spool/nozzle replacement requires manual refresh.
+Tool selection reapplies the slot's PA/flow and loadcell reference; merely
+loading the last cache entry cannot make its PA authoritative for all tools.
+Hardware checks still required: reboot/all-hit no-motion startup, one changed
+slot in a mixed batch, unload/reload, F1, and print-time tool changes.
+
+Validation: CORE One INDX build passes (67.00% FLASH, 77.45% RAM).
+Extrusion calibration tests pass: 17 cases / 59 assertions, including flash
+roundtrip, corrupt/truncated records, key invalidation and per-tool selection.
+RME protocol tests pass: 59 cases / 432412 assertions. For a forced batch,
+place F1 before the manifest, for example `M976 F1 A 0:0:PLA:220`.
+
 ### Open-door lighting priority — 2026-09-17
 
 set_door_open exits early for unchanged sensor levels, so an RME Off/On set

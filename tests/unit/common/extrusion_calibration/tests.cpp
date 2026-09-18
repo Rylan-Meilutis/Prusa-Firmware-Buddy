@@ -1,6 +1,95 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <feature/extrusion_calibration.hpp>
+#include <pa_calibration_cache.hpp>
+#include <pa_calibration_cache_storage.hpp>
+#include <cstdlib>
+
+TEST_CASE("PA flash records survive reopen and reject corruption and truncation") {
+    using namespace buddy::pa_cache;
+    char directory[] = "/tmp/rme-pa-cache-test-XXXXXX";
+    REQUIRE(mkdtemp(directory) != nullptr);
+    char path[128], temporary[128];
+    snprintf(path, sizeof(path), "%s/cache.bin", directory);
+    snprintf(temporary, sizeof(temporary), "%s/cache.tmp", directory);
+    Record saved {};
+    saved.version = 1;
+    saved.pa = 0.035f;
+    saved.max_flow = 12;
+    saved.confidence = 0.9f;
+    saved.key.confidence_floor = 75;
+    saved.high_load = 20;
+    saved.noise = 0.2f;
+    REQUIRE(write_record(path, temporary, saved));
+    Record loaded {};
+    REQUIRE(read_record(path, loaded));
+    REQUIRE(loaded == saved);
+    REQUIRE(loaded.matches(saved.key));
+    int fd = open(path, O_WRONLY);
+    REQUIRE(fd >= 0);
+    REQUIRE(write(fd, "bad", 3) == 3);
+    close(fd);
+    REQUIRE_FALSE(read_record(path, loaded));
+    REQUIRE(write_record(path, temporary, saved));
+    fd = open(path, O_WRONLY | O_TRUNC);
+    REQUIRE(fd >= 0);
+    close(fd);
+    REQUIRE_FALSE(read_record(path, loaded));
+    unlink(path);
+    REQUIRE_FALSE(read_record(path, loaded));
+    rmdir(directory);
+}
+
+TEST_CASE("persistent PA records reject stale identities and invalid measurements") {
+    using namespace buddy::pa_cache;
+    Key key {};
+    key.profile[0] = 'P';
+    key.temperature = 220;
+    key.nozzle = 0.4f;
+    key.confidence_floor = 75;
+    Record record { key, 0.03f, 12.f, 0.9f, 1.f, 20.f, 0.2f, 1 };
+    REQUIRE(record.matches(key));
+    REQUIRE_FALSE(Record {}.matches(key));
+    auto changed = key;
+    changed.temperature = 235;
+    REQUIRE_FALSE(record.matches(changed));
+    changed = key;
+    changed.profile[1] = 'X';
+    REQUIRE_FALSE(record.matches(changed));
+    changed = key;
+    changed.color = 0xff;
+    REQUIRE_FALSE(record.matches(changed));
+    changed = key;
+    changed.manufacturer = 2;
+    REQUIRE_FALSE(record.matches(changed));
+    changed = key;
+    changed.physical_tool = 7;
+    REQUIRE_FALSE(record.matches(changed));
+    changed = key;
+    changed.nozzle = 0.6f;
+    REQUIRE_FALSE(record.matches(changed));
+    record.confidence = 0.5f;
+    REQUIRE_FALSE(record.matches(key));
+    record.confidence = 0.9f;
+    record.noise = NAN;
+    REQUIRE_FALSE(record.matches(key));
+    STATIC_REQUIRE(sizeof(Record) <= 128);
+}
+
+TEST_CASE("cached PA follows the selected logical filament rather than batch order") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    set_job_result(0, { 0.02f, 10, 0.9f, true });
+    set_job_result(7, { 0.06f, 12, 0.9f, true });
+    select_job_result(0);
+    REQUIRE(calibrated_pressure_advance_or(0.1f) == 0.02f);
+    select_job_result(7);
+    REQUIRE(calibrated_pressure_advance_or(0.1f) == 0.06f);
+    select_job_result(max_logical_filaments);
+    REQUIRE(calibrated_pressure_advance_or(0.1f) == 0.1f);
+    reset_job_results();
+    REQUIRE(job_result(0) == nullptr);
+}
 
 using buddy::extrusion_calibration::Capture;
 

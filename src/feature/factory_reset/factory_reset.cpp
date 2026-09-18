@@ -14,6 +14,10 @@
 #include <utils/progress_mapper.hpp>
 
 #include <option/has_phase_stepping.h>
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <pa_calibration_cache_storage.hpp>
+#endif
 #if HAS_PHASE_STEPPING()
     #include <feature/phase_stepping/phase_stepping.hpp>
 #endif
@@ -167,6 +171,16 @@ static FactoryReset::ItemBitset decode_items_to_keep(uint16_t encoded_params) {
     };
 
     if (wipe_specific_xflash_files) {
+#if HAS_INDX()
+        if (!items_to_keep.test(std::to_underlying(Item::calibrations))
+            || !items_to_keep.test(std::to_underlying(Item::hw_config))
+            || !items_to_keep.test(std::to_underlying(Item::printer_state))
+            || !items_to_keep.test(std::to_underlying(Item::user_profiles))) {
+            for (uint8_t slot = 0; slot < 8; ++slot) {
+                buddy::pa_cache::invalidate(slot);
+            }
+        }
+#endif
 #if HAS_PHASE_STEPPING()
         // Phase stepping is a calibration that is stored on xFlash, not in the config store -> it needs special handling
         // On hard reset, we're clearing the whole xFlash anyway, no point in doing this separately

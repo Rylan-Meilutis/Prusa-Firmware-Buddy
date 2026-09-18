@@ -33,6 +33,8 @@
 #include <option/has_wastebin_fill_tracking.h>
 #if HAS_INDX()
     #include <nozzle_cleaner.hpp>
+    #include <pa_calibration_cache_storage.hpp>
+    #include <fanctl/fanctl.hpp>
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
@@ -92,6 +94,18 @@ public:
     CalibrationCommandGuard() { buddy::extrusion_calibration::set_calibration_command_active(true); }
     ~CalibrationCommandGuard() { buddy::extrusion_calibration::set_calibration_command_active(false); }
 };
+
+#if HAS_INDX()
+// Cover heating, measurement and cleanup, including early returns. Nested
+// single-tool calls preserve the batch's full-speed dock cooling.
+class DockFanGuard {
+    const uint16_t previous_pwm = Fans::dock_fan().get_pwm();
+
+public:
+    DockFanGuard() { Fans::dock_fan().set_pwm(255); }
+    ~DockFanGuard() { Fans::dock_fan().set_pwm(previous_pwm); }
+};
+#endif
 
 float probe_anchor_slot(uint8_t slot);
 bool park_for_free_air_calibration(uint8_t slot, float anchor_z);
@@ -441,7 +455,74 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
     return count > 0;
 }
 
-bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count, const bool manual) {
+#if HAS_INDX()
+buddy::pa_cache::Key cache_key(uint8_t tool, uint8_t slot, int16_t temperature) {
+    buddy::pa_cache::Key key {};
+    const auto params = config_store().get_filament_type(slot).parameters();
+    strlcpy(key.profile.data(), params.name.data(), key.profile.size());
+    const auto material = base_material_name(params);
+    if (!material.empty()) {
+        strlcpy(key.material.data(), material.data(), key.material.size());
+    }
+    key.color = config_store().loaded_filament_color_rgb.get(slot);
+    key.color_valid = (config_store().loaded_filament_color_valid.get() >> slot) & 1;
+    key.manufacturer = config_store().loaded_filament_manufacturer.get(slot);
+    key.physical_tool = tool;
+    key.nozzle = config_store().get_nozzle_diameter(tool);
+    key.temperature = temperature;
+    key.profile_temperature = params.nozzle_temperature;
+    key.confidence_floor = config_store().pa_confidence_floor_percent.get();
+    key.minimum_snr = config_store().pa_minimum_snr.get();
+    return key;
+}
+
+bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
+    if (config_store().get_filament_type(slot) == FilamentType::none) {
+        return false;
+    }
+    char path[48];
+    buddy::pa_cache::path_for(path, slot);
+    buddy::pa_cache::Record record {};
+    if (!buddy::pa_cache::read_record(path, record) || !record.matches(cache_key(tool, slot, temperature))) {
+        return false;
+    }
+    buddy::extrusion_calibration::Result result { record.pa, record.max_flow, record.confidence, true };
+    result.pressure_reference.valid = true;
+    result.pressure_reference.low_load = record.low_load;
+    result.pressure_reference.high_load = record.high_load;
+    result.pressure_reference.noise = record.noise;
+    buddy::extrusion_calibration::set_job_result(slot, result);
+    planner.set_max_volumetric_flow(slot, result.max_flow_mm3_s);
+    SERIAL_ECHOLNPAIR("PA_CALIBRATION flash cache hit slot=", slot, " result=", record.pa);
+    return true;
+}
+
+void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::extrusion_calibration::Result &result) {
+    buddy::pa_cache::Record record {};
+    record.key = cache_key(tool, slot, temperature);
+    record.pa = result.pressure_advance;
+    record.max_flow = result.max_flow_mm3_s;
+    record.confidence = result.confidence;
+    record.low_load = result.pressure_reference.low_load;
+    record.high_load = result.pressure_reference.high_load;
+    record.noise = result.pressure_reference.noise;
+    record.version = 1;
+    if (result.valid && result.pressure_reference.valid && record.matches(record.key)
+        && config_store().get_filament_type(slot) != FilamentType::none) {
+        char path[48], temporary[48];
+        buddy::pa_cache::path_for(path, slot);
+        buddy::pa_cache::path_for(temporary, slot, true);
+        if (!buddy::pa_cache::write_record(path, temporary, record)) {
+            SERIAL_ECHOLN("PA_CALIBRATION cache save unavailable; using job result only");
+        }
+    }
+}
+#endif
+
+bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count, const bool manual, [[maybe_unused]] const bool force) {
+#if HAS_INDX()
+    DockFanGuard dock_cooling;
+#endif
     // PA excitation and the deliberately short MMU load/unload moves are not
     // print-time filament failures. Suppress both sensor-event and loadcell
     // E-stall handling for the complete batch, including its tool changes.
@@ -450,6 +531,12 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
     PressureMonitorGuard pressure_monitor_guard;
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
+#if HAS_INDX()
+        if (!force && restore_cache(entry.physical_tool, entry.logical_filament, entry.temperature)) {
+            continue;
+        }
+        buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
+#endif
 #if ENABLED(PRUSA_MMU2)
         float prepared_anchor_z = NAN;
         bool prepared_anchor = false;
@@ -531,7 +618,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature);
         }
 #else
-        snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature);
+        snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d F%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, force);
 #endif
         GcodeSuite::process_subcommands_now(calibration_command);
         if (!buddy::extrusion_calibration::job_result(entry.logical_filament)) {
@@ -594,16 +681,18 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection, const uint8_t
     }
     planner.synchronize();
     GcodeSuite::dwell(cooling_ms);
-    // Scrub the main wiper after the dedicated strand break and cooling,
-    // not while a freshly molten strand can fold onto the toolhead. Native
-    // cleaner coordinates retain the calibrated wiper offsets/keep-outs.
-    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::quick_clean)) {
-        thermalManager.set_print_fan_speed(previous_fan_pwm);
-        return false;
-    }
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
         thermalManager.set_print_fan_speed(previous_fan_pwm);
         return false;
+    }
+    // Clear the pellet before traversing the main wiper, then use full native
+    // cleaning sweeps (not the short strand break). G750 retains calibrated
+    // cleaner coordinates and all native motion protections.
+    for (uint8_t pass = 0; pass < buddy::m976_indx_pellet_policy::main_wiper_passes; ++pass) {
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean)) {
+            thermalManager.set_print_fan_speed(previous_fan_pwm);
+            return false;
+        }
     }
     planner.synchronize();
     thermalManager.set_print_fan_speed(previous_fan_pwm);
@@ -888,6 +977,7 @@ void PrusaGcodeSuite::M976() {
     // target; the outer batch guard then restores the targets that existed before the command.
     HotendTargetRestorer restore_hotend_targets;
     const bool manual = parser.boolval('M', false);
+    const bool force = manual || parser.boolval('F', false);
     if (parser.seen('A') || parser.seenval('K')) {
         std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries {};
         size_t count = 0;
@@ -931,6 +1021,20 @@ void PrusaGcodeSuite::M976() {
             return;
         }
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch accepted entries=", count);
+    #if HAS_INDX()
+        bool all_cached = !force;
+        if (!force) {
+            for (size_t i = 0; i < count; ++i) {
+                const auto &entry = entries[i];
+                all_cached &= restore_cache(entry.physical_tool, entry.logical_filament, entry.temperature);
+            }
+        }
+        if (all_cached) {
+            buddy::extrusion_calibration::apply_selected_indx_result();
+            SERIAL_ECHOLN("PA_CALIBRATION batch cached; no calibration moves");
+            return;
+        }
+    #endif
         // Own the foreground dialog for the whole batch. Nested single-tool
         // M976 calls reuse this FSM, so tool changes, MMU loading, homing and
         // probing cannot briefly return control to the menu between tools.
@@ -942,7 +1046,7 @@ void PrusaGcodeSuite::M976() {
         }
         // The batch owns presentation of its aggregated result; nested tool
         // calibrations only measure and accumulate their job-scoped results.
-        if (!run_batch(entries, count, false)) {
+        if (!run_batch(entries, count, false, force)) {
             SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
             return;
         }
@@ -962,6 +1066,9 @@ void PrusaGcodeSuite::M976() {
             park_after_calibration();
         }
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
+    #if HAS_INDX()
+        buddy::extrusion_calibration::apply_selected_indx_result();
+    #endif
         return;
     }
     const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
@@ -991,7 +1098,18 @@ void PrusaGcodeSuite::M976() {
             return;
         }
     }
-    if (const auto *cached = buddy::extrusion_calibration::job_result(slot)) {
+    #if HAS_INDX()
+    if (!target_temperature) {
+        target_temperature = Temperature::degTargetHotend(PhysicalToolIndex::from_raw(tool));
+    }
+    const auto *cached = !force && restore_cache(tool, slot, target_temperature) ? buddy::extrusion_calibration::job_result(slot) : nullptr;
+    if (force) {
+        buddy::pa_cache::invalidate(slot);
+    }
+    #else
+    const auto *cached = force ? nullptr : buddy::extrusion_calibration::job_result(slot);
+    #endif
+    if (cached) {
         pressure_advance::set_axis_e_config({ cached->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(slot, cached->max_flow_mm3_s);
         buddy::extrusion_calibration::configure_pressure_monitor(cached->pressure_reference, 0.8f, 8.0f);
@@ -1015,6 +1133,9 @@ void PrusaGcodeSuite::M976() {
     // autoload event. Keep sensor sampling active, but suppress event handling
     // until calibration cleanup is complete.
     FilamentSensorEventGuard filament_sensor_events;
+    #if HAS_INDX()
+    DockFanGuard dock_cooling;
+    #endif
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {
@@ -1251,6 +1372,9 @@ void PrusaGcodeSuite::M976() {
 
     const float max_flow = material_flow_limit(slot);
     const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score };
+    #if HAS_INDX()
+    save_cache(tool, slot, target_temperature, result);
+    #endif
     buddy::extrusion_calibration::set_job_result(slot, result);
     pressure_advance::set_axis_e_config({ best_pa, pressure_advance::get_axis_e_config().smooth_time });
     planner.set_max_volumetric_flow(slot, max_flow);
