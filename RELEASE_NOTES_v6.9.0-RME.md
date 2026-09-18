@@ -1,6 +1,10 @@
 # 6.9.0-RME Firmware
 
-## Unreleased — persistent INDX Auto PA cache
+## Release update — serial results, lighting and INDX PA cache, 2026-09-18
+
+This update rebuilds the complete supported machine matrix, superseding the
+INDX-only updates below. Reprint requires the matching RME Compatibility plugin.
+Physical printer validation remains pending.
 
 - Keep serial-print result screens visible after cancellation as well as
   success, including legacy serial UI mode. Settings opens filtration controls;
