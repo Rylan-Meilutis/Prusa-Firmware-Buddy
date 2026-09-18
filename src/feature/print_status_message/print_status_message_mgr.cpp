@@ -42,7 +42,7 @@ static int serial_progress_percent(float current, float target) {
 }
 
 void report_print_status_to_serial_host(const PrintStatusMessage &message) {
-    if (suppressed_cleaning_message(message.type)) {
+    if (suppressed_cleaning_message(message.type) || message.is_temperature_wait()) {
         return;
     }
 #if PRINTER_IS_PRUSA_MINI()

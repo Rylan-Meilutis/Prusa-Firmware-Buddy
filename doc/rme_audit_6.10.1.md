@@ -7,6 +7,36 @@ session implementations.
 
 ## Release gates
 
+### Serial result screens and host retry — unreleased
+
+Retain the serial printing FSM for both Finished and Aborted. Share result
+pagination, duration/end-time and filtration countdown handling in both UI
+modes. Settings opens the existing chamber filtration screen; Continue exits
+the result screen. Reprint defaults to No in the bed-clear confirmation and
+queues `M118 A1 action:rme_retry` through the Marlin thread. The RME plugin
+validates the same selected completed local job and uses OctoPrint start_print,
+not resume. Host checks cover connection generation, lock, transfer, active-job
+states, duplicate requests and file identity. No firmware file replay/cache or
+new persistent allocation is introduced. Requires matching plugin changes.
+
+Hardware gate: verify success, manual cancel and bounds-error cancel retain
+their respective result heading, filtration settings and countdown; dismiss
+with Continue and restart from the printer only after clearing the bed. Verify
+new jobs and filament/filtration dialogs do not resurrect an older result.
+
+Automated validation: COREONE INDX build passed (RAM unchanged at 77.45%);
+60 firmware protocol tests / 432426 assertions passed. Matching plugin merged
+with beta b106; 222 Python tests and lighting/retry-notice DOM tests passed.
+No release has been published for this change yet.
+
+### Serial temperature-wait messages — unreleased
+
+Filter typed temperature-wait records at outbound serial status reporting and
+serial Messages history consumption. This removes both waiting labels and the
+formatter's current/target temperature lines without matching localized text
+or suppressing thermal errors. Current operation progress and raw temperature
+telemetry remain intact. History IDs advance even for filtered records.
+
 ### Serial-print RME lighting override — unreleased
 
 SerialPrinting previously called activity_ping for every streamed G0/G1,
