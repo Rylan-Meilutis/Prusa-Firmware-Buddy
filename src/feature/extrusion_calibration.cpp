@@ -434,6 +434,12 @@ float calibrated_pressure_advance_or(const float fallback) {
     return std::isfinite(calibrated_pressure_advance) ? calibrated_pressure_advance : fallback;
 }
 
+void select_job_result(const size_t logical_filament) {
+    const auto *result = job_result(logical_filament);
+    calibrated_pressure_advance = result ? result->pressure_advance : NAN;
+    configure_pressure_monitor(result ? result->pressure_reference : Score {}, 0.8f, 8.0f);
+}
+
 void set_calibration_command_active(const bool active) {
     if (active) {
         calibration_command_depth.fetch_add(1, std::memory_order_acq_rel);

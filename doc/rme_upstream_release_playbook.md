@@ -433,7 +433,7 @@ and tests map to the feature whose production code they exercise.
 ### Pressure Advance, Extrusion Health, And MMU Calibration
 
 Preserve `M976`, its batch manifest parser, material/temperature preflight,
-RAM-only calibrated-value authority, fallback handling, confidence controls,
+job-scoped calibrated-value authority, fallback handling, confidence controls,
 debug toggle, manual Control-menu UI, blocking FSM, and slicer templates. MMU
 systems must probe unloaded, skip unload only when working FINDA and extruder
 sensors both prove the path empty, and treat disabled/faulted sensors as
@@ -445,6 +445,17 @@ following MBL. Anchor occupancy is RAM-only and scoped to one print job:
 `reset_job_results()` must clear it so a cleared sheet is not rejected by the
 next print, while `M976 C L<slot>` permits an explicit same-job retry. INDX
 continues to use dock-aware purge-bin travel and counted fast/slow pellets.
+
+INDX additionally persists successful measurements in internal-flash
+`pa-cache-v1-<slot>.bin` files with CRC32 and atomic replacement. Do not enlarge
+the nearly-full EEPROM journal for these records.
+Keep the fixed-size versioned record/key and unload invalidation when porting.
+M976 automatic batches must check hits before tool pickup/heating/purging;
+all-hit batches must not move. Restore the loadcell reference along with PA
+and flow, and select the proper job result on tool changes. Do not persist
+fallbacks or write flash on cache hits. Manual M976 and F1 refresh the
+entry (including nested batch commands). Metadata/nozzle/temperature changes
+miss the cache; identical-metadata physical replacements need manual refresh.
 
 Important areas include `src/marlin_stubs/M976.cpp`,
 `src/common/feature/extrusion_calibration.*` (or `src/feature/` on newer
