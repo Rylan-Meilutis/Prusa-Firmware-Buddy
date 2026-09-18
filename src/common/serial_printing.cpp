@@ -13,6 +13,7 @@
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
+    #include <rme_light_mode.hpp>
 #endif
 #include <algorithm>
 #include <cstdlib>
@@ -794,9 +795,11 @@ bool SerialPrinting::serial_command_hook(const char *command) {
 
 #if HAS_SIDE_LEDS()
     // Host polling/progress updates can arrive continuously while the printer is idle.
-    // Treat real serial commands as activity, but don't let passive status traffic keep
-    // the LEDs awake forever.
-    if (command[0] != '\0'
+    // Treat idle serial commands as activity, but not streamed print moves:
+    // those would immediately cancel RME Off on the next G1. Passive status
+    // traffic must not keep the LEDs awake forever either.
+    if (rme_light_mode::serial_commands_wake_lights(marlin_server::serial_print_active())
+        && command[0] != '\0'
         && command[0] != ';'
         // RME service traffic is out-of-band machine synchronization. Session
         // keepalives and queries must not look like physical user activity or

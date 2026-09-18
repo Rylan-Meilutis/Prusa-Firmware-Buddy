@@ -25,6 +25,9 @@
 #endif
 
 #include <option/has_anfc.h>
+#if HAS_INDX()
+    #include <pa_calibration_cache_storage.hpp>
+#endif
 #include <bsod/bsod.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -256,6 +259,9 @@ void CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType
     }
 
     if (value == FilamentType::none) {
+#if HAS_INDX()
+        buddy::pa_cache::invalidate(virtual_tool.to_raw());
+#endif
         filament_color::set_loaded(virtual_tool.to_raw(), std::nullopt);
         filament_manufacturer::set_loaded(virtual_tool.to_raw(), std::nullopt);
 #if HAS_AUTO_RETRACT()
