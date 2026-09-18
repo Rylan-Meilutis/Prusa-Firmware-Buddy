@@ -192,6 +192,20 @@ TEST_CASE("Media completion marker is never emitted for a serial job", "[rme][se
     CHECK_FALSE(emit_file_printed_marker(true));
 }
 
+TEST_CASE("Serial result screens survive success and cancellation", "[rme][serial][regression]") {
+    using namespace buddy::serial_print_finalize_policy;
+    using marlin_server::State;
+    for (const auto state : { State::Finished, State::Aborted }) {
+        CHECK(is_result(state));
+        CHECK(keep_result_screen(true, state));
+        CHECK_FALSE(keep_result_screen(false, state));
+    }
+    for (const auto state : { State::Printing, State::Paused, State::Aborting_WaitIdle, State::Idle }) {
+        CHECK_FALSE(is_result(state));
+        CHECK_FALSE(keep_result_screen(true, state));
+    }
+}
+
 TEST_CASE("INDX PA bounds pellet buildup without ejecting every cycle", "[rme][m976][indx][pellet]") {
     using namespace buddy::m976_indx_pellet_policy;
     uint8_t pending = 0;

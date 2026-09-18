@@ -1,5 +1,24 @@
 # RME Out-of-Band Serial Control Protocol
 
+## Confirmed serial reprint
+
+The serial Finished/Canceled screen keeps Settings (filtration), Reprint and
+Continue available. Continue acknowledges the result; it never resumes a
+canceled job. Reprint asks the operator to clear the bed, defaulting to No.
+Confirmation queues `M118 A1 action:rme_retry` on the firmware thread, emitting
+`// action:rme_retry` for RME Compatibility. This is a full restart request,
+not a resume request or a firmware-side replay of a media file.
+
+The matching plugin accepts only a locally streamed job observed on the current
+connection that has reached Done/Failed/Cancelled. Its origin, selected path,
+size and date must still match. Active/paused/transitional jobs, locks,
+disconnections and file/firmware transfers reject the request. Duplicate
+requests are coalesced and successful requests consume eligibility. OctoPrint's
+normal `start_print()` path runs startup G-code and mapping/preflight again.
+Refusals are reported in the web UI and with an M117 status message; the result
+screen stays open. Hosts without this handler cannot restart serial files from
+the printer's Reprint button.
+
 ## Live print controls (capability `RME_MACHINE tune=1`)
 
 Lighting extension: `RME_TUNE` includes `lcd` (-1 unsupported, 0 off, 1 on),
