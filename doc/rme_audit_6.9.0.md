@@ -1,5 +1,12 @@
 # RME 6.9.0 port audit
 
+## TPU/TPE alias follow-up validation
+
+Final matrix from 7867de36f passed 15/15 in 8m36s. INDX flash 67.04%,
+aggregate RAM 77.48%, CCMRAM 97.16%; MINI maximum flash 99.96%.
+61 RME cases / 432475 assertions, 19 extrusion cases / 64 assertions,
+and 2 touchscreen navigation checks pass. Hardware validation remains pending.
+
 ## September 19 touchscreen load loop and flexible Auto PA
 
 Ported the color-to-brand screen replacement and single-close completion,
