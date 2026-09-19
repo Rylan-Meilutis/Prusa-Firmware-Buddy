@@ -40,6 +40,12 @@ protected:
     void changeExtentionWidth();
 
     virtual invalidate_t change(int dif) override;
+    void set_items(std::span<const char *const> items) {
+        items_ = items;
+        if (current_item() >= item_count()) {
+            set_current_item(item_count() - 1);
+        }
+    }
     virtual void OnChange([[maybe_unused]] size_t old_index) {};
     virtual void click(IWindowMenu &window_menu) final;
     virtual void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const override;

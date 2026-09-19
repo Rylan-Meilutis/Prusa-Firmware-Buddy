@@ -10,6 +10,9 @@
 #include <serial_remote_control.hpp>
 #include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
+#include <rme_host_progress.hpp>
+
+static rme_host_progress::State rme_progress;
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -216,6 +219,7 @@ uint32_t SerialPrinting::serial_printing_screen_timeout_ms() {
 }
 
 void SerialPrinting::reset_host_progress() {
+    rme_progress = {};
     last_host_progress_ms = 0;
     last_host_progress_percent = 0;
     last_host_time_to_end_ms = 0;
@@ -228,6 +232,10 @@ void SerialPrinting::set_host_progress_percent(uint8_t percent) {
 }
 
 bool SerialPrinting::host_progress_percent(uint8_t &percent, uint32_t now_ms) {
+    if (rme_progress.valid(now_ms)) {
+        percent = rme_progress.percent;
+        return true;
+    }
     if (last_host_progress_ms == 0) {
         return false;
     }
@@ -247,6 +255,10 @@ void SerialPrinting::set_host_time_to_end(uint32_t seconds) {
 }
 
 bool SerialPrinting::host_time_to_end(uint32_t &seconds, uint32_t now_ms) {
+    if (rme_progress.valid(now_ms)) {
+        seconds = rme_progress.seconds(now_ms);
+        return true;
+    }
     if (last_host_time_to_end_ms == 0) {
         return false;
     }
@@ -260,6 +272,14 @@ bool SerialPrinting::host_time_to_end(uint32_t &seconds, uint32_t now_ms) {
     const uint32_t elapsed_s = elapsed_ms > 0 ? elapsed_ms / 1000 : 0;
     seconds = elapsed_s < last_host_time_to_end_s ? last_host_time_to_end_s - elapsed_s : 0;
     return true;
+}
+
+void SerialPrinting::set_rme_progress(uint8_t percent, uint32_t seconds, bool paused) {
+    rme_progress.set(percent, seconds, paused, ticks_ms());
+}
+
+bool SerialPrinting::rme_progress_active() {
+    return rme_progress.valid(ticks_ms());
 }
 
 SerialPrintingUiMode SerialPrinting::ui_mode() {
@@ -637,6 +657,9 @@ bool octoprint_status_print_start(const char *command) {
 }
 
 void parse_octoprint_status_message(const char *command) {
+    if (SerialPrinting::rme_progress_active()) {
+        return;
+    }
     if (!command_starts_with(command, 'M', 117)) {
         return;
     }
