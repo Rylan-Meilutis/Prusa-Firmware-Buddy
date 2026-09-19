@@ -7,6 +7,22 @@ session implementations.
 
 ## Release gates
 
+### Unreleased touchscreen load loop and flexible Auto PA
+
+Replace the color picker with the brand picker rather than stacking it;
+complete brand selection with one deferred close. Source navigation checks
+pass (2 tests); touchscreen validation is pending.
+
+Flexible Auto PA feeds are 0.2/1.5 mm/s with 2 mm/s cleanup retraction.
+Cache format 2 and job results retain the flexible classification so pressure
+monitor references use the measured velocities. Rigid rates, confidence gates,
+five-cycle ejection, cooling and main-wiper passes are unchanged. No new heap
+allocation is introduced. Older cache entries recalibrate once.
+
+Validation: 61 RME cases / 432440 assertions, 19 extrusion cases / 64 assertions,
+and INDX build passed (67.03% flash, 77.47% aggregate RAM, 97.16% CCMRAM).
+Not published; physical FLEX feeding and touchscreen checks remain pending.
+
 ### September 18 release validation
 
 Final matrix from 1ecd7e2b2: 15/15 presets passed in 5m24s. Paired 6.9.0

@@ -6,6 +6,8 @@
 
 namespace buddy::pa_cache {
 
+inline constexpr uint32_t record_version = 2;
+
 // Versioned, fixed-size flash record. No pointers, heap allocations or raw
 // FilamentType/Score object representations are persisted.
 struct Key {
@@ -20,6 +22,7 @@ struct Key {
     uint8_t color_valid = 0;
     uint8_t confidence_floor = 0;
     float minimum_snr = 0;
+    bool flexible = false;
     bool operator==(const Key &) const = default;
 };
 
@@ -35,7 +38,7 @@ struct Record {
     bool operator==(const Record &) const = default;
 
     bool matches(const Key &requested) const {
-        return version == 1 && key == requested
+        return version == record_version && key == requested
             && std::isfinite(pa) && pa >= 0 && pa <= 0.5f
             && std::isfinite(max_flow) && max_flow > 0
             && std::isfinite(confidence) && confidence >= key.confidence_floor / 100.f && confidence <= 1

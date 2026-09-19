@@ -1,4 +1,5 @@
 #include "extrusion_calibration.hpp"
+#include <m976_extrusion_policy.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -437,7 +438,8 @@ float calibrated_pressure_advance_or(const float fallback) {
 void select_job_result(const size_t logical_filament) {
     const auto *result = job_result(logical_filament);
     calibrated_pressure_advance = result ? result->pressure_advance : NAN;
-    configure_pressure_monitor(result ? result->pressure_reference : Score {}, 0.8f, 8.0f);
+    const auto speeds = m976_extrusion_policy::speeds(result && result->flexible);
+    configure_pressure_monitor(result ? result->pressure_reference : Score {}, speeds.low_mm_s, speeds.high_mm_s);
 }
 
 void set_calibration_command_active(const bool active) {
