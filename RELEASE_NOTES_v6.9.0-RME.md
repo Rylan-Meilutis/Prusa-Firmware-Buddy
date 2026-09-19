@@ -2,6 +2,9 @@
 
 ## Release update — print lighting and host progress, 2026-09-19
 
+Final matrix: 15/15 passed from `54f3e952c`. Shared RME tests: 63 cases /
+432492 assertions. Companion plugin: 0.1.0b108 (229 Python tests, six UI suites).
+
 - Add capability-gated RME PROGRESS SET for authoritative OctoPrint completion
   and ETA during serial jobs. Preserve unknown/paused estimates, expire stale
   ownership after 60s, and avoid double speed scaling of host estimates.
