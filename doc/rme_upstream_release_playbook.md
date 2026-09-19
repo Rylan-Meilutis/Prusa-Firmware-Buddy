@@ -1,5 +1,60 @@
 # RME Upstream Release Playbook
 
+## September 19 print lighting and host progress release
+
+Print chamber mode now has independent fixed-size state, cleared at terminal
+idle/finished states; idle activity and door holds cannot undo print Off.
+The selector is binary during print ownership; RME_TUNE includes printing.
+RME plugin uses reserved lighting service frames, bounded optimistic UI state,
+and an OctoPod octolightHA compatibility adapter. Validate rapid On/Off on
+web/navbar/touchscreen, paused/local/serial jobs, idle timer restoration,
+and OctoPod discovery/permissions on hardware before release.
+
+Progress follow-up: RME PROGRESS SET accepts percent=0..100,
+remaining=seconds|unknown (up to one year), paused=0|1 only with an active
+RME lease and serial job. Updates supersede M73/M117 for 60s, reset on new
+serial jobs, and do not rescale the host ETA. The plugin sends OctoPrint's
+current estimate with one outstanding service frame; local media jobs retain
+firmware progress. Test pause/resume, missing estimates, speed changes, stale
+host fallback and a second job. Estimate agreement is not accuracy validation.
+
+## September 19 TPU/TPE follow-up
+
+Material validation now accepts TPU/TPE/FLEX aliases without replacing spool
+profile identities. Effective flexible flags are resolved on parameter reads,
+so legacy base=FLEX profiles receive native slow feeding and autoretract
+exclusion even if their stored flag is zero. No EEPROM migration is required.
+Regression suites pass: 61 RME cases / 432475 assertions, 19 extrusion cases
+/ 64 assertions, and 2 touchscreen navigation checks. Hardware checks should
+cover the reported M976 A 4:4:TPU:240 case, TPE aliases, native purge and
+loading speeds, and rejection of actual rigid-material mismatches.
+
+## September 19, 2026 release workbook
+
+Dual final builds passed, 15/15 each: 6.9.0 from a7b42b0ed and 6.10.1
+from 3ddf5fec3. Combined build time: 1m56s. Regression gates: 61 RME cases
+/ 432440 assertions, 19 extrusion cases / 64 assertions, 2 touchscreen
+navigation source checks. Release notes also serve as the update changelog.
+
+Includes the touchscreen color/brand loop fix and slower flexible Auto PA
+feeds with matching runtime pressure references. Format-2 cache invalidates
+old measurements once. Verify both existing/new brand completion on hardware,
+FLEX feeding, five-cycle cooled ejection/main wiping, and PA reuse after reboot.
+No hardware validation is implied. Preserve the two persistent release tags
+and replace all 15 BBFs per version. RME Compatibility remains at b107.
+
+## September 18, 2026 release workbook
+
+6.9.0 final full matrix: 15/15 presets passed from 5ee44226c in 5m26s.
+INDX flash 67.01%, aggregate RAM 77.47%; MINI flash maximum 99.95%.
+Shared policy tests: 60 RME cases / 432426 assertions; extrusion: 17 / 59.
+RME Compatibility b107 targets beta and implements confirmed full host retry.
+Preserve one persistent firmware release per version; replace its BBFs and
+notes in place. Test result screens for success, cancel and bounds errors;
+filtration Settings, Continue and confirmed Reprint; lighting Off during long
+commands; PA reboot/cache hits, five-cycle cooling and two main-wiper cleans.
+Hardware behavior is not certified by these automated build gates.
+
 Use this when Prusa publishes a new Firmware Buddy release and the RME firmware needs to be rebuilt quickly on top of it.
 
 ## Goal
