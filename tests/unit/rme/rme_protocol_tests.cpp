@@ -367,6 +367,17 @@ TEST_CASE("M976 validates material family independently of custom profile name",
     CHECK(matches("PETG-CF"sv, "PETG-CF"sv, {}));
     CHECK_FALSE(matches("PETG"sv, "PETG-CF"sv, {}));
     CHECK(fallback("PETG-CF"sv, {}) == 0.045f);
+    for (const auto requested : { "TPU"sv, "TPE"sv, "FLEX"sv, "TPU-95A"sv }) {
+        for (const auto base : { "TPU"sv, "TPE"sv, "FLEX"sv }) {
+            CHECK(matches(requested, "TPU-00L"sv, base));
+            CHECK(fallback("custom"sv, base) == 0.08f);
+        }
+        CHECK_FALSE(matches(requested, "PLA-001"sv, "PLA"sv));
+        CHECK_FALSE(matches(requested, "TPU-00L"sv, "PETG"sv));
+    }
+    CHECK(matches("FLEX"sv, "TPE-001"sv, {}));
+    CHECK(matches("TPU-00L"sv, "TPU-00L"sv, "FLEX"sv));
+    CHECK_FALSE(matches("PLA"sv, "TPU-00L"sv, "FLEX"sv));
 }
 
 TEST_CASE("M976 MMU service temperature stays above cold extrusion cutoff", "[rme][m976][temperature][regression]") {
