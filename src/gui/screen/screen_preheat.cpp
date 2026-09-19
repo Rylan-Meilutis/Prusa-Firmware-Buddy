@@ -43,7 +43,6 @@ protected:
         }
         marlin_client::FSM_response_variant(PhasesPreheat::UserTempSelection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
         Screens::Access()->Close();
-        Screens::Access()->Close();
     }
 private:
     std::optional<uint8_t> id_;
@@ -96,6 +95,9 @@ protected:
 
     void click(IWindowMenu &) override {
         filament::set_color_to_load(color_);
+        // Replace the color screen instead of leaving it beneath the brand
+        // screen. Close is deferred and repeated calls only close one screen.
+        Screens::Access()->Close();
         Screens::Access()->Open<ScreenLoadManufacturer>();
     }
 

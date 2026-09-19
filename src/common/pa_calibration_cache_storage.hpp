@@ -24,6 +24,8 @@ inline uint32_t checksum(const Record &record) {
 }
 
 inline void path_for(char (&path)[48], uint8_t slot, bool temporary = false) {
+    // Keep the original path so a new-format record replaces the old one
+    // instead of accumulating obsolete files. Record::version gates reads.
     snprintf(path, sizeof(path), "/internal/pa-cache-v1-%u.%s", unsigned(slot), temporary ? "tmp" : "bin");
 }
 
@@ -37,7 +39,7 @@ inline bool read_record(const char *path, Record &record) {
     char extra;
     const bool exact_size = size == sizeof(file) && read(fd, &extra, 1) == 0;
     close(fd);
-    if (!exact_size || file.record.version != 1 || file.checksum != checksum(file.record)) {
+    if (!exact_size || file.record.version != record_version || file.checksum != checksum(file.record)) {
         return false;
     }
     record = file.record;

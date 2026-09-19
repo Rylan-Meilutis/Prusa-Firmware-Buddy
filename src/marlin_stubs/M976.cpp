@@ -25,6 +25,7 @@
 #include <common/marlin_server.hpp>
 #include <common/marlin_server_types/client_response.hpp>
 #include <common/m976_material.hpp>
+#include <common/m976_extrusion_policy.hpp>
 #include <common/m976_temperature_policy.hpp>
 #include <config_store/store_instance.hpp>
 #include <loadcell.hpp>
@@ -342,6 +343,11 @@ std::string_view base_material_name(const FilamentTypeParameters &params) {
     return {};
 }
 
+bool flexible_calibration(const uint8_t slot) {
+    const auto params = config_store().get_filament_type(slot).parameters();
+    return buddy::m976_extrusion_policy::is_flexible(params.name.data(), base_material_name(params), params.is_flexible);
+}
+
 bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count) {
     uint8_t logical_mask = 0;
     for (size_t i = 0; i < count; ++i) {
@@ -379,6 +385,7 @@ buddy::pa_cache::Key cache_key(uint8_t tool, uint8_t slot, int16_t temperature) 
     key.profile_temperature = params.nozzle_temperature;
     key.confidence_floor = config_store().pa_confidence_floor_percent.get();
     key.minimum_snr = config_store().pa_minimum_snr.get();
+    key.flexible = flexible_calibration(slot);
     return key;
 }
 
@@ -393,6 +400,7 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
         return false;
     }
     buddy::extrusion_calibration::Result result { record.pa, record.max_flow, record.confidence, true };
+    result.flexible = record.key.flexible;
     result.pressure_reference.valid = true;
     result.pressure_reference.low_load = record.low_load;
     result.pressure_reference.high_load = record.high_load;
@@ -412,7 +420,7 @@ void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::ex
     record.low_load = result.pressure_reference.low_load;
     record.high_load = result.pressure_reference.high_load;
     record.noise = result.pressure_reference.noise;
-    record.version = 1;
+    record.version = buddy::pa_cache::record_version;
     if (result.valid && result.pressure_reference.valid && record.matches(record.key)
         && config_store().get_filament_type(slot) != FilamentType::none) {
         char path[48], temporary[48];
@@ -683,7 +691,7 @@ void cleanup(const uint8_t slot, const float anchor_z) {
     planner.buffer_line(pos, 8.0f, active_extruder);
     planner.synchronize();
     current_position = pos;
-    mapi::extruder_move(-0.8f, 20.0f, true);
+    mapi::extruder_move(-0.8f, buddy::m976_extrusion_policy::speeds(flexible_calibration(slot)).retract_mm_s, true);
     planner.synchronize();
     do_blocking_move_to_z(anchor_z + 5.0f, 5.0f);
     buddy::extrusion_calibration::occupy_anchor(slot);
@@ -1132,7 +1140,7 @@ void PrusaGcodeSuite::M976() {
     }
 
     const float max_flow = material_flow_limit(slot);
-    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score };
+    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score, flexible_calibration(slot) };
     #if HAS_INDX()
     save_cache(tool, slot, target_temperature, result);
     #endif
@@ -1141,7 +1149,7 @@ void PrusaGcodeSuite::M976() {
     planner.set_max_volumetric_flow(active_extruder, max_flow);
     pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
     cleanup(slot, anchor_z);
-    buddy::extrusion_calibration::configure_pressure_monitor(best_score, 0.8f, 8.0f);
+    buddy::extrusion_calibration::select_job_result(slot);
     buddy::extrusion_calibration::suspend_pressure_monitor(false);
     if (manual) present_manual_result(tool, slot, best_pa);
     else pa_fsm_change(PhasesPressureAdvanceCalibration::complete, 100, slot);
