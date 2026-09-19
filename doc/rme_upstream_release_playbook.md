@@ -18,6 +18,10 @@ current estimate with one outstanding service frame; local media jobs retain
 firmware progress. Test pause/resume, missing estimates, speed changes, stale
 host fallback and a second job. Estimate agreement is not accuracy validation.
 
+MINI language builds exceeded flash by approximately 300 bytes with the new
+progress service. MINI therefore does not advertise host_progress and retains
+the existing M73/M117 path. The plugin capability gate preserves compatibility.
+
 ## September 19 TPU/TPE follow-up
 
 Material validation now accepts TPU/TPE/FLEX aliases without replacing spool

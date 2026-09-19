@@ -1001,7 +1001,9 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
   SERIAL_ECHOPGM(" tune=1");
-  SERIAL_ECHOPGM(" host_progress=1");
+  #if !PRINTER_IS_PRUSA_MINI()
+    SERIAL_ECHOPGM(" host_progress=1");
+  #endif
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
 
   // Host printer profiles need the slicer-usable build volume, not homing,
@@ -1303,6 +1305,10 @@ static bool handle_remote_tune_service(const std::string_view command) {
 }
 
 static bool handle_remote_progress_service(const std::string_view command) {
+  #if PRINTER_IS_PRUSA_MINI()
+  // Keep the legacy M73/M117 path on flash-constrained MINI language builds.
+  return false;
+  #else
   constexpr std::string_view prefix = "@RME PROGRESS SET ";
   if (!command.starts_with(prefix)) return false;
   const auto percent = rme_protocol::unsigned_number(command, "percent");
@@ -1318,6 +1324,7 @@ static bool handle_remote_progress_service(const std::string_view command) {
     SERIAL_ECHOLNPGM("RME_PROGRESS accepted=1");
   }
   return true;
+  #endif
 }
 
 static bool handle_remote_service_frame(const char *raw_command) {

@@ -5,6 +5,7 @@
 - Add capability-gated RME PROGRESS SET for authoritative OctoPrint completion
   and ETA during serial jobs. Preserve unknown/paused estimates, expire stale
   ownership after 60s, and avoid double speed scaling of host estimates.
+  MINI retains its existing M73/M117 path due to language-build flash limits.
 
 - Separate binary print On/Off from idle Off/On/Locked timers and door activity.
 - Report effective print lighting even during transient UI state changes;
