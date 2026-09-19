@@ -1,5 +1,19 @@
 # RME Upstream Release Playbook
 
+## September 19, 2026 release workbook
+
+Dual final builds passed, 15/15 each: 6.9.0 from a7b42b0ed and 6.10.1
+from 3ddf5fec3. Combined build time: 1m56s. Regression gates: 61 RME cases
+/ 432440 assertions, 19 extrusion cases / 64 assertions, 2 touchscreen
+navigation source checks. Release notes also serve as the update changelog.
+
+Includes the touchscreen color/brand loop fix and slower flexible Auto PA
+feeds with matching runtime pressure references. Format-2 cache invalidates
+old measurements once. Verify both existing/new brand completion on hardware,
+FLEX feeding, five-cycle cooled ejection/main wiping, and PA reuse after reboot.
+No hardware validation is implied. Preserve the two persistent release tags
+and replace all 15 BBFs per version. RME Compatibility remains at b107.
+
 ## September 18, 2026 release workbook
 
 6.9.0 final full matrix: 15/15 presets passed from 5ee44226c in 5m26s.

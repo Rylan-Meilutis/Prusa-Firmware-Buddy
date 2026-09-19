@@ -1,6 +1,6 @@
 # RME 6.9.0 port audit
 
-## Unreleased touchscreen load loop and flexible Auto PA
+## September 19 touchscreen load loop and flexible Auto PA
 
 Ported the color-to-brand screen replacement and single-close completion,
 plus flexible PA feeds of 0.2/1.5 mm/s and 2 mm/s cleanup retraction. Cache
@@ -8,9 +8,11 @@ format 2 invalidates old measurements and preserves flexible classification
 for matching runtime pressure-reference speeds. Rigid calibration rates and
 five-cycle cooling/ejection/main-wiper behavior are unchanged.
 
-Shared 6.10.1 tests and INDX build pass. This worktree's validation build
-stopped in bootstrap because its Python environment lacks requests; no new
-6.9 binary is validated or published. Physical validation remains pending.
+Final 6.9 matrix from a7b42b0ed passed 15/15 using the shared dependency
+environment, resolving the earlier worktree bootstrap issue. Paired 6.10.1
+matrix from 3ddf5fec3 passed 15/15. Shared regression suites: 61 RME cases
+/ 432440 assertions, 19 extrusion cases / 64 assertions, 2 touchscreen
+navigation source checks. Physical validation remains pending.
 
 ## September 18 release validation
 
