@@ -12,8 +12,7 @@ struct Speeds {
 
 constexpr bool is_flexible(std::string_view profile, std::string_view base, bool flexible_flag) {
     const auto material = m976_material::authoritative_name(profile, base);
-    return flexible_flag || material.starts_with("FLEX")
-        || material.starts_with("TPU") || material.starts_with("TPE");
+    return flexible_flag || filament_material::is_flexible_family(material);
 }
 
 constexpr Speeds speeds(bool flexible) {
