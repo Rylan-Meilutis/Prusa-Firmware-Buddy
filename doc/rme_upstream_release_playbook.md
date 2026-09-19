@@ -2,6 +2,10 @@
 
 ## September 19 print lighting and host progress release
 
+Final matrices passed 30/30 in 1m42s: 6.9.0 from 54f3e952c and 6.10.1
+from 1f2af6736. RME policy suite: 63 cases / 432492 assertions. Companion
+plugin b108: 229 Python tests and six UI suites passed; Beta release published.
+
 Print chamber mode now has independent fixed-size state, cleared at terminal
 idle/finished states; idle activity and door holds cannot undo print Off.
 The selector is binary during print ownership; RME_TUNE includes printing.
