@@ -1,5 +1,15 @@
 # 6.10.1-RME Firmware
 
+## Unreleased — TPU/TPE material aliases
+
+- Auto PA accepts TPU, TPE and FLEX as the same flexible family, preserving
+  custom profile names and rejecting rigid-material mismatches.
+- Resolve effective flexible flags from the configured material on read so
+  existing host-created profiles with base=FLEX and flexible=0 also receive
+  native loading/purge slowdown and the automatic-retraction exclusion.
+- Shared regression suites pass: 61 RME cases / 432475 assertions and
+  19 extrusion cases / 64 assertions. Physical TPU/TPE validation is pending.
+
 ## Release update — INDX load metadata prompt loop, 2026-09-19
 
 - Replace the color picker with the manufacturer picker during filament load.

@@ -178,7 +178,7 @@ FilamentTypeParameters FilamentType::parameters() const {
             "Revise the initializer");
     };
 
-    return std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
+    auto result = std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
         if constexpr (std::is_same_v<T, PresetFilamentType>) {
             return preset_filament_parameters[v];
 
@@ -225,6 +225,12 @@ FilamentTypeParameters FilamentType::parameters() const {
         }
     },
         *this);
+    // Legacy/host-created TPU profiles may have base=FLEX but a cleared flag.
+    // Resolve this on every read so native loading, purge and autoretract use
+    // the same protection as Auto PA, without requiring an EEPROM migration.
+    result.is_flexible = result.is_flexible
+        || buddy::filament_material::is_flexible_family(filament_material_name(result));
+    return result;
 }
 
 void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
