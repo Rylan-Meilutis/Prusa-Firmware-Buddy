@@ -1,6 +1,6 @@
 # 6.10.1-RME Firmware
 
-## Unreleased — INDX load metadata prompt loop
+## Release update — INDX load metadata prompt loop, 2026-09-19
 
 - Replace the color picker with the manufacturer picker during filament load.
   Repeated deferred Close calls previously left the color picker on the screen
@@ -8,7 +8,7 @@
 - Both existing-brand and Add Manufacturer completion now close once.
   Metadata selection and the preheat FSM response remain unchanged.
 
-## Unreleased — gentler flexible-filament Auto PA
+## Release update — gentler flexible-filament Auto PA, 2026-09-19
 
 - Flexible calibration uses 0.2/1.5 mm/s filament feeds instead of 0.8/8 mm/s;
   cleanup retraction is reduced from 20 to 2 mm/s. Rigid rates are unchanged.
@@ -18,6 +18,11 @@
   classification in the key. Existing confidence checks remain unchanged.
 - Five-cycle purge ejection, cooling, dock fan and main-wiper passes remain.
   Physical flexible-filament validation is still required.
+
+Validation: all 15 final firmware presets passed from `3ddf5fec3`.
+Both release matrices passed (30/30 images). Regression suites passed:
+61 RME cases / 432440 assertions, 19 extrusion cases / 64 assertions,
+and 2 touchscreen navigation source checks. No new heap allocations.
 
 ## Release update — serial results, lighting and INDX PA cache, 2026-09-18
 

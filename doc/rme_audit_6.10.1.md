@@ -7,7 +7,7 @@ session implementations.
 
 ## Release gates
 
-### Unreleased touchscreen load loop and flexible Auto PA
+### September 19 touchscreen load loop and flexible Auto PA
 
 Replace the color picker with the brand picker rather than stacking it;
 complete brand selection with one deferred close. Source navigation checks
@@ -21,7 +21,8 @@ allocation is introduced. Older cache entries recalibrate once.
 
 Validation: 61 RME cases / 432440 assertions, 19 extrusion cases / 64 assertions,
 and INDX build passed (67.03% flash, 77.47% aggregate RAM, 97.16% CCMRAM).
-Not published; physical FLEX feeding and touchscreen checks remain pending.
+Final dual matrices passed (15/15 each), from 3ddf5fec3 for 6.10.1 and
+a7b42b0ed for 6.9.0. Physical FLEX feeding and touchscreen checks remain pending.
 
 ### September 18 release validation
 
