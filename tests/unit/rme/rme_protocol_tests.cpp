@@ -23,6 +23,7 @@
 #include <unknown_axis_motion.hpp>
 #include <host_keepalive_policy.hpp>
 #include <m976_indx_pellet_policy.hpp>
+#include <m976_extrusion_policy.hpp>
 #include <serial_print_finalize_policy.hpp>
 #include <marlin_server_types/marlin_server_state.h>
 
@@ -857,6 +858,26 @@ TEST_CASE("firmware cleanup marker waits for storage ownership and is checked on
     // Removing and reinserting the medium starts a new inspection lifetime.
     CHECK_FALSE(gate.should_check(false, false));
     CHECK(gate.should_check(true, false));
+}
+
+TEST_CASE("Auto PA uses gentle flexible filament feeds", "[rme][pa]") {
+    using namespace buddy::m976_extrusion_policy;
+    CHECK(is_flexible("FLEX-001", "FLEX", false));
+    CHECK(is_flexible("custom spool", "TPU", false));
+    CHECK(is_flexible("TPE-001", "", false));
+    CHECK(is_flexible("custom spool", "", true));
+    CHECK_FALSE(is_flexible("PLA-001", "PLA", false));
+    CHECK_FALSE(is_flexible("FLEX-named spool", "PETG", false));
+    const auto flex = speeds(true);
+    const auto rigid = speeds(false);
+    CHECK(flex.low_mm_s == 0.2f);
+    CHECK(flex.high_mm_s == 1.5f);
+    CHECK(flex.retract_mm_s == 2.0f);
+    CHECK(flex.high_mm_s - flex.low_mm_s > 1.0f);
+    CHECK(flex.high_mm_s * 2.4053f < 4.0f);
+    CHECK(rigid.low_mm_s == 0.8f);
+    CHECK(rigid.high_mm_s == 8.0f);
+    CHECK(rigid.retract_mm_s == 20.0f);
 }
 
 TEST_CASE("RME light hold is transient and print-safe", "[rme][light]") {

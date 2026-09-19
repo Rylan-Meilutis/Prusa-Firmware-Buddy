@@ -1,5 +1,26 @@
 # RME 6.9.0 port audit
 
+## Unreleased touchscreen load loop and flexible Auto PA
+
+Ported the color-to-brand screen replacement and single-close completion,
+plus flexible PA feeds of 0.2/1.5 mm/s and 2 mm/s cleanup retraction. Cache
+format 2 invalidates old measurements and preserves flexible classification
+for matching runtime pressure-reference speeds. Rigid calibration rates and
+five-cycle cooling/ejection/main-wiper behavior are unchanged.
+
+Shared 6.10.1 tests and INDX build pass. This worktree's validation build
+stopped in bootstrap because its Python environment lacks requests; no new
+6.9 binary is validated or published. Physical validation remains pending.
+
+## September 18 release validation
+
+Final complete matrix from 5ee44226c: 15/15 presets passed in 5m26s.
+INDX flash 67.01%, aggregate RAM 77.47%, CCMRAM 97.16%; MINI flash peaks
+at 99.95%. Shared policy and regression source matches 6.10.1; suites pass
+60 RME cases / 432426 assertions and 17 extrusion cases / 59 assertions.
+Plugin 0.1.0b107 is published targeting beta with 222 Python tests and the
+lighting/retry-notice DOM test passing. Hardware gates below remain pending.
+
 ## Serial results and confirmed host retry — 2026-09-18
 
 Ported a9cfbafbc from 6.10.1. Both Finished and Aborted retain the serial
@@ -39,7 +60,7 @@ channel masks/brightness, Locked mode and independent LCD controls intact.
 Chamber toggles do not restart the idle countdown while the door holds active;
 the existing closing edge starts the normal timeout. No sensor calibration
 changes or heap allocations. Shared regression suite: 58 cases / 432,403
-assertions. Both-version INDX compilation is required before publishing;
+assertions. INDX build passed from 717f7bedc (66.90% flash, 77.47% RAM);
 physical door/toggle testing remains pending. Other machine images unchanged.
 
 ## INDX loadcell, cancellation filtration and PA cleanup — 2026-09-17
@@ -52,7 +73,8 @@ result screen; finishing cleanup retains eligibility. Manual cycle controls
 use the same predicate. PA cleanup stays at five cycles with 15-second
 fan-assisted cooling for every material and a main-wiper pass before ejection.
 Shared host regressions pass: 14 extrusion cases / 32 assertions and 56 RME
-cases / 432,364 assertions. INDX release build is the publication gate;
+cases / 432,364 assertions. INDX release build passed from 319ef9f2a
+(66.90% flash, 77.47% RAM);
 hardware break recovery, filtration and pellet release remain unverified.
 Only the INDX image is updated; other machine images remain unchanged.
 
@@ -62,7 +84,10 @@ Ported the 6.10.1 idle bed-assist policy, model-specific G123 manual movement
 guards, homing-aware Move Axis UI and material/color labels. Internal spool
 identifiers remain intact. Normal G0/G1/G2/G3 print paths are unchanged.
 Explicit bed commands, safety shutdown and print start revoke idle bed boost.
-Full release build validation is pending. Hardware thermal response, safety
+Full 15-image release matrix passed (9m17s), built from cfbac674e. Shared
+RME policy tests: 55 cases / 432,352 assertions; chamber: six / 35 assertions.
+INDX flash 66.88%, RAM 77.47%; MINI language flash 99.92%.
+Hardware thermal response, safety
 timeout, print transitions, manual jogs and material-label checks remain pending.
 
 ## Independent lighting controls — 2026-09-16

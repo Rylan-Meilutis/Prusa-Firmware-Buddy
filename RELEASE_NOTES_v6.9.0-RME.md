@@ -1,6 +1,35 @@
 # 6.9.0-RME Firmware
 
-## Unreleased — persistent INDX Auto PA cache
+## Unreleased — INDX load metadata prompt loop
+
+- Replace the color picker with the manufacturer picker during filament load.
+  Repeated deferred Close calls previously left the color picker on the screen
+  stack, reopening brand selection after both choices had already been made.
+- Both existing-brand and Add Manufacturer completion now close once.
+  Metadata selection and the preheat FSM response remain unchanged.
+
+## Unreleased — gentler flexible-filament Auto PA
+
+- Flexible calibration uses 0.2/1.5 mm/s filament feeds instead of 0.8/8 mm/s;
+  cleanup retraction is reduced from 20 to 2 mm/s. Rigid rates are unchanged.
+- Recognize the flexible flag and FLEX/TPU/TPE material identity, including
+  mapped spool profiles. Pressure monitoring follows the calibration speeds.
+- Cache format 2 invalidates older measurements once and includes flexible
+  classification in the key. Existing confidence checks remain unchanged.
+- Five-cycle purge ejection, cooling, dock fan and main-wiper passes remain.
+  Physical flexible-filament validation is still required.
+
+## Release update — serial results, lighting and INDX PA cache, 2026-09-18
+
+This update rebuilds the complete supported machine matrix, superseding the
+INDX-only updates below. Reprint requires the matching RME Compatibility plugin.
+Physical printer validation remains pending.
+
+Validation: all 15 final firmware presets passed from `5ee44226c`.
+Shared regression suites passed: 60 RME cases / 432,426 assertions and
+17 extrusion-calibration cases / 59 assertions. INDX uses 67.01% flash and
+77.47% aggregate RAM; the tightest MINI flash target is 99.95%.
+Use RME Compatibility **0.1.0b107** (OctoPrint Beta channel) for host retry.
 
 - Keep serial-print result screens visible after cancellation as well as
   success, including legacy serial UI mode. Settings opens filtration controls;
@@ -46,6 +75,8 @@
 Updated INDX image only; download `coreone_indx_6.9.0-RME.bbf` again.
 Other machine images remain unchanged.
 
+INDX build passed from 717f7bedc; 58 RME cases / 432,403 assertions pass.
+
 - With Door Holds Active enabled, an already-open door now cancels temporary
   RME Off/On overrides continuously. It uses the configured active profile;
   it does not enable every LED channel or force full brightness.
@@ -77,8 +108,9 @@ even if you already have 6.9.0-RME. Other machine images remain the September
   plus a final partial batch. After strand break-off and cooling, run the
   native calibrated main-wiper pass before pellet ejection.
 - Host regressions: 14 extrusion cases / 32 assertions and 56 RME cases /
-  432,364 assertions pass. INDX release compilation is required before
-  publication; no new heap allocations. Physical filament-break recovery, cancelled-print
+  432,364 assertions pass. INDX release build passes from source 319ef9f2a
+  (66.90% flash, 77.47% RAM); no new heap allocations.
+  Physical filament-break recovery, cancelled-print
   filtration, and cooled-pellet/main-wiper behavior require hardware testing.
   Hardware validation is pending; this INDX update is provided for testing.
 
