@@ -230,3 +230,10 @@ chamber lighting alongside the LCD. Updated shared host gate: 53 cases /
 Host tests and linker limits substantially reduce regression risk but do not
 replace an on-printer smoke test of boot, RME session open, upload/resume,
 serial printing, firmware status, and lighting hold.
+
+## TPU/TPE alias follow-up validation
+
+Final matrix from bd9fc3499 passed 15/15 in 8m44s. INDX flash 67.03%,
+aggregate RAM 77.47%, CCMRAM 97.16%; MINI maximum flash 99.97%.
+61 RME cases / 432475 assertions, 19 extrusion cases / 64 assertions,
+and 2 touchscreen navigation checks pass. Hardware validation remains pending.

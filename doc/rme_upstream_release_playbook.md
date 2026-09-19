@@ -1,5 +1,16 @@
 # RME Upstream Release Playbook
 
+## September 19 TPU/TPE follow-up
+
+Material validation now accepts TPU/TPE/FLEX aliases without replacing spool
+profile identities. Effective flexible flags are resolved on parameter reads,
+so legacy base=FLEX profiles receive native slow feeding and autoretract
+exclusion even if their stored flag is zero. No EEPROM migration is required.
+Regression suites pass: 61 RME cases / 432475 assertions, 19 extrusion cases
+/ 64 assertions, and 2 touchscreen navigation checks. Hardware checks should
+cover the reported M976 A 4:4:TPU:240 case, TPE aliases, native purge and
+loading speeds, and rejection of actual rigid-material mismatches.
+
 ## September 19, 2026 release workbook
 
 Dual final builds passed, 15/15 each: 6.9.0 from a7b42b0ed and 6.10.1

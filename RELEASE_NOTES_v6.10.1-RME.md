@@ -1,6 +1,8 @@
 # 6.10.1-RME Firmware
 
-## Unreleased — TPU/TPE material aliases
+## Release update — TPU/TPE material aliases, 2026-09-19
+
+Final build from `bd9fc3499`: 15/15 presets passed in 8m44s.
 
 - Auto PA accepts TPU, TPE and FLEX as the same flexible family, preserving
   custom profile names and rejecting rigid-material mismatches.
