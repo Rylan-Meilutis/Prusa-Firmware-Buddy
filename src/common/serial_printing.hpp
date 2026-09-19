@@ -38,6 +38,8 @@ public:
     static void set_host_progress_percent(uint8_t percent);
     static bool host_time_to_end(uint32_t &seconds, uint32_t now_ms);
     static void set_host_time_to_end(uint32_t seconds);
+    static void set_rme_progress(uint8_t percent, uint32_t seconds, bool paused);
+    static bool rme_progress_active();
 
     static SerialPrintingUiMode ui_mode();
 

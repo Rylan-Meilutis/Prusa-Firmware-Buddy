@@ -4072,13 +4072,14 @@ static void _server_update_vars() {
     const auto update_time_to = [&](const ClValidityValueSec &progress_data_value, MarlinVariable<uint32_t> &marlin_var, bool allow_serial_host_time) {
         uint32_t v = TIME_TO_END_INVALID;
         uint32_t host_time_to_end = 0;
-        if (allow_serial_host_time && server.print_is_serial && SerialPrinting::host_time_to_end(host_time_to_end, progress_update_ms)) {
+        const bool from_host = allow_serial_host_time && server.print_is_serial && SerialPrinting::host_time_to_end(host_time_to_end, progress_update_ms);
+        if (from_host) {
             v = host_time_to_end;
         } else if (progress_data.percent_done.mIsActual(duration) && progress_data_value.mIsActual(duration)) {
             v = progress_data_value.mGetValue();
         }
 
-        if (print_speed == 100 || v == TIME_TO_END_INVALID) {
+        if (from_host || print_speed == 100 || v == TIME_TO_END_INVALID) {
             marlin_var = v;
         } else {
             // multiply by 100 is safe, it limits time_to_end to ~21mil. seconds (248 days)

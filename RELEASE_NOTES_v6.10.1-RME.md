@@ -1,5 +1,18 @@
 # 6.10.1-RME Firmware
 
+## Release update — print lighting and host progress, 2026-09-19
+
+- Add capability-gated RME PROGRESS SET for authoritative OctoPrint completion
+  and ETA during serial jobs. Preserve unknown/paused estimates, expire stale
+  ownership after 60s, and avoid double speed scaling of host estimates.
+
+- Separate binary print On/Off from idle Off/On/Locked timers and door activity.
+- Report effective print lighting even during transient UI state changes;
+  include print ownership in RME_TUNE for local and streamed jobs.
+- Use only Off/On in the touchscreen chamber selector during printing.
+- Reapply current-print brightness changes immediately. Fixed-size state only;
+  no new heap allocation. Physical validation remains pending.
+
 ## Release update — TPU/TPE material aliases, 2026-09-19
 
 Final build from `bd9fc3499`: 15/15 presets passed in 8m44s.

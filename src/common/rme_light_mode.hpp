@@ -3,6 +3,17 @@
 #include <rme_light_hold.hpp>
 
 namespace rme_light_mode {
+// Print overrides are independent of idle activity, door holds and timers.
+struct PrintState {
+    int8_t mode = -1;
+    void set(uint8_t value) { mode = value ? 1 : 0; }
+    void reset() { mode = -1; }
+    uint8_t brightness(bool enabled, uint8_t configured) const {
+        return mode == 0 ? 0 : mode == 1 ? (configured ? configured : 255)
+            : enabled                    ? configured
+                                         : 0;
+    }
+};
 // Streamed job commands are machine activity, not a user waking the lights.
 // Idle jog/heating commands still resume automatic lighting normally.
 constexpr bool serial_commands_wake_lights(bool serial_print_active) {

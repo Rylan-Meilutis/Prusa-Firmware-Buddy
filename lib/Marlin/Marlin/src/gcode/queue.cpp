@@ -1001,6 +1001,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
   SERIAL_ECHOPGM(" tune=1");
+  SERIAL_ECHOPGM(" host_progress=1");
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
 
   // Host printer profiles need the slicer-usable build volume, not homing,
@@ -1273,6 +1274,12 @@ static bool handle_remote_tune_service(const std::string_view command) {
   if (command != "@RME TUNE QUERY") return false;
   SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
   SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
+  SERIAL_ECHOPGM(" printing=");
+#if HAS_SIDE_LEDS()
+  SERIAL_ECHO(leds::SideStripHandler::instance().chamber_print_active() ? 1 : 0);
+#else
+  SERIAL_ECHO(marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::is_extended_paused_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active() ? 1 : 0);
+#endif
   SERIAL_ECHOPGM(" light=");
 #if HAS_SIDE_LEDS()
   SERIAL_ECHO(leds::SideStripHandler::instance().chamber_mode());
@@ -1295,6 +1302,24 @@ static bool handle_remote_tune_service(const std::string_view command) {
   return true;
 }
 
+static bool handle_remote_progress_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME PROGRESS SET ";
+  if (!command.starts_with(prefix)) return false;
+  const auto percent = rme_protocol::unsigned_number(command, "percent");
+  const auto paused = rme_protocol::unsigned_number(command, "paused");
+  const auto remaining = rme_protocol::unsigned_number(command, "remaining");
+  const bool unknown = rme_protocol::value(command, "remaining") == std::optional<std::string_view>("unknown");
+  if (!serial_remote_control::session_active() || !marlin_server::serial_print_active()) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=progress code=no_serial_job");
+  } else if (!percent || *percent > 100 || !paused || *paused > 1 || (!unknown && (!remaining || *remaining > 31536000))) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=progress code=invalid_argument");
+  } else {
+    SerialPrinting::set_rme_progress(*percent, unknown ? marlin_server::TIME_TO_END_INVALID : *remaining, *paused != 0);
+    SERIAL_ECHOLNPGM("RME_PROGRESS accepted=1");
+  }
+  return true;
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
@@ -1305,6 +1330,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
       || handle_remote_tune_service(command)
+      || handle_remote_progress_service(command)
       || handle_remote_filament_service(command)
       || handle_remote_manufacturer_service(command)
       || handle_remote_machine_service(command)

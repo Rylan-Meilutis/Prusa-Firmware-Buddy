@@ -117,6 +117,7 @@ public:
     void set_chamber_mode(uint8_t mode);
     void set_screen_on(bool on);
     uint8_t chamber_mode() const;
+    bool chamber_print_active() const;
     int8_t chamber_mode_override() const;
 
     leds::ColorRGBW color() const;
@@ -178,6 +179,7 @@ private:
     std::optional<CustomColorState> custom_color;
     rme_light_hold::State rme_hold;
     rme_light_mode::State chamber_mode_state;
+    rme_light_mode::PrintState print_chamber_mode;
     bool screen_forced_off = false;
 };
 

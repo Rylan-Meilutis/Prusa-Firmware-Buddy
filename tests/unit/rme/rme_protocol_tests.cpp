@@ -13,6 +13,7 @@
 #include <firmware_cleanup_gate.hpp>
 #include <rme_light_hold.hpp>
 #include <rme_light_mode.hpp>
+#include <rme_host_progress.hpp>
 
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
@@ -62,6 +63,44 @@ TEST_CASE("Chamber On and Locked respect the Active channel profile") {
         CHECK(rme_light_mode::active_profile_brightness(mode, true, 0) == 0);
         CHECK(rme_light_mode::active_profile_brightness(mode, true, 73) == (mode ? 73 : 0));
     }
+}
+
+TEST_CASE("Print chamber override is binary and independent of idle activity", "[rme][light]") {
+    rme_light_mode::PrintState print;
+    rme_light_mode::State idle;
+    CHECK(print.brightness(true, 192) == 192);
+    CHECK(print.brightness(false, 192) == 0);
+    print.set(0);
+    idle.set(0, 100);
+    idle.resume_on_activity();
+    idle.apply_door_hold(true);
+    idle.expire(50000, 30);
+    CHECK(print.brightness(true, 192) == 0);
+    print.set(2);
+    CHECK(print.mode == 1);
+    CHECK(print.brightness(true, 192) == 192);
+    CHECK(print.brightness(false, 0) == 255);
+    print.reset();
+    CHECK(print.brightness(false, 192) == 0);
+}
+
+TEST_CASE("RME host progress preserves unknown and paused estimates with bounded freshness", "[rme][progress]") {
+    rme_host_progress::State state;
+    CHECK_FALSE(state.valid(0));
+    state.set(24, 120, false, 0);
+    CHECK(state.valid(0));
+    CHECK(state.percent == 24);
+    CHECK(state.seconds(5000) == 115);
+    CHECK_FALSE(state.valid(60001));
+    state.set(25, 120, true, 5000);
+    CHECK(state.seconds(55000) == 120);
+    state.set(25, state.unknown, false, 5000);
+    CHECK(state.seconds(55000) == state.unknown);
+    state.set(25, 1, false, UINT32_MAX - 1000);
+    CHECK(state.valid(1000));
+    CHECK(state.seconds(1000) == 0);
+    state = {};
+    CHECK_FALSE(state.valid(1000));
 }
 
 TEST_CASE("Shared chamber mode expires once and survives clock rollover", "[rme][light]") {

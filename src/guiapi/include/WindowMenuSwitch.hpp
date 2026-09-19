@@ -21,6 +21,12 @@ public:
     }
 
 protected:
+    void set_items(std::span<const char *const> items) {
+        items_ = items;
+        if (current_item() >= item_count()) {
+            set_current_item(item_count() - 1);
+        }
+    }
     [[deprecated("Use on_item_selected")]]
     virtual void OnChange([[maybe_unused]] size_t old_index) {};
 
