@@ -1,5 +1,23 @@
 # RME Upstream Release Playbook
 
+## September 19 print lighting and host progress release
+
+Print chamber mode now has independent fixed-size state, cleared at terminal
+idle/finished states; idle activity and door holds cannot undo print Off.
+The selector is binary during print ownership; RME_TUNE includes printing.
+RME plugin uses reserved lighting service frames, bounded optimistic UI state,
+and an OctoPod octolightHA compatibility adapter. Validate rapid On/Off on
+web/navbar/touchscreen, paused/local/serial jobs, idle timer restoration,
+and OctoPod discovery/permissions on hardware before release.
+
+Progress follow-up: RME PROGRESS SET accepts percent=0..100,
+remaining=seconds|unknown (up to one year), paused=0|1 only with an active
+RME lease and serial job. Updates supersede M73/M117 for 60s, reset on new
+serial jobs, and do not rescale the host ETA. The plugin sends OctoPrint's
+current estimate with one outstanding service frame; local media jobs retain
+firmware progress. Test pause/resume, missing estimates, speed changes, stale
+host fallback and a second job. Estimate agreement is not accuracy validation.
+
 ## September 19 TPU/TPE follow-up
 
 Material validation now accepts TPU/TPE/FLEX aliases without replacing spool
