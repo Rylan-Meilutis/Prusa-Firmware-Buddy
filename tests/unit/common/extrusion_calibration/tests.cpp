@@ -13,7 +13,7 @@ TEST_CASE("PA flash records survive reopen and reject corruption and truncation"
     snprintf(path, sizeof(path), "%s/cache.bin", directory);
     snprintf(temporary, sizeof(temporary), "%s/cache.tmp", directory);
     Record saved {};
-    saved.version = 1;
+    saved.version = record_version;
     saved.pa = 0.035f;
     saved.max_flow = 12;
     saved.confidence = 0.9f;
@@ -47,8 +47,14 @@ TEST_CASE("persistent PA records reject stale identities and invalid measurement
     key.temperature = 220;
     key.nozzle = 0.4f;
     key.confidence_floor = 75;
-    Record record { key, 0.03f, 12.f, 0.9f, 1.f, 20.f, 0.2f, 1 };
+    Record record { key, 0.03f, 12.f, 0.9f, 1.f, 20.f, 0.2f, record_version };
     REQUIRE(record.matches(key));
+    auto legacy = record;
+    legacy.version = 1;
+    REQUIRE_FALSE(legacy.matches(key));
+    auto flexible_key = key;
+    flexible_key.flexible = true;
+    REQUIRE_FALSE(record.matches(flexible_key));
     REQUIRE_FALSE(Record {}.matches(key));
     auto changed = key;
     changed.temperature = 235;
@@ -157,6 +163,36 @@ TEST_CASE("job results and anchor occupancy reset for a new print job") {
     reset_job_results();
     REQUIRE_FALSE(job_result(2));
     REQUIRE_FALSE(occupied_anchor_mask() & (1u << 2));
+}
+
+TEST_CASE("flexible PA transitions remain measurable at reduced feed speeds") {
+    Capture capture;
+    REQUIRE(capture.start());
+    float e = 0;
+    for (size_t i = 0; i < 240; ++i) {
+        const bool fast = (i / 40) % 2;
+        e += (fast ? 1.5f : 0.2f) * 0.003f;
+        const float load = (fast ? 20.0f : 4.0f) + ((i % 40) < 4 ? 3.0f : 0.0f);
+        capture.record(i * 3000, load, e);
+    }
+    capture.stop();
+    REQUIRE(capture.score().valid);
+}
+
+TEST_CASE("selected flexible PA reference monitors slow extrusion") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    reset_pressure_monitor();
+    Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    set_job_result(3, { 0.08f, 4.0f, 0.9f, true, reference, true });
+    select_job_result(3);
+    set_pressure_monitor_detection(true, false);
+    record_loadcell_sample(1'000, 0, 0);
+    for (uint32_t i = 1; i <= 1'800; ++i) {
+        record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.0025f);
+    }
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
+    reset_job_results();
 }
 
 TEST_CASE("runtime monitor detects missing pressure during executed E motion") {

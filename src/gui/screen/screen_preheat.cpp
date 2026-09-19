@@ -47,7 +47,6 @@ protected:
         filament::set_manufacturer_to_load(id_);
         marlin_client::FSM_response_variant(PhasesPreheat::user_temp_selection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
         Screens::Access()->Close();
-        Screens::Access()->Close();
     }
 
 private:
@@ -78,7 +77,6 @@ protected:
         const auto created = filament_manufacturer::custom(slot);
         filament::set_manufacturer_to_load(created ? std::optional<uint8_t> { created->id } : std::nullopt);
         marlin_client::FSM_response_variant(PhasesPreheat::user_temp_selection, FSMResponseVariant::make<FilamentType>(pending_load_filament));
-        Screens::Access()->Close();
         Screens::Access()->Close();
     }
 };
@@ -142,6 +140,9 @@ protected:
     }
     void click(IWindowMenu &) override {
         filament::set_color_to_load(color_);
+        // Replace the color screen instead of leaving it beneath the brand
+        // screen. Close is deferred and repeated calls only close one screen.
+        Screens::Access()->Close();
         Screens::Access()->Open<ScreenLoadManufacturer>();
     }
 

@@ -71,6 +71,7 @@ struct Result {
     float confidence = 0;
     bool valid = false;
     Score pressure_reference {};
+    bool flexible = false;
 };
 
 // Eight entries cover the full INDX tool complement while still fitting the
