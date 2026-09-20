@@ -1,5 +1,29 @@
 # 6.10.1-RME Firmware
 
+## Release update — serial-print page cleanup, 2026-09-20
+
+- Removed the duplicate Messages page and its history collector from serial
+  printing. Use the dedicated Messages screen instead. Normal progress/status,
+  finished/canceled summaries, filtration controls, and safety dialogs remain.
+- Removed the rotating message buffer; result summaries use a 64-byte buffer.
+- Source regression checks cover page removal, navigation, and retained results.
+
+## Release update — chamber-light control and reporting, 2026-09-20
+
+- One chamber switch controls internal/external chamber lighting together.
+  Explicit On uses the Active-state enable mask and brightness even during a
+  print; Off blanks the chamber outputs. Automatic lighting still uses its
+  print profile until overridden. LCD and status LEDs are unaffected.
+- Updated shared tests: 65 cases / 432638 assertions passed.
+
+- RME and the touchscreen chamber selector now report current lighting output
+  rather than a requested mode or internal-only print profile. External-only
+  chamber illumination is included; idle Locked remains a distinct selection.
+- Live chamber brightness includes switched external bars (100% when on).
+  RGB-only internal strips are also recognized as illuminated.
+- Validation: INDX firmware linked; 65 RME cases / 432590 assertions passed. Hardware
+  verification of transitions and external-only lighting remains required.
+
 ## Release update — restore configured print lighting, 2026-09-20
 
 Validation: all 15 release variants passed from `b929ada1f`.

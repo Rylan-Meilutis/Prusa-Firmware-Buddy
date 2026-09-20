@@ -143,7 +143,7 @@ LightStatus light_status() {
     };
     result.print_chamber = pwm_to_percent(side.get_print_light_brightness());
     result.current_screen = side.current_screen_brightness();
-    result.current_chamber = pwm_to_percent(side.current_brightness());
+    result.current_chamber = pwm_to_percent(side.current_chamber_brightness());
     result.current_state = static_cast<int8_t>(side.current_light_state());
     result.chamber_supported = true;
     result.activity_timeout_s = side.get_activity_timeout_s();
