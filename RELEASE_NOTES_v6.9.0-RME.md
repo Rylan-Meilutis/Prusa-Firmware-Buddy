@@ -2,6 +2,8 @@
 
 ## Release update — restore configured print lighting, 2026-09-20
 
+Validation: all 15 release variants passed from `081fd30f2`.
+
 - Chamber On during printing now restores the configured print-state brightness
   and channel enable mask. Disabled channels and zero-brightness channels stay
   dark instead of being forced on at full brightness. Off remains off.
