@@ -1,5 +1,13 @@
 # RME Upstream Release Playbook
 
+## September 20 final release validation
+
+All 30 variants passed: 6.9.0 from f7f0a470a, 6.10.1 from f28dd9042.
+Plugin b112 includes the follow-up startup progress guard for the reported
+N0 progress / N1 M110 N0 / repeated Resend: 1 failure. Firmware does not weaken
+line-number checks. Tags identify built firmware source; these notes are a
+subsequent documentation-only commit. Physical hardware validation is pending.
+
 ## Unreleased serial-print page cleanup
 
 User chose removal of the duplicate serial-print Messages page instead of

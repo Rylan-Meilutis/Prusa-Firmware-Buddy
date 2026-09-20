@@ -1,5 +1,10 @@
 # 6.10.1-RME Firmware
 
+Release validation (2026-09-20): all 15 variants passed from `f28dd9042`.
+Shared tests: 65 RME cases / 432638 assertions; four serial-screen source checks
+on each branch. RME Compatibility b112 adds the serial-start progress guard.
+Hardware verification remains pending.
+
 ## Release update — serial-print page cleanup, 2026-09-20
 
 - Removed the duplicate Messages page and its history collector from serial
