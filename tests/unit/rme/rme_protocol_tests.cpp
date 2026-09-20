@@ -79,9 +79,25 @@ TEST_CASE("Print chamber override is binary and independent of idle activity", "
     print.set(2);
     CHECK(print.mode == 1);
     CHECK(print.brightness(true, 192) == 192);
-    CHECK(print.brightness(false, 0) == 255);
+    CHECK(print.brightness(false, 0) == 0);
+    CHECK(print.brightness(false, 192) == 0);
+    CHECK(print.brightness(true, 0) == 0);
     print.reset();
     CHECK(print.brightness(false, 192) == 0);
+}
+
+TEST_CASE("Print light toggling restores each channel profile without enabling dark channels", "[rme][light]") {
+    rme_light_mode::PrintState print;
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        for (const bool enabled : { false, true }) {
+            for (const uint8_t brightness : { 0, 73, 192, 255 }) {
+                print.set(0);
+                CHECK(print.brightness(enabled, brightness) == 0);
+                print.set(1);
+                CHECK(print.brightness(enabled, brightness) == (enabled ? brightness : 0));
+            }
+        }
+    }
 }
 
 TEST_CASE("RME host progress preserves unknown and paused estimates with bounded freshness", "[rme][progress]") {
