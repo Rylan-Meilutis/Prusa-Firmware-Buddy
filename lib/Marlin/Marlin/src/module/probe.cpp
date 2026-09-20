@@ -553,6 +553,12 @@ float run_z_probe(const RunZProbeParams& params) {
     {
       idle(false); // Avoid watchdog reset in case of no move while probing
       #if ENABLED(NOZZLE_LOAD_CELL)
+        #if HAS_INDX()
+        // A sticky flexible nozzle must reach the normal probing-failed
+        // recovery UI, not repeat dozens of rejected contacts at one point.
+        if (probe_idx >= 8 && FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()).parameters().is_flexible)
+          return NAN;
+        #endif
         auto center_offset = offset_for_probe_try(probe_idx++);
         // XY travel must not be quick-stoppable; re-arm after for the tare + descent.
         loadcell.disarm_probe_safety();

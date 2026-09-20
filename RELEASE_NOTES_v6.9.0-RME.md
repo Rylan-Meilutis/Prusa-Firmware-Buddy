@@ -1,5 +1,27 @@
 # 6.9.0-RME Firmware
 
+## Release update — flexible Auto PA and recovery, 2026-09-20
+
+- TPU/TPE/FLEX excitation now uses averaged E-step velocity at 0.2/1.0 mm/s,
+  retaining confidence/SNR rejection. Flexible calibration flow is capped at
+  2.4 mm3/s; INDX native flexible feeds and unload ramming are capped at 2 mm/s.
+- Rejected PA fits no longer arm calibrated pressure fault detection. Recovery
+  discards stall flags collected during blocked unload/load operations.
+- INDX flexible mesh probing wipes, cools to at most 120 C, wipes again, and
+  restores the prior target afterward. Eight unsuccessful contacts return to
+  normal recovery; contact validity checks are not weakened.
+- Cache format v3 deliberately recalibrates once after updating. Successful
+  fits persist and are verified on read-back; fallback results are not cached.
+- Companion plugin: 0.1.0b109. Clear any existing gear wrap before testing.
+  These are software-tested mitigations, not hardware-validated 95A TPU settings.
+
+- Persist Off / Auto / On calibration policy, shared between the printer and
+  RME control tab. Auto retains temperature-sensitive flash cache reuse; On
+  forces measurement and Off skips automatic commands without heating/motion.
+- Report cache-save success and cache-miss categories for troubleshooting.
+- Preserve scoped dock-fan restoration across INDX batch and individual
+  calibration exits, including cancellation and failures.
+
 ## Release update — print lighting and host progress, 2026-09-19
 
 Final matrix: 15/15 passed from `54f3e952c`. Shared RME tests: 63 cases /

@@ -9,6 +9,25 @@
 
 using namespace std;
 
+TEST_CASE("blocked recovery samples do not cause another immediate stall") {
+    auto &detector = EMotorStallDetector::Instance();
+    detector.SetEnabled();
+    detector.ClearDetected();
+    detector.SetIgnore(0, 1000);
+    {
+        BlockEStallDetection outer;
+        {
+            BlockEStallDetection inner;
+            for (uint32_t i = 0; i < 40; ++i) {
+                detector.ProcessSample(i % 7 == 5 ? 0 : 2000000, i + 1);
+            }
+        }
+        REQUIRE_FALSE(detector.DetectedUnreported());
+    }
+    REQUIRE_FALSE(detector.DetectedUnreported());
+    REQUIRE_FALSE(detector.Reported());
+}
+
 [[nodiscard]] constexpr bool almost_equal(float l, float r) {
     return r == std::nextafter(l, r);
 }

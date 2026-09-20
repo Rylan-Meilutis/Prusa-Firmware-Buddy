@@ -1275,6 +1275,9 @@ static bool handle_remote_tune_service(const std::string_view command) {
   if (command != "@RME TUNE QUERY") return false;
   SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
   SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
+  #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
+  SERIAL_ECHOPGM(" auto_pa="); SERIAL_ECHO(config_store().auto_pa_mode.get());
+  #endif
   SERIAL_ECHOPGM(" printing=");
 #if HAS_SIDE_LEDS()
   SERIAL_ECHO(leds::SideStripHandler::instance().chamber_print_active() ? 1 : 0);

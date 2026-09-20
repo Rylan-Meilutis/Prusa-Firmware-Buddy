@@ -1,5 +1,21 @@
 # RME Upstream Release Playbook
 
+## September 20 flexible Auto PA and recovery
+
+Companion plugin b109 adds capability-gated Off/Auto/On and closes skipped or
+cached calibration workflows. Firmware preserves quality gates and flash
+verification; cache format v3 needs one new successful calibration after update.
+Flexible scoring averages quantized E steps without extra allocation. Rejected
+fits do not seed pressure monitoring; blocked recovery events are discarded.
+INDX flexible feeds/unloads are capped, and mesh preparation cleans/cools before
+probing with bounded failed contacts. Dock fan save/restore remains scoped.
+
+Required hardware validation: clear the existing gear wrap first; supervise 95A
+TPU loading, Auto PA, unload, and mesh probing. Verify accepted result/save/hit on
+two identical M976 batches and after reboot, fan restoration on success/abort,
+all three policy choices across both screens, and genuine runout detection.
+Do not claim hardware success from host tests or cache a low-confidence fallback.
+
 ## September 19 print lighting and host progress release
 
 Final matrices passed 30/30 in 1m42s: 6.9.0 from 54f3e952c and 6.10.1
