@@ -1,5 +1,16 @@
 # 6.10.1-RME Firmware
 
+## Release update — restore configured print lighting, 2026-09-20
+
+- Chamber On during printing now restores the configured print-state brightness
+  and channel enable mask. Disabled channels and zero-brightness channels stay
+  dark instead of being forced on at full brightness. Off remains off.
+- Shared RME regression suite: 64 cases / 432542 assertions passed, including
+  repeated Off/On transitions with disabled and zero-brightness channels.
+- Compatible with RME plugin b109; no plugin update is required for this fix.
+- No further TPU changes in this update. A tool swap resolved the reported
+  loading failure; reliable TPU Auto PA still needs hardware validation.
+
 ## Release update — flexible Auto PA and recovery, 2026-09-20
 
 Validation: 15/15 release variants passed from `62145066b`. Host suites:
