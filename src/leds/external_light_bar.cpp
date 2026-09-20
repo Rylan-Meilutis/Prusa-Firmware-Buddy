@@ -5,6 +5,7 @@
 #include <logging/log.hpp>
 #include <marlin_vars.hpp>
 #include <timing.h>
+#include <atomic>
 #include "client_response.hpp"
 #include "hwio_pindef.h"
 #include <option/has_manual_belt_tuning.h>
@@ -28,6 +29,8 @@ struct AppliedState {
 };
 
 static AppliedState applied_state;
+// Telemetry is read by GUI/serial tasks independently of the LED update task.
+static std::atomic<bool> reported_on { false };
 
 static uint8_t pin_mask(uint8_t pin) {
     return static_cast<uint8_t>(0x1 << pin);
@@ -229,7 +232,7 @@ bool target_on([[maybe_unused]] bool chamber_light_on) {
     const auto state = side_strip.current_state();
     bool target = state_enabled(light_state_for_strip_state(state));
     if (const auto mode = side_strip.chamber_mode_override(); mode >= 0) {
-        return mode != 0 && state_enabled(side_strip.chamber_print_active() ? leds::LightState::printing : leds::LightState::active);
+        return mode != 0 && state_enabled(leds::LightState::active);
     }
     if (side_strip.print_light_override_active()) {
         target = target && side_strip.print_light_override_brightness() > 0;
@@ -271,6 +274,7 @@ void apply(bool on) {
     const uint8_t mask = protected_pin_mask();
     if (!mask) {
         applied_state.valid = false;
+        reported_on.store(false);
         return;
     }
 
@@ -290,6 +294,7 @@ void apply(bool on) {
     static bool last_logged_valid = false;
     if (success) {
         applied_state = { true, on, mask, active_high };
+        reported_on.store(on);
     }
     if (success && (!last_logged_valid || last_logged_on != on || last_logged_mask != mask || last_logged_active_high != active_high)) {
         uint8_t config_register = 0;
@@ -309,7 +314,7 @@ void apply(bool on) {
 }
 
 bool is_on() {
-    return applied_state.valid && applied_state.on;
+    return reported_on.load();
 }
 
 void set_diagnostic_override(bool enabled, bool on) {

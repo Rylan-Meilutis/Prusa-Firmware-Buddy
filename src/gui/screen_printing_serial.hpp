@@ -38,7 +38,7 @@ private:
         legacy,
         progress,
         status,
-        message,
+        result,
     };
 
     enum class TimeItem {
@@ -54,20 +54,16 @@ private:
         finished_at,
         _count,
     };
-    static constexpr size_t message_text_size = HAS_MINI_DISPLAY() ? 256 : 512;
 
     virtual void stopAction() override;
     virtual void pauseAction() override;
     virtual void tuneAction() override;
     void update_progress();
-    void update_message_label(bool force = false);
     bool time_item_available(TimeItem item) const;
     TimeItem next_time_item(TimeItem item) const;
     TimeItem previous_time_item(TimeItem item) const;
     TimeItem first_time_item() const;
-    TimeItem last_time_item() const;
     void update_status();
-    void update_messages();
     void update_finished_summary();
     void advance_finished_stat(bool forward);
     bool finished_stat_available(FinishedStat stat) const;
@@ -83,7 +79,6 @@ private:
     size_t page_count() const;
     size_t current_page_index() const;
     bool status_page_available() const;
-    bool message_page_available() const;
     term_buff_t<terminal_columns, terminal_rows> term_buff;
     window_term_t term;
     WindowPrintProgress w_progress;
@@ -95,14 +90,14 @@ private:
     window_text_t w_status_label;
     window_text_t w_status_value;
     WindowProgressBar w_status_progress;
-    window_text_t w_message_label;
-    window_text_t w_message_value;
+    window_text_t w_result_label;
+    window_text_t w_result_value;
     WindowProgressCircles time_dots;
     WindowProgressCircles page_dots;
     std::array<char, 32> w_etime_value_buffer {};
     std::array<char, 256> status_text {};
     std::array<char, 64> status_value_text {};
-    std::array<char, message_text_size> message_text {};
+    std::array<char, 64> result_text {};
     Page current_page = Page::progress;
     TimeItem current_time_item = TimeItem::remaining_time;
     uint32_t last_page_switch_s = 0;
@@ -110,10 +105,8 @@ private:
     FinishedStat finished_stat = FinishedStat::duration;
     bool user_selected_page = false;
     bool status_progress_available = false;
-    uint32_t last_message_id = 0;
     uint32_t status_message_baseline_id = 0;
     bool serial_data_seen = false;
-    uint8_t last_message_progress_percent = 255;
     marlin_server::State last_state;
     bool lock_buttons_applied = false;
 };

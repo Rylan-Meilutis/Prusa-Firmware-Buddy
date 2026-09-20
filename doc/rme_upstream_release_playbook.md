@@ -1,6 +1,50 @@
 # RME Upstream Release Playbook
 
+## Unreleased serial-print page cleanup
+
+User chose removal of the duplicate serial-print Messages page instead of
+adding further routine-message filters. Keep the dedicated Messages screen
+and normal status/progress. Preserve terminal result/filtration widgets under
+Page::result, outside print-time rotation. Source regression:
+tests/unit/gui/test_serial_print_pages_source.py.
+
+## Unreleased chamber telemetry correction
+
+User clarification: explicit chamber On selects Active values, including while
+printing; Off blanks all chamber outputs. Only automatic mode retains the
+print profile. This supersedes the previous explicit-On print-profile policy.
+Updated shared regression gate: 65 cases / 432638 assertions passed.
+
+Use current strip output plus the last successfully applied external-bar state
+for chamber telemetry and the selector. Do not infer Off solely from the
+internal print-profile mask or an idle override. External output telemetry is
+atomic for cross-task readers. Preserve idle Locked; printing stays binary.
+Gate: 65 RME cases / 432590 assertions; 6.10.1 INDX firmware linked. Hardware checks: internal-only,
+external-only, both dark, transitions, door wake, and print Off/On. This reports
+software-applied output, not independent electrical feedback from the LEDs.
+
+## September 20 print-light profile correction
+
+Release source revisions: 6.9.0 `081fd30f2`, 6.10.1 `b929ada1f`.
+Print On no longer bypasses the chamber channel enable mask or substitutes
+full brightness for a configured zero. Off/On restores the print profile.
+Regression gate: 64 RME cases / 432542 assertions passed. Plugin b109 needs
+no changes. Both full 15-variant matrices passed (30/30, 1m48s total).
+
+Hardware follow-up: verify disabled internal/external channels remain dark,
+enabled channels recover configured brightness after Off/On, and idle behavior
+is unchanged. The user reports swapping tools fixed TPU loading; no new TPU
+fix or successful hardware Auto PA validation is claimed by this update.
+
 ## September 20 flexible Auto PA and recovery
+
+Final artifacts: 6.9.0 15/15 from `c19566ee9` (8m37s), 6.10.1 15/15 from
+`62145066b` (8m32s). The first 6.10.1 Japanese MINI link exceeded flash by
+12 bytes; excluding its unsupported Auto PA store item resolved the failure.
+Host validation passed: calibration 21 cases/77 assertions, stall detector
+10/155, RME 63/432492, EEPROM 12/187891. Plugin b109 at `3b84d8c` passed
+232 Python tests (4 skipped), six UI suites and a direct Auto PA selector DOM
+send/telemetry-sync check. Published via the Beta channel with an sdist asset.
 
 Companion plugin b109 adds capability-gated Off/Auto/On and closes skipped or
 cached calibration workflows. Firmware preserves quality gates and flash
@@ -17,6 +61,10 @@ all three policy choices across both screens, and genuine runout detection.
 Do not claim hardware success from host tests or cache a low-confidence fallback.
 
 ## September 19 print lighting and host progress release
+
+Final matrices passed 30/30 in 1m42s: 6.9.0 from 54f3e952c and 6.10.1
+from 1f2af6736. RME policy suite: 63 cases / 432492 assertions. Companion
+plugin b108: 229 Python tests and six UI suites passed; Beta release published.
 
 Print chamber mode now has independent fixed-size state, cleared at terminal
 idle/finished states; idle activity and door holds cannot undo print Off.
