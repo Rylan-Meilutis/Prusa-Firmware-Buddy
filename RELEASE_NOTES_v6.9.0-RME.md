@@ -1,6 +1,48 @@
 # 6.9.0-RME Firmware
 
+## Release update — serial-print page cleanup, 2026-09-20
+
+- Removed the duplicate Messages page and its history collector from serial
+  printing. Use the dedicated Messages screen instead. Normal progress/status,
+  finished/canceled summaries, filtration controls, and safety dialogs remain.
+- Removed the rotating message buffer; result summaries use a 64-byte buffer.
+- Source regression checks cover page removal, navigation, and retained results.
+
+## Release update — chamber-light control and reporting, 2026-09-20
+
+- One chamber switch controls internal/external chamber lighting together.
+  Explicit On uses the Active-state enable mask and brightness even during a
+  print; Off blanks the chamber outputs. Automatic lighting still uses its
+  print profile until overridden. LCD and status LEDs are unaffected.
+- Updated shared tests: 65 cases / 432638 assertions passed.
+
+- RME and the touchscreen chamber selector now report current lighting output
+  rather than a requested mode or internal-only print profile. External-only
+  chamber illumination is included; idle Locked remains a distinct selection.
+- Live chamber brightness includes switched external bars (100% when on).
+  RGB-only internal strips are also recognized as illuminated.
+- Shared regression validation: 65 RME cases / 432590 assertions passed on
+  6.10.1. Hardware verification and the 6.9.0 build remain pending.
+
+## Release update — restore configured print lighting, 2026-09-20
+
+Validation: all 15 release variants passed from `081fd30f2`.
+
+- Chamber On during printing now restores the configured print-state brightness
+  and channel enable mask. Disabled channels and zero-brightness channels stay
+  dark instead of being forced on at full brightness. Off remains off.
+- Shared RME regression suite: 64 cases / 432542 assertions passed, including
+  repeated Off/On transitions with disabled and zero-brightness channels.
+- Compatible with RME plugin b109; no plugin update is required for this fix.
+- No further TPU changes in this update. A tool swap resolved the reported
+  loading failure; reliable TPU Auto PA still needs hardware validation.
+
 ## Release update — flexible Auto PA and recovery, 2026-09-20
+
+Validation: 15/15 release variants passed from `c19566ee9`. Host suites:
+21 calibration, 10 stall-detector, 63 RME protocol, and 12 EEPROM cases passed.
+Plugin b109: 232 Python tests (4 skipped), six UI suites plus Auto PA selector
+DOM synchronization passed. Hardware validation is still pending.
 
 - TPU/TPE/FLEX excitation now uses averaged E-step velocity at 0.2/1.0 mm/s,
   retaining confidence/SNR rejection. Flexible calibration flow is capped at
@@ -23,6 +65,9 @@
   calibration exits, including cancellation and failures.
 
 ## Release update — print lighting and host progress, 2026-09-19
+
+Final matrix: 15/15 passed from `54f3e952c`. Shared RME tests: 63 cases /
+432492 assertions. Companion plugin: 0.1.0b108 (229 Python tests, six UI suites).
 
 - Add capability-gated RME PROGRESS SET for authoritative OctoPrint completion
   and ETA during serial jobs. Preserve unknown/paused estimates, expire stale

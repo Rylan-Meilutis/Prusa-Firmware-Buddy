@@ -57,6 +57,19 @@ TEST_CASE("manual axes respect model ranges without trapping homed boundary posi
 
 using namespace std::string_view_literals;
 
+TEST_CASE("Chamber telemetry follows outputs including external-only lighting", "[rme][light]") {
+    for (const bool printing : { false, true }) {
+        for (const uint8_t internal : { 0, 1, 73, 255 }) {
+            for (const bool external : { false, true }) {
+                const auto brightness = rme_light_mode::reported_brightness(internal, external);
+                CHECK(brightness == (external ? 255 : internal));
+                CHECK(rme_light_mode::reported_mode(printing, false, brightness) == (internal || external ? 1 : 0));
+                CHECK(rme_light_mode::reported_mode(printing, true, brightness) == (printing ? (internal || external ? 1 : 0) : 2));
+            }
+        }
+    }
+}
+
 TEST_CASE("Chamber On and Locked respect the Active channel profile") {
     for (int8_t mode = 0; mode <= 2; ++mode) {
         CHECK(rme_light_mode::active_profile_brightness(mode, false, 255) == 0);
@@ -68,33 +81,35 @@ TEST_CASE("Chamber On and Locked respect the Active channel profile") {
 TEST_CASE("Print chamber override is binary and independent of idle activity", "[rme][light]") {
     rme_light_mode::PrintState print;
     rme_light_mode::State idle;
-    CHECK(print.brightness(true, 192) == 192);
-    CHECK(print.brightness(false, 192) == 0);
+    CHECK(print.brightness(true, 192, true, 73) == 192);
+    CHECK(print.brightness(false, 192, true, 73) == 0);
     print.set(0);
     idle.set(0, 100);
     idle.resume_on_activity();
     idle.apply_door_hold(true);
     idle.expire(50000, 30);
-    CHECK(print.brightness(true, 192) == 0);
+    CHECK(print.brightness(true, 192, true, 73) == 0);
     print.set(2);
     CHECK(print.mode == 1);
-    CHECK(print.brightness(true, 192) == 192);
-    CHECK(print.brightness(false, 0) == 0);
-    CHECK(print.brightness(false, 192) == 0);
-    CHECK(print.brightness(true, 0) == 0);
+    CHECK(print.brightness(true, 192, true, 73) == 73);
+    CHECK(print.brightness(false, 0, true, 73) == 73);
+    CHECK(print.brightness(true, 192, false, 73) == 0);
+    CHECK(print.brightness(true, 192, true, 0) == 0);
     print.reset();
-    CHECK(print.brightness(false, 192) == 0);
+    CHECK(print.brightness(false, 192, true, 73) == 0);
 }
 
-TEST_CASE("Print light toggling restores each channel profile without enabling dark channels", "[rme][light]") {
+TEST_CASE("One print light switch selects Active or all off independently of print brightness", "[rme][light]") {
     rme_light_mode::PrintState print;
     for (int cycle = 0; cycle < 3; ++cycle) {
         for (const bool enabled : { false, true }) {
             for (const uint8_t brightness : { 0, 73, 192, 255 }) {
                 print.set(0);
-                CHECK(print.brightness(enabled, brightness) == 0);
+                CHECK(print.brightness(true, 255, enabled, brightness) == 0);
+                CHECK(print.brightness(false, 0, enabled, brightness) == 0);
                 print.set(1);
-                CHECK(print.brightness(enabled, brightness) == (enabled ? brightness : 0));
+                CHECK(print.brightness(true, 255, enabled, brightness) == (enabled ? brightness : 0));
+                CHECK(print.brightness(false, 0, enabled, brightness) == (enabled ? brightness : 0));
             }
         }
     }

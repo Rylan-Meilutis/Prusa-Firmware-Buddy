@@ -123,6 +123,8 @@ public:
     leds::ColorRGBW color() const;
     /// Brightest currently driven RGBW channel, including off/dim/transition state.
     uint8_t current_brightness() const;
+    /// Combined internal strip and external bar output, not the requested mode.
+    uint8_t current_chamber_brightness() const;
 
 private:
     void restart_idle_countdown(uint32_t now);

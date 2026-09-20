@@ -3,15 +3,27 @@
 #include <rme_light_hold.hpp>
 
 namespace rme_light_mode {
+// External bars are switched outputs, so an illuminated bar contributes 100%.
+constexpr uint8_t reported_brightness(uint8_t internal, bool external_on) {
+    return external_on ? 255 : internal;
+}
+
+constexpr uint8_t reported_mode(bool printing, bool locked, uint8_t brightness) {
+    return !printing && locked ? 2 : (brightness > 0 ? 1 : 0);
+}
+
 // Print overrides are independent of idle activity, door holds and timers.
 struct PrintState {
     int8_t mode = -1;
     void set(uint8_t value) { mode = value ? 1 : 0; }
     void reset() { mode = -1; }
-    uint8_t brightness(bool enabled, uint8_t configured) const {
-        // On restores the print profile, not every channel at full brightness.
-        // A disabled channel or zero brightness must remain dark.
-        return mode != 0 && enabled ? configured : 0;
+    uint8_t brightness(bool print_enabled, uint8_t print_brightness, bool active_enabled, uint8_t active_brightness) const {
+        // Explicit On selects the Active profile even during a print. Only
+        // automatic mode uses the print profile; Off blanks every channel.
+        if (mode == 0) {
+            return 0;
+        }
+        return mode > 0 ? (active_enabled ? active_brightness : 0) : (print_enabled ? print_brightness : 0);
     }
 };
 // Streamed job commands are machine activity, not a user waking the lights.
