@@ -1,5 +1,18 @@
 # RME Upstream Release Playbook
 
+## September 20 print-light profile correction
+
+Release source revisions: 6.9.0 `081fd30f2`, 6.10.1 `b929ada1f`.
+Print On no longer bypasses the chamber channel enable mask or substitutes
+full brightness for a configured zero. Off/On restores the print profile.
+Regression gate: 64 RME cases / 432542 assertions passed. Plugin b109 needs
+no changes. Publish only after both full 15-variant matrices succeed.
+
+Hardware follow-up: verify disabled internal/external channels remain dark,
+enabled channels recover configured brightness after Off/On, and idle behavior
+is unchanged. The user reports swapping tools fixed TPU loading; no new TPU
+fix or successful hardware Auto PA validation is claimed by this update.
+
 ## September 20 flexible Auto PA and recovery
 
 Final artifacts: 6.9.0 15/15 from `c19566ee9` (8m37s), 6.10.1 15/15 from
