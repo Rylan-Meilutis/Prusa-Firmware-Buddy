@@ -115,6 +115,11 @@ public:
     ~BlockEStallDetection() {
         auto &emsd = EMotorStallDetector::Instance();
         emsd.blocked--;
+        if (emsd.blocked == 0) {
+            // Reload/ramming samples collected while blocked are not evidence
+            // of a new print-time jam. Discard them before detection resumes.
+            emsd.ClearDetected();
+        }
     }
 };
 

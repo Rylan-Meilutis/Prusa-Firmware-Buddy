@@ -6,7 +6,9 @@
 
 namespace buddy::pa_cache {
 
-inline constexpr uint32_t record_version = 2;
+// Flexible excitation/scoring changed; old pressure references use different
+// velocities and must not be interpreted with the new monitor policy.
+inline constexpr uint32_t record_version = 3;
 
 // Versioned, fixed-size flash record. No pointers, heap allocations or raw
 // FilamentType/Score object representations are persisted.
