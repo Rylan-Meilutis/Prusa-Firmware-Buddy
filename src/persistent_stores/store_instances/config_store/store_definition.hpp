@@ -887,6 +887,8 @@ struct CurrentStore
     StoreItem<float, 6.0f, ItemFlag::features, journal::hash("PA minimum signal noise ratio")> pa_minimum_snr;
     StoreItem<uint8_t, 6, ItemFlag::features, journal::hash("PA confidence retries")> pa_confidence_retries;
     StoreItem<bool, false, ItemFlag::features, journal::hash("PA calibration debug output")> pa_calibration_debug_output;
+    // 0: skip automatic commands, 1: reuse cache, 2: always measure.
+    StoreItem<uint8_t, 1, ItemFlag::features, journal::hash("Auto PA mode")> auto_pa_mode;
 
     StoreItem<bool, false, ItemFlag::features, journal::hash("Stealth mode")> stealth_mode;
 

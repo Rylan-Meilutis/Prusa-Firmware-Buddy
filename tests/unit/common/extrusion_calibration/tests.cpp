@@ -4,6 +4,7 @@
 #include <pa_calibration_cache.hpp>
 #include <pa_calibration_cache_storage.hpp>
 #include <cstdlib>
+#include <cmath>
 
 TEST_CASE("PA flash records survive reopen and reject corruption and truncation") {
     using namespace buddy::pa_cache;
@@ -25,6 +26,13 @@ TEST_CASE("PA flash records survive reopen and reject corruption and truncation"
     REQUIRE(read_record(path, loaded));
     REQUIRE(loaded == saved);
     REQUIRE(loaded.matches(saved.key));
+    // New print jobs clear RAM results, but must not affect the flash record.
+    for (int print = 0; print < 3; ++print) {
+        buddy::extrusion_calibration::reset_job_results();
+        loaded = {};
+        REQUIRE(read_record(path, loaded));
+        REQUIRE(loaded.matches(saved.key));
+    }
     int fd = open(path, O_WRONLY);
     REQUIRE(fd >= 0);
     REQUIRE(write(fd, "bad", 3) == 3);
@@ -192,6 +200,40 @@ TEST_CASE("selected flexible PA reference monitors slow extrusion") {
         record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.0025f);
     }
     REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
+    reset_job_results();
+}
+
+TEST_CASE("flexible calibration scores quantized slow E steps without false edges") {
+    for (const bool pulsed : { false, true }) {
+        Capture capture;
+        REQUIRE(capture.start());
+        float e = 0;
+        for (size_t i = 0; i < 960; ++i) {
+            const bool fast = pulsed && (i % 240 < 80);
+            e += (fast ? 1.0f : 0.2f) / 320.0f;
+            capture.record(i * 3125, fast ? 20.0f : 4.0f, std::floor(e / 0.002f) * 0.002f);
+        }
+        capture.stop();
+        const auto score = capture.score(true);
+        REQUIRE(score.valid == pulsed);
+        if (pulsed) {
+            REQUIRE(score.transitions_used >= 4);
+            REQUIRE(score.transitions_detected <= 8);
+        }
+    }
+}
+
+TEST_CASE("fallback PA without a trusted reference cannot trigger pressure recovery") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    reset_pressure_monitor();
+    set_job_result(4, { 0.08f, 2.4f, 0.2f, true, {}, true });
+    select_job_result(4);
+    set_pressure_monitor_detection(true, true);
+    for (uint32_t i = 0; i < 2000; ++i) {
+        record_loadcell_sample(1000 + i * 5000, 0, i * 0.005f);
+    }
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
     reset_job_results();
 }
 

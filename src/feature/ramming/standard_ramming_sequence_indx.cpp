@@ -33,7 +33,7 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
     case StandardRammingSequence::runout: {
         if (is_flexible) {
             static constexpr RammingSequenceArray seq({
-                { -50, 600 },
+                { -50, 120 }, // FLEX: 2 mm/s, including recovery unload
             });
             return seq;
         }
@@ -57,7 +57,7 @@ const RammingSequence &buddy::standard_ramming_sequence(StandardRammingSequence 
     case StandardRammingSequence::unload: {
         if (is_flexible) {
             static constexpr RammingSequenceArray seq({
-                { -50, 600 },
+                { -50, 120 }, // FLEX: 2 mm/s, including manual unload
             });
             return seq;
         }

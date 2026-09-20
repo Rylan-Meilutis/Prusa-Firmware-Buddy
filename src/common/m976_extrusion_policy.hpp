@@ -17,9 +17,9 @@ constexpr bool is_flexible(std::string_view profile, std::string_view base, bool
 
 constexpr Speeds speeds(bool flexible) {
     // Filament feed speeds, not nozzle travel or volumetric flow. Keep a
-    // >1 mm/s transition for the loadcell scorer, below 4 mm3/s for 1.75 mm
-    // flexible filament. Confidence gates must still accept the measurement.
-    return flexible ? Speeds { 0.2f, 1.5f, 2.0f } : Speeds { 0.8f, 8.0f, 20.0f };
+    // measurable transition with windowed E-step scoring, below 2.5 mm3/s
+    // for 1.75 mm flexible filament. Confidence gates remain mandatory.
+    return flexible ? Speeds { 0.2f, 1.0f, 2.0f } : Speeds { 0.8f, 8.0f, 20.0f };
 }
 
 } // namespace buddy::m976_extrusion_policy
