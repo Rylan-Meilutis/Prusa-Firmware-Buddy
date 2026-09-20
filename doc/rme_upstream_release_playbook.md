@@ -2,6 +2,14 @@
 
 ## September 20 flexible Auto PA and recovery
 
+Final artifacts: 6.9.0 15/15 from `c19566ee9` (8m37s), 6.10.1 15/15 from
+`62145066b` (8m32s). The first 6.10.1 Japanese MINI link exceeded flash by
+12 bytes; excluding its unsupported Auto PA store item resolved the failure.
+Host validation passed: calibration 21 cases/77 assertions, stall detector
+10/155, RME 63/432492, EEPROM 12/187891. Plugin b109 at `3b84d8c` passed
+232 Python tests (4 skipped), six UI suites and a direct Auto PA selector DOM
+send/telemetry-sync check. Published via the Beta channel with an sdist asset.
+
 Companion plugin b109 adds capability-gated Off/Auto/On and closes skipped or
 cached calibration workflows. Firmware preserves quality gates and flash
 verification; cache format v3 needs one new successful calibration after update.
