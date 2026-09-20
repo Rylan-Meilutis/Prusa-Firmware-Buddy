@@ -2,6 +2,7 @@
 
 #include "standard_feedrates.hpp"
 #include <utils/enum_array.hpp>
+#include <algorithm>
 
 using namespace buddy::standard_feedrates;
 
@@ -21,7 +22,7 @@ static constexpr EnumArray<Extruder, feedRate_t, Extruder::_count> base_e_feedra
 
 feedRate_t buddy::adjust_feedrate_for_filament(feedRate_t base, const FilamentTypeParameters &filament) {
     constexpr feedRate_t flex_feedrate_factor = 1.f / 6.f;
-    return filament.is_flexible ? base * flex_feedrate_factor : base;
+    return filament.is_flexible ? std::min(base * flex_feedrate_factor, 2.0f) : base;
 }
 
 feedRate_t buddy::standard_feedrates::extruder(Extruder use_case, const FilamentTypeParameters &filament) {

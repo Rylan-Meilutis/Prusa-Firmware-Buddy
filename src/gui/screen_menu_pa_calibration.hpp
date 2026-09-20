@@ -3,9 +3,19 @@
 #include <screen_menu.hpp>
 #include <WindowMenuItems.hpp>
 #include <WindowMenuSpin.hpp>
+#include <WindowMenuSwitch.hpp>
 #include <printers.h>
 
 #define HAS_PA_CALIBRATION_UI() (PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX())
+
+class MI_AUTO_PA_MODE : public MenuItemSwitch {
+public:
+    MI_AUTO_PA_MODE();
+
+protected:
+    void OnChange(size_t old_index) override;
+    void Loop() override;
+};
 
 class MI_PA_TOOL_RUN : public WI_ICON_SWITCH_OFF_ON_t {
 public:
@@ -69,7 +79,7 @@ protected:
     void OnChange(size_t old_index) override;
 };
 
-using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_PA_CONFIDENCE_FLOOR, MI_PA_MINIMUM_SNR, MI_PA_CONFIDENCE_RETRIES, MI_PA_DEBUG_OUTPUT,
+using ScreenMenuPACalibration_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN, MI_AUTO_PA_MODE, MI_PA_CONFIDENCE_FLOOR, MI_PA_MINIMUM_SNR, MI_PA_CONFIDENCE_RETRIES, MI_PA_DEBUG_OUTPUT,
     WithConstructorArgs<MI_PA_TOOL_RUN, 0>, WithConstructorArgs<MI_PA_TEMPERATURE, 0>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 1>, WithConstructorArgs<MI_PA_TEMPERATURE, 1>,
     WithConstructorArgs<MI_PA_TOOL_RUN, 2>, WithConstructorArgs<MI_PA_TEMPERATURE, 2>,

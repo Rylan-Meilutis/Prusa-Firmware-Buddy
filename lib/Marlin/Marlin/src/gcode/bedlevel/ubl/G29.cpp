@@ -29,6 +29,12 @@
 #include <config_store/store_instance.hpp>
 #include <feature/print_status_message/print_status_message_guard.hpp>
 #include <mapi/parking.hpp>
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include "../../temperature/M104_M109.hpp"
+    #include <utils/variant_utils.hpp>
+    #include <raii/scope_guard.hpp>
+#endif
 
 #include <option/has_auto_retract.h>
 #include <bsod/bsod.h>
@@ -273,6 +279,29 @@ void GcodeSuite::G29() {
     marlin_server::FSM_Holder fsm_holder(PhaseWait::print_status_message);
 
     BlockEStallDetection block_e_stall_detection;
+
+#if HAS_INDX()
+    const auto probe_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
+    const bool cool_flex = parser.seenval('P') && parser.value_float() == 1.0f
+        && probe_tool.has_value() && all_axes_homed()
+        && FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()).parameters().is_flexible;
+    const int16_t saved_target = probe_tool ? thermalManager.degTargetHotend(*probe_tool) : 0;
+    ScopeGuard restore_probe_target([&]() {
+        if (cool_flex && !planner.draining()) {
+            thermalManager.setTargetHotend(saved_target, *probe_tool);
+        }
+    });
+    if (cool_flex) {
+        // Remove residue while warm, cool away from the bed, then wipe once
+        // more. Retain every loadcell validity check; do not accept sticky
+        // pull-off traces as a valid mesh point.
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean)) return;
+        M109_no_parser(*probe_tool, { .target_temp = 120, .wait_heat = true, .wait_heat_or_cool = true, .autotemp = true });
+        if (planner.draining()) return;
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean)) return;
+        mapi::move_out_of_nozzle_cleaner_area();
+    }
+#endif
 
 #if HAS_NOZZLE_CLEANER()
     const uint8_t max_nozzle_cleaning_retries = 3;        

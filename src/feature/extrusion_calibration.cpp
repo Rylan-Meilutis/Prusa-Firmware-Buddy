@@ -88,7 +88,7 @@ void Capture::record(const uint32_t time_us, const float load_g, const float e_p
     }
 }
 
-Score Capture::score() const {
+Score Capture::score(const bool flexible) const {
     const size_t n = samples_ ? std::min(size(), capacity) : 0;
     Score result;
     result.sample_count = static_cast<uint16_t>(std::min(n, size_t(std::numeric_limits<uint16_t>::max())));
@@ -105,16 +105,20 @@ Score Capture::score() const {
     size_t noise_observations = 0;
     size_t used = 0;
     size_t last_transition = 0;
-    for (size_t i = 3; i + 40 < n; ++i) {
-        const float dt0 = static_cast<float>(samples_[i].time_us - samples_[i - 1].time_us) * 1e-6f;
-        const float dt1 = static_cast<float>(samples_[i - 1].time_us - samples_[i - 2].time_us) * 1e-6f;
+    // Flexible filament moves too slowly for adjacent, quantized E steps to
+    // reliably represent velocity. Average over short windows on either side
+    // of the edge. Do not change the rigid-material scoring path.
+    const size_t window = flexible ? 8 : 1;
+    for (size_t i = 16; i + 40 < n; ++i) {
+        const float dt0 = static_cast<float>(samples_[i + window - 1].time_us - samples_[i - 1].time_us) * 1e-6f;
+        const float dt1 = static_cast<float>(samples_[i - 1].time_us - samples_[i - 1 - window].time_us) * 1e-6f;
         if (dt0 <= 0 || dt1 <= 0) {
             ++result.rejected_timing;
             continue;
         }
-        const float v0 = (samples_[i].e_position_mm - samples_[i - 1].e_position_mm) / dt0;
-        const float v1 = (samples_[i - 1].e_position_mm - samples_[i - 2].e_position_mm) / dt1;
-        if (std::abs(v0 - v1) < 1.0f || i - last_transition < 12) {
+        const float v0 = (samples_[i + window - 1].e_position_mm - samples_[i - 1].e_position_mm) / dt0;
+        const float v1 = (samples_[i - 1].e_position_mm - samples_[i - 1 - window].e_position_mm) / dt1;
+        if (std::abs(v0 - v1) < (flexible ? 0.5f : 1.0f) || i - last_transition < (flexible ? 35u : 12u)) {
             noise_sum += std::abs(samples_[i].load_g - samples_[i - 1].load_g);
             ++noise_observations;
             continue;

@@ -921,10 +921,10 @@ TEST_CASE("Auto PA uses gentle flexible filament feeds", "[rme][pa]") {
     const auto flex = speeds(true);
     const auto rigid = speeds(false);
     CHECK(flex.low_mm_s == 0.2f);
-    CHECK(flex.high_mm_s == 1.5f);
+    CHECK(flex.high_mm_s == 1.0f);
     CHECK(flex.retract_mm_s == 2.0f);
-    CHECK(flex.high_mm_s - flex.low_mm_s > 1.0f);
-    CHECK(flex.high_mm_s * 2.4053f < 4.0f);
+    CHECK(flex.high_mm_s - flex.low_mm_s > 0.5f);
+    CHECK(flex.high_mm_s * 2.4053f < 2.5f);
     CHECK(rigid.low_mm_s == 0.8f);
     CHECK(rigid.high_mm_s == 8.0f);
     CHECK(rigid.retract_mm_s == 20.0f);

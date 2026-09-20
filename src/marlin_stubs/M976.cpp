@@ -490,7 +490,12 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     char path[48];
     buddy::pa_cache::path_for(path, slot);
     buddy::pa_cache::Record record {};
-    if (!buddy::pa_cache::read_record(path, record) || !record.matches(cache_key(tool, slot, temperature))) {
+    if (!buddy::pa_cache::read_record(path, record)) {
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=missing_or_invalid_record");
+        return false;
+    }
+    if (!record.matches(cache_key(tool, slot, temperature))) {
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=key_or_quality_changed");
         return false;
     }
     buddy::extrusion_calibration::Result result { record.pa, record.max_flow, record.confidence, true };
@@ -522,7 +527,16 @@ void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::ex
         buddy::pa_cache::path_for(temporary, slot, true);
         if (!buddy::pa_cache::write_record(path, temporary, record)) {
             SERIAL_ECHOLN("PA_CALIBRATION cache save unavailable; using job result only");
+        } else {
+            buddy::pa_cache::Record verified {};
+            if (buddy::pa_cache::read_record(path, verified) && verified == record && verified.matches(record.key)) {
+                SERIAL_ECHOLNPAIR("PA_CALIBRATION cache saved_and_verified slot=", slot);
+            } else {
+                SERIAL_ECHOLNPAIR("PA_CALIBRATION cache verification failed slot=", slot);
+            }
         }
+    } else {
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache not_saved slot=", slot, " reason=ineligible_result");
     }
 }
 #endif
@@ -764,7 +778,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cyc
     planner.synchronize();
     pressure_advance::set_calibration_mode(false);
     capture.stop();
-    const auto result = capture.score();
+    const auto result = capture.score(flexible_calibration(slot));
     capture.release();
     return result;
 }
@@ -833,7 +847,7 @@ void report_measurement_debug(const float candidate, const buddy::extrusion_cali
 float material_flow_limit(const uint8_t logical_filament) {
     const auto &name = config_store().get_filament_type(logical_filament).parameters().name;
     if (flexible_calibration(logical_filament)) {
-        return 4.0f;
+        return 2.4f;
     }
     if (!strncmp(name.data(), "PETG", 4)) {
         return 10.0f;
@@ -942,6 +956,18 @@ void PrusaGcodeSuite::M976() {
     SERIAL_ERROR_MSG("M976 unsupported printer");
     return;
 #else
+    if (parser.seen('W')) {
+        if (parser.seenval('W')) {
+            const int mode = parser.value_int();
+            if (mode < 0 || mode > 2) {
+                SERIAL_ERROR_MSG("M976 W must be 0..2");
+                return;
+            }
+            config_store().auto_pa_mode.set(static_cast<uint8_t>(mode));
+        }
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION mode=", config_store().auto_pa_mode.get());
+        return;
+    }
     const bool configure_confidence = parser.seen('Q');
     const bool configure_snr = parser.seen('N');
     const bool configure_retries = parser.seen('R');
@@ -984,9 +1010,14 @@ void PrusaGcodeSuite::M976() {
     // S is a calibration-only target. Restore every hotend target on every exit path, including
     // batch/MMU failures and cached results. Nested M976 calls restore to the batch's temporary
     // target; the outer batch guard then restores the targets that existed before the command.
-    HotendTargetRestorer restore_hotend_targets;
     const bool manual = parser.boolval('M', false);
-    const bool force = manual || parser.boolval('F', false);
+    const auto mode = config_store().auto_pa_mode.get();
+    if (!manual && mode == 0 && !parser.seen('C')) {
+        SERIAL_ECHOLN("PA_CALIBRATION skipped mode=off");
+        return;
+    }
+    HotendTargetRestorer restore_hotend_targets;
+    const bool force = manual || mode == 2 || parser.boolval('F', false);
     if (parser.seen('A') || parser.seenval('K')) {
         std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries {};
         size_t count = 0;
@@ -1365,7 +1396,8 @@ void PrusaGcodeSuite::M976() {
         // A weak measurement is not a print failure. Publish the safe fallback
         // as this job's result so a batch continues and serial hosts do not
         // interpret the expected fallback path as a print-cancelling Error.
-        buddy::extrusion_calibration::set_job_result(slot, { fallback, max_flow, confidence, true, best_score, flexible_calibration(slot) });
+        // A rejected fit must never become a runout/movement reference.
+        buddy::extrusion_calibration::set_job_result(slot, { fallback, max_flow, confidence, true, {}, flexible_calibration(slot) });
         if (manual) {
             present_manual_result(tool, slot, fallback);
         } else {
@@ -1376,6 +1408,9 @@ void PrusaGcodeSuite::M976() {
         snprintf(report, sizeof(report), "PA_CALIBRATION tool=%u slot=%u fallback=%.3f confidence=%.2f reason=low_confidence",
             unsigned(tool), unsigned(slot), static_cast<double>(fallback), static_cast<double>(confidence));
         SERIAL_ECHOLN(report);
+    #if HAS_INDX()
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache not_saved slot=", slot, " reason=low_confidence_or_snr");
+    #endif
         return;
     }
 

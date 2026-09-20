@@ -15,6 +15,16 @@
 
 #if HAS_PA_CALIBRATION_UI()
 
+static constexpr std::array<const char *, 3> auto_pa_labels { N_("Off"), N_("Auto"), N_("On") };
+MI_AUTO_PA_MODE::MI_AUTO_PA_MODE()
+    : MenuItemSwitch(_("Auto PA"), auto_pa_labels, config_store().auto_pa_mode.get()) {}
+void MI_AUTO_PA_MODE::OnChange([[maybe_unused]] size_t old_index) {
+    config_store().auto_pa_mode.set(get_index());
+}
+void MI_AUTO_PA_MODE::Loop() {
+    set_current_item(config_store().auto_pa_mode.get());
+}
+
 namespace {
 constexpr std::array<const char *, 8> tool_names { N_("Tool 1 Calibration"), N_("Tool 2 Calibration"), N_("Tool 3 Calibration"), N_("Tool 4 Calibration"), N_("Tool 5 Calibration"), N_("Tool 6 Calibration"), N_("Tool 7 Calibration"), N_("Tool 8 Calibration") };
 constexpr std::array<const char *, 8> temperature_names { N_("Tool 1 Temperature"), N_("Tool 2 Temperature"), N_("Tool 3 Temperature"), N_("Tool 4 Temperature"), N_("Tool 5 Temperature"), N_("Tool 6 Temperature"), N_("Tool 7 Temperature"), N_("Tool 8 Temperature") };
