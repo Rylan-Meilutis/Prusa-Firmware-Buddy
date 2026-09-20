@@ -1,5 +1,28 @@
 # RME Upstream Release Playbook
 
+## Unreleased serial-print page cleanup
+
+User chose removal of the duplicate serial-print Messages page instead of
+adding further routine-message filters. Keep the dedicated Messages screen
+and normal status/progress. Preserve terminal result/filtration widgets under
+Page::result, outside print-time rotation. Source regression:
+tests/unit/gui/test_serial_print_pages_source.py.
+
+## Unreleased chamber telemetry correction
+
+User clarification: explicit chamber On selects Active values, including while
+printing; Off blanks all chamber outputs. Only automatic mode retains the
+print profile. This supersedes the previous explicit-On print-profile policy.
+Updated shared regression gate: 65 cases / 432638 assertions passed.
+
+Use current strip output plus the last successfully applied external-bar state
+for chamber telemetry and the selector. Do not infer Off solely from the
+internal print-profile mask or an idle override. External output telemetry is
+atomic for cross-task readers. Preserve idle Locked; printing stays binary.
+Gate: 65 RME cases / 432590 assertions; 6.10.1 INDX firmware linked. Hardware checks: internal-only,
+external-only, both dark, transitions, door wake, and print Off/On. This reports
+software-applied output, not independent electrical feedback from the LEDs.
+
 ## September 20 print-light profile correction
 
 Release source revisions: 6.9.0 `081fd30f2`, 6.10.1 `b929ada1f`.

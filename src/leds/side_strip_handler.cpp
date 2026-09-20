@@ -3,6 +3,9 @@
 #include "marlin_server.hpp"
 #include <marlin_vars.hpp>
 #include <option/has_chamber_filtration_api.h>
+#include <option/has_i2c_expander.h>
+#include <option/xbuddy_extension_variant.h>
+#include <leds/external_light_bar.hpp>
 #include <timing.h>
 #include <algorithm>
 
@@ -359,18 +362,9 @@ void SideStripHandler::restart_idle_countdown(const uint32_t now) {
 }
 
 uint8_t SideStripHandler::chamber_mode() const {
+    const auto brightness = current_chamber_brightness();
     std::lock_guard lock(mutex);
-    if (print_active_for_leds()) {
-        return print_chamber_mode.brightness(main_light_state_mask & light_state_bit(LightState::printing), print_brightness_overridden ? print_brightness_override : print_brightness) > 0;
-    }
-    if (chamber_mode_state.mode >= 0) {
-        return chamber_mode_state.mode;
-    }
-    if (rme_hold.active()) {
-        return 2;
-    }
-    const auto color = get_color_for_state(state);
-    return std::max({ color.r, color.g, color.b, color.w }) > 0 ? 1 : 0;
+    return rme_light_mode::reported_mode(print_active_for_leds(), chamber_mode_state.mode == 2 || rme_hold.active(), brightness);
 }
 
 int8_t SideStripHandler::chamber_mode_override() const {
@@ -689,7 +683,7 @@ void SideStripHandler::set_print_brightness(uint8_t value) {
 uint8_t SideStripHandler::get_print_light_brightness() const {
     std::lock_guard lock(mutex);
     if (print_active_for_leds()) {
-        return print_chamber_mode.brightness(main_light_state_mask & light_state_bit(LightState::printing), print_brightness_overridden ? print_brightness_override : print_brightness);
+        return print_chamber_mode.brightness(main_light_state_mask & light_state_bit(LightState::printing), print_brightness_overridden ? print_brightness_override : print_brightness, main_light_state_mask & light_state_bit(LightState::active), max_brightness);
     }
     if (chamber_mode_state.mode >= 0) {
         return rme_light_mode::active_profile_brightness(chamber_mode_state.mode, main_light_state_mask & light_state_bit(LightState::active), max_brightness);
@@ -748,7 +742,8 @@ LightState SideStripHandler::current_light_state() const {
 
 bool SideStripHandler::chamber_light_on() const {
     std::lock_guard lock(mutex);
-    return get_color_for_state(state).w > 0;
+    const auto color = get_color_for_state(state);
+    return std::max({ color.r, color.g, color.b, color.w }) > 0;
 }
 
 SideStripState SideStripHandler::current_state() const {
@@ -764,6 +759,14 @@ leds::ColorRGBW SideStripHandler::color() const {
 uint8_t SideStripHandler::current_brightness() const {
     const auto current = color();
     return std::max({ current.r, current.g, current.b, current.w });
+}
+
+uint8_t SideStripHandler::current_chamber_brightness() const {
+    bool external_on = false;
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY() && !XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+    external_on = external_light_bar::is_on();
+#endif
+    return rme_light_mode::reported_brightness(current_brightness(), external_on);
 }
 
 bool SideStripHandler::is_dimmed() const {
@@ -790,7 +793,7 @@ void SideStripHandler::change_state(SideStripState state) {
 ColorRGBW SideStripHandler::get_color_for_state(SideStripState state) const {
     constexpr auto base_color = has_white_led() ? ColorRGBW(0, 0, 0, 255) : ColorRGBW(255, 255, 255);
     if (print_active_for_leds()) {
-        return base_color.clamp(print_chamber_mode.brightness(main_light_state_mask & light_state_bit(LightState::printing), print_brightness_overridden ? print_brightness_override : print_brightness));
+        return base_color.clamp(print_chamber_mode.brightness(main_light_state_mask & light_state_bit(LightState::printing), print_brightness_overridden ? print_brightness_override : print_brightness, main_light_state_mask & light_state_bit(LightState::active), max_brightness));
     }
     if (chamber_mode_state.mode >= 0) {
         return base_color.clamp(rme_light_mode::active_profile_brightness(chamber_mode_state.mode, main_light_state_mask & light_state_bit(LightState::active), max_brightness));
