@@ -2,6 +2,12 @@
 
 ## Release update — flexible Auto PA and recovery, 2026-09-20
 
+Validation: 15/15 release variants passed from `62145066b`. Host suites:
+21 calibration, 10 stall-detector, 63 RME protocol, and 12 EEPROM cases passed.
+Plugin b109: 232 Python tests (4 skipped), six UI suites plus Auto PA selector
+DOM synchronization passed. MINI excludes the unsupported Auto PA store item
+to fit flash. Hardware validation is still pending.
+
 - TPU/TPE/FLEX excitation now uses averaged E-step velocity at 0.2/1.0 mm/s,
   retaining confidence/SNR rejection. Flexible calibration flow is capped at
   2.4 mm3/s; INDX native flexible feeds and unload ramming are capped at 2 mm/s.
