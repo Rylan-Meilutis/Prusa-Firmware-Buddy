@@ -1,5 +1,19 @@
 # RME Upstream Release Playbook
 
+## September 21 park-exit and lighting release validation
+
+All 30 variants passed: 6.9.0 from d62e2c415, 6.10.1 from 960ac7451.
+The unchanged external keep-out guard is covered by 65 RME tests with
+432641 assertions; five source checks cover native P0 escape and lighting
+lifecycle. P0 must leave dock Y safely before moving inward from X259.
+LCD On follows the print profile, Off is temporary, and print completion
+restarts the idle countdown once. Hardware validation remains pending.
+Plugin b114 passed 233 Python tests (4 skipped) plus lighting/mapping DOM
+tests; it exposes print brightness and rejects premature zero-time estimates.
+Overhang constriction and complete OctoPod temperature/ETA integration are
+not claimed fixed by this release. Tags identify built source commits;
+release documentation is updated separately.
+
 ## September 20 final release validation
 
 All 30 variants passed: 6.9.0 from f7f0a470a, 6.10.1 from f28dd9042.
