@@ -1,20 +1,29 @@
 # 6.10.1-RME Firmware
 
-## Unreleased — INDX park exit, 2026-09-21
+Release validation (2026-09-21): all 15 variants passed from `960ac7451`.
+Companion RME Compatibility 0.1.0b114 passed 233 Python tests (4 skipped)
+and lighting/mapping DOM tests. Hardware testing remains pending.
+
+## Release update — INDX park exit, 2026-09-21
 
 - After successful tool parking, INDX P0 exits dock/cleaner service space
   using the native collision-aware parking route. This prevents the eighth
   dock's X259 position from blocking subsequent end-G-code moves such as Y0.
 - The exit does not request a Z move; external serial keep-out checks remain
-  unchanged. Hardware validation and release builds are pending.
+  unchanged. Hardware validation remains pending.
 
-## Unreleased — lighting follow-up, 2026-09-21
+## Release update — lighting follow-up, 2026-09-21
 
 - Include standard xBuddy extension external chamber outputs in live light
   reporting. Previously this output could be on while telemetry reported Off.
 - Clear idle chamber overrides on print entry and restart the idle countdown
   when leaving a print; release the print's forced LCD-off state at that boundary.
-- Source regression checks pass. These changes are not yet built or hardware-tested.
+- LCD On resumes the configured print lighting profile; Off is temporary.
+  Print-end cleanup runs once so the normal idle timeout can expire.
+- Five parking/lighting source checks pass on each branch. Shared RME tests
+  pass 432641 assertions across 65 cases. Hardware validation remains pending.
+- Companion RME Compatibility 0.1.0b114 exposes print brightness controls,
+  adds immediate LCD pending feedback, and rejects premature zero-time estimates.
 
 Release validation (2026-09-20): all 15 variants passed from `f28dd9042`.
 Shared tests: 65 RME cases / 432638 assertions; four serial-screen source checks
