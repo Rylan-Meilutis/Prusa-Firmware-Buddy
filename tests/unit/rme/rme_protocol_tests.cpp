@@ -498,6 +498,10 @@ TEST_CASE("INDX serial motion protects service hardware without blocking front Y
     STATIC_REQUIRE_FALSE(linear_move_is_safe(125, -1.5f, 126, -1.5f, true, boundary));
     STATIC_REQUIRE_FALSE(linear_move_is_safe(249, 100, 251, 100, true, boundary));
     STATIC_REQUIRE_FALSE(linear_move_is_safe(251, 100, 251, 98.5f, false, boundary));
+    // T7 parks at X259: P0 must perform its native escape before host moves.
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(259, 0, 259, 0, false, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(250, 0, 250, 0, false, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(250, 0, 242, 205, true, boundary));
     STATIC_REQUIRE(arc_is_safe(125, 100, 20, boundary));
     STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
 }
