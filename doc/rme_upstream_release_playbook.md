@@ -1,5 +1,15 @@
 # RME Upstream Release Playbook
 
+## Flexible loadcell runout release gate
+
+Build both 6.9.0 and 6.10.1 with the flexible flag carried from selected PA
+results into the runtime pressure monitor. Require all 30 variants and the
+22 calibration tests / 7277 assertions to pass. Verify delayed pressure
+buildup is tolerated and sustained missing pressure still triggers runout.
+Rigid timing, physical sensors and pressure-collapse protection are unchanged.
+Hardware validation remains pending; the longer flex window trades detection
+latency for reduced false runout reports. RME b114 requires no change.
+
 ## September 21 park-exit and lighting release validation
 
 All 30 variants passed: 6.9.0 from d62e2c415, 6.10.1 from 960ac7451.

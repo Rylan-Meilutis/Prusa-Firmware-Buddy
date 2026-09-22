@@ -1,5 +1,17 @@
 # 6.10.1-RME Firmware
 
+## Release update — flexible loadcell runout qualification, 2026-09-21
+
+- Carry the selected PA result's flexible-material flag into runtime pressure
+  monitoring. TPU/FLEX now requires 3 seconds and 3 mm of forward extrusion
+  before testing missing pressure, followed by another 3 seconds and 3 mm
+  of sustained missing pressure before reporting runout.
+- Rigid-material timing, pressure-collapse/max-flow detection and physical
+  filament sensors are unchanged. This delays flexible runout detection in
+  exchange for tolerating elastic pressure buildup; hardware validation is
+  required. Tests cover delayed buildup, recovery re-arming and real missing
+  pressure (22 calibration cases / 7277 assertions).
+
 Release validation (2026-09-21): all 15 variants passed from `960ac7451`.
 Companion RME Compatibility 0.1.0b114 passed 233 Python tests (4 skipped)
 and lighting/mapping DOM tests. Hardware testing remains pending.
