@@ -7,35 +7,38 @@
 namespace buddy::extrusion_calibration {
 
 namespace {
-Capture instance;
-std::array<Result, max_logical_filaments> results {};
-std::atomic<uint8_t> calibration_command_depth { 0 };
-std::atomic_uint8_t anchors { 0 };
-float profile_pressure_advance = NAN;
-float calibrated_pressure_advance = NAN;
-std::atomic_bool monitor_enabled { false };
-std::atomic_uint8_t monitor_suspend_count { 0 };
-std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
-std::atomic_bool monitor_fault_suspended { false };
-float monitor_sign = 1;
-float monitor_low_pressure = 0;
-float monitor_pressure_per_velocity = 0;
-float monitor_noise = 1;
-float monitor_low_velocity = 0.8f;
-uint32_t monitor_last_time = 0;
-float monitor_last_e = 0;
-float monitor_filtered_load = 0;
-float monitor_idle_baseline = 0;
-float monitor_forward_time = 0;
-float monitor_forward_e = 0;
-float monitor_idle_time = 0;
-float monitor_peak_pressure = 0;
-float monitor_bad_time = 0;
-float monitor_bad_e = 0;
-float monitor_breakout_time = 0;
-bool monitor_breakout_seen = false;
-bool monitor_collapse_seen = false;
-}
+    Capture instance;
+    std::array<Result, max_logical_filaments> results {};
+    std::atomic<uint8_t> calibration_command_depth { 0 };
+    std::atomic_uint8_t anchors { 0 };
+    float profile_pressure_advance = NAN;
+    float calibrated_pressure_advance = NAN;
+    std::atomic_bool monitor_enabled { false };
+    std::atomic_bool monitor_presence_detection { false };
+    std::atomic_bool monitor_movement_detection { false };
+    std::atomic_uint8_t monitor_suspend_count { 0 };
+    std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
+    std::atomic_bool monitor_fault_suspended { false };
+    float monitor_sign = 1;
+    float monitor_low_pressure = 0;
+    float monitor_pressure_per_velocity = 0;
+    float monitor_noise = 1;
+    float monitor_low_velocity = 0.8f;
+    bool monitor_flexible = false;
+    uint32_t monitor_last_time = 0;
+    float monitor_last_e = 0;
+    float monitor_filtered_load = 0;
+    float monitor_idle_baseline = 0;
+    float monitor_forward_time = 0;
+    float monitor_forward_e = 0;
+    float monitor_idle_time = 0;
+    float monitor_peak_pressure = 0;
+    float monitor_bad_time = 0;
+    float monitor_bad_e = 0;
+    float monitor_breakout_time = 0;
+    bool monitor_breakout_seen = false;
+    bool monitor_collapse_seen = false;
+} // namespace
 
 void Capture::start() {
     count_.store(0, std::memory_order_relaxed);
@@ -237,6 +240,14 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // Ignore priming, seam starts, tiny infill segments and the initial
     // pressure transient. A real loss of filament motion is sustained.
     const bool qualified = monitor_forward_time > 3.0f && monitor_forward_e > 3.0f;
+    // Runout is safer to identify quickly than a collapse/jam: it starts with
+    // no pressure evidence at all. Require meaningful continuous flow so tiny
+    // seam/pressure-maintenance moves cannot trip the faster path.
+    // Flexible feed stores motion elastically before nozzle pressure rises.
+    // Re-arm this grace period after travel, retraction and recovery too.
+    const float presence_grace = monitor_flexible ? 3.0f : 0.75f;
+    const bool presence_qualified = monitor_forward_time > presence_grace && monitor_forward_e > presence_grace
+        && velocity >= monitor_low_velocity;
     const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.15f);
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.20f;
     const bool presence_qualified = monitor_forward_time > 0.75f && monitor_forward_e > 0.75f && velocity >= monitor_low_velocity;
@@ -263,10 +274,19 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // Require corroboration in both time and executed filament distance. This
     // rejects layer-transition baseline shifts and isolated long-segment load
     // dips while retaining a bounded response to a real, sustained jam.
-    if (monitor_bad_time > 5.0f && monitor_bad_e > 5.0f) {
-        wanted = monitor_collapse_seen && monitor_breakout_seen
-            ? ExtrusionFault::flow_breakout
-            : monitor_collapse_seen ? ExtrusionFault::pressure_collapse : ExtrusionFault::no_pressure_rise;
+    const float runout_confirmation = monitor_flexible ? 3.0f : 1.0f;
+    const bool confirmed_runout = !monitor_collapse_seen && monitor_bad_time > runout_confirmation && monitor_bad_e > runout_confirmation;
+    const bool confirmed_collapse = monitor_collapse_seen && monitor_bad_time > 5.0f && monitor_bad_e > 5.0f;
+    if (confirmed_runout || confirmed_collapse) {
+        // Keep the existing max-flow breakout safety independent of the new
+        // user-selectable presence and movement policies.
+        if (monitor_collapse_seen && monitor_breakout_seen) {
+            wanted = ExtrusionFault::flow_breakout;
+        } else if (monitor_collapse_seen && monitor_movement_detection.load(std::memory_order_relaxed)) {
+            wanted = ExtrusionFault::pressure_collapse;
+        } else if (!monitor_collapse_seen && monitor_presence_detection.load(std::memory_order_relaxed)) {
+            wanted = ExtrusionFault::no_pressure_rise;
+        }
     }
     if (wanted != ExtrusionFault::none) {
         ExtrusionFault expected_none = ExtrusionFault::none;
@@ -292,8 +312,9 @@ float profile_pressure_advance_or(const float fallback) {
     return std::isfinite(profile_pressure_advance) ? profile_pressure_advance : fallback;
 }
 
-void configure_pressure_monitor(const Score &reference, const float low_velocity_mm_s, const float high_velocity_mm_s) {
+void configure_pressure_monitor(const Score &reference, const float low_velocity_mm_s, const float high_velocity_mm_s, const bool flexible) {
     monitor_enabled.store(false, std::memory_order_release);
+    monitor_flexible = flexible;
     const float delta = reference.high_load - reference.low_load;
     monitor_sign = delta >= 0 ? 1.0f : -1.0f;
     // Runtime pressure is measured relative to a freshly learned idle
@@ -385,7 +406,7 @@ void select_job_result(const size_t logical_filament) {
     const auto *result = job_result(logical_filament);
     calibrated_pressure_advance = result ? result->pressure_advance : NAN;
     const auto speeds = m976_extrusion_policy::speeds(result && result->flexible);
-    configure_pressure_monitor(result ? result->pressure_reference : Score {}, speeds.low_mm_s, speeds.high_mm_s);
+    configure_pressure_monitor(result ? result->pressure_reference : Score {}, speeds.low_mm_s, speeds.high_mm_s, result && result->flexible);
 }
 
 void set_calibration_command_active(const bool active) {
