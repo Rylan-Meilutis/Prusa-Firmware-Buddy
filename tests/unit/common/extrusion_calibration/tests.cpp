@@ -196,11 +196,33 @@ TEST_CASE("selected flexible PA reference monitors slow extrusion") {
     select_job_result(3);
     set_pressure_monitor_detection(true, false);
     record_loadcell_sample(1'000, 0, 0);
-    for (uint32_t i = 1; i <= 1'800; ++i) {
+    for (uint32_t i = 1; i <= 3'600; ++i) {
         record_loadcell_sample(1'000 + i * 5'000, 0, i * 0.0025f);
     }
     REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
     reset_job_results();
+}
+
+TEST_CASE("flexible pressure buildup does not trigger the rigid runout window") {
+    using namespace buddy::extrusion_calibration;
+    for (const bool recovery : { false, true }) {
+        reset_job_results();
+        Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+        set_job_result(3, { 0.08f, 4.0f, 0.9f, true, reference, true });
+        select_job_result(3);
+        set_pressure_monitor_detection(true, true);
+        if (recovery) {
+            suspend_pressure_monitor(true);
+            suspend_pressure_monitor(false);
+        }
+        record_loadcell_sample(1'000, 0, 0);
+        // Five seconds / 2.5 mm of elastic take-up, then healthy pressure.
+        for (uint32_t i = 1; i <= 3'600; ++i) {
+            record_loadcell_sample(1'000 + i * 5'000, i <= 1'000 ? 0 : 15, i * 0.0025f);
+            REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+        }
+        reset_job_results();
+    }
 }
 
 TEST_CASE("flexible calibration scores quantized slow E steps without false edges") {

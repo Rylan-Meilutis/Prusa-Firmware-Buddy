@@ -1,5 +1,37 @@
 # RME Upstream Release Playbook
 
+## Flexible loadcell runout release gate
+
+Build both 6.9.0 and 6.10.1 with the flexible flag carried from selected PA
+results into the runtime pressure monitor. Require all 30 variants and the
+22 calibration tests / 7277 assertions to pass. Verify delayed pressure
+buildup is tolerated and sustained missing pressure still triggers runout.
+Rigid timing, physical sensors and pressure-collapse protection are unchanged.
+Hardware validation remains pending; the longer flex window trades detection
+latency for reduced false runout reports. RME b114 requires no change.
+
+## September 21 park-exit and lighting release validation
+
+All 30 variants passed: 6.9.0 from d62e2c415, 6.10.1 from 960ac7451.
+The unchanged external keep-out guard is covered by 65 RME tests with
+432641 assertions; five source checks cover native P0 escape and lighting
+lifecycle. P0 must leave dock Y safely before moving inward from X259.
+LCD On follows the print profile, Off is temporary, and print completion
+restarts the idle countdown once. Hardware validation remains pending.
+Plugin b114 passed 233 Python tests (4 skipped) plus lighting/mapping DOM
+tests; it exposes print brightness and rejects premature zero-time estimates.
+Overhang constriction and complete OctoPod temperature/ETA integration are
+not claimed fixed by this release. Tags identify built source commits;
+release documentation is updated separately.
+
+## September 20 final release validation
+
+All 30 variants passed: 6.9.0 from f7f0a470a, 6.10.1 from f28dd9042.
+Plugin b112 includes the follow-up startup progress guard for the reported
+N0 progress / N1 M110 N0 / repeated Resend: 1 failure. Firmware does not weaken
+line-number checks. Tags identify built firmware source; these notes are a
+subsequent documentation-only commit. Physical hardware validation is pending.
+
 ## Unreleased serial-print page cleanup
 
 User chose removal of the duplicate serial-print Messages page instead of
