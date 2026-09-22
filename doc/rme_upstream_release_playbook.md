@@ -2,6 +2,10 @@
 
 ## Flexible loadcell runout release gate
 
+Validated September 21: all 30 variants passed, 6.9.0 from b9525f6c3 and
+6.10.1 from aa8bb9c43. All 22 calibration cases / 7277 assertions and
+65 RME cases / 432641 assertions passed.
+
 Build both 6.9.0 and 6.10.1 with the flexible flag carried from selected PA
 results into the runtime pressure monitor. Require all 30 variants and the
 22 calibration tests / 7277 assertions to pass. Verify delayed pressure

@@ -12,7 +12,7 @@
   required. Tests cover delayed buildup, recovery re-arming and real missing
   pressure (22 calibration cases / 7277 assertions).
 
-Release validation (2026-09-21): all 15 variants passed from `d62e2c415`.
+Release validation (2026-09-21): all 15 variants passed from `b9525f6c3`.
 Companion RME Compatibility 0.1.0b114 passed 233 Python tests (4 skipped)
 and lighting/mapping DOM tests. Hardware testing remains pending.
 
