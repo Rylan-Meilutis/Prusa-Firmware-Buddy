@@ -101,7 +101,7 @@ enum class ExtrusionFault : uint8_t {
 
 /// Arms runtime extrusion-health monitoring from a known-good PA response.
 /// All force values are tared loadcell grams; velocities are filament mm/s.
-void configure_pressure_monitor(const Score &reference, float low_velocity_mm_s, float high_velocity_mm_s);
+void configure_pressure_monitor(const Score &reference, float low_velocity_mm_s, float high_velocity_mm_s, bool flexible = false);
 /// Select which print-time INDX loadcell observations may become faults.
 /// Presence covers forward E motion with no pressure rise; movement covers a
 /// pressure collapse or melt-flow breakout after pressure was established.
