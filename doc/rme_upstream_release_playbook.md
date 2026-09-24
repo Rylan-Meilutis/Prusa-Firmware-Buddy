@@ -2,6 +2,11 @@
 
 ## September 24 beta integration (unreleased)
 
+All 30 firmware variants passed in 1m45s: 6.9.0 from ce5dfc82a and 6.10.1
+from 02a1f76a8. Existing RME and extrusion host suites passed (65/432641 and
+22/7277 cases/assertions). Plugin tests passed: 237 run, four skipped, plus
+mapping DOM reconnect coverage. Hardware validation remains pending.
+
 Integrated all seven functional commits from upstream v6.9.1-beta, excluding
 its version bump. Preserve RME customizations and complete both full build
 matrices before release. Validate 150 C offsets, ten Z probe attempts, sensor
