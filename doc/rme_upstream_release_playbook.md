@@ -2,6 +2,12 @@
 
 ## September 24 beta integration (unreleased)
 
+Build validation: all 30 variants passed in 1m45s, 6.9.0 source ce5dfc82a
+and 6.10.1 source 02a1f76a8. Existing RME protocol tests passed 65 cases /
+432641 assertions; extrusion calibration passed 22 / 7277. Four park/metadata
+source checks and 237 plugin tests (four skipped) passed, plus mapping DOM
+tests including reconnect. These checks do not replace hardware validation.
+
 Both RME lines incorporate the seven functional commits from v6.9.1-beta:
 df2b2eb4b, 241f53f9a, 376296ad4, b027921af, c8e6b891e, c0948a6d5,
 122f03300. Keep version identities unchanged; retain the 6.10.1 preamble
