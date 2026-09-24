@@ -1,5 +1,17 @@
 # RME Upstream Release Playbook
 
+## September 24 beta integration (unreleased)
+
+Integrated all seven functional commits from upstream v6.9.1-beta, excluding
+its version bump. Preserve RME customizations and complete both full build
+matrices before release. Validate 150 C offsets, ten Z probe attempts, sensor
+failure recovery, 100 mm hand clearance, parking, and Wi-Fi error recovery.
+CORE One INDX vent closing now ends at X118 rather than X117; hardware testing
+must confirm full closure without excessive force. Other variants are unchanged.
+Companion RME restores pending tool mapping on client reconnect and provides
+a dedicated dropdown review button. Pre-lowering OctoPod snapshots are not
+implemented by this update.
+
 ## Flexible loadcell runout release gate
 
 Validated September 21: all 30 variants passed, 6.9.0 from b9525f6c3 and
