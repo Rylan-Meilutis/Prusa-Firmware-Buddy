@@ -110,7 +110,8 @@ namespace {
     void close_vents_move_sequence() {
     #if PRINTER_IS_PRUSA_COREONE()
         plan_to_y(-11.5f, vent_feedrate);
-        plan_to_x(117.0f, vent_feedrate);
+        // Complete the slide stroke before backing away from the lever.
+        plan_to_x(118.0f, vent_feedrate);
         plan_to_x(115.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
     #elif PRINTER_IS_PRUSA_COREONEL()
