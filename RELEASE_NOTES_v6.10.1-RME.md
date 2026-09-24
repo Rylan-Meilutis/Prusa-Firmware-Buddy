@@ -1,5 +1,16 @@
 # 6.10.1-RME Firmware
 
+## Unreleased — upstream INDX beta fixes and vent stroke, 2026-09-24
+
+- Integrate the seven functional changes from upstream v6.9.1-beta while
+  retaining the RME version and features: 150 C offset probing, ten sensor Z
+  probe attempts, fixed-current sensor configuration and recovery, 100 mm
+  calibration hand clearance, faster away-from-bed parking, and UART recovery
+  mutex protection. Preserve the existing homing phase callback.
+- Extend the CORE One INDX vent closing endpoint from X117 to X118 mm;
+  approach, retreat, speed and other machine variants remain unchanged.
+- Hardware validation remains required for vent closure and calibration.
+
 ## Release update — flexible loadcell runout qualification, 2026-09-21
 
 - Carry the selected PA result's flexible-material flag into runtime pressure

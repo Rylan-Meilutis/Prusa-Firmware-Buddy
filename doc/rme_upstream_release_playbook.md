@@ -1,5 +1,19 @@
 # RME Upstream Release Playbook
 
+## September 24 beta integration (unreleased)
+
+Both RME lines incorporate the seven functional commits from v6.9.1-beta:
+df2b2eb4b, 241f53f9a, 376296ad4, b027921af, c8e6b891e, c0948a6d5,
+122f03300. Keep version identities unchanged; retain the 6.10.1 preamble
+homing callback when resolving the header conflict. CORE One INDX vent close
+travel is extended by 1 mm to X118, without changing other variants.
+Run both full matrices before publishing. Hardware checks: lever closes fully
+without excessive force; tool offset sensor recovers after failed reads;
+calibration clearance and 150 C probing; RME safety and metadata flows survive.
+The companion plugin restores pending tool mapping after reconnect/binding and
+exposes a dedicated dropdown review action. OctoPod pre-lowering completion
+snapshot support is not implemented by these changes.
+
 ## Flexible loadcell runout release gate
 
 Validated September 21: all 30 variants passed, 6.9.0 from b9525f6c3 and
