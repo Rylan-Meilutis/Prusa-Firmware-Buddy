@@ -1,6 +1,6 @@
 # 6.10.1-RME Firmware
 
-## Unreleased — upstream INDX beta fixes and vent stroke, 2026-09-24
+## Release update — upstream INDX beta fixes and vent stroke, 2026-09-24
 
 - Integrate the seven functional changes from upstream v6.9.1-beta while
   retaining the RME version and features: 150 C offset probing, ten sensor Z
@@ -10,6 +10,8 @@
 - Extend the CORE One INDX vent closing endpoint from X117 to X118 mm;
   approach, retreat, speed and other machine variants remain unchanged.
 - Hardware validation remains required for vent closure and calibration.
+- All 15 variants built successfully from 02a1f76a8. Companion plugin b117
+  restores pending tool mapping on reconnect and provides dropdown review.
 
 ## Release update — flexible loadcell runout qualification, 2026-09-21
 
