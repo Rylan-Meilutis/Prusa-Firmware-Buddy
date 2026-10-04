@@ -1,7 +1,8 @@
 # Auto PA slicer setup
 
-This guide configures PrusaSlicer or OrcaSlicer to run RME's RAM-only pressure
-advance calibration before every file or serial print. Both slicers provide
+This guide configures PrusaSlicer or OrcaSlicer to request RME pressure-advance
+calibration before a file or serial print. INDX Auto mode reuses validated
+flash records; other supported machines use job-local results. Both slicers provide
 `is_extruder_used[]` and `filament_type[]`, but their normal-layer nozzle
 temperature placeholders differ: PrusaSlicer uses `temperature[]`, while
 OrcaSlicer uses `nozzle_temperature[]`.
@@ -29,6 +30,32 @@ the insertion point below. Its placeholders automatically read the materials,
 temperatures, and tools used by each sliced job.
 
 ## Before editing start G-code
+
+### INDX persistence and dock cooling (October 2026)
+
+Auto reuses a matching saved result; Off skips automatic M976; On, manual
+calibration, or `F1` always measures. A successful eligible result is atomically
+written and read back **during M976**, before cleanup/completion—not at print
+end. Canceling the print afterward does not erase it. Forced retries keep the
+old record unless a new valid measurement replaces it. Low-confidence fallback
+results are not saved. Watch for `cache saved_and_verified` or `flash cache hit`.
+
+There is no time expiry. Matching includes profile/material, color, manufacturer,
+physical tool, nozzle diameter, requested and profile temperatures, flexible
+classification, confidence floor and minimum SNR. Unloading the filament or a
+factory reset invalidates it; changing key fields causes a miss without a timer.
+
+Only batches with at least two uncached tools request dock cooling. Their PWM
+ramps from 128 at 170 C to 255 at 300 C, using the hottest requested temperature
+among those tools (220 C: 176; 240 C: 196). Parked tools have no live temperature
+telemetry, so this is a temperature-based preset, not closed-loop dock cooling.
+An already higher fan setting is preserved. Single-tool/all-cached runs do not
+touch it, and the batch restores the previous PWM on success/failure/abort.
+These cooling values require hardware validation.
+
+For automatic mesh bounds with OctoPrint, see [RME adaptive mesh](rme_adaptive_mesh.md).
+
+### Setup steps
 
 1. Install an RME build containing `M976` on a supported loadcell printer.
 2. In the printer's Filament menu, assign the material actually loaded in each
@@ -165,8 +192,9 @@ stops the sequence.
 
 The filament profile's `M572` pressure-advance value remains the fallback. If
 the profile supplies no usable value, firmware uses its conservative material
-preset. Results are never persisted and are reset at every normal or serial
-print start. Repeating a logical slot within the same job reapplies its cached
-result without another calibration extrusion.
+preset. INDX saves accepted results to flash before M976 returns and restores
+matching records in Auto mode, including after cancellation or reboot. Other
+machines retain job-local results only. Starting a print clears the RAM copy,
+not the INDX flash record. On mode and explicit forced retries measure again.
 
 For the command's complete behavior and diagnostics, see [M976](gcode/M976.md).

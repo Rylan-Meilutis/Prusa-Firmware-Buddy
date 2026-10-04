@@ -46,6 +46,7 @@ GCodeQueue queue;
 #include <filament.hpp>
 #include <filament_manufacturer.hpp>
 #include <rme_protocol_parser.hpp>
+#include <rme_mesh_area.hpp>
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
 #include <rme_indx_workflow.hpp>
@@ -1002,6 +1003,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" tune=1");
   #if !PRINTER_IS_PRUSA_MINI()
     SERIAL_ECHOPGM(" host_progress=1");
+    SERIAL_ECHOPGM(" mesh_area=1");
   #endif
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
 
@@ -1306,6 +1308,27 @@ static bool handle_remote_tune_service(const std::string_view command) {
   return true;
 }
 
+static bool handle_remote_mesh_area(const std::string_view command) {
+  #if PRINTER_IS_PRUSA_MINI()
+  return false;
+  #else
+  if (!command.starts_with("@RME MESH SET ")) return false;
+  const auto x = remote_decimal(command, "x");
+  const auto y = remote_decimal(command, "y");
+  const auto w = remote_decimal(command, "width");
+  const auto h = remote_decimal(command, "height");
+  if (!serial_remote_control::session_active() || !marlin_server::serial_print_active() || printer_lock::locked()) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=mesh code=no_serial_job");
+  } else if (!x || !y || !w || !h || !buddy::rme_mesh_area::Area { *x, *y, *w, *h }.valid(X_BED_SIZE, Y_BED_SIZE)) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=mesh code=invalid_area");
+  } else {
+    buddy::rme_mesh_area::pending = { *x, *y, *w, *h };
+    SERIAL_ECHOLNPGM("RME_MESH accepted=1");
+  }
+  return true;
+  #endif
+}
+
 static bool handle_remote_progress_service(const std::string_view command) {
   #if PRINTER_IS_PRUSA_MINI()
   // Keep the legacy M73/M117 path on flash-constrained MINI language builds.
@@ -1340,6 +1363,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_light_service(command)
       || handle_remote_tune_service(command)
       || handle_remote_progress_service(command)
+      || handle_remote_mesh_area(command)
       || handle_remote_filament_service(command)
       || handle_remote_manufacturer_service(command)
       || handle_remote_machine_service(command)
