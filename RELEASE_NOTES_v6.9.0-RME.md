@@ -1,5 +1,41 @@
 # 6.9.0-RME Firmware
 
+## Release update — INDX no-tool homing crash, 2026-10-04
+
+- Add capability-gated `@RME MESH SET` for file-derived XY probing bounds;
+  companion RME Compatibility b118 analyzes local text G-code and supplies it
+  before ordinary G29 P1. Keep the native grid and probe margins; unsupported
+  files and MINI retain slicer behavior. See `doc/rme_adaptive_mesh.md`.
+- INDX Auto PA leaves dock PWM untouched for zero/one uncached tool. For
+  multiple uncached tools, ramp from PWM 128 at 170 C to 255 at 300 C using
+  the hottest requested temperature; never lower an existing setting, and
+  restore it on exit. This is not live parked-tool temperature feedback.
+- Successful PA results already save/read-verify during M976, not print end.
+  Forced retries now retain the old flash record until a valid replacement
+  is ready; cancellation or a weak retry no longer deletes it up front.
+
+- Fix extruder coordinate resets while all INDX tools are parked. Previously
+  the logical E coordinate could reset while the planner retained the old
+  value, causing the next XYZ/homing move to crash with `E move without tool`.
+- Synchronize the shared E motor's coordinates even without a picked tool.
+  Actual extrusion without a tool remains prohibited; service-move handling
+  and non-INDX tool lookup are unchanged.
+- Diagnosed from the supplied 6.9.0 crash dump using matching release symbols.
+  Regression source checks cover both reset paths and the retained safety guard.
+  Physical printer validation remains required.
+
+## Release update — upstream INDX beta fixes and vent stroke, 2026-09-24
+
+- Integrate all seven functional fixes from upstream v6.9.1-beta: 150 C offset
+  probing, ten sensor Z probe attempts, fixed-current sensor configuration and
+  recovery, 100 mm calibration clearance, faster away-from-bed parking, and
+  UART recovery mutex protection. Retain the RME version and custom features.
+- Extend CORE One INDX vent closing from X117 to X118 mm without changing its
+  approach, retreat, speed or other machine variants. Hardware testing remains
+  required for complete closure without excessive lever force and calibration.
+- All 15 variants built successfully from ce5dfc82a. Companion plugin b117
+  restores pending tool mapping on reconnect and provides dropdown review.
+
 ## Release update — flexible loadcell runout qualification, 2026-09-21
 
 - Carry the selected PA result's flexible-material flag into runtime pressure
@@ -12,7 +48,7 @@
   required. Tests cover delayed buildup, recovery re-arming and real missing
   pressure (22 calibration cases / 7277 assertions).
 
-Release validation (2026-09-21): all 15 variants passed from `d62e2c415`.
+Release validation (2026-09-21): all 15 variants passed from `b9525f6c3`.
 Companion RME Compatibility 0.1.0b114 passed 233 Python tests (4 skipped)
 and lighting/mapping DOM tests. Hardware testing remains pending.
 
