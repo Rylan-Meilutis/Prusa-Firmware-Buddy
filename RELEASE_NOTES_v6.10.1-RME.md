@@ -1,5 +1,17 @@
 # 6.10.1-RME Firmware
 
+## Release update — INDX no-tool homing crash, 2026-10-04
+
+- Fix extruder coordinate resets while all INDX tools are parked. Previously
+  the logical E coordinate could reset while the planner retained the old
+  value, causing the next XYZ/homing move to crash with `E move without tool`.
+- Synchronize the shared E motor's coordinates even without a picked tool.
+  Actual extrusion without a tool remains prohibited; service-move handling
+  and non-INDX tool lookup are unchanged.
+- Diagnosed from the supplied 6.9.0 crash dump using matching release symbols.
+  Regression source checks cover both reset paths and the retained safety guard.
+  Physical printer validation remains required.
+
 ## Release update — upstream INDX beta fixes and vent stroke, 2026-09-24
 
 - Integrate the seven functional changes from upstream v6.9.1-beta while

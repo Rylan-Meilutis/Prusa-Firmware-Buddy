@@ -1,5 +1,21 @@
 # RME Upstream Release Playbook
 
+## October 4 INDX no-tool coordinate reset crash
+
+The ce5dfc82a dump asserts `E move without tool` from G28 XY's
+do_z_clearance/plan_park_move_to. XYZ already matches (242, 205, 251.232),
+but current_position.e is zero while planner.position_float.e is 54.4048424
+(119691 mini-steps). set_e_position_mm previously returned without updating
+the planner if no physical tool was selected. INDX must use its shared E0
+axis for coordinate resets, including G92 and sync_e_position_to; preserve
+explicit service-axis overrides and the no-tool actual-extrusion assertion.
+
+Run tests/unit/gui/test_indx_e_reset_source.py on both release branches,
+then build the complete 6.9.0/6.10.1 matrices. Hardware regression: finish
+a print, park all tools, reset E to zero, and home XY for the next print;
+also check a reset with queued motion and ordinary picked-tool extrusion.
+No plugin/protocol changes are required for this crash fix.
+
 ## September 24 beta integration (unreleased)
 
 Build validation: all 30 variants passed in 1m45s, 6.9.0 source ce5dfc82a
