@@ -2,6 +2,12 @@
 
 ## Release update — INDX no-tool homing crash, 2026-10-04
 
+- All 15 release variants built from `b5f09f121`. Calibration tests passed
+  22 cases / 7280 assertions; RME protocol tests passed 65 / 432641.
+  INDX E-reset, PA persistence, dock PWM and mesh-area checks passed.
+  Companion plugin b118 passed 248 tests with four skipped. Release tags
+  identify the built source; subsequent commits update documentation only.
+
 - Add capability-gated `@RME MESH SET` for file-derived XY probing bounds;
   companion RME Compatibility b118 analyzes local text G-code and supplies it
   before ordinary G29 P1. Keep the native grid and probe margins; unsupported

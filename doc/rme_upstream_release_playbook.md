@@ -1,5 +1,14 @@
 # RME Upstream Release Playbook
 
+## October 4 release validation
+
+Final matrices: 6.9.0 from 266e42408, 15/15 in 54s; 6.10.1 from b5f09f121,
+15/15 in 55s. Calibration suite: 22 cases / 7280 assertions; existing RME
+suite: 65 / 432641. New E-reset/persistence source checks and standalone
+dock-PWM/mesh-area C++ checks passed. Plugin b118: 248 tests, four skipped.
+Tags point at built source; release-note/protocol additions are docs-only.
+This does not replace the physical regression checks below.
+
 ## October 4 INDX no-tool coordinate reset crash
 
 The ce5dfc82a dump asserts `E move without tool` from G28 XY's

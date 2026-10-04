@@ -387,6 +387,16 @@ may ignore these appended fields.
 
 ## Machine discovery
 
+`RME_MACHINE mesh_area=1` advertises file-derived adaptive probing support
+(non-MINI October 2026 builds). With an unlocked active serial job and RME
+session, `@RME MESH SET x=<mm> y=<mm> width=<mm> height=<mm>` stages a finite,
+positive-size rectangle inside the bed envelope. The next G29 P1 consumes it;
+an already running probe is unaffected. Hosts should send it immediately
+before the file's ordinary G29 P1 and leave explicit probe rectangles alone.
+End/cancel clears pending bounds. See [adaptive meshing](rme_adaptive_mesh.md)
+for replies, analysis limits and fallback behavior. This command is volatile,
+not a stored printer setting.
+
 ```text
 @RME MACHINE QUERY
 ```
