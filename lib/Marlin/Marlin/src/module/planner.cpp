@@ -2459,6 +2459,13 @@ void Planner::set_position_mm(const xyze_pos_t &xyze) {
  */
 void Planner::set_e_position_mm(const float e, std::optional<uint8_t> e_axis_index) {
   if(!e_axis_index.has_value()) {
+    #if HAS_INDX()
+      // INDX has one shared E motor, including when no tool is picked.
+      // G92/sync_e_position_to are coordinate resets, not extrusion moves.
+      // Refusing the reset here leaves current_position and the planner out
+      // of sync, making the next XYZ move fail with "E move without tool".
+      e_axis_index = E0_AXIS;
+    #else
       const auto current_tool = PhysicalToolIndex::currently_selected_opt();
       if (!current_tool.has_value()) {
         // You should not be trying to set e_position without an active tool
@@ -2466,6 +2473,7 @@ void Planner::set_e_position_mm(const float e, std::optional<uint8_t> e_axis_ind
         return;
       }
       e_axis_index = E_AXIS_N(*current_tool);
+    #endif
   }
 
   #if ENABLED(DISTINCT_E_FACTORS)
