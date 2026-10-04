@@ -74,6 +74,7 @@
 #include "../Marlin/src/gcode/gcode.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include "../Marlin/src/feature/print_area.h"
+#include <rme_mesh_area.hpp>
 #include "../Marlin/src/Marlin.h"
 #include "utility_extensions.hpp"
 #include "utils/variant_utils.hpp"
@@ -1392,6 +1393,7 @@ void static finalize_print(bool finished) {
     // BFW-5085
     print_area.reset_bounding_rect();
 #endif
+    buddy::rme_mesh_area::pending.reset();
 
 #if HAS_CHAMBER_API()
     buddy::chamber().reset();

@@ -14,7 +14,11 @@ Run tests/unit/gui/test_indx_e_reset_source.py on both release branches,
 then build the complete 6.9.0/6.10.1 matrices. Hardware regression: finish
 a print, park all tools, reset E to zero, and home XY for the next print;
 also check a reset with queued motion and ordinary picked-tool extrusion.
-No plugin/protocol changes are required for this crash fix.
+The crash fix itself needs no plugin change. This release additionally includes
+the requested PA fan/persistence changes and `@RME MESH SET` with companion
+RME Compatibility b118. See auto_pa_slicer_setup.md and rme_adaptive_mesh.md.
+Validate C++ dock PWM/mesh-area policy tests, PA persistence source checks,
+the calibration filesystem replacement tests, and the plugin bounds/queue suite.
 
 ## September 24 beta integration (unreleased)
 

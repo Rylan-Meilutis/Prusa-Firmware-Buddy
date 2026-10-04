@@ -26,6 +26,14 @@ TEST_CASE("PA flash records survive reopen and reject corruption and truncation"
     REQUIRE(read_record(path, loaded));
     REQUIRE(loaded == saved);
     REQUIRE(loaded.matches(saved.key));
+    // A failed replacement must preserve the last successful calibration.
+    auto replacement = saved;
+    replacement.pa = 0.08f;
+    char unavailable[160];
+    snprintf(unavailable, sizeof(unavailable), "%s/missing/cache.tmp", directory);
+    REQUIRE_FALSE(write_record(path, unavailable, replacement));
+    REQUIRE(read_record(path, loaded));
+    REQUIRE(loaded == saved);
     // New print jobs clear RAM results, but must not affect the flash record.
     for (int print = 0; print < 3; ++print) {
         buddy::extrusion_calibration::reset_job_results();
