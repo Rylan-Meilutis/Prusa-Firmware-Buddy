@@ -27,6 +27,7 @@
 #include <common/m976_material.hpp>
 #include <common/m976_extrusion_policy.hpp>
 #include <common/m976_temperature_policy.hpp>
+#include <common/m976_dock_fan_policy.hpp>
 #include <config_store/store_instance.hpp>
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
@@ -97,14 +98,24 @@ public:
 };
 
 #if HAS_INDX()
-// Cover heating, measurement and cleanup, including early returns. Nested
-// single-tool calls preserve the batch's full-speed dock cooling.
+// Batch-owned cooling covers heating, measurement and cleanup, including
+// early returns. Single-tool calls must not override the batch's policy.
 class DockFanGuard {
     const uint16_t previous_pwm = Fans::dock_fan().get_pwm();
+    const bool enabled;
 
 public:
-    DockFanGuard() { Fans::dock_fan().set_pwm(255); }
-    ~DockFanGuard() { Fans::dock_fan().set_pwm(previous_pwm); }
+    DockFanGuard(size_t uncached_tools, int hottest_temperature)
+        : enabled(uncached_tools > 1) {
+        if (enabled) {
+            Fans::dock_fan().set_pwm(buddy::m976_dock_fan_policy::pwm(uncached_tools, hottest_temperature, previous_pwm));
+        }
+    }
+    ~DockFanGuard() {
+        if (enabled) {
+            Fans::dock_fan().set_pwm(previous_pwm);
+        }
+    }
 };
 #endif
 
@@ -543,7 +554,18 @@ void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::ex
 
 bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count, const bool manual, [[maybe_unused]] const bool force) {
 #if HAS_INDX()
-    DockFanGuard dock_cooling;
+    std::array<bool, buddy::extrusion_calibration::max_logical_filaments> cached {};
+    size_t uncached_tools = 0;
+    int hottest_temperature = 0;
+    for (size_t i = 0; i < count; ++i) {
+        const auto &entry = entries[i];
+        cached[i] = !force && restore_cache(entry.physical_tool, entry.logical_filament, entry.temperature);
+        if (!cached[i]) {
+            ++uncached_tools;
+            hottest_temperature = std::max(hottest_temperature, int(entry.temperature));
+        }
+    }
+    DockFanGuard dock_cooling(uncached_tools, hottest_temperature);
 #endif
     // PA excitation and the deliberately short MMU load/unload moves are not
     // print-time filament failures. Suppress both sensor-event and loadcell
@@ -554,7 +576,7 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
 #if HAS_INDX()
-        if (!force && restore_cache(entry.physical_tool, entry.logical_filament, entry.temperature)) {
+        if (cached[i]) {
             continue;
         }
         buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
@@ -1143,9 +1165,9 @@ void PrusaGcodeSuite::M976() {
         target_temperature = Temperature::degTargetHotend(PhysicalToolIndex::from_raw(tool));
     }
     const auto *cached = !force && restore_cache(tool, slot, target_temperature) ? buddy::extrusion_calibration::job_result(slot) : nullptr;
-    if (force) {
-        buddy::pa_cache::invalidate(slot);
-    }
+    // A forced retry bypasses the old record but must not erase it. Replace
+    // it atomically only after a new valid result is ready; an abort or weak
+    // measurement must not destroy the previous successful calibration.
     #else
     const auto *cached = force ? nullptr : buddy::extrusion_calibration::job_result(slot);
     #endif
@@ -1173,9 +1195,6 @@ void PrusaGcodeSuite::M976() {
     // autoload event. Keep sensor sampling active, but suppress event handling
     // until calibration cleanup is complete.
     FilamentSensorEventGuard filament_sensor_events;
-    #if HAS_INDX()
-    DockFanGuard dock_cooling;
-    #endif
     const bool prepared_anchor = parser.boolval('P', false);
     float anchor_z = prepared_anchor ? parser.floatval('Z', NAN) : NAN;
     if (!prepared_anchor) {

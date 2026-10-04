@@ -40,6 +40,7 @@
   #include "../../../gcode/gcode.h"
   #include "../../../libs/least_squares_fit.h"
   #include "../../../feature/print_area.h"
+  #include <rme_mesh_area.hpp>
   #include <fanctl.hpp>
   #include <option/has_love_board.h>
   #include <raii/scope_guard.hpp>
@@ -468,6 +469,9 @@
         #if HAS_BED_PROBE
 
           case 1: {
+            if (const auto area = buddy::rme_mesh_area::take()) {
+              print_area.set_bounding_rect({ area->x, area->y, area->x + area->width, area->y + area->height });
+            }
             //
             // Invalidate Entire Mesh and Automatically Probe Mesh in areas that can be reached by the probe
             //

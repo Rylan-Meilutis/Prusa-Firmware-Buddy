@@ -2,6 +2,18 @@
 
 ## Release update — INDX no-tool homing crash, 2026-10-04
 
+- Add capability-gated `@RME MESH SET` for file-derived XY probing bounds;
+  companion RME Compatibility b118 analyzes local text G-code and supplies it
+  before ordinary G29 P1. Keep the native grid and probe margins; unsupported
+  files and MINI retain slicer behavior. See `doc/rme_adaptive_mesh.md`.
+- INDX Auto PA leaves dock PWM untouched for zero/one uncached tool. For
+  multiple uncached tools, ramp from PWM 128 at 170 C to 255 at 300 C using
+  the hottest requested temperature; never lower an existing setting, and
+  restore it on exit. This is not live parked-tool temperature feedback.
+- Successful PA results already save/read-verify during M976, not print end.
+  Forced retries now retain the old flash record until a valid replacement
+  is ready; cancellation or a weak retry no longer deletes it up front.
+
 - Fix extruder coordinate resets while all INDX tools are parked. Previously
   the logical E coordinate could reset while the planner retained the old
   value, causing the next XYZ/homing move to crash with `E move without tool`.

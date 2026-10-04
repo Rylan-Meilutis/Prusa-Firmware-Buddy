@@ -1,5 +1,23 @@
 # RME Upstream Release Playbook
 
+## October 4 INDX crash, PA persistence and adaptive mesh
+
+The ce5dfc82a dump asserts `E move without tool` during G28 XY clearance.
+XYZ already matches (242, 205, 251.232), but logical E is zero while planner E
+is 54.4048424 (119691 mini-steps). INDX coordinate resets must use shared E0
+even when all tools are parked. Actual no-tool extrusion remains prohibited.
+
+This release also retains a good PA flash record during forced retries,
+uses a requested-temperature dock fan ramp for multiple uncached tools, and
+adds `@RME MESH SET` with companion plugin b118. See auto_pa_slicer_setup.md,
+gcode/M976.md and rme_adaptive_mesh.md for behavior and compatibility.
+
+Gate both complete build matrices, INDX E-reset and PA persistence source
+checks, C++ dock-fan/mesh-area tests, calibration filesystem tests, and plugin
+bounds/queue tests. Hardware checks remain required: parked-tool E reset then
+XY homing, accepted PA/save/cancel/reboot/reuse, fan restoration on abort,
+and file-derived probing before ordinary G29 P1.
+
 ## September 24 beta integration (unreleased)
 
 All 30 firmware variants passed in 1m45s: 6.9.0 from ce5dfc82a and 6.10.1
