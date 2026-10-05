@@ -3,7 +3,7 @@
 ## Release update — SpoolJoin print preparation, 2026-10-04
 
 - Built all 15 variants from `1a9d28121`. The companion plugin is b120
-  (270 Python tests, four skipped, eight UI suites). Shared firmware protocol
+  (275 Python tests, four skipped, eight UI suites). Shared firmware protocol
   tests passed 65 cases / 432641 assertions and calibration tests 22 / 7280;
   SpoolJoin regression tests passed on both branches. Hardware takeover,
   flash-identity reporting and UI latency still require physical testing.
