@@ -535,6 +535,26 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     // GCodeInfo retains the last print's data, so it must not be consulted
     // outside of Context::Print.
     PhysicalToolSet used_physical_tools;
+    // Explicit serial-print tool lists are roots, not exclusions: spool-join
+    // backups need offsets before they can take over later in the same job.
+#if HAS_SPOOL_JOIN()
+    if (physical_tool_mask.has_value() && context == Context::Print) {
+        for (size_t pass = 0; pass < VirtualToolIndex::count; ++pass) {
+            for (auto tool : VirtualToolIndex::all()) {
+                if (!(*physical_tool_mask & (uint32_t { 1 } << tool.to_physical().to_raw()))) {
+                    continue;
+                }
+                if (const auto backup = spool_join.get_spool_2(tool)) {
+                    if (!backup->is_enabled() || !backup->to_physical().is_enabled()) {
+                        log_error(ToolOffsetCalib, "Spool-join backup is disabled or unavailable");
+                        return false;
+                    }
+                    *physical_tool_mask |= uint32_t { 1 } << backup->to_physical().to_raw();
+                }
+            }
+        }
+    }
+#endif
     if (physical_tool_mask.has_value()) {
         for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
             if (*physical_tool_mask & (uint32_t { 1 } << tool.to_raw())) {
