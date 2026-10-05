@@ -30,6 +30,11 @@
 #include <unistd.h>
 #include <timing.h>
 #include <buddy/filename_defs.hpp>
+#include <version/version.hpp>
+#include <common/printer_model.hpp>
+
+extern "C" const uint8_t __rme_application_start[];
+extern "C" const uint8_t __rme_application_end[];
 
 extern "C" bool buddy_rme_service_frame(const char *raw_command);
 
@@ -927,7 +932,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         SERIAL_ECHO(binary_chunk_size);
         SERIAL_ECHOPGM(" max_size=");
         SERIAL_ECHO(maximum_file_size);
-        SERIAL_ECHOLNPGM(" list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1 firmware_status=1 firmware_unstage=1 crash_dump=1 durable_resume=1 shared_transfer_latch=1");
+        SERIAL_ECHOLNPGM(" list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1 firmware_status=1 firmware_running=1 firmware_unstage=1 crash_dump=1 durable_resume=1 shared_transfer_latch=1");
         return true;
     }
     if (action_is(action, "ABORT")) {
@@ -1339,6 +1344,39 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
         return rme_protocol::action_is(candidate, expected);
     };
 
+    if (action_is(action, "RUNNING")) {
+        // Read executable flash, never the USB candidate or a remembered upload.
+        // Cache per boot. Hash only while idle; no flash writes or serial waits.
+        static std::array<uint8_t, 32> digest {};
+        static bool ready = false;
+        if (!ready && !marlin_server::printer_idle()) {
+            SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=printer_busy");
+            return true;
+        }
+        const auto start = reinterpret_cast<uintptr_t>(__rme_application_start);
+        const auto size = reinterpret_cast<uintptr_t>(__rme_application_end) - start;
+        if (!ready) {
+            if (mbedtls_sha256_ret(__rme_application_start, size, digest.data(), 0) != 0) {
+                SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=hash_failed");
+                return true;
+            }
+            ready = true;
+        }
+        SERIAL_ECHOPGM("RME_FIRMWARE_RUNNING algorithm=app-sha256-v1 model=");
+        SERIAL_ECHO(PrinterModelInfo::current().id_str);
+        SERIAL_ECHOPGM(" version=");
+        SERIAL_ECHO(version::project_version_full);
+        SERIAL_ECHOPGM(" size=");
+        SERIAL_ECHO(static_cast<uint32_t>(size));
+        SERIAL_ECHOPGM(" sha256=");
+        constexpr char hex[] = "0123456789abcdef";
+        for (const auto byte : digest) {
+            SERIAL_CHAR(hex[byte >> 4]);
+            SERIAL_CHAR(hex[byte & 15]);
+        }
+        SERIAL_EOL();
+        return true;
+    }
     if (action_is(action, "QUERY")) {
         if (upload.file || transfers::Monitor::instance.id().has_value()) {
             SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=transfer_busy");
