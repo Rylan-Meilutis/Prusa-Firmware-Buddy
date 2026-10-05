@@ -32,7 +32,8 @@
  * - `R` - millimeters of random jitter on X & Y axis during z_probing each tool <0;255>
  * - `P` - number of Z probe repetitions per point to average (default 1) <1;255>
  * - `T` - comma-separated physical tools to calibrate. When supplied, this is
- *   authoritative and avoids relying on file metadata during serial printing.
+ *   used as the roots, including their spool-join backups, without relying on
+ *   file metadata during serial printing.
  */
 namespace PrusaGcodeSuite {
 

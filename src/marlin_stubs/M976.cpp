@@ -32,6 +32,10 @@
 #include <loadcell.hpp>
 #include <option/has_wastebin.h>
 #include <option/has_indx.h>
+#include <option/has_spool_join.h>
+#if HAS_SPOOL_JOIN()
+    #include <module/prusa/spool_join.hpp>
+#endif
 #include <option/has_wastebin_fill_tracking.h>
 #if HAS_INDX()
     #include <nozzle_cleaner.hpp>
@@ -470,6 +474,43 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
         }
     }
     return count > 0;
+}
+
+// Resolve the live printer-side chain before any heating, movement or cache
+// lookup. A backup inherits the print's material and temperature requirements,
+// but has its own filament slot and therefore its own persistent PA cache.
+bool expand_spool_join_batch(std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, size_t &count) {
+#if HAS_SPOOL_JOIN() && HAS_INDX()
+    for (size_t i = 0; i < count; ++i) {
+        const auto next = spool_join.get_spool_2(VirtualToolIndex::from_raw(entries[i].logical_filament));
+        if (!next) {
+            continue;
+        }
+        if (!next->is_enabled() || config_store().get_filament_type(*next) == FilamentType::none) {
+            return false;
+        }
+        const auto params = config_store().get_filament_type(*next).parameters();
+        if (!buddy::m976_material::matches(entries[i].material.data(), params.name.data(), base_material_name(params))) {
+            return false;
+        }
+        const auto end = entries.begin() + count;
+        if (std::find_if(entries.begin(), end, [&](const auto &entry) { return entry.logical_filament == next->to_raw(); }) != end) {
+            continue;
+        }
+        if (count == entries.size()) {
+            return false;
+        }
+        auto &backup = entries[count++];
+        backup = entries[i];
+        backup.logical_filament = next->to_raw();
+        backup.physical_tool = next->to_physical().to_raw();
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION spool_join backup=", backup.physical_tool, " slot=", backup.logical_filament);
+    }
+#else
+    (void)entries;
+    (void)count;
+#endif
+    return true;
 }
 
 #if HAS_INDX()
@@ -1078,7 +1119,7 @@ void PrusaGcodeSuite::M976() {
                 strncpy(entry.material.data(), material.data(), entry.material.size() - 1);
             }
         }
-        if (!validate_batch(entries, count)) {
+        if (!validate_batch(entries, count) || !expand_spool_join_batch(entries, count) || !validate_batch(entries, count)) {
             SERIAL_ERROR_MSG("M976 invalid batch or loaded-material mismatch");
             return;
         }
