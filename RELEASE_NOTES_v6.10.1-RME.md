@@ -574,3 +574,10 @@ and carry the `6.10.1-RME` firmware suffix.
   command's X field instead of transformed floating-point coordinates. This
   prevents valid relative Y-only purge moves from being falsely rejected after
   tool-offset or mesh transforms while retaining the cleaner hard boundary.
+# Unreleased: running-firmware identity
+
+- Add capability-gated `@RME FIRMWARE RUNNING` with an application-flash SHA-256,
+  distinct from the staged USB BBF checksum. Idle-only first calculation, RAM
+  cache per boot, and no flash writes.
+- Add verified release-manifest generation for RME's GitHub firmware discovery.
+  See `doc/rme_firmware_identity.md`; publish the manifest with final BBFs.
