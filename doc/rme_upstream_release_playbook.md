@@ -9,7 +9,7 @@ multi-hop chains, duplicates, missing/mismatched backups and offset roots.
 Preserve cache lookup after chain expansion and before movement. Hardware
 runout/takeover and first-hash latency remain unverified. Publish a freshly
 generated rme-firmware-manifest.json alongside each final BBF set; see
-rme_firmware_identity.md. Companion plugin b120 passed 270 Python tests
+rme_firmware_identity.md. Companion plugin b120 passed 275 Python tests
 (four skipped) and eight UI suites. Downloads never automatically flash.
 
 ## October 4 release validation
