@@ -1,5 +1,17 @@
 # RME Upstream Release Playbook
 
+## October 4 SpoolJoin and firmware-discovery release
+
+Final matrices: 6.9.0 from 1a9d28121, 15/15; 6.10.1 from a0bd232d7,
+15/15. Release tags identify built source; release-note updates are docs-only.
+SpoolJoin tests execute production batch expansion with host stubs and cover
+multi-hop chains, duplicates, missing/mismatched backups and offset roots.
+Preserve cache lookup after chain expansion and before movement. Hardware
+runout/takeover and first-hash latency remain unverified. Publish a freshly
+generated rme-firmware-manifest.json alongside each final BBF set; see
+rme_firmware_identity.md. Companion plugin b120 passed 270 Python tests
+(four skipped) and eight UI suites. Downloads never automatically flash.
+
 ## October 4 release validation
 
 Final matrices: 6.9.0 from 266e42408, 15/15 in 54s; 6.10.1 from b5f09f121,

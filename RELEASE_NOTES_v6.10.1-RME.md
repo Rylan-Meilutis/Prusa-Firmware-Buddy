@@ -1,6 +1,14 @@
 # 6.10.1-RME Firmware
 
-## Unreleased — SpoolJoin print preparation
+## Release update — SpoolJoin print preparation, 2026-10-04
+
+- Built all 15 variants from `a0bd232d7`. The companion plugin is b120
+  (270 Python tests, four skipped, eight UI suites). Firmware protocol tests
+  passed 65 cases / 432641 assertions and calibration tests 22 / 7280;
+  SpoolJoin and running-identity regression tests passed. Hardware takeover,
+  flash-identity reporting and UI latency still require physical testing.
+- Release assets include `rme-firmware-manifest.json` for verified GitHub
+  discovery/download in b120. Flashing remains explicitly user-confirmed.
 
 - INDX `M976 A...` and tool-mask batches include all reachable backup spools
   from the current printer-side SpoolJoin chains. Backups use the print's
@@ -586,7 +594,7 @@ and carry the `6.10.1-RME` firmware suffix.
   command's X field instead of transformed floating-point coordinates. This
   prevents valid relative Y-only purge moves from being falsely rejected after
   tool-offset or mesh transforms while retaining the cleaner hard boundary.
-# Unreleased: running-firmware identity
+## Release update — running-firmware identity, 2026-10-04
 
 - Add capability-gated `@RME FIRMWARE RUNNING` with an application-flash SHA-256,
   distinct from the staged USB BBF checksum. Idle-only first calculation, RAM
