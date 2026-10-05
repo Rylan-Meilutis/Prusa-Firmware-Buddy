@@ -345,6 +345,19 @@ actions:
 | `filtration` | Mid-print/post-print filtering and commanded PWM percentage | no assumed action |
 | `printer` | Generic notification fallback | query if `state=waiting` |
 
+For INDX M976, send the primary tools present in the sliced manifest. Firmware
+expands the current printer-side SpoolJoin chains before validation or cache
+lookup, so every backup has its own PA result prepared. Backups inherit the
+source entry's print temperature and material requirement; empty, disabled or
+material-mismatched backups reject the batch. Auto mode reuses valid persistent
+caches, On forces measurement, and Off still skips Auto PA. Configure the
+session's chains before sending the preparation commands, not after them.
+Explicit `G427 T...` lists likewise include all reachable SpoolJoin backups;
+the host need not rewrite either command or inject calibration tool changes.
+Firmware validates the enabled mapping before calibration and owns the complete pickup,
+keep-out-aware cleaner entry, prime-block extrusion, strand wipe, pellet ejection, and cleaner
+exit. The host must not synthesize intermediate tool changes or purge moves.
+
 An error event is a notification that firmware entered or is about to enter a
 recovery state. Always query the current dialog before enabling buttons. Send
 named responses (`A"Retry"`) rather than numeric indexes because names remain
