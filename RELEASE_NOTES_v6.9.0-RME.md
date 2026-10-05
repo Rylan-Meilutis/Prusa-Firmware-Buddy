@@ -1,5 +1,17 @@
 # 6.9.0-RME Firmware
 
+## Unreleased — SpoolJoin print preparation
+
+- INDX `M976 A...` and tool-mask batches include all reachable backup spools
+  from the current printer-side SpoolJoin chains. Backups use the print's
+  material/temperature requirements and their own PA cache; Auto mode skips
+  valid cached tools, On recalibrates, and Off remains off. Invalid backups
+  reject preparation instead of silently leaving a takeover tool unprepared.
+- Explicit serial-print `G427 T...` lists now include chained backup tools,
+  including multi-hop chains, without requiring an OctoPrint G-code rewrite.
+  Set the chains before the job's calibration commands; changes made later
+  do not retroactively calibrate a newly added tool.
+
 ## Release update — INDX no-tool homing crash, 2026-10-04
 
 - All 15 release variants built from `266e42408`. Calibration tests passed
