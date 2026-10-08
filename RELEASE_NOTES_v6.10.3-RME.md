@@ -5,7 +5,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
-### Pending fixes (not included in the published release assets)
+### Build 2 — 2026-10-08
 
 - Preserve chamber/LCD/status Off across print completion until fresh user
   activity; RME On/door/touch restores Active and normal light cycling.
@@ -13,6 +13,16 @@ This replaces 6.10.1-RME for this line; older releases remain available.
   preventing the reproduced 6.9.0-RME `E move without tool` resume crash.
 - Companion plugin: arm OctoPod snapshot substitution before FINISHING and
   retain the pre-final-bed-lowering frame rather than fetching after lowering.
+- Companion RME b122 shows captured pause reasons above OctoPrint's progress
+  bar and in RME, preserving the last reason for the current job. Missing
+  reasons are explicitly marked unreported.
+- Configure serial pause/resume scripts as `M601` / `M602` only; do not reset
+  E or change positioning/driver modes during firmware-owned recovery.
+- Build-2 application source: `709cb3722`. Native regression tests passed
+  (67 cases, 432682 assertions), plus five lighting/recovery source checks.
+  Physical camera timing and pause/resume still need hardware confirmation.
+
+### Initial release
 
 - Integrate upstream v6.10.3: improved XL enclosure temperature estimation, heater-wait/resume handling, tool-offset probing and UART recovery fixes.
 - Retain upstream XL bed-lowering behavior and existing RME INDX adaptations.
