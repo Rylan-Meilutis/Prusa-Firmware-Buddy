@@ -310,12 +310,17 @@ Expose both Loadcell Filament Runout and Loadcell Filament Movement in INDX
 Settings and in-print Tune; do not exclude them with a !HAS_INDX menu guard.
 Test quantized healthy extrusion followed by a break, not only smooth E ramps.
 
-Door Holds Active is level-triggered for chamber lighting: temporary RME
-Off/On must not defeat a door that is already open or expire during that hold.
-Do not restart the shared idle timer on chamber toggles while held; the closing
-edge starts it. Preserve configured active channel masks/brightness, Locked,
-disabled door-hold behavior, and independent LCD controls. Test toggles without
-any intervening sensor edge, not just opening after Off.
+Explicit chamber Off survives print completion and an already-open door.
+Only fresh door/touch/encoder/operator activity or RME On restores Active.
+On channels hand back to the configured post-print/idle timers; chamber Off
+must not hold LCD/status timers awake. Preserve channel masks/brightness and
+Locked semantics. Test existing door levels separately from new door edges.
+
+Streamed pause recovery must hold normal host FIFO commands while parked or
+resuming, even if the host resumes before firmware tool pickup completes.
+Injected recovery commands still execute, and held FIFO commands must not
+count as active recovery work (otherwise unpark waits forever). Drain existing
+print work before parking. Decode retained dumps against their exact build ID.
 
 Post-print filtration must start on both Finished and Aborted, retaining
 eligibility through unload/park cleanup. Do not use is_abort_state alone as

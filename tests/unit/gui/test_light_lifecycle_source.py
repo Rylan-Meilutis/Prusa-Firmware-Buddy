@@ -27,7 +27,10 @@ class LightLifecycle(unittest.TestCase):
             "!print_active && terminal_print_state && print_override_session_active",
             SOURCE)
         self.assertIn("restart_idle_countdown(time_ms)", exit_)
-        self.assertIn("screen_forced_off = false", exit_)
+        self.assertNotIn("screen_forced_off = false", exit_)
+        self.assertIn(
+            "chamber_mode_state.finish_print(print_chamber_mode, time_ms)",
+            exit_)
 
     def test_print_lcd_on_is_not_a_temporary_wake(self):
         setter = SOURCE.split(

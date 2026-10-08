@@ -5,6 +5,15 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
+### Pending fixes (not included in the published release assets)
+
+- Preserve chamber/LCD/status Off across print completion until fresh user
+  activity; RME On/door/touch restores Active and normal light cycling.
+- Hold streamed host commands during parked pause and reheat/unpark recovery,
+  preventing the reproduced 6.9.0-RME `E move without tool` resume crash.
+- Companion plugin: arm OctoPod snapshot substitution before FINISHING and
+  retain the pre-final-bed-lowering frame rather than fetching after lowering.
+
 - Integrate upstream v6.9.2: restored PVA/BVOH presets, gantry squareness calibration (M1988), dock-calibration crash fixes and tool-parking/homing fixes.
 - Preserve RME material-family EEPROM compatibility with upstream sparse preset indexing; remote reports retain stable preset slots.
 - Preserve RME serial printing, lighting, adaptive mesh, PA cache,
