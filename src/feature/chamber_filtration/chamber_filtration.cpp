@@ -48,7 +48,7 @@ void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
     }
 
 #if XL_ENCLOSURE_SUPPORT()
-    xl_enclosure.setEnabled(backend == ChamberFiltrationBackend::xl_enclosure);
+    xl_enclosure.set_enabled(backend == ChamberFiltrationBackend::xl_enclosure);
 #endif
 }
 

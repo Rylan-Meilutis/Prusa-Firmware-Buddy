@@ -1166,11 +1166,14 @@ static void cycle() {
 
 #if XL_ENCLOSURE_SUPPORT()
     int16_t dwarf_temp = std::numeric_limits<int16_t>().min();
+    float nozzle_temp = 0;
     #if HAS_TOOLCHANGER()
-    dwarf_temp = prusa_toolchanger.getActiveToolOrFirst().get_board_temperature();
+    auto &dwarf = prusa_toolchanger.getActiveToolOrFirst();
+    dwarf_temp = dwarf.get_board_temperature();
+    nozzle_temp = marlin_vars().hotend(dwarf.tool_index()).temp_nozzle.get();
     #endif
 
-    xl_enclosure.loop(remote_bed::get_mcu_temperature(), dwarf_temp);
+    xl_enclosure.loop(remote_bed::get_mcu_temperature(), dwarf_temp, nozzle_temp);
 #endif
 
 #if HAS_XL_CAN() && HAS_REMOTE_BED()
@@ -2495,7 +2498,7 @@ static void resuming_reheating() {
         }
     }
 
-    if (!Temperature::are_all_temperatures_reached()) {
+    if (!Temperature::are_all_temperatures_reached(Temperature::RequireCooling::current_tool_only)) {
         return;
     }
 
@@ -3536,7 +3539,7 @@ static void _server_print_loop(void) {
 #if XL_ENCLOSURE_SUPPORT()
         const bool enclosure_fan_ok = Fans::enclosure().is_fan_ok();
         if (!enclosure_fan_ok && !enclosure_fan_checker.isFailed()) {
-            xl_enclosure.setEnabled(false);
+            xl_enclosure.set_enabled(false);
         }
         enclosure_fan_checker.checkTrue(enclosure_fan_ok, WarningType::EnclosureFanError, false, false);
         if (enclosure_fan_ok) {
