@@ -2857,6 +2857,16 @@ static void _server_print_loop(void) {
 #if HAS_INDX()
             // Park the tool to its dock after pausing
             tool_change(NoTool {}, tool_return_t::no_return);
+            if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+                // Tool docking can change the shared E motor coordinate. This
+                // is an XY-only service move, never an extrusion with no tool.
+                planner.synchronize();
+                sync_plan_position_e();
+                // Clear the dock row before traversing to the back-right
+                // accessible corner. Keep the lifted Z and original resume
+                // position; mapi::park routes out of the dock perpendicularly.
+                mapi::park({ .x = X_BED_SIZE - 8.0f, .y = Y_BED_SIZE - 0.5f });
+            }
 #endif
             server.print_state = State::Paused;
             if (server.print_is_serial) {
