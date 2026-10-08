@@ -26,7 +26,9 @@ This replaces 6.10.1-RME for this line; older releases remain available.
   reasons are explicitly marked unreported.
 - Configure serial pause/resume scripts as `M601` / `M602` only; do not reset
   E or change positioning/driver modes during firmware-owned recovery.
-- Updated application source: `14f3dda1c`. Native regression tests passed
+- Updated application source: `5b3c3333b`. Staged-image discovery regression
+  passed (accepted canonical BBFs and exact FWUPD.RME; rejected sidecars and
+  unrelated RME files). Native regression tests passed
   (67 cases, 432682 assertions), plus six lighting/recovery source checks.
   Physical camera timing and pause/resume still need hardware confirmation.
 
