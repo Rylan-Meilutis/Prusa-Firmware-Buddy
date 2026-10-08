@@ -307,10 +307,9 @@ else()
   add_compile_options(-Oz -fmerge-all-constants)
   add_link_options(-Oz)
   if(PRINTER STREQUAL "MINI")
-    # MINI has a 895 KiB application partition. Avoid LTO expanding single-call helpers; retain the
-    # same features and flash layout as the other builds.
-    add_compile_options(-fno-inline-functions-called-once)
-    add_link_options(-fno-inline-functions-called-once)
+    # MINI has a 895 KiB application partition. Optimize its linked program as one unit, retaining
+    # the same features and flash layout as other builds.
+    add_link_options(-flto-partition=one)
   endif()
 endif()
 
