@@ -71,6 +71,7 @@ public:
     void set_active(bool val);
     bool get_print_status_enabled();
     void set_print_status_enabled(bool val);
+    void activity_ping();
     uint8_t get_brightness(LightState state);
     void set_brightness(LightState state, uint8_t val);
     uint16_t get_finished_hold_s();
@@ -90,6 +91,7 @@ private:
     freertos::Mutex mutex;
     bool active { config_store().run_leds.get() };
     bool print_status_disabled { false };
+    bool awaiting_activity { false };
     bool print_status_overridden { false };
     bool print_override_session_active { false };
     uint32_t brightness_by_state { config_store().status_led_brightness_by_state.get() };

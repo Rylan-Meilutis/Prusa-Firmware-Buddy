@@ -206,16 +206,23 @@ TEST_CASE("Streamed print moves do not cancel RME lighting Off", "[rme][light][r
     REQUIRE(rme_light_mode::serial_commands_wake_lights(false));
     CHECK(state.resume_on_activity()); // Idle jog wakes the light.
     REQUIRE(state.set(0, 200));
-    CHECK(state.apply_door_hold(true)); // Door behavior is unchanged.
+    CHECK_FALSE(state.apply_door_hold(true)); // Existing door level cannot undo Off.
+    CHECK(state.resume_on_activity()); // A fresh door event wakes it.
     CHECK(state.mode == -1);
 }
 
-TEST_CASE("An already open door overrides temporary RME light modes without restarting idle", "[rme][light][regression]") {
+TEST_CASE("An already open door preserves explicit Off until fresh activity", "[rme][light][regression]") {
     rme_light_mode::State mode;
     rme_light_hold::State hold;
     uint32_t timestamp = 100;
     for (const uint8_t requested : { 0, 1, 0, 1 }) {
         REQUIRE(mode.set(requested, 200));
+        if (requested == 0) {
+            CHECK_FALSE(mode.apply_door_hold(true));
+            CHECK(mode.mode == 0);
+            CHECK(mode.resume_on_activity());
+            REQUIRE(mode.set(1, 200));
+        }
         CHECK(mode.apply_door_hold(true));
         rme_light_mode::restart_idle_countdown(hold, timestamp, 200, true);
         CHECK(mode.mode == -1); // Report/use the normal active-state profile.
@@ -230,6 +237,23 @@ TEST_CASE("An already open door overrides temporary RME light modes without rest
     REQUIRE(mode.set(1, 11000));
     CHECK_FALSE(mode.apply_door_hold(false));
     CHECK(mode.expire(12000, 1));
+}
+
+TEST_CASE("Print completion transfers chamber Off without holding other channel timers", "[rme][light][regression]") {
+    rme_light_mode::State idle;
+    rme_light_mode::PrintState print;
+    print.set(0);
+    idle.finish_print(print, 1000);
+    CHECK(print.mode == -1);
+    CHECK(idle.mode == 0);
+    CHECK_FALSE(idle.apply_door_hold(true));
+    CHECK_FALSE(idle.expire(100000, 30));
+    CHECK(idle.resume_on_activity());
+    CHECK(idle.mode == -1);
+    print.set(1);
+    idle.finish_print(print, 2000);
+    CHECK(idle.mode == -1); // On hands back to the standard timed profile.
+    CHECK_FALSE(idle.awaiting_activity);
 }
 
 TEST_CASE("Door lighting policy retains Locked and respects disabled door hold", "[rme][light]") {
