@@ -7,6 +7,10 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ### Pending fixes (not included in the published release assets)
 
+- Fix RME flashing getting stuck at “Looking for BBF”: startup resource
+  installation now recognizes the exact staged `FWUPD.RME` filename while
+  retaining compiled-resource digest validation and one-shot flashing.
+
 - Preserve chamber/LCD/status Off across print completion until fresh user
   activity; RME On/door/touch restores Active and normal light cycling.
 - Hold streamed host commands during parked pause and reheat/unpark recovery,
