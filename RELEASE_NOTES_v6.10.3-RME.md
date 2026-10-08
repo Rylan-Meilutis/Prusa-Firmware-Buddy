@@ -1,0 +1,28 @@
+# 6.10.3-RME Firmware
+
+The maintained RME release lines are now 6.9.2-RME and 6.10.3-RME.
+This replaces 6.10.1-RME for this line; older releases remain available.
+
+## Changes
+
+- Integrate upstream v6.10.3: improved XL enclosure temperature estimation, heater-wait/resume handling, tool-offset probing and UART recovery fixes.
+- Retain upstream XL bed-lowering behavior and existing RME INDX adaptations.
+- Preserve RME serial printing, lighting, adaptive mesh, PA cache,
+  flexible-material handling, SpoolJoin preparation and verified firmware identity.
+- Companion RME Compatibility b121 includes manual GitHub firmware synchronization
+  and lazy-loaded settings. Firmware discovery uses the included manifest;
+  downloading an update never automatically flashes it.
+
+## Availability and validation
+
+- Release images: all 15 RME build variants.
+- Built source: `63804b2d8`. Later documentation commits do not change binaries.
+- RME source regression checks passed for serial pages, lighting lifecycle,
+  INDX parking/E resets, load metadata, PA persistence and SpoolJoin preparation.
+- Build success is not physical-printer certification. Tool pickup, calibration,
+  flexible-filament extrusion and flashing still require hardware validation.
+
+Prusa's official upstream 6.10.3 release targets XL/XL+.
+RME adaptations are custom firmware; select the image matching your machine.
+Included `rme-firmware-manifest.json` records verified BBF/application SHA-256
+identities.
