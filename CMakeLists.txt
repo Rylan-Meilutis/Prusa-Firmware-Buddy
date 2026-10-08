@@ -306,11 +306,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 else()
   add_compile_options(-Oz -fmerge-all-constants)
   add_link_options(-Oz)
-  if(PRINTER STREQUAL "MINI")
-    # MINI has a 895 KiB application partition. Optimize its linked program as one unit, retaining
-    # the same features and flash layout as other builds.
-    add_link_options(-flto-partition=one)
-  endif()
 endif()
 
 if(CMAKE_CROSSCOMPILING)

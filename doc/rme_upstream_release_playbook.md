@@ -4,7 +4,10 @@
 
 The maintained lines are now 6.9.2-RME and 6.10.3-RME, integrating the
 corresponding upstream stable tags while preserving the RME features.
-6.9.2 ships the CORE One INDX image; 6.10.3 ships the full 15-image RME set.
+6.9.2 ships the CORE One INDX image; 6.10.3 ships six non-MINI RME images.
+The normal MINI links overflow the unchanged 895 KiB partition by 3–4 KiB.
+Do not publish those failed images or alter flash boundaries to force a fit.
+MINI remains on 6.10.1-RME until a validated size reduction is available.
 Keep older releases as historical downloads. Publish an identity manifest
 with each release so the companion plugin can discover and verify updates.
 Upstream official availability is INDX for 6.9.2 and XL/XL+ for 6.10.3;

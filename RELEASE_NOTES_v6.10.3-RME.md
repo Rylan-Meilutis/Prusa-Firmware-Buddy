@@ -15,8 +15,13 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Availability and validation
 
-- Release images: all 15 RME build variants.
-- Built source: `63804b2d8`. Later documentation commits do not change binaries.
+- Release images: CORE One, CORE One INDX, CORE One L, MK4, MK3.5 and XL.
+- MINI images are not included: the upstream integration exceeds the existing
+  895 KiB application partition by approximately 3–4 KiB with the normal
+  size-oriented compiler settings. Keep using 6.10.1-RME on MINI; do not flash
+  another machine's image. No flash boundaries or features were removed to fit.
+- Correct the PPS/PPA preset material-family IDs on high-temperature CORE One
+  variants; the compile-time preset consistency checks remain enabled.
 - RME source regression checks passed for serial pages, lighting lifecycle,
   INDX parking/E resets, load metadata, PA persistence and SpoolJoin preparation.
 - Build success is not physical-printer certification. Tool pickup, calibration,

@@ -4,7 +4,7 @@
 
 This branch contains the RME custom firmware based on Prusa Firmware Buddy 6.10.3. It keeps the standard Buddy firmware foundation while adding features for OctoPrint workflows, lighting control, screen dimming, chamber behavior, fleet configuration, and printer maintenance.
 
-The two maintained releases are 6.9.2-RME (CORE One INDX) and 6.10.3-RME (the full RME build set). See [this release's notes](RELEASE_NOTES_v6.10.3-RME.md) for availability and validation limits.
+The two maintained releases are 6.9.2-RME (CORE One INDX) and 6.10.3-RME (CORE One/INDX/L, MK4, MK3.5 and XL). MINI remains on 6.10.1-RME because the new images exceed its flash capacity. See [this release's notes](RELEASE_NOTES_v6.10.3-RME.md) for availability and validation limits.
 
 The main additions over the base firmware are:
 
