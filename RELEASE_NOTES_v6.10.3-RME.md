@@ -16,6 +16,9 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 ## Availability and validation
 
 - Release images: CORE One, CORE One INDX, CORE One L, MK4, MK3.5 and XL.
+- All six release builds passed from `71f41c5f3`; linked application bytes and
+  BBF payload lengths/hashes were verified. Later documentation commits do
+  not change the binaries.
 - MINI images are not included: the upstream integration exceeds the existing
   895 KiB application partition by approximately 3–4 KiB with the normal
   size-oriented compiler settings. Keep using 6.10.1-RME on MINI; do not flash
