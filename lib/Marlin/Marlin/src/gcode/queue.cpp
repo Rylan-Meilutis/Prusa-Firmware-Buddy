@@ -167,7 +167,13 @@ GCodeQueue::GCodeQueue() {
  * Check whether there are any commands yet to be executed
  */
 bool GCodeQueue::has_commands_queued() {
-  return queue.length || injected_commands_P;
+  // Held host commands are pending work, not active recovery work. Counting
+  // them as busy would deadlock the firmware's reheat/unpark state machine.
+  return (queue.length
+    #if HAS_SERIAL_PRINT()
+      && !marlin_server::serial_print_fifo_held()
+    #endif
+  ) || injected_commands_P;
 }
 
 bool GCodeQueue::current_command_from_serial() {
@@ -1866,7 +1872,11 @@ void GCodeQueue::advance() {
   }
 
   // Return if the G-code buffer is empty
-  if (!length) {
+  if (!length
+    #if HAS_SERIAL_PRINT()
+      || marlin_server::serial_print_fifo_held()
+    #endif
+  ) {
     delay(1);
     return;
   }

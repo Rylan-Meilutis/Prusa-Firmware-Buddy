@@ -417,6 +417,7 @@ void StatusLedsHandler::set_finished_hold_s(uint16_t val) {
 
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
+    awaiting_activity = !val;
     print_status_overridden = false;
     if (!active) {
         print_status_disabled = false;
@@ -425,6 +426,15 @@ void StatusLedsHandler::set_print_status_enabled(bool val) {
     }
     print_status_disabled = !val;
     print_status_brightness = val ? 100 : 0;
+    old_state = StateAnimation::_last;
+}
+
+void StatusLedsHandler::activity_ping() {
+    std::lock_guard lock(mutex);
+    awaiting_activity = false;
+    print_status_overridden = false;
+    print_status_disabled = false;
+    print_status_brightness = 100;
     old_state = StateAnimation::_last;
 }
 
@@ -441,6 +451,7 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
     print_status_overridden = true;
     print_status_brightness = val;
     print_status_disabled = print_status_brightness == 0;
+    awaiting_activity = print_status_disabled;
     old_state = StateAnimation::_last;
 }
 
@@ -477,11 +488,12 @@ void StatusLedsHandler::update() {
     };
 
     if (print_active && !print_override_session_active) {
+        awaiting_activity = false;
         print_status_overridden = false;
         print_status_disabled = false;
         print_status_brightness = 100;
         print_override_session_active = true;
-    } else if (!print_active && terminal_print_state) {
+    } else if (!print_active && terminal_print_state && print_override_session_active) {
         print_status_overridden = false;
         print_status_disabled = false;
         print_status_brightness = 100;
@@ -507,7 +519,7 @@ void StatusLedsHandler::update() {
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
-    } else if ((print_status_disabled || print_status_brightness == 0) && print_active) {
+    } else if (awaiting_activity || ((print_status_disabled || print_status_brightness == 0) && print_active)) {
         state = StateAnimation::Idle;
     } else if (is_error_state) {
         state = StateAnimation::Error;

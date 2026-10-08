@@ -6,6 +6,7 @@
 #include <option/has_i2c_expander.h>
 #include <option/xbuddy_extension_variant.h>
 #include <leds/external_light_bar.hpp>
+#include <leds/status_leds_handler.hpp>
 #include <timing.h>
 #include <algorithm>
 
@@ -87,7 +88,13 @@ void SideStripHandler::startup_activity_ping() {
 
 void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    StatusLedsHandler::instance().activity_ping();
     screen_forced_off = false;
+    if (print_active_for_leds()) {
+        print_chamber_mode.set(1);
+        print_screen_brightness_overridden = false;
+        screen_brightness_wake_until_ms = 0;
+    }
     if (chamber_mode_state.resume_on_activity()) {
         state = SideStripState::unknown;
     }
@@ -182,7 +189,12 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
     }
 
     if (open || was_open) {
+        StatusLedsHandler::instance().activity_ping();
         screen_forced_off = false;
+        if (print_active_for_leds()) {
+            print_chamber_mode.set(1);
+            print_screen_brightness_overridden = false;
+        }
         if (chamber_mode_state.resume_on_activity()) {
             state = SideStripState::unknown;
         }
@@ -254,9 +266,8 @@ void SideStripHandler::update() {
             screen_brightness_wake_from_print_override = false;
             print_override_session_active = true;
         } else if (!print_active && terminal_print_state && print_override_session_active) {
-            screen_forced_off = false;
             restart_idle_countdown(time_ms);
-            print_chamber_mode.reset();
+            chamber_mode_state.finish_print(print_chamber_mode, time_ms);
             print_brightness_overridden = false;
             print_screen_brightness_overridden = false;
             screen_brightness_wake_until_ms = 0;
@@ -338,6 +349,12 @@ void SideStripHandler::set_chamber_mode(const uint8_t mode) {
     }
     std::lock_guard lock(mutex);
     const uint32_t now = ticks_ms();
+    if (mode > 0) {
+        StatusLedsHandler::instance().activity_ping();
+        screen_forced_off = false;
+        print_screen_brightness_overridden = false;
+        screen_brightness_wake_until_ms = 0;
+    }
     if (print_active_for_leds()) {
         print_chamber_mode.set(mode);
         state = SideStripState::unknown;
