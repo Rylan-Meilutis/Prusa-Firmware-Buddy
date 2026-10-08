@@ -8,10 +8,12 @@ ROOT = Path(__file__).resolve().parents[3]
 class SerialResumeFifoTests(unittest.TestCase):
 
     def test_parked_and_resuming_states_hold_host_fifo(self):
-        source = (ROOT / "src/common/marlin_server.cpp").read_text()
-        policy = source.split("bool serial_print_fifo_held() {",
-                              1)[1].split("\n}", 1)[0]
-        for required in ("server.print_is_serial", "State::Paused",
+        source = (ROOT / "src/common/marlin_server_types/marlin_server_state.h"
+                  ).read_text()
+        policy = source.split(
+            "bool serial_print_fifo_held(bool serial_job, State state) {",
+            1)[1].split("\n}", 1)[0]
+        for required in ("serial_job", "State::Paused",
                          "State::Pausing_ParkHead", "is_resuming_state"):
             self.assertIn(required, policy)
         self.assertNotIn("State::Pausing_WaitIdle",
