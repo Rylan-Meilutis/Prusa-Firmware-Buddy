@@ -5,6 +5,15 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
+### Pending fixes (not included in the published release assets)
+
+- Preserve chamber/LCD/status Off across print completion until fresh user
+  activity; RME On/door/touch restores Active and normal light cycling.
+- Hold streamed host commands during parked pause and reheat/unpark recovery,
+  preventing the reproduced 6.9.0-RME `E move without tool` resume crash.
+- Companion plugin: arm OctoPod snapshot substitution before FINISHING and
+  retain the pre-final-bed-lowering frame rather than fetching after lowering.
+
 - Integrate upstream v6.10.3: improved XL enclosure temperature estimation, heater-wait/resume handling, tool-offset probing and UART recovery fixes.
 - Retain upstream XL bed-lowering behavior and existing RME INDX adaptations.
 - Preserve RME serial printing, lighting, adaptive mesh, PA cache,

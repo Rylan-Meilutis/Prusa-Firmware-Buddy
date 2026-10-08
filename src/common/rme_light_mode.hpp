@@ -45,10 +45,19 @@ inline void restart_idle_countdown(rme_light_hold::State &hold, uint32_t &timest
 
 // Caller owns synchronization. Fixed storage; no timers, queues or allocation.
 struct State {
-    // An open-door hold is a level, not only an opening event. Temporary
-    // Off/On must not defeat it; explicit Locked retains its semantics.
+    // An explicit Off at print end wins over a door that was already open.
+    // Only a new activity event may resume the automatic profile.
+    bool awaiting_activity = false;
+    void finish_print(PrintState &print, uint32_t now) {
+        mode = print.mode == 0 ? 0 : -1;
+        awaiting_activity = mode == 0;
+        started_ms = now;
+        print.reset();
+    }
+    // Existing door holds cannot undo explicit Off. A fresh door event calls
+    // resume_on_activity; explicit Locked retains its semantics.
     bool apply_door_hold(bool held) {
-        if (!held || (mode != 0 && mode != 1)) {
+        if (!held || awaiting_activity || (mode != 0 && mode != 1)) {
             return false;
         }
         mode = -1;
@@ -56,6 +65,7 @@ struct State {
     }
     // Off is temporary darkness, not a lock against normal printer activity.
     bool resume_on_activity() {
+        awaiting_activity = false;
         if (mode != 0) {
             return false;
         }
@@ -69,6 +79,7 @@ struct State {
             return false;
         }
         mode = value;
+        awaiting_activity = value == 0;
         started_ms = now;
         return true;
     }

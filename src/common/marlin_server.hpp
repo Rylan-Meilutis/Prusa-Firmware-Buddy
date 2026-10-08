@@ -105,6 +105,8 @@ void serial_print_finalize();
 
 /// Return true when the current print session was started from serial G-code.
 bool serial_print_active();
+/// Hold streamed job FIFO while the tool is parked or being restored.
+bool serial_print_fifo_held();
 #endif
 
 /**
