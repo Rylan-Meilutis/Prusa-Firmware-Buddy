@@ -217,6 +217,9 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
                 .name = "PPS",
                 .nozzle_temperature = 320,
                 .heatbed_temperature = 105,
+    #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+                .base_preset = PresetFilamentType::PPS,
+    #endif
     #if HAS_CHAMBER_API()
                 .chamber_min_temperature = PRINTER_IS_PRUSA_COREONEL() ? 55 : 45,
                 .chamber_max_temperature = PRINTER_IS_PRUSA_COREONEL() ? 70 : 65,
@@ -232,6 +235,9 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
                 .name = "PPA",
                 .nozzle_temperature = 320,
                 .heatbed_temperature = 105,
+    #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+                .base_preset = PresetFilamentType::PPA,
+    #endif
     #if HAS_CHAMBER_API()
                 .chamber_min_temperature = PRINTER_IS_PRUSA_COREONEL() ? 55 : 45,
                 .chamber_max_temperature = PRINTER_IS_PRUSA_COREONEL() ? 70 : 65,
