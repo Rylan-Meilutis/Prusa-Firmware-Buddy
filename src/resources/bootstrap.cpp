@@ -34,8 +34,15 @@ using Path = MutablePath;
 LOG_COMPONENT_DEF(Resources, logging::Severity::debug);
 using buddy::BootstrapStage;
 
-static bool has_bbf_suffix(const char *fname) {
-    char *dot = strrchr(fname, '.');
+static bool is_bootstrap_candidate(const char *fname) {
+    // RME uses a non-BBF name for its explicitly selected, one-shot flash.
+    // Keep that image available for resource/bootloader tarball installation
+    // without making it eligible for the bootloader's automatic BBF scan.
+    // The TLV revision check below still requires the exact compiled digest.
+    if (strcasecmp(fname, "FWUPD.RME") == 0) {
+        return true;
+    }
+    const char *dot = strrchr(fname, '.');
 
     if (dot == nullptr) {
         return 0;
@@ -203,7 +210,7 @@ static bool find_suitable_bbf_file(const buddy::resources::Revision &revision, P
     struct dirent *entry;
     while ((entry = dir.read())) {
         // check is bbf
-        if (!has_bbf_suffix(entry->d_name)) {
+        if (!is_bootstrap_candidate(entry->d_name)) {
             log_debug(Resources, "Skipping file: %s (bad suffix)", entry->d_name);
             continue;
         }
