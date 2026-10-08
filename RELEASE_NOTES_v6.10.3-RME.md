@@ -5,7 +5,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
-### Build 2 — 2026-10-08
+### Updated release — 2026-10-08
 
 - Preserve chamber/LCD/status Off across print completion until fresh user
   activity; RME On/door/touch restores Active and normal light cycling.
@@ -22,7 +22,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
   reasons are explicitly marked unreported.
 - Configure serial pause/resume scripts as `M601` / `M602` only; do not reset
   E or change positioning/driver modes during firmware-owned recovery.
-- Build-2 application source: `14f3dda1c`. Native regression tests passed
+- Updated application source: `14f3dda1c`. Native regression tests passed
   (67 cases, 432682 assertions), plus six lighting/recovery source checks.
   Physical camera timing and pause/resume still need hardware confirmation.
 
