@@ -1,5 +1,17 @@
 # RME Upstream Release Playbook
 
+## October 8 maintained release lines
+
+The maintained lines are now 6.9.2-RME and 6.10.3-RME, integrating the
+corresponding upstream stable tags while preserving the RME features.
+6.9.2 ships the CORE One INDX image; 6.10.3 ships the full 15-image RME set.
+Keep older releases as historical downloads. Publish an identity manifest
+with each release so the companion plugin can discover and verify updates.
+Upstream official availability is INDX for 6.9.2 and XL/XL+ for 6.10.3;
+custom RME builds for other machines are not upstream hardware certification.
+The 6.9.2 merge must preserve sparse preset slot IDs and legacy RME EEPROM
+material-family decoding. Do not revert these to dense-index assumptions.
+
 ## October 4 release validation
 
 Final matrices: 6.9.0 from 266e42408, 15/15 in 54s; 6.10.1 from b5f09f121,
