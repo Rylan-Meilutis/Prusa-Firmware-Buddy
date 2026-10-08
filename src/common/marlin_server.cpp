@@ -1713,7 +1713,7 @@ bool serial_print_active() {
 }
 
 bool serial_print_fifo_held() {
-    return server.print_is_serial && (server.print_state == State::Paused || server.print_state == State::Pausing_ParkHead || is_resuming_state(server.print_state));
+    return serial_print_fifo_held(server.print_is_serial, server.print_state);
 }
 
 void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview) {

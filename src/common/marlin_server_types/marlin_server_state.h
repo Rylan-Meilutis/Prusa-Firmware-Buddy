@@ -81,6 +81,10 @@ inline bool is_resuming_state(State state) {
     return (state == State::Resuming_BufferData) || (state == State::Resuming_Begin) || (state == State::Resuming_Reheating) || (state == State::Resuming_UnparkHead_XY) || (state == State::Resuming_UnparkHead_ZE) || (state == State::MediaErrorRecovery_BufferData);
 }
 
+inline bool serial_print_fifo_held(bool serial_job, State state) {
+    return serial_job && (state == State::Paused || state == State::Pausing_ParkHead || state == State::Resuming_ExecutingGCodeInterrupt || is_resuming_state(state));
+}
+
 inline bool is_extended_paused_state(State state) {
     switch (state) {
     case State::Paused:
