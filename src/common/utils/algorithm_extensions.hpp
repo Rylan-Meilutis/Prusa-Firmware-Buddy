@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
+#include <tuple>
 
 namespace stdext {
 
@@ -13,6 +15,15 @@ constexpr size_t index_of(T &&container, I &&item) {
         if (it == container.end()) {
             std::abort();
         }
+    }
+    return it - container.begin();
+}
+
+template <typename T, typename I>
+constexpr std::optional<size_t> index_of_opt(T &&container, I &&item) {
+    const auto it = std::find(container.begin(), container.end(), item);
+    if (it == container.end()) {
+        return std::nullopt;
     }
     return it - container.begin();
 }

@@ -1,5 +1,7 @@
 #include "filament.hpp"
 
+#include <utility>
+
 #include <hotend_detect.hpp>
 #include <option/has_indx.h>
 #include <option/has_loadcell.h>
@@ -11,7 +13,7 @@
 #endif
 
 // These temperatures correspond to slicer defaults for MBL.
-constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentType::_count> preset_filament_parameters_constexpr {
+constexpr PresetFilamentParameters preset_filament_parameters_constexpr {
     {
         PresetFilamentType::PLA,
         FilamentTypeParameters {
@@ -242,62 +244,107 @@ constexpr const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFila
             },
         },
 #endif
+        {
+            PresetFilamentType::PVA,
+            FilamentTypeParameters {
+                .name = "PVA",
+                .nozzle_temperature = 210,
+                .nozzle_preheat_temperature = 160,
+                .heatbed_temperature = 60,
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+                .base_preset = PresetFilamentType::PVA,
+#endif
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+                .heatbreak_temperature = 45,
+#endif
+#if HAS_CHAMBER_API()
+                .chamber_min_temperature = 15,
+                .chamber_max_temperature = 38,
+                .chamber_target_temperature = 25,
+#endif
+            },
+        },
+        {
+            PresetFilamentType::BVOH,
+            FilamentTypeParameters {
+                .name = "BVOH",
+                .nozzle_temperature = 210,
+                .nozzle_preheat_temperature = 160,
+                .heatbed_temperature = 60,
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+                .base_preset = PresetFilamentType::BVOH,
+#endif
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+                .heatbreak_temperature = 45,
+#endif
+#if HAS_CHAMBER_API()
+                .chamber_min_temperature = 15,
+                .chamber_max_temperature = 38,
+                .chamber_target_temperature = 25,
+#endif
+            },
+        },
 };
 
-constinit const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentType::_count> preset_filament_parameters = preset_filament_parameters_constexpr;
+constinit const PresetFilamentParameters preset_filament_parameters = preset_filament_parameters_constexpr;
 
 #ifndef UNITTESTS
 
-constexpr bool temperatures_are_within_spec(const FilamentTypeParameters &filament, int16_t max_nozzle) {
-    return (filament.nozzle_temperature <= max_nozzle - HEATER_MAXTEMP_SAFETY_MARGIN)
-        && (filament.nozzle_preheat_temperature <= max_nozzle - HEATER_MAXTEMP_SAFETY_MARGIN)
-        && (filament.heatbed_temperature <= BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN);
-}
+namespace {
 
-// Standard presets must fit the NTC hotend (HEATER_0_MAXTEMP); the HT-only PPS/PPA the PT1000.
-// A HAS_HT_HOTEND build can still boot a standard hotend, so only PPS/PPA get the higher ceiling.
-constexpr bool preset_temperatures_are_within_spec() {
-    for (size_t i = 0; i < static_cast<size_t>(PresetFilamentType::_count); i++) {
-        int16_t max_nozzle = HEATER_0_MAXTEMP;
+template <PresetFilamentType type>
+consteval void sanity_check_preset() {
+    // Using a lambda causes the failure to be somewhat derivable from the compilation log
+    auto check = [](bool cond) {
+        if (!cond) {
+            std::abort();
+        }
+    };
+
+    // Check that no filament appears twice in the preset list
+    const size_t in_preset_list_times = std::ranges::count(preset_filament_types, type);
+    check(in_preset_list_times <= 1);
+    if (in_preset_list_times == 0) {
+        return;
+    }
+
+    const FilamentTypeParameters &params = preset_filament_parameters_constexpr[type];
+
+    #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+    check(params.base_preset == type);
+    #endif
+
+    {
+        int16_t max_nozzle = 305;
     #if HAS_HT_HOTEND()
-        const auto type = static_cast<PresetFilamentType>(i);
+        // Standard presets must fit the NTC hotend (HEATER_0_MAXTEMP); the HT-only PPS/PPA the PT1000.
+        // A HAS_HT_HOTEND build can still boot a standard hotend, so only PPS/PPA get the higher ceiling.
         if (type == PresetFilamentType::PPS || type == PresetFilamentType::PPA) {
             max_nozzle = ht_hotend_max_nozzle_temp;
         }
     #endif
-        if (!temperatures_are_within_spec(preset_filament_parameters_constexpr[i], max_nozzle)) {
-            return false;
-        }
+
+        check(params.nozzle_temperature <= max_nozzle - HEATER_MAXTEMP_SAFETY_MARGIN);
+        check(params.nozzle_preheat_temperature <= max_nozzle - HEATER_MAXTEMP_SAFETY_MARGIN);
+        check(params.heatbed_temperature <= BED_MAXTEMP - BED_MAXTEMP_SAFETY_MARGIN);
     }
-    return true;
-}
-static_assert(preset_temperatures_are_within_spec());
 
     #if HAS_CHAMBER_API()
-constexpr bool chamber_temperatures_are_within_spec(const FilamentTypeParameters &filament) {
-    // If one chamber parameter is specified, all should be specified
-    if (!filament.chamber_min_temperature.has_value() && !filament.chamber_max_temperature.has_value() && !filament.chamber_target_temperature.has_value()) {
+    if (params.chamber_min_temperature.has_value() || params.chamber_max_temperature.has_value() || params.chamber_target_temperature.has_value()) {
+        // If one chamber parameter is specified, all should be specified
+        check(params.chamber_min_temperature.has_value() && params.chamber_max_temperature.has_value() && params.chamber_target_temperature.has_value());
+        check(*params.chamber_min_temperature <= *params.chamber_target_temperature);
+        check(*params.chamber_target_temperature <= *params.chamber_max_temperature);
+    }
+    #endif
+}
+
+static_assert(
+    []<size_t... i>(std::index_sequence<i...>) {
+        (sanity_check_preset<static_cast<PresetFilamentType>(i)>(), ...);
         return true;
-    }
-    if (!filament.chamber_min_temperature.has_value() || !filament.chamber_max_temperature.has_value() || !filament.chamber_target_temperature.has_value()) {
-        return false;
-    }
+    }(std::make_index_sequence<std::to_underlying(PresetFilamentType::_count_sparse)>()));
 
-    return (*filament.chamber_min_temperature <= *filament.chamber_target_temperature) && (*filament.chamber_target_temperature <= *filament.chamber_max_temperature);
-}
-static_assert(std::ranges::all_of(preset_filament_parameters_constexpr, chamber_temperatures_are_within_spec));
-    #endif
+} // namespace
 
-    #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
-constexpr bool presets_base_preset_matches() {
-    for (size_t i = 0; i < static_cast<size_t>(PresetFilamentType::_count); i++) {
-        if (preset_filament_parameters_constexpr[i].base_preset != static_cast<PresetFilamentType>(i)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-static_assert(presets_base_preset_matches());
-    #endif
 #endif

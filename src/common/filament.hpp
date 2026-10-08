@@ -12,6 +12,8 @@
 #include <utils/string/inplace_string.hpp>
 #include <utils/enum_array.hpp>
 #include <utils/compact_optional.hpp>
+#include <utils/algorithm_extensions.hpp>
+#include <utils/variant_utils.hpp>
 #include <tool_index.hpp>
 
 #include <option/has_chamber_api.h>
@@ -60,8 +62,12 @@ enum class PresetFilamentType : uint8_t {
     PPS = 10,
     PPA = 11,
 #endif
+    PVA = 12,
+    BVOH = 13,
 
-    _count
+    // !!! The PresetFilamentType enum is sparse
+    // !!! Do not use this for linear iteration
+    _count_sparse
 };
 
 // Used in config store, do not change
@@ -91,7 +97,7 @@ public:
 
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     using BasePreset = CompactOptional<PresetFilamentType, static_cast<PresetFilamentType>(0xff)>;
-    static_assert(PresetFilamentType::_count < BasePreset::nullopt_value);
+    static_assert(PresetFilamentType::_count_sparse < BasePreset::nullopt_value);
 
     // Used in config store, do not change
     static_assert(sizeof(BasePreset) == 1);
@@ -140,9 +146,50 @@ public:
     constexpr bool operator!=(const FilamentTypeParameters &) const = default;
 };
 
-static constexpr size_t preset_filament_type_count = static_cast<size_t>(PresetFilamentType::_count);
+/// Preset filament types, in display order
+inline constexpr std::array preset_filament_types {
+    PresetFilamentType::PLA,
+        PresetFilamentType::PETG,
+        PresetFilamentType::ASA,
+        PresetFilamentType::PC,
+        PresetFilamentType::PVB,
+        PresetFilamentType::ABS,
+        PresetFilamentType::HIPS,
+        PresetFilamentType::PP,
+        PresetFilamentType::FLEX,
+        PresetFilamentType::PA,
+#if HAS_HT_HOTEND()
+        PresetFilamentType::PPS,
+        PresetFilamentType::PPA,
+#endif
+        PresetFilamentType::PVA,
+        PresetFilamentType::BVOH,
+};
 
-extern constinit const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentType::_count> preset_filament_parameters;
+inline constexpr size_t preset_filament_type_count = preset_filament_types.size();
+
+constexpr size_t preset_filament_type_list_index(PresetFilamentType t) {
+    return stdext::index_of(preset_filament_types, t);
+}
+
+template <typename T>
+using PresetFilamentParametersT = EnumArray<
+    PresetFilamentType,
+    T,
+
+    // Sneaky half-hack:
+    // PresetFilamentParameters stores items indexed in the display order (by preset_filament_types)
+    // This allows us to only store parameters for presets the printer actually uses, in linear order
+    // The index_f function maps PresetFilamentType enum to the reduced array through a linear search
+    // Safety is ensured by the strong indexing and EnumArray checks
+    preset_filament_types.size(),
+    enum_array::AllowWeakIndexing::no,
+    preset_filament_type_list_index //
+    >;
+
+using PresetFilamentParameters = PresetFilamentParametersT<FilamentTypeParameters>;
+
+extern constinit const PresetFilamentParameters preset_filament_parameters;
 
 /// Returns the polymer/material family independently of the selected profile.
 /// A user profile such as PLA-00D can inherit PLA through base_preset; external
@@ -210,6 +257,13 @@ public:
 
     constexpr FilamentType()
         : variant(NoFilamentType {}) {}
+
+    template <typename T>
+    static constexpr FilamentType from_optional(std::optional<T> v)
+        requires(stdext::is_in_variant<T, FilamentType_>)
+    {
+        return v.has_value() ? FilamentType(*v) : none;
+    }
 
 public:
     // * Name/parameters
