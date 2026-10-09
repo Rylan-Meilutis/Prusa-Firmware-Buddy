@@ -7,6 +7,10 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ### Pending fixes (not included in the published release assets)
 
+- Status LEDs return to Idle/off after the configured finished hold expires,
+  even if the Print Finished page stays open. Post-print filtration retains
+  its indication, followed by the configured finished hold.
+
 - Fix RME flashing getting stuck at “Looking for BBF”: startup resource
   installation now recognizes the exact staged `FWUPD.RME` filename while
   retaining compiled-resource digest validation and one-shot flashing.
