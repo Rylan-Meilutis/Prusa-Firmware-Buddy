@@ -533,6 +533,11 @@ void StatusLedsHandler::update() {
         state = StateAnimation::Filtering;
     } else if (timed_finished_hold_active && !finished_acknowledged) {
         state = StateAnimation::Finishing;
+    } else if (finished) {
+        // Finished remains the printer state while its result page is open.
+        // Do not reselect the permanent Finishing animation after the hold
+        // expires: Idle is off and resumes the normal idle brightness policy.
+        state = StateAnimation::Idle;
     } else {
         state = marlin_to_anim_state();
     }
@@ -543,7 +548,7 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         current_light_state = LightState::printing;
-    } else if (state == StateAnimation::Idle || (state == StateAnimation::Finishing && finished && !timed_finished_hold_active)) {
+    } else if (state == StateAnimation::Idle) {
         current_light_state = idle_light_state;
     } else {
         current_light_state = LightState::active;

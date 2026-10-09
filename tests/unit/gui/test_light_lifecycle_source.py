@@ -8,6 +8,26 @@ SOURCE = (ROOT / "src/leds/side_strip_handler.cpp").read_text()
 
 class LightLifecycle(unittest.TestCase):
 
+    def test_finished_status_animation_cannot_outlive_configured_hold(self):
+        status = (ROOT / "src/leds/status_leds_handler.cpp").read_text()
+        selection = status.split("    StateAnimation state;",
+                                 1)[1].split("    if (idle_light_state", 1)[0]
+        filtering = selection.index("else if (filtering &&")
+        hold = selection.index("else if (timed_finished_hold_active")
+        expired = selection.index("else if (finished)")
+        fallback = selection.index("state = marlin_to_anim_state()")
+        self.assertLess(filtering, hold)
+        self.assertLess(hold, expired)
+        self.assertLess(expired, fallback)
+        self.assertIn("state = StateAnimation::Idle;",
+                      selection[expired:fallback])
+        self.assertIn("ticks_diff(now_ms, finished_hold_until_ms) < 0", status)
+        self.assertIn("status_led_finished_hold_s.get()", status)
+        self.assertIn("filtering_prev && !filtering", status)
+        self.assertNotIn(
+            "state == StateAnimation::Finishing && finished && !timed_finished_hold_active",
+            status)
+
     def test_external_output_reported_on_standard_extension_too(self):
         report = SOURCE.split(
             "uint8_t SideStripHandler::current_chamber_brightness() const {"
