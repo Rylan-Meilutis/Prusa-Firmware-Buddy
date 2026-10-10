@@ -1,5 +1,20 @@
 # RME Upstream Release Playbook
 
+## October 10 canonical release refresh
+
+Rebuild 6.9.2 CORE One INDX from 71590a515 (1/1) and all six supported
+6.10.3 variants from f5389c476 (6/6). These include the finished-status LED
+timeout correction. Keep canonical v6.9.2-RME / v6.10.3-RME names and replace
+their assets and manifests in place. Tags identify the built source; subsequent
+documentation-only commits do not change application bytes. MINI remains
+excluded from 6.10.3 because of its application partition limit.
+
+Lighting lifecycle, resume FIFO and serial-page source checks passed (11 per
+branch). Companion RME b123 passed 287 Python tests (four skipped) and nine UI
+suites; it clears stale pause banners and coalesces background telemetry.
+Intermittent motion stalls remain unconfirmed. Hardware checks remain required
+for light timeout, pause/recovery and completion-camera timing.
+
 ## October 8 maintained release lines
 
 The maintained lines are now 6.9.2-RME and 6.10.3-RME, integrating the

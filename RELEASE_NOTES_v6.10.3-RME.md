@@ -5,7 +5,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
-### Updated release — 2026-10-08
+### Updated release — 2026-10-10
 
 - Status LEDs return to Idle/off after the configured finished hold expires,
   even if the Print Finished page stays open. Post-print filtration retains
@@ -25,9 +25,14 @@ This replaces 6.10.1-RME for this line; older releases remain available.
   position and only then releases the streamed job commands.
 - Companion plugin: arm OctoPod snapshot substitution before FINISHING and
   retain the pre-final-bed-lowering frame rather than fetching after lowering.
-- Companion RME b122 shows captured pause reasons above OctoPrint's progress
-  bar and in RME, preserving the last reason for the current job. Missing
-  reasons are explicitly marked unreported.
+- Companion RME b123 shows captured pause reasons only while paused, hides
+  them on resume and clears them at job completion. Normal tool-change
+  progress is no longer treated as a pause cause. Missing reasons remain
+  explicitly marked unreported; genuine causes are logged for diagnostics.
+- Companion RME b123 reduces background telemetry: controls every 10 seconds,
+  changed progress every 5 seconds and unchanged progress every 20 seconds.
+  Explicit control refreshes bypass the polling limit. Intermittent motion
+  stalls are not claimed resolved without a hardware trace.
 - Configure serial pause/resume scripts as `M601` / `M602` only; do not reset
   E or change positioning/driver modes during firmware-owned recovery.
 - Updated application source: `c796dbc12`. Staged-image discovery regression
@@ -49,9 +54,13 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 ## Availability and validation
 
 - Release images: CORE One, CORE One INDX, CORE One L, MK4, MK3.5 and XL.
-- All six release builds passed from `71f41c5f3`; linked application bytes and
-  BBF payload lengths/hashes were verified. Later documentation commits do
-  not change the binaries.
+- October 10 rebuild passed for all six variants from `f5389c476`, including
+  application change `c796dbc12`. BBF embedded checksums, linked application
+  bytes and manifest identities were verified. Later documentation commits
+  do not change the binaries.
+- Lighting lifecycle, serial resume and serial-page source checks passed
+  (11 checks). Companion b123 passed 287 Python tests (four skipped) and nine
+  UI suites.
 - MINI images are not included: the upstream integration exceeds the existing
   895 KiB application partition by approximately 3–4 KiB with the normal
   size-oriented compiler settings. Keep using 6.10.1-RME on MINI; do not flash
