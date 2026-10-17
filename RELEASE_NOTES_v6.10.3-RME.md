@@ -5,7 +5,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
-### Unreleased — 2026-10-17
+### Updated release — 2026-10-17
 
 - Extend live controls to bed/nozzle temperature, print fan, speed and flow;
   keep touchscreen non-motion setters and telemetry active in nested waits.
