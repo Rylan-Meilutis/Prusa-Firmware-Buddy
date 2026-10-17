@@ -1,5 +1,21 @@
 # RME Out-of-Band Serial Control Protocol
 
+## Controls during temperature waits
+
+RME_MACHINE advertises live_chamber=1 when the chamber API is compiled in.
+With an active session and unlocked printer,
+`@RME TEMPERATURE SET chamber=N` requests a whole-degree chamber target
+(0 disables control; 1–255 is accepted and clamped to hardware capabilities).
+It returns RME_TEMPERATURE accepted=1 when queued in the single-value thermal
+mailbox. The Marlin thermal cycle applies it, not the GUI task. Actual targets
+remain available through ordinary chamber telemetry.
+
+The touchscreen uses the same mailbox, rather than injecting M141 behind
+blocking commands. M191 follows updated targets and exits on Off. Firmware
+polls its bounded serial recovery reserve even with a full normal command
+FIFO so RME lighting and safety controls can arrive during heater waits.
+This does not grant normal movement commands priority or reorder sliced M141.
+
 ## Confirmed serial reprint
 
 The serial Finished/Canceled screen keeps Settings (filtration), Reprint and
