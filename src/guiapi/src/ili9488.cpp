@@ -380,9 +380,10 @@ static void startup_old_manufacturer() {
     ili9488_delay_ms(120); // 120ms wait
     ili9488_cmd_madctl(DEFAULT_MADCTL); // memory data access control
     ili9488_cmd_colmod(DEFAULT_COLMOD); // interface pixel format
+    // Never reveal uninitialized GRAM during startup or periodic recovery.
+    ili9488_clear_full_black();
     ili9488_cmd_dispon(); // display on
     ili9488_delay_ms(10); // 10ms wait
-    ili9488_clear(0x000000); // black screen after power on
     ili9488_delay_ms(100); // time to set black color
     ili9488_inversion_on();
 }
@@ -443,12 +444,13 @@ static void startup_new_manufacturer() {
 
     ili9488_cmd_slpout(); // Sleep OUT - turns off the sleep mode
     ili9488_delay_ms(120); // 120ms wait
+    ili9488_clear_full_black();
     ili9488_cmd_dispon(); // display on
-    ili9488_clear(0x000000); // black screen after power on
     // ili9488_delay_ms(100);      // time to set black color
 }
 
 void ili9488_init(void) {
+    const uint8_t restored_brightness = do_complete_lcd_reinit ? ili9488_config.brightness : 0xFF;
     displayCs.write(Pin::State::low);
     ili9488_task_handle = osThreadGetId();
     if (ili9488_flg & ILI9488_FLG_SAFE) {
@@ -485,7 +487,7 @@ void ili9488_init(void) {
         ili9488_cmd(CMD_CABCCTRL2, &pwm_inverted, sizeof(pwm_inverted));
     }
 
-    ili9488_brightness_set(0xFF); // set backlight to maximum
+    ili9488_brightness_set(restored_brightness);
 
     do_complete_lcd_reinit = false;
 }
