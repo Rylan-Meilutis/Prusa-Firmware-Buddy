@@ -7,6 +7,11 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ### Unreleased — 2026-10-17
 
+Validation: the supported 6.9.2 INDX and 6.10.3 XL release builds pass,
+as do 41 GUI source regression tests per branch. The matching plugin passes
+292 Python tests (four skipped) and nine UI suites. Physical load/unload pellet
+ejection, live control response and LCD recovery behavior require hardware checks.
+
 - Own picker label text so custom color/manufacturer names do not reference
   temporary profiles. Clear LCD memory before display-on during recovery,
   retain brightness, and log recovery checks; idle flashing needs hardware validation.
