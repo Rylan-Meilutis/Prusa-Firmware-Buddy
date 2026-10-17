@@ -5,6 +5,25 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
+### Unreleased workflow fixes — 2026-10-16
+
+- Save color and manufacturer to the loaded slot after successful load/change/
+  autoload. Preserve the selected color through Change Filament and autoload;
+  purge-only operations do not replace metadata.
+- Generate full compatibility-filtered lists only when a Change Filament
+  picker opens, rather than synchronously building all tool lists on entry.
+  Replace the preload color page before showing the manufacturer page.
+- Expose Start/Stop Filter Cycle and filtration settings directly in Control.
+  Emit filtration-close events when disabling the backend or restoring an idle
+  snapshot, so hosts do not retain a stale running workflow. A touchscreen
+  countdown that never expires still requires reproduction; this is not claimed
+  resolved by the host event fix.
+- Restore saved INDX loadcell detection preferences at each new job. M591
+  queries now report actual runtime state; changing only S or U preserves the
+  other runtime setting. Explicit M591 S0 still disables detection for that job.
+- Host regressions cover metadata, menu transitions and detection settings;
+  physical loading, responsiveness and filter timeout need hardware validation.
+
 ### Updated release — 2026-10-10
 
 - Status LEDs return to Idle/off after the configured finished hold expires,
