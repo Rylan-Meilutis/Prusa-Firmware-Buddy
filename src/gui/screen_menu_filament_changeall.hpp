@@ -31,6 +31,7 @@ protected:
     bool on_item_selected(int old_index, int new_index) override;
 
 private:
+    void click(IWindowMenu &menu) override;
     static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Action>>({
         Action::keep,
         { Action::change, DynamicIndexMappingType::dynamic_section },

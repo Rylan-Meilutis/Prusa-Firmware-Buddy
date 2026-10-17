@@ -47,7 +47,6 @@ protected:
         owner_->set_selected_manufacturer(id_);
         }
         Screens::Access()->Close();
-        Screens::Access()->Close();
     }
 private:
     MI_ActionSelect *owner_;
@@ -102,6 +101,8 @@ protected:
 
     void click(IWindowMenu &) override {
         owner_->set_selected_color(color_);
+        // Replace this screen: two deferred Close calls only close one screen.
+        Screens::Access()->Close();
         Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenPreloadManufacturer>(owner_));
     }
 
@@ -190,6 +191,11 @@ void MI_ActionSelect::set_config(const ConfigItem &set) {
 
         std::abort();
     }());
+}
+
+void MI_ActionSelect::click(IWindowMenu &menu) {
+    set_config(config());
+    MenuItemSelectMenu::click(menu);
 }
 
 ConfigItem MI_ActionSelect::config() const {
