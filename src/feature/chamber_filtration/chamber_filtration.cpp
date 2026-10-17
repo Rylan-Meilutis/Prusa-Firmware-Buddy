@@ -32,6 +32,7 @@ ChamberFiltrationBackend ChamberFiltration::backend() const {
 void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
     {
         std::lock_guard _lg(mutex_);
+        const bool was_running = output_pwm_.value != 0;
         const auto now_s = ticks_s();
         commit_unaccounted_filter_usage(now_s);
         config_store().chamber_filtration_backend.set(backend);
@@ -42,6 +43,9 @@ void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
             needs_filtration_ = false;
             last_filtration_need_s_.reset();
             unaccounted_filter_time_used_start_s_ = 0;
+            if (was_running) {
+                SerialPrinting::notify_workflow("filtration", "closed", "Chamber filtration stopped", 100);
+            }
         } else {
             unaccounted_filter_time_used_start_s_ = output_pwm_.value != 0 ? now_s : 0;
         }
@@ -304,12 +308,16 @@ ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
 
 void ChamberFiltration::restore_snapshot(const Snapshot &snapshot) {
     std::lock_guard _lg(mutex_);
+    const bool was_running = output_pwm_.value != 0;
     output_pwm_ = snapshot.output_pwm;
     is_printing_prev_ = snapshot.is_printing_prev;
     needs_filtration_ = snapshot.needs_filtration;
     last_print_s_ = snapshot.last_print_s;
     unaccounted_filter_time_used_start_s_ = snapshot.unaccounted_filter_time_used_start_s;
     last_filtration_need_s_ = snapshot.last_filtration_need_s;
+    if (was_running && output_pwm_.value == 0) {
+        SerialPrinting::notify_workflow("filtration", "closed", "Chamber filtration stopped", 100);
+    }
 }
 
 void ChamberFiltration::check_filter_expiration() {

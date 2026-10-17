@@ -198,3 +198,26 @@ machines retain job-local results only. Starting a print clears the RAM copy,
 not the INDX flash record. On mode and explicit forced retries measure again.
 
 For the command's complete behavior and diagnostics, see [M976](gcode/M976.md).
+# INDX runout preference and load metadata (October 16 follow-up)
+
+On INDX, `M591 S0` means **disable loadcell filament runout**, not merely
+disable the legacy E-stall classifier. Remove that line from slicer start
+G-code if detection should remain enabled. Use `M591 R` to restore saved
+preferences, and `M591` to query actual runtime switches. Enable the saved
+runout preference with the printer's filament detection setting (or
+`M591 S1 P`). Non-permanent overrides are restored at the next job; explicit
+commands later in that job still take precedence. Calibrated pressure
+references are also required for loadcell monitoring to detect faults.
+
+Successful touchscreen load/change/autoload now commits the selected color
+and manufacturer to the slot. Cancelled/failed loads and purge-only operations
+do not commit replacement metadata. Full material compatibility checks are
+deferred until opening the individual Change Filament picker.
+
+Start/Stop Filter Cycle and filtration settings are available directly from
+Control. Post-print duration is still configured in filtration settings (the
+default is ten minutes). Backend disable and idle-snapshot restoration now
+send a matching close event to remote UIs. If the printer still says Stop Filter
+Cycle after the configured time, record whether its remaining time counts down
+or resets, and whether the fan is actually running; the underlying touchscreen
+report is not yet reproduced.
