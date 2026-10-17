@@ -42,10 +42,24 @@
 
 #include <raii/scope_guard.hpp>
 
+#include <option/has_indx.h>
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <feature/chamber_filtration/chamber_filtration.hpp>
+#endif
+#if HAS_INDX()
+    #include <Marlin/src/module/tool_change.h>
+#endif
+
 uint filament_gcodes::InProgress::lock = 0;
 
 filament_gcodes::InProgress::InProgress() {
     ++lock;
+#if HAS_CHAMBER_FILTRATION_API()
+    if (lock == 1) {
+        buddy::chamber_filtration().set_filament_activity(true);
+    }
+#endif
 #if HAS_LOADCELL()
     buddy::extrusion_calibration::suspend_pressure_monitor(true);
 #endif
@@ -56,6 +70,11 @@ filament_gcodes::InProgress::~InProgress() {
     buddy::extrusion_calibration::suspend_pressure_monitor(false);
 #endif
     --lock;
+#if HAS_CHAMBER_FILTRATION_API()
+    if (lock == 0) {
+        buddy::chamber_filtration().set_filament_activity(false);
+    }
+#endif
 }
 
 using namespace filament_gcodes;

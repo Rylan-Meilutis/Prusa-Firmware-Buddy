@@ -312,8 +312,11 @@ ScreenCustomFilamentColors::ScreenCustomFilamentColors()
     : ScreenMenuBase(nullptr, _("CUSTOM FILAMENT COLORS"), EFooter::Off) {}
 
 MI_ASSIGN_MANUFACTURER::MI_ASSIGN_MANUFACTURER(std::optional<uint8_t> id, std::string_view name)
-    : IWindowMenuItem(string_view_utf8::MakeRAM(name.data())), id_(id) {}
-
+    : IWindowMenuItem({})
+    , id_(id) {
+    snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(name.size()), name.data());
+    SetLabel(string_view_utf8::MakeRAM(label_.data()));
+}
 void MI_ASSIGN_MANUFACTURER::click(IWindowMenu &) {
     pending.manufacturer = id_;
     Screens::Access()->Close();

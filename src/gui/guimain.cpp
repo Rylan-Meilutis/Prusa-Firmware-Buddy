@@ -49,14 +49,16 @@ void open_end_filtration_prompt_on_door_open() {
     const bool prompt_current = Screens::Access()->IsScreenOpened<ScreenEndFiltration>();
     const bool prompt_open = prompt_current || Screens::Access()->IsScreenClosed<ScreenEndFiltration>();
     const bool filtering = buddy::chamber_filtration().post_print_remaining_s() > 0;
+    const bool prompt_allowed = buddy::chamber_filtration().door_prompt_allowed();
 
-    if (prompt_current && (!door_open || !filtering)) {
+    if (prompt_current && (!door_open || !filtering || !prompt_allowed)) {
         Screens::Access()->Close<ScreenEndFiltration>();
         return;
     }
 
     if (door_just_opened
         && filtering
+        && prompt_allowed
         && !prompt_open) {
         Screens::Access()->Open(ScreenFactory::Screen<ScreenEndFiltration>);
     }

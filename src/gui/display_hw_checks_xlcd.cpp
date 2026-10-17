@@ -26,7 +26,8 @@ void lcd::communication_check() {
         return;
     }
 
-    bool do_reset = display::is_reset_required();
+    const bool display_reset = display::is_reset_required();
+    bool do_reset = display_reset;
 
 #if HAS_HUMAN_INTERACTIONS()
     // Track consecutive display errors
@@ -58,6 +59,7 @@ void lcd::communication_check() {
     }
 #endif
 
+    log_warning(GUI, "Recovering LCD: display_check=%u", static_cast<unsigned>(display_reset));
     display::complete_reinit();
     display::init();
     if (auto *screen = Screens::Access()->Get()) {

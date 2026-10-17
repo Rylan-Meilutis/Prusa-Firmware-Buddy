@@ -25,7 +25,12 @@ FilamentType pending_load_filament = FilamentType::none;
 class MI_LOAD_MANUFACTURER final : public IWindowMenuItem {
 public:
     MI_LOAD_MANUFACTURER(std::optional<uint8_t> id, std::string_view name)
-        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data())), id_(id) {}
+        : IWindowMenuItem({})
+        , id_(id) {
+        snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(name.size()), name.data());
+        SetLabel(string_view_utf8::MakeRAM(label_.data()));
+    }
+
 protected:
     void click(IWindowMenu &) override {
         if (id_ == std::optional<uint8_t> { 0xfe }) {
@@ -46,6 +51,7 @@ protected:
     }
 private:
     std::optional<uint8_t> id_;
+    std::array<char, filament_manufacturer::name_capacity> label_ {};
 };
 
 class WindowMenuLoadManufacturer final : public WindowMenuVirtual<MI_LOAD_MANUFACTURER> {
@@ -85,8 +91,11 @@ public:
 class MI_LOAD_COLOR final : public IWindowMenuItem {
 public:
     MI_LOAD_COLOR(std::optional<Color> color, std::string_view name)
-        : IWindowMenuItem(string_view_utf8::MakeRAM(name.data()), color ? filament_color_gui::swatch_extension_width : Rect16::Width_t { 0 })
-        , color_(color) {}
+        : IWindowMenuItem({}, color ? filament_color_gui::swatch_extension_width : Rect16::Width_t { 0 })
+        , color_(color) {
+        snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(name.size()), name.data());
+        SetLabel(string_view_utf8::MakeRAM(label_.data()));
+    }
 
 protected:
     void printExtension(Rect16 extension_rect, Color, Color color_back, ropfn) const override {
@@ -103,6 +112,7 @@ protected:
 
 private:
     std::optional<Color> color_;
+    std::array<char, filament_color::name_capacity> label_ {};
 };
 
 class WindowMenuLoadColor final : public WindowMenuVirtual<MI_LOAD_COLOR> {

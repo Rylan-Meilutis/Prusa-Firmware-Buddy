@@ -133,6 +133,7 @@ void ChamberFiltration::step() {
         needs_filtration_.reset();
         last_filtration_need_s_.reset();
         update_needs_filtration();
+        door_prompt_allowed_ = true;
     }
     const bool required = needs_filtration_.value_or(false);
     if (print_state_active && required) {
@@ -145,6 +146,12 @@ void ChamberFiltration::step() {
         last_print_s_ = now_s;
     }
     is_printing_prev_ = print_state_active;
+    if (!print_state_active && filament_activity_active_ && !filament_activity_stopped_) {
+        // Keep the full post-handling duration available while heating/loading.
+        needs_filtration_ = true;
+        last_print_s_ = now_s;
+        door_prompt_allowed_ = false;
+    }
     // Determine output PWM of the fans
     if (!print_state_active && needs_filtration_.has_value()) {
         const bool cycle_active = *needs_filtration_
@@ -257,13 +264,14 @@ void ChamberFiltration::stop_post_print_filtration() {
     unaccounted_filter_time_used_start_s_ = 0;
     output_pwm_ = {};
     needs_filtration_ = false;
+    filament_activity_stopped_ = filament_activity_active_;
     last_filtration_need_s_.reset();
     if (was_running) {
         SerialPrinting::notify_workflow("filtration", "closed", "Post-print filtration stopped", 100);
     }
 }
 
-void ChamberFiltration::start_post_print_filtration() {
+void ChamberFiltration::start_post_print_filtration(bool door_prompt_allowed) {
     std::lock_guard _lg(mutex_);
     const bool was_running = output_pwm_.value != 0;
 
@@ -273,6 +281,7 @@ void ChamberFiltration::start_post_print_filtration() {
     needs_filtration_ = true;
     is_printing_prev_ = false;
     last_print_s_ = now_s;
+    door_prompt_allowed_ = door_prompt_allowed;
 
     if (is_enabled() && config_store().chamber_post_print_filtration_enable.get()) {
         output_pwm_ = config_store().chamber_post_print_filtration_pwm.get();
@@ -282,10 +291,35 @@ void ChamberFiltration::start_post_print_filtration() {
         unaccounted_filter_time_used_start_s_ = 0;
     }
     if (!was_running && output_pwm_.value != 0) {
-        SerialPrinting::notify_workflow("filtration", "open", "Post-print filtration started", 0);
-        SerialPrinting::notify_progress("filtration", "active", "post_print", "Post-print filtration",
+        SerialPrinting::notify_workflow("filtration", "open", door_prompt_allowed ? "Post-print filtration started" : "Filament activity filtration started", 0);
+        SerialPrinting::notify_progress("filtration", "active", door_prompt_allowed ? "post_print" : "filament_activity",
+            door_prompt_allowed ? "Post-print filtration" : "Filament activity filtration",
             static_cast<int>(output_pwm_.value) * 100 / 255);
     }
+}
+
+void ChamberFiltration::set_filament_activity(bool active) {
+    {
+        std::lock_guard _lg(mutex_);
+        filament_activity_active_ = active;
+        if (active) {
+            filament_activity_stopped_ = false;
+        }
+        // A print or paused job retains its own filtration lifecycle.
+        if (marlin_server::is_filtration_job_active(marlin_vars().print_state.get())) {
+            return;
+        }
+        if (filament_activity_stopped_) {
+            return;
+        }
+    }
+    // Both begin and end refresh the cycle; the full duration starts at end.
+    start_post_print_filtration(false);
+}
+
+bool ChamberFiltration::door_prompt_allowed() const {
+    std::lock_guard _lg(mutex_);
+    return door_prompt_allowed_;
 }
 
 ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
@@ -297,6 +331,7 @@ ChamberFiltration::Snapshot ChamberFiltration::snapshot() const {
         .last_print_s = last_print_s_,
         .unaccounted_filter_time_used_start_s = unaccounted_filter_time_used_start_s_,
         .last_filtration_need_s = last_filtration_need_s_,
+        .door_prompt_allowed = door_prompt_allowed_,
     };
 }
 
@@ -309,6 +344,7 @@ void ChamberFiltration::restore_snapshot(const Snapshot &snapshot) {
     last_print_s_ = snapshot.last_print_s;
     unaccounted_filter_time_used_start_s_ = snapshot.unaccounted_filter_time_used_start_s;
     last_filtration_need_s_ = snapshot.last_filtration_need_s;
+    door_prompt_allowed_ = snapshot.door_prompt_allowed;
     if (was_running && output_pwm_.value == 0) {
         SerialPrinting::notify_workflow("filtration", "closed", "Chamber filtration stopped", 100);
     }

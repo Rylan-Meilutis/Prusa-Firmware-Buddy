@@ -191,6 +191,7 @@ protected:
     void click(IWindowMenu &) override;
 private:
     std::optional<uint8_t> id_;
+    std::array<char, filament_manufacturer::name_capacity> label_ {};
 };
 
 class WindowMenuAssignManufacturer final : public WindowMenuVirtual<MI_RETURN, MI_ASSIGN_MANUFACTURER> {
