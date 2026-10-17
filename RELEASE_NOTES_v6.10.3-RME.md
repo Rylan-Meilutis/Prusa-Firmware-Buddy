@@ -106,18 +106,18 @@ ejection, live control response and LCD recovery behavior require hardware check
 
 ## Availability and validation
 
-- Release images: CORE One, CORE One INDX, CORE One L, MK4, MK3.5 and XL.
-- October 16 rebuild passed for all six variants from `e0d72b3e0`, including
-  filament workflow and filtration reporting fixes. BBF embedded checksums,
-  linked application bytes and manifest identities were verified. Later documentation commits
-  do not change the binaries.
+- Current release image: XL/XL+ only, matching upstream 6.10.3 support.
+- Earlier cross-built CORE One/INDX/L and MK4/MK3.5 images are withdrawn.
+  Successful compilation was not evidence that upstream supported those machines.
+  Use 6.9.2-RME for CORE One INDX, the supported 6.8.1 line for CORE One/L,
+  and the supported 6.5.7 line for MK4/MK3.5 families.
+- The October 17 XL build, BBF embedded checksum and application identity
+  were verified; its manifest contains XL only.
 - Lighting lifecycle, serial resume and serial-page source checks passed
   (11 checks). Companion b123 passed 287 Python tests (four skipped) and nine
   UI suites.
-- MINI images are not included: the upstream integration exceeds the existing
-  895 KiB application partition by approximately 3–4 KiB with the normal
-  size-oriented compiler settings. Keep using 6.10.1-RME on MINI; do not flash
-  another machine's image. No flash boundaries or features were removed to fit.
+- MINI is not supported by upstream 6.10.x. It requires its own supported
+  firmware line, not another machine's build. No MINI image is offered here.
 - Correct the PPS/PPA preset material-family IDs on high-temperature CORE One
   variants; the compile-time preset consistency checks remain enabled.
 - RME source regression checks passed for serial pages, lighting lifecycle,
