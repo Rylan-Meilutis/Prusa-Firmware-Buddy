@@ -5,7 +5,26 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
-### Pending fixes (not included in the published release assets)
+### Unreleased workflow fixes — 2026-10-16
+
+- Save color and manufacturer to the loaded slot after successful load/change/
+  autoload. Preserve the selected color through Change Filament and autoload;
+  purge-only operations do not replace metadata.
+- Generate full compatibility-filtered lists only when a Change Filament
+  picker opens, rather than synchronously building all tool lists on entry.
+  Replace the preload color page before showing the manufacturer page.
+- Expose Start/Stop Filter Cycle and filtration settings directly in Control.
+  Emit filtration-close events when disabling the backend or restoring an idle
+  snapshot, so hosts do not retain a stale running workflow. A touchscreen
+  countdown that never expires still requires reproduction; this is not claimed
+  resolved by the host event fix.
+- Restore saved INDX loadcell detection preferences at each new job. M591
+  queries now report actual runtime state; changing only S or U preserves the
+  other runtime setting. Explicit M591 S0 still disables detection for that job.
+- Host regressions cover metadata, menu transitions and detection settings;
+  physical loading, responsiveness and filter timeout need hardware validation.
+
+### Updated release — 2026-10-10
 
 - Status LEDs return to Idle/off after the configured finished hold expires,
   even if the Print Finished page stays open. Post-print filtration retains
@@ -19,8 +38,29 @@ This replaces 6.9.0-RME for this line; older releases remain available.
   activity; RME On/door/touch restores Active and normal light cycling.
 - Hold streamed host commands during parked pause and reheat/unpark recovery,
   preventing the reproduced 6.9.0-RME `E move without tool` resume crash.
+- INDX pause docks the tool, synchronizes the shared E coordinate, then parks
+  the empty head at X242/Y205 without changing the saved resume position or Z.
+  Resume picks the saved tool, reheats, primes/wipes, returns to the saved
+  position and only then releases the streamed job commands.
 - Companion plugin: arm OctoPod snapshot substitution before FINISHING and
   retain the pre-final-bed-lowering frame rather than fetching after lowering.
+- Companion RME b123 shows captured pause reasons only while paused, hides
+  them on resume and clears them at job completion. Normal tool-change
+  progress is no longer treated as a pause cause. Missing reasons remain
+  explicitly marked unreported; genuine causes are logged for diagnostics.
+- Companion RME b123 reduces background telemetry: controls every 10 seconds,
+  changed progress every 5 seconds and unchanged progress every 20 seconds.
+  Explicit control refreshes bypass the polling limit. Intermittent motion
+  stalls are not claimed resolved without a hardware trace.
+- Configure serial pause/resume scripts as `M601` / `M602` only; do not reset
+  E or change positioning/driver modes during firmware-owned recovery.
+- Updated application source: `ff6daf0d6`. Staged-image discovery regression
+  passed (accepted canonical BBFs and exact FWUPD.RME; rejected sidecars and
+  unrelated RME files). Native regression tests passed
+  (67 cases, 432682 assertions), plus six lighting/recovery source checks.
+  Physical camera timing and pause/resume still need hardware confirmation.
+
+### Initial release
 
 - Integrate upstream v6.9.2: restored PVA/BVOH presets, gantry squareness calibration (M1988), dock-calibration crash fixes and tool-parking/homing fixes.
 - Preserve RME material-family EEPROM compatibility with upstream sparse preset indexing; remote reports retain stable preset slots.
@@ -33,7 +73,11 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 ## Availability and validation
 
 - Release images: CORE One INDX.
-- Built source: `92153229c`. Later documentation commits do not change binaries.
+- October 10 rebuild passed (1/1) from `71590a515`, including application
+  change `ff6daf0d6`. Later documentation commits do not change binaries.
+- Lighting lifecycle, serial resume and serial-page source checks passed
+  (11 checks). Companion b123 passed 287 Python tests (four skipped) and nine
+  UI suites. BBF embedded checksums and manifest identities were verified.
 - RME source regression checks passed for serial pages, lighting lifecycle,
   INDX parking/E resets, load metadata, PA persistence and SpoolJoin preparation.
 - Build success is not physical-printer certification. Tool pickup, calibration,

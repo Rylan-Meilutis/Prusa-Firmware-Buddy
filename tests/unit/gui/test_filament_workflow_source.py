@@ -86,6 +86,20 @@ class FilamentWorkflowSource(unittest.TestCase):
         self.assertIn('MI_CHAMBER_FILTER_CYCLE,', source)
         self.assertIn('MI_CHAMBER_FILTRATION,', source)
 
+    def test_backend_disable_and_snapshot_restore_close_filter_workflow(self):
+        source = read('src/feature/chamber_filtration/chamber_filtration.cpp')
+        backend = source.split(
+            'void ChamberFiltration::set_backend(',
+            1)[1].split('const char *ChamberFiltration::backend_name(', 1)[0]
+        restore = source.split(
+            'void ChamberFiltration::restore_snapshot(',
+            1)[1].split('void ChamberFiltration::check_filter_expiration(',
+                        1)[0]
+        for body in (backend, restore):
+            self.assertIn('const bool was_running = output_pwm_.value != 0;',
+                          body)
+            self.assertIn('notify_workflow("filtration", "closed"', body)
+
 
 if __name__ == '__main__':
     unittest.main()
