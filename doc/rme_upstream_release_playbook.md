@@ -1,5 +1,21 @@
 # RME Upstream Release Playbook
 
+## Verified machine support — October 17
+
+Build/release only combinations present in the corresponding
+[official Prusa release assets](https://github.com/prusa3d/Prusa-Firmware-Buddy/releases).
+The build wrapper and RME updater use a verified, fail-closed support matrix:
+6.9.2 is INDX-only, 6.10.3 is XL-only, 6.8.1 is CORE One/CORE One L,
+and 6.5.7 is CORE One/CORE One L/MK4-family/MK3.5-family.
+MINI requires a separately supported release line; do not offer 6.10.x for it.
+Verify assets before extending utils/rme_firmware_support.py and the companion
+plugin firmware_support.py. Unknown versions are rejected until verified.
+
+Do not include stale cross-built BBFs from earlier output directories in new
+release manifests or uploads. The updater hides incompatible assets but this
+does not remove previously published files from GitHub. Back up and withdraw
+unsupported public assets explicitly as part of an authorized release.
+
 ## October 4 SpoolJoin and firmware-discovery release
 
 Final matrices: 6.9.0 from 1a9d28121, 15/15; 6.10.1 from a0bd232d7,
