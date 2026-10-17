@@ -21,6 +21,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from utils.rme_firmware_support import SUPPORTED
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "bbf"
@@ -427,6 +428,24 @@ def default_signing_key() -> Path | None:
     return None
 
 
+def supported_presets(tokens, version, known_presets):
+    allowed = SUPPORTED.get(version)
+    if not allowed:
+        raise SystemExit(f"No verified upstream machine support for {version}")
+    result = []
+    for token in tokens or ["all"]:
+        expanded = unique_presets([token], known_presets)
+        if token not in PRESET_ALIASES and any(p not in allowed
+                                               for p in expanded):
+            raise SystemExit(
+                f"Prusa {version} does not support preset {token}")
+        result.extend(p for p in expanded if p in allowed and p not in result)
+    if not result:
+        raise SystemExit(
+            f"No selected machines are supported by Prusa {version}")
+    return result
+
+
 def current_git_branch() -> str | None:
     result = subprocess.run(
         ["git", "branch", "--show-current"],
@@ -603,7 +622,8 @@ def make_version_build_command(args: argparse.Namespace, version: str,
             str((args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve() /
                 version),
         ])
-    for preset in args.preset or []:
+    for preset in supported_presets(split_csv(args.preset or ["all"]), version,
+                                    set(RELEASE_PRESETS)):
         command.extend(["--preset", preset])
     command.extend(["--build-type", args.build_type])
     command.extend(["--bootloader", args.bootloader])
@@ -638,6 +658,10 @@ def make_version_build_command(args: argparse.Namespace, version: str,
 def build_versions(args: argparse.Namespace) -> int:
     started_at = time.monotonic()
     versions = [normalize_version(version) for version in args.versions]
+    # Reject invalid machine/version selections before touching build outputs.
+    for version in versions:
+        supported_presets(split_csv(args.preset or ["all"]), version,
+                          set(RELEASE_PRESETS))
     output_dir = args.output_dir.resolve()
     if args.jobs is not None and args.jobs < 1:
         raise SystemExit("--jobs must be at least 1")
@@ -1230,8 +1254,9 @@ def main() -> int:
     if args.versions:
         return build_versions(args)
 
-    selected_presets = unique_presets(split_csv(args.preset or ["all"]),
-                                      known_presets)
+    selected_presets = supported_presets(
+        split_csv(args.preset or ["all"]),
+        (PROJECT_ROOT / "version.txt").read_text().strip(), known_presets)
     output_dir = args.output_dir.resolve()
     error_log_dir = (args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve()
     repo_python = find_repo_python()
