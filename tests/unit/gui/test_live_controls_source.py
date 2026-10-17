@@ -7,6 +7,36 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class LiveControls(unittest.TestCase):
 
+    def test_local_setpoints_have_independent_bounded_queue(self):
+        client = (ROOT / "src/common/marlin_client.cpp").read_text()
+        self.assertIn(
+            "Request::Type::SetVariable ? live_request_queue : request_queue",
+            client)
+        server = (ROOT / "src/common/marlin_server.cpp").read_text()
+        cycle = server.split("static void cycle() {")[1].split(
+            "static bool pre_finalize_print")[0]
+        self.assertLess(cycle.index("live_request_queue.try_receive"),
+                        cycle.index("if (is_cycle_running)"))
+        self.assertGreater(
+            cycle.index("request_queue.try_receive(request, 0)",
+                        cycle.index("if (is_cycle_running)")),
+            cycle.index("if (is_cycle_running)"))
+
+    def test_remote_controls_do_not_reparse_or_inject_gcode(self):
+        source = (ROOT / "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()
+        controls = source.split('command.starts_with("@RME CONTROL SET ")'
+                                )[1].split("#if HAS_CHAMBER_API()")[0]
+        self.assertIn("count == 1", controls)
+        self.assertIn("thermalManager.setTargetHotend", controls)
+        self.assertIn("thermalManager.setTargetBed", controls)
+        self.assertNotIn("enqueue", controls)
+        self.assertNotIn("parser.", controls)
+
+    def test_selected_firmware_is_checked_before_reboot_handoff(self):
+        source = (ROOT / "src/marlin_stubs/M997.cpp").read_text()
+        self.assertLess(source.index("rme_firmware_compatibility::compatible"),
+                        source.index("set_reflash_bbf_sfn"))
+
     def test_load_purge_and_unload_eject_indx_pellets(self):
         source = (ROOT / "src/marlin_stubs/pause/pause.cpp").read_text()
         purge = source.split("bool Pause::nozzle_cleaner_purge_sequence()"

@@ -64,6 +64,9 @@ struct Request {
 
 using RequestQueue = freertos::Queue<Request, 1>;
 extern RequestQueue request_queue;
+// Non-motion UI variables have their own bounded mailbox, so a queued
+// operation cannot head-of-line block setpoints during a heater wait.
+extern RequestQueue live_request_queue;
 
 enum class RequestFlag : uint8_t {
     PrintAbort,

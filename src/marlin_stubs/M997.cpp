@@ -5,6 +5,8 @@
 #include <string.h>
 #include <cstdio>
 #include <unistd.h>
+#include <array>
+#include <rme_firmware_compatibility.hpp>
 #include "data_exchange.hpp"
 #include "serial_printing.hpp"
 #include "serial_remote_control.hpp"
@@ -17,6 +19,18 @@
 
 static void update_main_board(bool update_older, const char *sfn) {
     if (*sfn) { // Flash selected BBF
+        std::array<char, 32> candidate_path {};
+        snprintf(candidate_path.data(), candidate_path.size(), "/usb/%s", sfn);
+        FILE *candidate = fopen(candidate_path.data(), "rb");
+        std::array<uint8_t, 115> header {};
+        const bool read = candidate && fread(header.data(), 1, header.size(), candidate) == header.size();
+        if (candidate) {
+            fclose(candidate);
+        }
+        if (!read || !buddy::rme_firmware_compatibility::compatible(header.data(), header.size(), PRINTER_TYPE, PRINTER_VERSION, PRINTER_SUBVERSION)) {
+            SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=incompatible_image");
+            return; // Never arm a reboot for an unsupported machine/version.
+        }
         char selected_sfn[13] {};
         strlcpy(selected_sfn, sfn, sizeof(selected_sfn));
         // Preserve direct M998/legacy M997 compatibility while ensuring the
