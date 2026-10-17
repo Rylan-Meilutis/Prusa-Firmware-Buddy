@@ -1,5 +1,25 @@
 # RME Upstream Release Playbook
 
+## October 16 filament workflow release
+
+Canonical release refresh: 6.9.2 INDX from 1cbde25b2 and the six supported
+6.10.3 variants from e0d72b3e0. Replace the existing canonical tag/assets only
+after successful builds and manifest verification; retain backups of the
+previous release assets. MINI is still excluded from 6.10.3.
+
+Shared native gates passed: calibration 22 cases / 7284 assertions and RME
+67 cases / 432682 assertions. Both branches passed 17 GUI source checks.
+Save load metadata only on success, preserve purge metadata, defer full picker
+compatibility lists, and retain independent runtime M591 switches. A new job
+restores saved detection preferences, but explicit M591 S0 in slicer start
+code still disables INDX runout; replace with M591 R to use saved preferences.
+
+Control now exposes filter-cycle actions and settings. Backend-disable and
+idle-snapshot restoration emit filtration-close events. A touchscreen timer
+that never expires remains unconfirmed and is not claimed fixed. Hardware
+metadata persistence, UI responsiveness and filtration timeout need validation.
+No companion plugin change is needed; RME Compatibility b123 remains current.
+
 ## October 10 canonical release refresh
 
 Rebuild 6.9.2 CORE One INDX from 71590a515 (1/1) and all six supported
