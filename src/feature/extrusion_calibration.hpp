@@ -106,6 +106,8 @@ void configure_pressure_monitor(const Score &reference, float low_velocity_mm_s,
 /// Presence covers forward E motion with no pressure rise; movement covers a
 /// pressure collapse or melt-flow breakout after pressure was established.
 void set_pressure_monitor_detection(bool presence, bool movement);
+bool pressure_monitor_presence_enabled();
+bool pressure_monitor_movement_enabled();
 void reset_pressure_monitor();
 void suspend_pressure_monitor(bool suspend);
 ExtrusionFault consume_extrusion_fault();

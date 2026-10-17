@@ -384,6 +384,14 @@ void reset_pressure_monitor() {
     monitor_last_time = 0;
 }
 
+bool pressure_monitor_presence_enabled() {
+    return monitor_presence_detection.load(std::memory_order_acquire);
+}
+
+bool pressure_monitor_movement_enabled() {
+    return monitor_movement_detection.load(std::memory_order_acquire);
+}
+
 void suspend_pressure_monitor(const bool suspend) {
     if (suspend) {
         monitor_suspend_count.fetch_add(1, std::memory_order_acq_rel);

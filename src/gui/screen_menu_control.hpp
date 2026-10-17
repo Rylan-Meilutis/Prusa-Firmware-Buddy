@@ -10,6 +10,10 @@
 #include <option/buddy_enable_connect.h>
 #include <option/has_toolchanger.h>
 #include <option/has_indx.h>
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+    #include <gui/menu_item/specific/menu_items_chamber_filtration.hpp>
+#endif
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
 #include <option/has_coldpull.h>
@@ -32,6 +36,10 @@ using ScreenMenuControlSpec = ScreenMenu<EFooter::On,
     MI_SET_READY,
 #endif
     MI_TEMPERATURE_AND_FANS,
+#if HAS_CHAMBER_FILTRATION_API()
+    MI_CHAMBER_FILTER_CYCLE,
+    MI_CHAMBER_FILTRATION,
+#endif
     MI_AUTO_HOME,
 #if HAS_TOOLCHANGER()
     MI_PICK_PARK_TOOL,

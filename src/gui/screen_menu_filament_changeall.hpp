@@ -29,7 +29,7 @@ public:
         return config(current_item());
     }
     ConfigItem config(int item_index) const;
-    void set_config(const ConfigItem &set, CompactOptional<Color, COLOR_NONE> set_color = {});
+    void set_config(const ConfigItem &set, CompactOptional<Color, COLOR_NONE> set_color = {}, bool generate_list = false);
 
     int item_count() const final;
     string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
@@ -38,6 +38,7 @@ public:
     void set_selected_manufacturer(std::optional<uint8_t> selected) { manufacturer = selected.value_or(0); }
 
 private:
+    void click(IWindowMenu &menu) override;
     static constexpr auto items = std::to_array<DynamicIndexMappingRecord<Action>>({
         Action::keep,
         Action::unload,
