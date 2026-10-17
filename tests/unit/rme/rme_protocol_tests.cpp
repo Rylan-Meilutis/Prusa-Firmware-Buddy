@@ -1,4 +1,5 @@
 #include <rme_protocol_parser.hpp>
+#include <rme_firmware_compatibility.hpp>
 #include <rme_file_transfer.hpp>
 #include <rme_firmware_status.hpp>
 #include <m976_material.hpp>
@@ -1048,6 +1049,30 @@ TEST_CASE("RME light hold automatic release is edge triggered", "[rme][light]") 
     REQUIRE(hold.set_from_host(true, false) == rme_light_hold::SetResult::changed);
     hold.release_with_session();
     CHECK_FALSE(hold.consume_automatic_release());
+}
+
+TEST_CASE("BBF compatibility uses embedded machine and verified upstream version", "[rme][firmware]") {
+    using namespace buddy::rme_firmware_compatibility;
+    CHECK(supported(6, 9, 2, 7, 10, 0));
+    CHECK_FALSE(supported(6, 10, 3, 7, 10, 0));
+    CHECK(supported(6, 10, 3, 3, 1, 0));
+    CHECK_FALSE(supported(6, 10, 3, 7, 1, 0));
+    CHECK(supported(6, 8, 1, 7, 1, 0));
+    CHECK(supported(6, 5, 7, 1, 3, 5));
+    CHECK_FALSE(supported(6, 99, 0, 7, 10, 0));
+    std::array<uint8_t, 115> header {};
+    header[100] = 6;
+    header[101] = 9;
+    header[102] = 2;
+    header[111] = 7;
+    header[112] = 2;
+    header[114] = 10;
+    CHECK(compatible(header.data(), header.size(), 7, 10, 0));
+    CHECK_FALSE(compatible(header.data(), 100, 7, 10, 0));
+    CHECK_FALSE(compatible(header.data(), header.size(), 7, 1, 0));
+    header[101] = 10;
+    header[102] = 3;
+    CHECK_FALSE(compatible(header.data(), header.size(), 7, 10, 0));
 }
 
 TEST_CASE("RME light hold queries cannot mutate or revive state", "[rme][light]") {
