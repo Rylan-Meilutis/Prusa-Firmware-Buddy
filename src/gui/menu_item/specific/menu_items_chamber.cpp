@@ -31,7 +31,7 @@ void MI_CHAMBER_TARGET_TEMP::Loop() {
     const bool temp_ctrl = chamber().capabilities().temperature_control();
     const auto new_val = (temp_ctrl ? chamber().target_temperature() : std::nullopt);
 
-    set_is_enabled(temp_ctrl);
+    set_enabled(temp_ctrl);
 
     set_value(new_val);
 }
