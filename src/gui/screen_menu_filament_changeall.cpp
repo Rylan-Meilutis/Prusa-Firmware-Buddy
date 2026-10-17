@@ -33,7 +33,6 @@ protected:
     void click(IWindowMenu &) override {
         owner_->set_selected_manufacturer(id_);
         Screens::Access()->Close();
-        Screens::Access()->Close();
     }
 
 private:
@@ -65,7 +64,6 @@ protected:
         }
         const auto created = filament_manufacturer::custom(slot);
         owner_->set_selected_manufacturer(created ? std::optional<uint8_t> { created->id } : std::nullopt);
-        Screens::Access()->Close();
         Screens::Access()->Close();
     }
 
@@ -138,6 +136,8 @@ protected:
 
     void click(IWindowMenu &) override {
         owner_->set_selected_color(color_);
+        // Replace this screen: two deferred Close calls only close one screen.
+        Screens::Access()->Close();
         Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenPreloadManufacturer>(owner_));
     }
 
@@ -216,12 +216,26 @@ MI_ActionSelect::MI_ActionSelect(SetAllToMode)
     set_config({});
 }
 
-void MI_ActionSelect::set_config(const ConfigItem &set, CompactOptional<Color, COLOR_NONE> set_color) {
+void MI_ActionSelect::click(IWindowMenu &menu) {
+    // Compatibility checks are expensive. Generate only the picker being opened,
+    // not nine complete lists synchronously when entering Change Filament.
+    set_config(std::holds_alternative<AllTools>(tool_filter_) ? ConfigItem {} : config(), color, true);
+    MenuItemSelectMenu::click(menu);
+}
+
+void MI_ActionSelect::set_config(const ConfigItem &set, CompactOptional<Color, COLOR_NONE> set_color, bool generate_list) {
     // By using enforce_first_item, we make sure the target filament is in the list (it might be hidden otherwise) and that it's on the first place (which is a welcome bonus)
-    generate_filament_list(filament_list, {
-                                              .enforce_first_item = set.new_filament,
-                                              .compatible_with_tool = stdext::to_variant(tool_filter_),
-                                          });
+    if (generate_list) {
+        generate_filament_list(filament_list, {
+                                                  .enforce_first_item = set.new_filament,
+                                                  .compatible_with_tool = stdext::to_variant(tool_filter_),
+                                              });
+    } else {
+        filament_list.clear();
+        if (set.action == Action::change) {
+            filament_list.push_back(set.new_filament);
+        }
+    }
     index_mapping.set_section_size<Action::change>(filament_list.size());
 
     color = set_color;

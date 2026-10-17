@@ -423,6 +423,8 @@ TEST_CASE("runtime monitor obeys independent presence and movement policies") {
 
     reset_pressure_monitor();
     set_pressure_monitor_detection(false, true);
+    REQUIRE_FALSE(pressure_monitor_presence_enabled());
+    REQUIRE(pressure_monitor_movement_enabled());
     configure_pressure_monitor(reference, 0.8f, 8.0f);
     record_loadcell_sample(1'000, 0, 0);
     for (uint32_t i = 1; i <= 1'800; ++i) {
@@ -432,6 +434,8 @@ TEST_CASE("runtime monitor obeys independent presence and movement policies") {
 
     reset_pressure_monitor();
     set_pressure_monitor_detection(true, false);
+    REQUIRE(pressure_monitor_presence_enabled());
+    REQUIRE_FALSE(pressure_monitor_movement_enabled());
     configure_pressure_monitor(reference, 0.8f, 8.0f);
     record_loadcell_sample(1'000, 0, 0);
     uint32_t i = 1;

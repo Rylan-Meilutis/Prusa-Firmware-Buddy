@@ -66,8 +66,13 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
     }
 
     if (opt_enable_stuck || opt_enable_movement) {
+    #if HAS_INDX()
+        const bool enable_stuck = opt_enable_stuck.value_or(buddy::extrusion_calibration::pressure_monitor_presence_enabled());
+        const bool enable_movement = opt_enable_movement.value_or(buddy::extrusion_calibration::pressure_monitor_movement_enabled());
+    #else
         const bool enable_stuck = opt_enable_stuck.value_or(config_store().stuck_filament_detection.get());
         const bool enable_movement = opt_enable_movement.value_or(config_store().filament_movement_detection.get());
+    #endif
     #if HAS_INDX()
         buddy::extrusion_calibration::set_pressure_monitor_detection(enable_stuck, enable_movement);
     #else
@@ -76,8 +81,8 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
     }
 
     #if HAS_INDX()
-    SERIAL_ECHOLNPAIR_F("Loadcell filament runout detection ", opt_enable_stuck.value_or(config_store().stuck_filament_detection.get()) ? "on" : "off");
-    SERIAL_ECHOLNPAIR_F("Loadcell filament movement detection ", opt_enable_movement.value_or(config_store().filament_movement_detection.get()) ? "on" : "off");
+    SERIAL_ECHOLNPAIR_F("Loadcell filament runout detection ", buddy::extrusion_calibration::pressure_monitor_presence_enabled() ? "on" : "off");
+    SERIAL_ECHOLNPAIR_F("Loadcell filament movement detection ", buddy::extrusion_calibration::pressure_monitor_movement_enabled() ? "on" : "off");
     SERIAL_ECHOLNPGM("Max-flow breakout detection on");
     #else
     SERIAL_ECHOLNPAIR_F("Filament stuck detection ", opt_enable_stuck.value_or(config_store().stuck_filament_detection.get()) ? "on" : "off");

@@ -2620,6 +2620,12 @@ static void _server_print_loop(void) {
         planner.reset_max_volumetric_flow_limits();
 #if HAS_LOADCELL()
         buddy::extrusion_calibration::reset_job_results();
+    #if HAS_INDX()
+        // M591 without P is a job-local override, not the next job's preference.
+        buddy::extrusion_calibration::set_pressure_monitor_detection(
+            config_store().stuck_filament_detection.get(),
+            config_store().filament_movement_detection.get());
+    #endif
 #endif
 
         if (!server.print_is_serial) {

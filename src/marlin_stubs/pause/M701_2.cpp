@@ -15,6 +15,9 @@
 #include <utils/variant_utils.hpp>
 #include <config_store/store_instance.hpp>
 #include <filament_to_load.hpp>
+#include <filament_color.hpp>
+#include <filament_manufacturer.hpp>
+#include <serial_printing.hpp>
 #include <Marlin/src/gcode/gcode.h>
 #include <mapi/parking.hpp>
 #include <raii/auto_restore.hpp>
@@ -56,6 +59,13 @@ filament_gcodes::InProgress::~InProgress() {
 }
 
 using namespace filament_gcodes;
+
+// Commit metadata only after a successful load, never on selection or purge.
+static void save_loaded_metadata(VirtualToolIndex tool) {
+    filament_color::set_loaded(tool.to_raw(), filament::get_color_to_load());
+    filament_manufacturer::set_loaded(tool.to_raw(), filament::get_manufacturer_to_load());
+    SerialPrinting::notify_configuration("filament", "loaded");
+}
 
 /**
  * Shared code for load/unload filament
@@ -147,6 +157,9 @@ void filament_gcodes::M701_load(const M701LoadArgs &args) {
     const bool do_resume_print = args.resume_print_request && marlin_server::printer_paused();
     // Load
     if (load_unload(do_purge_only ? Pause::LoadType::load_purge : Pause::LoadType::load, settings)) {
+        if (!do_purge_only) {
+            save_loaded_metadata(virtual_tool);
+        }
         if (!do_resume_print) {
             M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, virtual_tool);
         }
@@ -271,6 +284,7 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
 
     filament::set_type_to_load(FilamentType::none);
     filament::set_color_to_load(std::nullopt);
+    filament::set_manufacturer_to_load(std::nullopt);
 
     InProgress progress;
     ScopeGuard autoload_clr = [&] {
@@ -360,7 +374,6 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
 
         const FilamentType filament = preheat_ret.second;
         filament::set_type_to_load(filament);
-        filament::set_color_to_load(std::nullopt);
 
         mapi::ParkingPosition park_position = { .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos } };
         // Returning to previous position is unwanted outside of printing (M1701 should be used only outside of printing)
@@ -377,6 +390,7 @@ void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_lengt
     destination.e = e_pos_to_restore;
 
     // at this point autoload is considered successful so fail guard is not to be triggered and we report DoneHasFilament as status
+    save_loaded_metadata(virtual_tool);
     fail_guard.disarm();
     PreheatStatus::SetResult(PreheatStatus::Result::DoneHasFilament);
 }
@@ -445,6 +459,8 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     // LOAD
     // cannot do normal preheat, since printer is already preheated from unload
     if (filament_to_be_loaded == FilamentType::none) {
+        filament::set_color_to_load(std::nullopt);
+        filament::set_manufacturer_to_load(std::nullopt);
         const FilamentSelectionArgs data {
             .mode = PreheatMode::change_load,
             .tool = virtual_tool,
@@ -458,7 +474,11 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
         }
 
         filament_to_be_loaded = preheat_ret.second;
+        if (!color_to_be_loaded) {
+            color_to_be_loaded = filament::get_color_to_load();
+        }
     } else {
+        filament::set_manufacturer_to_load(std::nullopt);
         preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::for_filament_load(false));
     }
     filament::set_type_to_load(filament_to_be_loaded);
@@ -473,6 +493,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
 #endif
 
     if (load_unload(Pause::LoadType::load, settings)) {
+        save_loaded_metadata(virtual_tool);
         M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, virtual_tool);
     } else {
         M70X_process_user_response(PreheatStatus::Result::DidNotFinish, virtual_tool);
