@@ -5,7 +5,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
-### Unreleased workflow fixes — 2026-10-16
+### Updated release — 2026-10-16
 
 - Save color and manufacturer to the loaded slot after successful load/change/
   autoload. Preserve the selected color through Change Filament and autoload;
@@ -76,9 +76,9 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 ## Availability and validation
 
 - Release images: CORE One, CORE One INDX, CORE One L, MK4, MK3.5 and XL.
-- October 10 rebuild passed for all six variants from `f5389c476`, including
-  application change `c796dbc12`. BBF embedded checksums, linked application
-  bytes and manifest identities were verified. Later documentation commits
+- October 16 rebuild passed for all six variants from `e0d72b3e0`, including
+  filament workflow and filtration reporting fixes. BBF embedded checksums,
+  linked application bytes and manifest identities were verified. Later documentation commits
   do not change the binaries.
 - Lighting lifecycle, serial resume and serial-page source checks passed
   (11 checks). Companion b123 passed 287 Python tests (four skipped) and nine
