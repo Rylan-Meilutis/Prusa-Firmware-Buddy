@@ -27,7 +27,7 @@ namespace {
 class MI_PRELOAD_MANUFACTURER final : public IWindowMenuItem {
 public:
     MI_PRELOAD_MANUFACTURER(MI_ActionSelect *owner, std::optional<uint8_t> id, std::string_view name)
-        : IWindowMenuItem({})
+        : IWindowMenuItem(string_view_utf8 {})
         , owner_(owner)
         , id_(id) {
         snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(name.size()), name.data());

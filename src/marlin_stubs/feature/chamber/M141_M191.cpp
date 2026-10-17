@@ -105,6 +105,16 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
 
     PrintStatusMessageGuard statusGuard;
     while (true) {
+        // Operator changes apply while waiting, including Off. Never keep
+        // waiting for a stale copy of the original M191 target.
+        const auto live_target = chamber().target_temperature();
+        if (!live_target.has_value()) {
+            break;
+        }
+        if (target != *live_target) {
+            target = *live_target;
+            warning_timeout_start = ticks_ms();
+        }
         if (planner.draining()) {
             // We're aborting -> stop waiting
             break;

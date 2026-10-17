@@ -247,7 +247,9 @@ bool anyHeatherIsActive() {
 
 void manage_inactivity() {
 
-  if (queue.length < BUFSIZE) queue.get_available_commands();
+  // Serial RX owns its bounded recovery reserve. Poll even when the normal
+  // FIFO is full so out-of-band controls can reach a blocking heater wait.
+  queue.get_available_commands();
 
   [[maybe_unused]] const millis_t ms = millis();
 

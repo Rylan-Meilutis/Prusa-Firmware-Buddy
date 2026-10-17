@@ -851,7 +851,13 @@ bool Pause::nozzle_cleaner_purge_sequence() {
         }
     #endif
         planner.synchronize(); // Wait for the purge to finish before continuing
-        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
+        // Purge-clean breaks the strand, but leaves the new pellet in the
+        // block. Eject it before asking about color or leaving the cleaner.
+        if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)
+    #if HAS_INDX()
+            || !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)
+    #endif
+        ) {
             if (planner.draining()) {
                 return false; // we exited the load_and_execute cause of .draining, we need to exit asap
             }
@@ -1293,7 +1299,11 @@ void Pause::unload_from_gears_process([[maybe_unused]] Response response) {
 void Pause::unload_nozzle_clean_process([[maybe_unused]] Response response) {
     setPhase(PhasesLoadUnload::UnloadNozzleCleaning);
 
-    if (nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean)) {
+    if (nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::clean)
+    #if HAS_INDX()
+        && nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)
+    #endif
+    ) {
         if constexpr (!option::has_human_interactions) {
             runout_timer_ms = ticks_ms();
             set(LoadState::filament_not_in_fs);
