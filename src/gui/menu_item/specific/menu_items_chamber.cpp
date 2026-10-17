@@ -20,7 +20,7 @@ MI_CHAMBER_TARGET_TEMP::MI_CHAMBER_TARGET_TEMP(const char *label)
 }
 
 void MI_CHAMBER_TARGET_TEMP::OnClick() {
-    marlin_client::inject(GCodeLiteral("M141 S%f", value_opt().value_or(0)));
+    chamber().request_target_temperature(static_cast<uint16_t>(value_opt().value_or(0)));
 }
 
 void MI_CHAMBER_TARGET_TEMP::Loop() {
@@ -31,12 +31,7 @@ void MI_CHAMBER_TARGET_TEMP::Loop() {
     const bool temp_ctrl = chamber().capabilities().temperature_control();
     const auto new_val = (temp_ctrl ? chamber().target_temperature() : std::nullopt);
 
-    loop_gcode_inject_menu_item(*this,
-        {
-            .update_enabled = true,
-            .update_icon = true,
-            .enabled = temp_ctrl,
-        });
+    set_is_enabled(temp_ctrl);
 
     set_value(new_val);
 }

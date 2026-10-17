@@ -58,6 +58,10 @@ GCodeQueue queue;
 #include <heap.h>
 #include <FreeRTOS.h>
 #include <option/has_side_leds.h>
+#include <option/has_chamber_api.h>
+#if HAS_CHAMBER_API()
+  #include <feature/chamber/chamber.hpp>
+#endif
 #if HAS_SIDE_LEDS()
   #include <leds/side_strip_handler.hpp>
 #endif
@@ -1008,6 +1012,9 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
   SERIAL_ECHOPGM(" tune=1");
+#if HAS_CHAMBER_API()
+  SERIAL_ECHOPGM(" live_chamber=1");
+#endif
   #if !PRINTER_IS_PRUSA_MINI()
     SERIAL_ECHOPGM(" host_progress=1");
     SERIAL_ECHOPGM(" mesh_area=1");
@@ -1363,6 +1370,19 @@ static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
   const std::string_view command { payload, strcspn(payload, "*") };
+#if HAS_CHAMBER_API()
+  if (command.starts_with("@RME TEMPERATURE SET ")) {
+    const auto target = rme_protocol::unsigned_number(command, "chamber");
+    if (!serial_remote_control::session_active() || printer_lock::locked()
+        || !target || *target > 255 || !buddy::chamber().capabilities().temperature_control()) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=temperature code=invalid_or_locked");
+    } else {
+      buddy::chamber().request_target_temperature(*target);
+      SERIAL_ECHOLNPGM("RME_TEMPERATURE accepted=1");
+    }
+    return true;
+  }
+#endif
   if (handle_remote_ui_service(raw_command)
       || handle_remote_session_service(command)
       || handle_remote_lock_service(command)
