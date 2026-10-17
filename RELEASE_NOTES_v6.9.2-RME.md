@@ -7,9 +7,16 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ### Unreleased — 2026-10-17
 
+- Extend live controls to bed/nozzle temperature, print fan, speed and flow;
+  keep touchscreen non-motion setters and telemetry active in nested waits.
+- Reject unsupported embedded BBF machine/version combinations at selected-file
+  M997 handoff, in addition to matching plugin upload/staging/flash checks.
+- Matching plugin fixes automatic pre-bed-lowering snapshots for Orca object
+  markers and reuses the cached frame for delayed OctoPod completion notifications.
+
 Validation: the supported 6.9.2 INDX and 6.10.3 XL release builds pass,
-as do 41 GUI source regression tests per branch. The matching plugin passes
-292 Python tests (four skipped) and nine UI suites. Physical load/unload pellet
+as do 44 GUI source regression tests per branch. The matching plugin passes
+299 Python tests (four skipped) and nine UI suites. Physical load/unload pellet
 ejection, live control response and LCD recovery behavior require hardware checks.
 
 - Own picker label text so custom color/manufacturer names do not reference

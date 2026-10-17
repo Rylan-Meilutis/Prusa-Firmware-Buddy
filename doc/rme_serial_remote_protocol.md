@@ -2,6 +2,19 @@
 
 ## Controls during temperature waits
 
+live_controls=1 adds @RME CONTROL SET with exactly one of bed=N, nozzle=N,
+fan=N, speed=N or flow=N. Nozzle/flow accept a direct tool=N slot; nozzle
+defaults to the mounted tool. This never picks a tool or executes motion.
+Ranges: bed 0–150 C, nozzle 0–500 C (native heater limits still clamp),
+print fan 0–255, speed 10–300%, flow 50–150%. RME_CONTROL accepted=1 means
+the non-motion setter was applied. Unknown/invalid or locked requests return
+RME_ERROR. Ordinary file G-code remains FIFO.
+
+Touchscreen non-motion variable requests use a separate bounded mailbox and
+telemetry stays current in nested waits. Other requests do not execute
+recursively. Selected-file M997 handoffs reject embedded BBF machine/version
+combinations outside verified upstream support before arming any reboot.
+
 RME_MACHINE advertises live_chamber=1 when the chamber API is compiled in.
 With an active session and unlocked printer,
 `@RME TEMPERATURE SET chamber=N` requests a whole-degree chamber target

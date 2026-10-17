@@ -17,6 +17,8 @@ class LiveControls(unittest.TestCase):
             "static bool pre_finalize_print")[0]
         self.assertLess(cycle.index("live_request_queue.try_receive"),
                         cycle.index("if (is_cycle_running)"))
+        self.assertLess(cycle.index("server_update_vars();"),
+                        cycle.index("if (is_cycle_running)"))
         self.assertGreater(
             cycle.index("request_queue.try_receive(request, 0)",
                         cycle.index("if (is_cycle_running)")),
