@@ -117,7 +117,7 @@ static bool try_send(Request &request) {
     request.response_required = 1;
 
     client->events &= ~(make_mask(Event::Acknowledge) | make_mask(Event::NotAcknowledge));
-    request_queue.send(request);
+    (request.type == Request::Type::SetVariable ? live_request_queue : request_queue).send(request);
     for (;;) {
         receive_and_process_client_message(client, 1000);
         if (client->events & make_mask(Event::Acknowledge)) {
@@ -157,7 +157,7 @@ static void _send_request_to_server_noreply(Request &request) {
     }
     request.client_id = client->id;
     request.response_required = 0;
-    request_queue.send(request);
+    (request.type == Request::Type::SetVariable ? live_request_queue : request_queue).send(request);
 }
 
 void set_event_notify(uint64_t event_mask) {

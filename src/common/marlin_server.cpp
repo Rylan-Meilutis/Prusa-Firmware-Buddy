@@ -241,6 +241,7 @@ void media_prefetch_start();
 
 /// Queue for requests with parameters
 RequestQueue request_queue;
+RequestQueue live_request_queue;
 
 /// Bitset for requests that don't need parameters
 std::atomic<uint32_t> request_flags = 0;
@@ -995,6 +996,13 @@ static void cycle() {
     record_fanctl_metrics();
 
     idle_publisher.call_all();
+
+    // UI setpoints/tuning are non-motion requests and must remain live inside
+    // a nested heater wait. Keep other requests deferred until the ordinary
+    // server loop, rather than running arbitrary G-code recursively.
+    if (Request request; live_request_queue.try_receive(request, 0)) {
+        _process_server_request(request);
+    }
 
     if (is_cycle_running) {
         return;

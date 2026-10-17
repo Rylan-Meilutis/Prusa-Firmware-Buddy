@@ -984,6 +984,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(EXTRUDERS);
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(EXTRUDERS);
   SERIAL_ECHOPGM(" tune=1");
+  SERIAL_ECHOPGM(" live_controls=1");
 #if HAS_CHAMBER_API()
   SERIAL_ECHOPGM(" live_chamber=1");
 #endif
@@ -1341,6 +1342,39 @@ static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
   const std::string_view command { payload, strcspn(payload, "*") };
+  if (command.starts_with("@RME CONTROL SET ")) {
+    const auto bed = rme_protocol::unsigned_number(command, "bed");
+    const auto nozzle = rme_protocol::unsigned_number(command, "nozzle");
+    const auto fan = rme_protocol::unsigned_number(command, "fan");
+    const auto speed = rme_protocol::unsigned_number(command, "speed");
+    const auto flow = rme_protocol::unsigned_number(command, "flow");
+    const auto tool = rme_protocol::unsigned_number(command, "tool");
+    const unsigned count = bed.has_value() + nozzle.has_value() + fan.has_value() + speed.has_value() + flow.has_value();
+    auto selected = PhysicalToolIndex::currently_selected_opt();
+    if (tool && *tool < PhysicalToolIndex::count) {
+      selected = PhysicalToolIndex::from_raw(*tool);
+    }
+    bool valid = serial_remote_control::session_active() && !printer_lock::locked() && count == 1;
+    valid = valid && (!bed || *bed <= 150) && (!nozzle || (*nozzle <= 500 && selected && selected->is_enabled()))
+      && (!fan || *fan <= 255) && (!speed || (*speed >= 10 && *speed <= 300))
+      && (!flow || (*flow >= 50 && *flow <= 150 && tool && *tool < VirtualToolIndex::count))
+      && (!tool || *tool < PhysicalToolIndex::count);
+    if (!valid) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=invalid_or_locked");
+    } else {
+      if (bed) thermalManager.setTargetBed(*bed);
+      if (nozzle) thermalManager.setTargetHotend(*nozzle, *selected);
+      if (fan) thermalManager.set_print_fan_speed(*fan);
+      if (speed) feedrate_percentage = *speed;
+      if (flow) {
+        const auto virtual_tool = VirtualToolIndex::from_raw(*tool);
+        planner.flow_percentage[virtual_tool] = *flow;
+        planner.refresh_e_factor(virtual_tool);
+      }
+      SERIAL_ECHOLNPGM("RME_CONTROL accepted=1");
+    }
+    return true;
+  }
 #if HAS_CHAMBER_API()
   if (command.starts_with("@RME TEMPERATURE SET ")) {
     const auto target = rme_protocol::unsigned_number(command, "chamber");
