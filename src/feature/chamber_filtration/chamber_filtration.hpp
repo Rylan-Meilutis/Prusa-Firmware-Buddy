@@ -31,6 +31,7 @@ public:
         uint32_t last_print_s = 0;
         uint32_t unaccounted_filter_time_used_start_s = 0;
         std::optional<uint32_t> last_filtration_need_s;
+        bool door_prompt_allowed = true;
     };
 
     /// \returns translatable name of the provided filtration backend
@@ -71,7 +72,12 @@ public:
     void stop_post_print_filtration();
 
     /// Starts a post-print filtration sequence using the configured post-print duration and PWM.
-    void start_post_print_filtration();
+    void start_post_print_filtration(bool door_prompt_allowed = true);
+
+    /// Filter during filament handling and for a full cycle afterwards.
+    /// Nested load/preheat calls must be coalesced by the caller.
+    void set_filament_activity(bool active);
+    bool door_prompt_allowed() const;
 
     Snapshot snapshot() const;
     void restore_snapshot(const Snapshot &snapshot);
@@ -102,6 +108,9 @@ private:
 
     /// Previous print-state tracking for post-print filtration handoff.
     bool is_printing_prev_ = false;
+    bool filament_activity_active_ = false;
+    bool filament_activity_stopped_ = false;
+    bool door_prompt_allowed_ = true;
 
     /// Current post-print filtration requirement, if explicitly captured.
     std::optional<bool> needs_filtration_ = std::nullopt;
