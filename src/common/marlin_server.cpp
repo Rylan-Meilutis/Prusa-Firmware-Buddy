@@ -1003,6 +1003,9 @@ static void cycle() {
     if (Request request; live_request_queue.try_receive(request, 0)) {
         _process_server_request(request);
     }
+    // Keep target/readback and action-state snapshots fresh while an outer
+    // server operation is blocked. This is rate-limited, not a motion barrier.
+    server_update_vars();
 
     if (is_cycle_running) {
         return;

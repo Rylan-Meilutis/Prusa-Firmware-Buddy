@@ -1,5 +1,34 @@
 # RME Out-of-Band Serial Control Protocol
 
+## Controls during temperature waits
+
+live_controls=1 adds @RME CONTROL SET with exactly one of bed=N, nozzle=N,
+fan=N, speed=N or flow=N. Nozzle/flow accept a direct tool=N slot; nozzle
+defaults to the mounted tool. This never picks a tool or executes motion.
+Ranges: bed 0–150 C, nozzle 0–500 C (native heater limits still clamp),
+print fan 0–255, speed 10–300%, flow 50–150%. RME_CONTROL accepted=1 means
+the non-motion setter was applied. Unknown/invalid or locked requests return
+RME_ERROR. Ordinary file G-code remains FIFO.
+
+Touchscreen non-motion variable requests use a separate bounded mailbox and
+telemetry stays current in nested waits. Other requests do not execute
+recursively. Selected-file M997 handoffs reject embedded BBF machine/version
+combinations outside verified upstream support before arming any reboot.
+
+RME_MACHINE advertises live_chamber=1 when the chamber API is compiled in.
+With an active session and unlocked printer,
+`@RME TEMPERATURE SET chamber=N` requests a whole-degree chamber target
+(0 disables control; 1–255 is accepted and clamped to hardware capabilities).
+It returns RME_TEMPERATURE accepted=1 when queued in the single-value thermal
+mailbox. The Marlin thermal cycle applies it, not the GUI task. Actual targets
+remain available through ordinary chamber telemetry.
+
+The touchscreen uses the same mailbox, rather than injecting M141 behind
+blocking commands. M191 follows updated targets and exits on Off. Firmware
+polls its bounded serial recovery reserve even with a full normal command
+FIFO so RME lighting and safety controls can arrive during heater waits.
+This does not grant normal movement commands priority or reorder sliced M141.
+
 ## Confirmed serial reprint
 
 The serial Finished/Canceled screen keeps Settings (filtration), Reprint and
@@ -384,6 +413,16 @@ interpret Marlin's internal no-tool sentinel as another tool. Older handlers
 may ignore these appended fields.
 
 ## Machine discovery
+
+`RME_MACHINE mesh_area=1` advertises file-derived adaptive probing support
+(non-MINI October 2026 builds). With an unlocked active serial job and RME
+session, `@RME MESH SET x=<mm> y=<mm> width=<mm> height=<mm>` stages a finite,
+positive-size rectangle inside the bed envelope. The next G29 P1 consumes it;
+an already running probe is unaffected. Hosts should send it immediately
+before the file's ordinary G29 P1 and leave explicit probe rectangles alone.
+End/cancel clears pending bounds. See [adaptive meshing](rme_adaptive_mesh.md)
+for replies, analysis limits and fallback behavior. This command is volatile,
+not a stored printer setting.
 
 ```text
 @RME MACHINE QUERY
