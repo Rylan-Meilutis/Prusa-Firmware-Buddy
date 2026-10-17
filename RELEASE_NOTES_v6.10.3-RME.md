@@ -23,6 +23,9 @@ This replaces 6.10.1-RME for this line; older releases remain available.
   other runtime setting. Explicit M591 S0 still disables detection for that job.
 - Host regressions cover metadata, menu transitions and detection settings;
   physical loading, responsiveness and filter timeout need hardware validation.
+- Validation: final CORE One INDX build passed on both maintained branches;
+  17 GUI source checks per branch passed. Shared native suites passed 22
+  calibration cases (7284 assertions) and 67 protocol cases (432682 assertions).
 
 ### Updated release — 2026-10-10
 
