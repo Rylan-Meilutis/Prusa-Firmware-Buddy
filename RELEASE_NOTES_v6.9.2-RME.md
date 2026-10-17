@@ -5,7 +5,26 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
-### Unreleased workflow fixes — 2026-10-16
+### Unreleased — 2026-10-17
+
+- Own picker label text so custom color/manufacturer names do not reference
+  temporary profiles. Clear LCD memory before display-on during recovery,
+  retain brightness, and log recovery checks; idle flashing needs hardware validation.
+- Filament handling starts/restarts configured filtration without a door-open
+  early-exit prompt. Print-end/manual filtration retains its prompt behavior.
+- Serial pause/resume/cancel now displays the same transient states as local
+  print controls. Routine Messages pages remain suppressed.
+- Poll bounded serial recovery input even when the normal FIFO is full so
+  lighting controls remain reachable during temperature waits.
+- Touchscreen chamber targets use a thermal mailbox instead of queued G-code;
+  M191 follows changed targets and exits when chamber control is switched off.
+  RME advertises live_chamber=1 for matching plugin support.
+- INDX load purges and unload cleaning explicitly eject the pellet after wiping,
+  using calibrated cleaner sequences without adding extrusion or changing TPU speeds.
+- Restrict build presets to verified upstream machine support. 6.9.2 supports
+  INDX; 6.10.3 supports XL, not INDX or other previously cross-built models.
+
+### Updated release — 2026-10-16
 
 - Save color and manufacturer to the loaded slot after successful load/change/
   autoload. Preserve the selected color through Change Filament and autoload;
@@ -23,6 +42,9 @@ This replaces 6.9.0-RME for this line; older releases remain available.
   other runtime setting. Explicit M591 S0 still disables detection for that job.
 - Host regressions cover metadata, menu transitions and detection settings;
   physical loading, responsiveness and filter timeout need hardware validation.
+- Validation: final CORE One INDX build passed on both maintained branches;
+  17 GUI source checks per branch passed. Shared native suites passed 22
+  calibration cases (7284 assertions) and 67 protocol cases (432682 assertions).
 
 ### Updated release — 2026-10-10
 
@@ -73,8 +95,9 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 ## Availability and validation
 
 - Release images: CORE One INDX.
-- October 10 rebuild passed (1/1) from `71590a515`, including application
-  change `ff6daf0d6`. Later documentation commits do not change binaries.
+- October 16 rebuild passed (1/1) from `1cbde25b2`, including the filament
+  workflow and filtration reporting fixes. Later documentation commits do
+  not change binaries.
 - Lighting lifecycle, serial resume and serial-page source checks passed
   (11 checks). Companion b123 passed 287 Python tests (four skipped) and nine
   UI suites. BBF embedded checksums and manifest identities were verified.

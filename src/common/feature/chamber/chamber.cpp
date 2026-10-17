@@ -89,6 +89,11 @@ Chamber &chamber() {
 void Chamber::step() {
     assert(osThreadGetId() == marlin_server::server_task);
 
+    const auto pending = pending_target_.exchange(-1);
+    if (pending >= 0 && capabilities().temperature_control()) {
+        set_target_temperature(pending == 0 ? std::nullopt : std::optional<Temperature>(pending));
+    }
+
     std::lock_guard _lg(mutex_);
 
 #if XL_ENCLOSURE_SUPPORT()
@@ -290,6 +295,7 @@ void Chamber::bed_target_overridden() {
 }
 
 void Chamber::reset() {
+    pending_target_.store(-1);
     std::lock_guard _lg(mutex_);
     target_temperature_ = std::nullopt;
 

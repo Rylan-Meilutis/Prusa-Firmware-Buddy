@@ -17,7 +17,7 @@ MI_CHAMBER_TARGET_TEMP::MI_CHAMBER_TARGET_TEMP(const char *label)
 }
 
 void MI_CHAMBER_TARGET_TEMP::OnClick() {
-    chamber().set_target_temperature(value_opt());
+    chamber().request_target_temperature(static_cast<uint16_t>(value_opt().value_or(0)));
 }
 
 void MI_CHAMBER_TARGET_TEMP::Loop() {
@@ -29,6 +29,7 @@ void MI_CHAMBER_TARGET_TEMP::Loop() {
     const auto new_val = (temp_ctrl ? chamber().target_temperature() : std::nullopt);
 
     set_enabled(temp_ctrl);
+
     set_value(new_val);
 }
 

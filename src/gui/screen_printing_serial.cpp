@@ -499,14 +499,44 @@ void screen_printing_serial_data_t::unconditionalDraw() {
 }
 
 void screen_printing_serial_data_t::update_action_buttons(marlin_server::State state) {
+    header.SetText(_(caption));
     SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
     SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
     EnableButton(BtnSocket::Left);
     EnableButton(BtnSocket::Right);
 
     switch (state) {
+    case marlin_server::State::Pausing_Begin:
+    case marlin_server::State::Pausing_WaitIdle:
+    case marlin_server::State::Pausing_ParkHead:
+        header.SetText(_("PAUSING ..."));
+        SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Pause, LabelRes::Pausing);
+        DisableButton(BtnSocket::Middle);
+        break;
+    case marlin_server::State::Resuming_Begin:
+    case marlin_server::State::Resuming_BufferData:
+    case marlin_server::State::Resuming_ExecutingGCodeInterrupt:
+    case marlin_server::State::Resuming_UnparkHead_XY:
+    case marlin_server::State::Resuming_UnparkHead_ZE:
+        SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resuming);
+        DisableButton(BtnSocket::Middle);
+        break;
+    case marlin_server::State::Resuming_Reheating:
+        SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Reheating);
+        DisableButton(BtnSocket::Middle);
+        break;
+    case marlin_server::State::Aborting_Begin:
+    case marlin_server::State::Aborting_WaitIdle:
+    case marlin_server::State::Aborting_UnloadFilament:
+    case marlin_server::State::Aborting_ParkHead:
+    case marlin_server::State::Aborting_Preview:
+        header.SetText(_("ABORTING ..."));
+        DisableButton(BtnSocket::Middle);
+        DisableButton(BtnSocket::Right);
+        break;
     case marlin_server::State::Finished:
     case marlin_server::State::Aborted:
+        header.SetText(state == marlin_server::State::Finished ? _("PRINT FINISHED") : _("PRINT CANCELED"));
         // Filtration controls remain under Settings, leaving the result
         // actions identical whether or not a filter cycle is running.
         EnableButton(BtnSocket::Middle);
@@ -514,6 +544,7 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
         SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
         break;
     case marlin_server::State::Paused:
+        header.SetText(_("PAUSED"));
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resume);
         EnableButton(BtnSocket::Middle);
         break;

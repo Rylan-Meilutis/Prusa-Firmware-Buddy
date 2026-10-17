@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <atomic>
 
 #include <option/xl_enclosure_support.h>
 #include <option/has_chamber_vents.h>
@@ -77,6 +78,10 @@ public: // Temperature control
     /// \returns the target temperature the chamber was actually set to - might differe because of capabilities().max_temp
     std::optional<Temperature> set_target_temperature(std::optional<Temperature> target);
 
+    /// UI mailbox, consumed by the Marlin thermal cycle even during waits.
+    /// Zero disables control; this never injects or interrupts motion G-code.
+    void request_target_temperature(uint16_t target) { pending_target_.store(target); }
+
     /// Allow the heatbed-assisted heater while a blocking M191 is running.
     /// Serial prints enter the printing state before their start G-code has
     /// finished, so M191 needs an explicit, narrowly scoped exception.
@@ -102,6 +107,7 @@ public: // Temperature control
 
 private:
     mutable freertos::Mutex mutex_;
+    std::atomic<int32_t> pending_target_ { -1 };
 
     std::optional<Temperature> thermistor_temperature_;
     std::optional<Temperature> target_temperature_;

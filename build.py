@@ -21,7 +21,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-
+from utils.rme_firmware_support import SUPPORTED
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "bbf"
@@ -49,6 +49,7 @@ MINI_LANGUAGE_PRESETS = [
 
 RELEASE_PRESETS = [
     "coreone",
+    "coreone_indx",
     "coreonel",
     "mini",
     *MINI_LANGUAGE_PRESETS,
@@ -70,9 +71,9 @@ PRESET_ALIASES = {
 PROGRESS_RE = re.compile(r"\[(\d+)/(\d+)\]")
 MEMORY_REGION_RE = re.compile(
     r"^\s*([A-Z_]+):\s+(\d+(?:\.\d+)?)\s+([KMG]?B)\s+"
-    r"(\d+(?:\.\d+)?)\s+([KMG]?B)\s+(\d+(?:\.\d+)?)%"
-)
-MAP_MEMORY_REGION_RE = re.compile(r"^([A-Z_]+)\s+(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)\s+\S+")
+    r"(\d+(?:\.\d+)?)\s+([KMG]?B)\s+(\d+(?:\.\d+)?)%")
+MAP_MEMORY_REGION_RE = re.compile(
+    r"^([A-Z_]+)\s+(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)\s+\S+")
 SIZE_SECTION_RE = re.compile(r"^(\S+)\s+(\d+)\s+(\d+)$")
 STATUS_LABELS = {
     "queued": "queued",
@@ -127,7 +128,9 @@ def acquire_build_lock() -> None:
             msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
     except (BlockingIOError, OSError):
         lock_file.close()
-        raise SystemExit(f"Another build.py process is already running (lock: {BUILD_LOCK_PATH}).")
+        raise SystemExit(
+            f"Another build.py process is already running (lock: {BUILD_LOCK_PATH})."
+        )
 
     _build_lock_file = lock_file
     os.environ[BUILD_LOCK_ENV] = str(os.getpid())
@@ -141,7 +144,9 @@ def acquire_build_lock() -> None:
     atexit.register(release)
 
 
-def terminate_build_process(process: subprocess.Popen[str], *, force: bool = False) -> None:
+def terminate_build_process(process: subprocess.Popen[str],
+                            *,
+                            force: bool = False) -> None:
     if process.poll() is not None:
         return
     if os.name == "posix":
@@ -210,7 +215,8 @@ class BuildJob:
             self.progress = f"{progress_match.group(1)}/{progress_match.group(2)}"
         memory_match = MEMORY_REGION_RE.match(line)
         if memory_match:
-            name, used, used_unit, total, total_unit, percent = memory_match.groups()
+            name, used, used_unit, total, total_unit, percent = memory_match.groups(
+            )
             self.memory_regions[name] = MemoryRegion(
                 used_bytes=int(float(used) * MEMORY_UNIT_BYTES[used_unit]),
                 total_bytes=int(float(total) * MEMORY_UNIT_BYTES[total_unit]),
@@ -266,15 +272,15 @@ def repo_python_candidates() -> list[list[str]]:
     if env_python:
         candidates.append([env_python])
 
-    for name in ("python3.12", "python3.11", "python3.10", "python3.9", "python3.8"):
+    for name in ("python3.12", "python3.11", "python3.10", "python3.9",
+                 "python3.8"):
         python = shutil.which(name)
         if python:
             candidates.append([python])
 
     if os.name == "nt" and shutil.which("py"):
-        candidates.extend(
-            [["py", "-3.12"], ["py", "-3.11"], ["py", "-3.10"], ["py", "-3.9"], ["py", "-3.8"]]
-        )
+        candidates.extend([["py", "-3.12"], ["py", "-3.11"], ["py", "-3.10"],
+                           ["py", "-3.9"], ["py", "-3.8"]])
 
     for python in pyenv_python_candidates():
         candidate = [str(python)]
@@ -374,7 +380,9 @@ def configure_managed_python_env(env: dict[str, str]) -> None:
 
 
 def has_cmake_definition(definitions: list[str], name: str) -> bool:
-    return any(definition.split(":", 1)[0].split("=", 1)[0] == name for definition in definitions)
+    return any(
+        definition.split(":", 1)[0].split("=", 1)[0] == name
+        for definition in definitions)
 
 
 def managed_python_cmake_defs(definitions: list[str], venv: Path) -> list[str]:
@@ -382,14 +390,16 @@ def managed_python_cmake_defs(definitions: list[str], venv: Path) -> list[str]:
     if not has_cmake_definition(cmake_defs, "Python3_ROOT_DIR"):
         cmake_defs.append(f"Python3_ROOT_DIR:PATH={venv}")
     if not has_cmake_definition(cmake_defs, "Python3_EXECUTABLE"):
-        cmake_defs.append(f"Python3_EXECUTABLE:FILEPATH={venv_python_path(venv)}")
+        cmake_defs.append(
+            f"Python3_EXECUTABLE:FILEPATH={venv_python_path(venv)}")
     return cmake_defs
 
 
 def split_csv(values: list[str]) -> list[str]:
     tokens: list[str] = []
     for value in values:
-        tokens.extend(token.strip() for token in value.split(",") if token.strip())
+        tokens.extend(token.strip() for token in value.split(",")
+                      if token.strip())
     return tokens
 
 
@@ -416,6 +426,24 @@ def default_signing_key() -> Path | None:
     if DEFAULT_SIGNING_KEY.exists():
         return DEFAULT_SIGNING_KEY
     return None
+
+
+def supported_presets(tokens, version, known_presets):
+    allowed = SUPPORTED.get(version)
+    if not allowed:
+        raise SystemExit(f"No verified upstream machine support for {version}")
+    result = []
+    for token in tokens or ["all"]:
+        expanded = unique_presets([token], known_presets)
+        if token not in PRESET_ALIASES and any(p not in allowed
+                                               for p in expanded):
+            raise SystemExit(
+                f"Prusa {version} does not support preset {token}")
+        result.extend(p for p in expanded if p in allowed and p not in result)
+    if not result:
+        raise SystemExit(
+            f"No selected machines are supported by Prusa {version}")
+    return result
 
 
 def current_git_branch() -> str | None:
@@ -486,7 +514,8 @@ def prune_stale_worktrees() -> None:
 
 def add_version_worktree(worktree: Path, ref: str) -> None:
     result = subprocess.run(
-        ["git", "worktree", "add", "--detach", str(worktree), ref],
+        ["git", "worktree", "add", "--detach",
+         str(worktree), ref],
         cwd=PROJECT_ROOT,
         check=False,
     )
@@ -495,7 +524,8 @@ def add_version_worktree(worktree: Path, ref: str) -> None:
 
     prune_stale_worktrees()
     result = subprocess.run(
-        ["git", "worktree", "add", "--force", "--detach", str(worktree), ref],
+        ["git", "worktree", "add", "--force", "--detach",
+         str(worktree), ref],
         cwd=PROJECT_ROOT,
         check=False,
     )
@@ -529,7 +559,10 @@ def link_shared_version_caches(worktree: Path) -> None:
         link_shared_cache(worktree, name)
 
 
-def ensure_version_worktree(version: str, *, dry_run: bool = False, use_current: bool = True) -> Path:
+def ensure_version_worktree(version: str,
+                            *,
+                            dry_run: bool = False,
+                            use_current: bool = True) -> Path:
     branch = version_branch(version)
     if use_current and current_git_branch() == branch:
         return PROJECT_ROOT
@@ -545,7 +578,8 @@ def ensure_version_worktree(version: str, *, dry_run: bool = False, use_current:
         add_version_worktree(worktree, ref)
     else:
         result = subprocess.run(
-            ["git", "-C", str(worktree), "switch", "--detach", ref],
+            ["git", "-C",
+             str(worktree), "switch", "--detach", ref],
             cwd=PROJECT_ROOT,
             check=False,
         )
@@ -555,12 +589,23 @@ def ensure_version_worktree(version: str, *, dry_run: bool = False, use_current:
     return worktree
 
 
-def version_build_dir(args: argparse.Namespace, version: str, worktree: Path) -> Path:
-    build_root = args.build_dir.resolve() if args.build_dir else worktree / "build"
+def version_build_dir(args: argparse.Namespace, version: str,
+                      worktree: Path) -> Path:
+    build_root = args.build_dir.resolve(
+    ) if args.build_dir else worktree / "build"
     return build_root / version
 
 
-def make_version_build_command(args: argparse.Namespace, version: str, worktree: Path, output_dir: Path) -> list[str]:
+def version_build_supports_option(worktree: Path, option: str) -> bool:
+    """Return whether the target branch's build wrapper declares an option."""
+    try:
+        return option in (worktree / "build.py").read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
+def make_version_build_command(args: argparse.Namespace, version: str,
+                               worktree: Path, output_dir: Path) -> list[str]:
     command = [
         *find_repo_python(),
         str(worktree / "build.py"),
@@ -570,14 +615,20 @@ def make_version_build_command(args: argparse.Namespace, version: str, worktree:
         str(args.jobs),
         "--build-dir",
         str(version_build_dir(args, version, worktree)),
-        "--error-log-dir",
-        str((args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve() / version),
     ]
-    for preset in args.preset or []:
+    if version_build_supports_option(worktree, "--error-log-dir"):
+        command.extend([
+            "--error-log-dir",
+            str((args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve() /
+                version),
+        ])
+    for preset in supported_presets(split_csv(args.preset or ["all"]), version,
+                                    set(RELEASE_PRESETS)):
         command.extend(["--preset", preset])
     command.extend(["--build-type", args.build_type])
     command.extend(["--bootloader", args.bootloader])
-    signing_key = None if args.no_signing_key else (args.signing_key or default_signing_key())
+    signing_key = None if args.no_signing_key else (args.signing_key
+                                                    or default_signing_key())
     if signing_key:
         command.extend(["--signing-key", str(signing_key.resolve())])
     if args.no_signing_key:
@@ -598,7 +649,8 @@ def make_version_build_command(args: argparse.Namespace, version: str, worktree:
         command.extend(["--version-suffix-short", args.version_suffix_short])
     if args.no_clean_output:
         command.append("--no-clean-output")
-    for definition in managed_python_cmake_defs(args.cmake_def, worktree / ".venv"):
+    for definition in managed_python_cmake_defs(args.cmake_def,
+                                                worktree / ".venv"):
         command.extend(["-D", definition])
     return command
 
@@ -606,11 +658,16 @@ def make_version_build_command(args: argparse.Namespace, version: str, worktree:
 def build_versions(args: argparse.Namespace) -> int:
     started_at = time.monotonic()
     versions = [normalize_version(version) for version in args.versions]
+    # Reject invalid machine/version selections before touching build outputs.
+    for version in versions:
+        supported_presets(split_csv(args.preset or ["all"]), version,
+                          set(RELEASE_PRESETS))
     output_dir = args.output_dir.resolve()
     if args.jobs is not None and args.jobs < 1:
         raise SystemExit("--jobs must be at least 1")
     if args.store_output and args.no_store_output:
-        raise SystemExit("--store-output and --no-store-output are mutually exclusive")
+        raise SystemExit(
+            "--store-output and --no-store-output are mutually exclusive")
 
     print("Building versions:", ",".join(versions))
     print("BBF output:", output_dir)
@@ -620,16 +677,20 @@ def build_versions(args: argparse.Namespace) -> int:
 
     commands: list[tuple[str, Path, list[str]]] = []
     for version in versions:
-        worktree = ensure_version_worktree(version, dry_run=args.dry_run, use_current=False)
+        worktree = ensure_version_worktree(version,
+                                           dry_run=args.dry_run,
+                                           use_current=False)
         version_output = output_dir / version
         if args.dry_run:
-            command = make_version_build_command(args, version, worktree, output_dir)
+            command = make_version_build_command(args, version, worktree,
+                                                 output_dir)
             commands.append((version, worktree, command))
             continue
         if not args.no_clean_output and version_output.exists():
             shutil.rmtree(version_output)
         version_output.mkdir(parents=True, exist_ok=True)
-        command = make_version_build_command(args, version, worktree, output_dir)
+        command = make_version_build_command(args, version, worktree,
+                                             output_dir)
         commands.append((version, worktree, command))
 
     if args.dry_run:
@@ -649,8 +710,11 @@ def build_versions(args: argparse.Namespace) -> int:
     print()
     print("Multi-version build summary")
     print("-" * 72)
-    print(f"Result: {len(commands) - len(failed)} succeeded, {len(failed)} failed")
-    print(f"Total elapsed: {format_elapsed(int(time.monotonic() - started_at))}")
+    print(
+        f"Result: {len(commands) - len(failed)} succeeded, {len(failed)} failed"
+    )
+    print(
+        f"Total elapsed: {format_elapsed(int(time.monotonic() - started_at))}")
     print()
     print("Staged version folders")
     print("-" * 72)
@@ -687,16 +751,19 @@ def keep_only_bbf_files(output_dir: Path) -> None:
 
 def is_selected_bbf(path: Path, selected_presets: list[str]) -> bool:
     stem = path.stem
-    return any(stem == preset or stem.startswith(f"{preset}_") for preset in selected_presets)
+    return any(stem == preset or stem.startswith(f"{preset}_")
+               for preset in selected_presets)
 
 
-def prune_unselected_bbfs(output_dir: Path, selected_presets: list[str]) -> None:
+def prune_unselected_bbfs(output_dir: Path,
+                          selected_presets: list[str]) -> None:
     for bbf in output_dir.glob("*.bbf"):
         if not is_selected_bbf(bbf, selected_presets):
             bbf.unlink()
 
 
-def copy_finished_bbfs(job: BuildJob, output_dir: Path, selected_presets: list[str]) -> None:
+def copy_finished_bbfs(job: BuildJob, output_dir: Path,
+                       selected_presets: list[str]) -> None:
     for bbf in job.products_dir.glob("*.bbf"):
         destination = output_dir / normalized_bbf_name(bbf.name)
         if destination.exists():
@@ -707,7 +774,8 @@ def copy_finished_bbfs(job: BuildJob, output_dir: Path, selected_presets: list[s
     keep_only_bbf_files(output_dir)
 
 
-def collect_finished_bbfs(jobs: list[BuildJob], output_dir: Path, selected_presets: list[str]) -> None:
+def collect_finished_bbfs(jobs: list[BuildJob], output_dir: Path,
+                          selected_presets: list[str]) -> None:
     for job in jobs:
         if job.returncode == 0:
             copy_finished_bbfs(job, output_dir, selected_presets)
@@ -736,17 +804,24 @@ def format_region(region: MemoryRegion | None) -> str:
 
 
 def aggregate_ram(job: BuildJob) -> MemoryRegion | None:
-    ram_regions = [region for name, region in job.memory_regions.items() if name != "FLASH"]
+    ram_regions = [
+        region for name, region in job.memory_regions.items()
+        if name != "FLASH"
+    ]
     if not ram_regions:
         return None
     used_bytes = sum(region.used_bytes for region in ram_regions)
     total_bytes = sum(region.total_bytes for region in ram_regions)
     percent = used_bytes * 100 / total_bytes if total_bytes else 0
-    return MemoryRegion(used_bytes=used_bytes, total_bytes=total_bytes, percent=percent)
+    return MemoryRegion(used_bytes=used_bytes,
+                        total_bytes=total_bytes,
+                        percent=percent)
 
 
 def find_arm_size() -> Path | None:
-    candidates = sorted((PROJECT_ROOT / ".dependencies").glob("gcc-arm-none-eabi-*/bin/arm-none-eabi-size"))
+    candidates = sorted(
+        (PROJECT_ROOT /
+         ".dependencies").glob("gcc-arm-none-eabi-*/bin/arm-none-eabi-size"))
     return candidates[-1] if candidates else None
 
 
@@ -807,7 +882,8 @@ def hydrate_memory_from_artifact(job: BuildJob) -> None:
         for name, (_, total_bytes) in capacities.items():
             used_bytes = used[name]
             percent = used_bytes * 100 / total_bytes if total_bytes else 0
-            job.memory_regions[name] = MemoryRegion(used_bytes, total_bytes, percent)
+            job.memory_regions[name] = MemoryRegion(used_bytes, total_bytes,
+                                                    percent)
         return
 
 
@@ -823,6 +899,7 @@ def strip_ansi(value: str) -> str:
 
 
 class TerminalUI:
+
     def __init__(self, enabled: bool):
         self.enabled = enabled
         self.started = False
@@ -840,11 +917,16 @@ class TerminalUI:
         print("\033[?25h", end="", flush=True)
         self.started = False
 
-    def render(self, jobs: list[BuildJob], *, total_elapsed_s: int | None = None) -> None:
+    def render(self,
+               jobs: list[BuildJob],
+               *,
+               total_elapsed_s: int | None = None) -> None:
         if not self.enabled:
             return
         self.start()
-        lines = build_progress_lines(jobs, total_elapsed_s=total_elapsed_s, color=True)
+        lines = build_progress_lines(jobs,
+                                     total_elapsed_s=total_elapsed_s,
+                                     color=True)
         if self.line_count:
             print(f"\033[{self.line_count}F", end="")
         for index, line in enumerate(lines):
@@ -855,7 +937,10 @@ class TerminalUI:
         self.line_count = len(lines)
 
 
-def build_progress_lines(jobs: list[BuildJob], *, total_elapsed_s: int | None = None, color: bool = False) -> list[str]:
+def build_progress_lines(jobs: list[BuildJob],
+                         *,
+                         total_elapsed_s: int | None = None,
+                         color: bool = False) -> list[str]:
     completed = sum(1 for job in jobs if job.status in {"success", "failed"})
     failed = sum(1 for job in jobs if job.status == "failed")
     elapsed = f"  elapsed {format_elapsed(total_elapsed_s)}" if total_elapsed_s is not None else ""
@@ -881,12 +966,12 @@ def build_progress_lines(jobs: list[BuildJob], *, total_elapsed_s: int | None = 
         current = strip_ansi(job.last_line)[-34:] if job.last_line else ""
         lines.append(
             f"{job.preset:<18} {status} {progress_bar(percent)} "
-            f"{progress:<12} {format_elapsed(job.elapsed_s):<8} {current}"
-        )
+            f"{progress:<12} {format_elapsed(job.elapsed_s):<8} {current}")
     return lines
 
 
-def print_summary(jobs: list[BuildJob], output_dir: Path, *, total_elapsed_s: int) -> None:
+def print_summary(jobs: list[BuildJob], output_dir: Path, *,
+                  total_elapsed_s: int) -> None:
     success = [job for job in jobs if job.returncode == 0]
     failed = [job for job in jobs if job.returncode != 0]
     for job in jobs:
@@ -898,7 +983,9 @@ def print_summary(jobs: list[BuildJob], output_dir: Path, *, total_elapsed_s: in
     print(f"Result: {len(success)} succeeded, {len(failed)} failed")
     print(f"Total elapsed: {format_elapsed(total_elapsed_s)}")
     print()
-    print("MACHINE / PRESET   RESULT     TIME     FLASH                         RAM")
+    print(
+        "MACHINE / PRESET   RESULT     TIME     FLASH                         RAM"
+    )
     print("-" * 104)
     for job in jobs:
         result = "SUCCESS" if job.returncode == 0 else "FAILED"
@@ -911,7 +998,8 @@ def print_summary(jobs: list[BuildJob], output_dir: Path, *, total_elapsed_s: in
     print("Memory regions")
     print("-" * 104)
     for job in jobs:
-        regions = ", ".join(f"{name}: {format_region(region)}" for name, region in job.memory_regions.items())
+        regions = ", ".join(f"{name}: {format_region(region)}"
+                            for name, region in job.memory_regions.items())
         print(f"{job.preset:<18} {regions or '-'}")
 
     staged = sorted(output_dir.glob("*.bbf"))
@@ -923,7 +1011,9 @@ def print_summary(jobs: list[BuildJob], output_dir: Path, *, total_elapsed_s: in
             print(f"{bbf.name:<32} {bbf.resolve()}")
 
 
-def read_process_output(job: BuildJob, process: subprocess.Popen[str], output_queue: queue.Queue[tuple[BuildJob, str]]) -> None:
+def read_process_output(
+        job: BuildJob, process: subprocess.Popen[str],
+        output_queue: queue.Queue[tuple[BuildJob, str]]) -> None:
     assert process.stdout is not None
     for line in process.stdout:
         line = line.rstrip()
@@ -931,7 +1021,8 @@ def read_process_output(job: BuildJob, process: subprocess.Popen[str], output_qu
         output_queue.put((job, line))
 
 
-def generate_signing_key_with_ecdsa(private_key: Path, public_key: Path) -> bool:
+def generate_signing_key_with_ecdsa(private_key: Path,
+                                    public_key: Path) -> bool:
     try:
         from ecdsa import NIST256p, SigningKey
     except ImportError:
@@ -943,17 +1034,26 @@ def generate_signing_key_with_ecdsa(private_key: Path, public_key: Path) -> bool
     return True
 
 
-def generate_signing_key_with_openssl(private_key: Path, public_key: Path) -> bool:
+def generate_signing_key_with_openssl(private_key: Path,
+                                      public_key: Path) -> bool:
     openssl = shutil.which("openssl")
     if not openssl:
         return False
 
     subprocess.run(
-        [openssl, "ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", str(private_key)],
+        [
+            openssl, "ecparam", "-name", "prime256v1", "-genkey", "-noout",
+            "-out",
+            str(private_key)
+        ],
         check=True,
     )
     subprocess.run(
-        [openssl, "ec", "-in", str(private_key), "-pubout", "-out", str(public_key)],
+        [
+            openssl, "ec", "-in",
+            str(private_key), "-pubout", "-out",
+            str(public_key)
+        ],
         check=True,
     )
     return True
@@ -965,9 +1065,13 @@ def venv_python() -> Path:
     return venv_bin_dir() / "python"
 
 
-def generate_signing_key_with_bootstrap(private_key: Path, public_key: Path) -> bool:
+def generate_signing_key_with_bootstrap(private_key: Path,
+                                        public_key: Path) -> bool:
     python = find_repo_python()
-    bootstrap = subprocess.run([*python, str(PROJECT_ROOT / "utils" / "bootstrap.py")], cwd=PROJECT_ROOT, check=False)
+    bootstrap = subprocess.run(
+        [*python, str(PROJECT_ROOT / "utils" / "bootstrap.py")],
+        cwd=PROJECT_ROOT,
+        check=False)
     if bootstrap.returncode != 0:
         return False
 
@@ -975,16 +1079,17 @@ def generate_signing_key_with_bootstrap(private_key: Path, public_key: Path) -> 
     if not venv.exists():
         return False
 
-    script = (
-        "from ecdsa import NIST256p, SigningKey\n"
-        "from pathlib import Path\n"
-        "private_key = Path(r'''%s''')\n"
-        "public_key = Path(r'''%s''')\n"
-        "key = SigningKey.generate(curve=NIST256p)\n"
-        "private_key.write_bytes(key.to_pem())\n"
-        "public_key.write_bytes(key.verifying_key.to_pem())\n"
-    ) % (str(private_key), str(public_key))
-    result = subprocess.run([str(venv), "-c", script], cwd=PROJECT_ROOT, check=False)
+    script = ("from ecdsa import NIST256p, SigningKey\n"
+              "from pathlib import Path\n"
+              "private_key = Path(r'''%s''')\n"
+              "public_key = Path(r'''%s''')\n"
+              "key = SigningKey.generate(curve=NIST256p)\n"
+              "private_key.write_bytes(key.to_pem())\n"
+              "public_key.write_bytes(key.verifying_key.to_pem())\n") % (
+                  str(private_key), str(public_key))
+    result = subprocess.run([str(venv), "-c", script],
+                            cwd=PROJECT_ROOT,
+                            check=False)
     return result.returncode == 0
 
 
@@ -1005,10 +1110,13 @@ def setup_signing_key(private_key: Path, *, force: bool = False) -> int:
     if not generated:
         generated = generate_signing_key_with_openssl(private_key, public_key)
     if not generated:
-        generated = generate_signing_key_with_bootstrap(private_key, public_key)
+        generated = generate_signing_key_with_bootstrap(
+            private_key, public_key)
     if not generated:
         print("Could not generate a signing key.")
-        print("Install Python package 'ecdsa' or OpenSSL, then rerun --setup-signing.")
+        print(
+            "Install Python package 'ecdsa' or OpenSSL, then rerun --setup-signing."
+        )
         return 1
 
     if os.name == "posix":
@@ -1017,53 +1125,106 @@ def setup_signing_key(private_key: Path, *, force: bool = False) -> int:
 
     print(f"Created signing key: {private_key}")
     print(f"Created public key:  {public_key}")
-    print("Set FIRMWARE_SIGNING_KEY to the private key path or leave it at the default location.")
+    print(
+        "Set FIRMWARE_SIGNING_KEY to the private key path or leave it at the default location."
+    )
     return 0
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build release firmware and stage BBF files in a top-level folder."
-    )
+        description=
+        "Build release firmware and stage BBF files in a top-level folder.")
     parser.add_argument(
         "--preset",
         action="append",
         default=None,
-        help=(
-            "Comma-separated presets or aliases to build. Aliases: all, release, "
-            "mini-languages, mini-all. Default: all."
-        ),
+        help=
+        ("Comma-separated presets or aliases to build. Aliases: all, release, "
+         "mini-languages, mini-all. Default: all."),
     )
-    parser.add_argument("--list-presets", action="store_true", help="List known release presets and exit.")
-    parser.add_argument("--build-type", default="release", help="Build type passed to utils/build.py. Default: release.")
-    parser.add_argument("--bootloader", default="yes", help="Bootloader mode passed to utils/build.py. Default: yes.")
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Where BBFs are staged. Default: ./bbf.")
-    parser.add_argument("--build-dir", type=Path, help="Build directory passed to utils/build.py.")
-    parser.add_argument("--error-log-dir", type=Path, help="Directory for complete failed-preset logs. Default: ./.rme-build-errors.")
+    parser.add_argument("--list-presets",
+                        action="store_true",
+                        help="List known release presets and exit.")
+    parser.add_argument(
+        "--build-type",
+        default="release",
+        help="Build type passed to utils/build.py. Default: release.")
+    parser.add_argument(
+        "--bootloader",
+        default="yes",
+        help="Bootloader mode passed to utils/build.py. Default: yes.")
+    parser.add_argument("--output-dir",
+                        type=Path,
+                        default=DEFAULT_OUTPUT_DIR,
+                        help="Where BBFs are staged. Default: ./bbf.")
+    parser.add_argument("--build-dir",
+                        type=Path,
+                        help="Build directory passed to utils/build.py.")
+    parser.add_argument(
+        "--error-log-dir",
+        type=Path,
+        help=
+        "Directory for complete failed-preset logs. Default: ./.rme-build-errors."
+    )
     parser.add_argument(
         "--versions",
         nargs="+",
         default=None,
-        help=(
-            "Build multiple RME release branches into per-version output folders, "
-            "for example: --versions 6.5.7 6.6.1."
-        ),
+        help=
+        ("Build multiple RME release branches into per-version output folders, "
+         "for example: --versions 6.5.7 6.6.1."),
     )
-    parser.add_argument("--signing-key", type=Path, help="PEM signing key. Defaults to FIRMWARE_SIGNING_KEY or .local/firmware-signing-key.pem if present.")
-    parser.add_argument("--setup-signing", action="store_true", help="Create a local ECDSA signing key and exit.")
-    parser.add_argument("--force-signing-key", action="store_true", help="Replace the signing key when used with --setup-signing.")
-    parser.add_argument("--no-signing-key", action="store_true", help="Do not pass a signing key, even if the default key exists.")
-    parser.add_argument("--skip-bootstrap", action="store_true", help="Pass --skip-bootstrap to utils/build.py.")
-    parser.add_argument("--store-output", action="store_true", help="Ask utils/build.py to store build logs in files.")
-    parser.add_argument("--no-store-output", action="store_true", help="Print build output to the console.")
-    parser.add_argument("--generate-dfu", action="store_true", help="Pass --generate-dfu to utils/build.py.")
-    parser.add_argument("--final", action="store_true", help="Pass --final to utils/build.py.")
-    parser.add_argument("--version-suffix", help="Pass --version-suffix to utils/build.py.")
-    parser.add_argument("--version-suffix-short", help="Pass --version-suffix-short to utils/build.py.")
-    parser.add_argument("--no-clean-output", action="store_true", help="Do not clear the output folder before building.")
-    parser.add_argument("--jobs", type=int, default=4, help="Number of presets to build at once. Default: 4.")
-    parser.add_argument("--verbose", action="store_true", help="Print each child build's output while it runs.")
-    parser.add_argument("--dry-run", action="store_true", help="Print the build command without running it.")
+    parser.add_argument(
+        "--signing-key",
+        type=Path,
+        help=
+        "PEM signing key. Defaults to FIRMWARE_SIGNING_KEY or .local/firmware-signing-key.pem if present."
+    )
+    parser.add_argument("--setup-signing",
+                        action="store_true",
+                        help="Create a local ECDSA signing key and exit.")
+    parser.add_argument(
+        "--force-signing-key",
+        action="store_true",
+        help="Replace the signing key when used with --setup-signing.")
+    parser.add_argument(
+        "--no-signing-key",
+        action="store_true",
+        help="Do not pass a signing key, even if the default key exists.")
+    parser.add_argument("--skip-bootstrap",
+                        action="store_true",
+                        help="Pass --skip-bootstrap to utils/build.py.")
+    parser.add_argument(
+        "--store-output",
+        action="store_true",
+        help="Ask utils/build.py to store build logs in files.")
+    parser.add_argument("--no-store-output",
+                        action="store_true",
+                        help="Print build output to the console.")
+    parser.add_argument("--generate-dfu",
+                        action="store_true",
+                        help="Pass --generate-dfu to utils/build.py.")
+    parser.add_argument("--final",
+                        action="store_true",
+                        help="Pass --final to utils/build.py.")
+    parser.add_argument("--version-suffix",
+                        help="Pass --version-suffix to utils/build.py.")
+    parser.add_argument("--version-suffix-short",
+                        help="Pass --version-suffix-short to utils/build.py.")
+    parser.add_argument("--no-clean-output",
+                        action="store_true",
+                        help="Do not clear the output folder before building.")
+    parser.add_argument("--jobs",
+                        type=int,
+                        default=4,
+                        help="Number of presets to build at once. Default: 4.")
+    parser.add_argument("--verbose",
+                        action="store_true",
+                        help="Print each child build's output while it runs.")
+    parser.add_argument("--dry-run",
+                        action="store_true",
+                        help="Print the build command without running it.")
     parser.add_argument(
         "-D",
         "--cmake-def",
@@ -1093,7 +1254,9 @@ def main() -> int:
     if args.versions:
         return build_versions(args)
 
-    selected_presets = unique_presets(split_csv(args.preset or ["all"]), known_presets)
+    selected_presets = supported_presets(
+        split_csv(args.preset or ["all"]),
+        (PROJECT_ROOT / "version.txt").read_text().strip(), known_presets)
     output_dir = args.output_dir.resolve()
     error_log_dir = (args.error_log_dir or DEFAULT_ERROR_LOG_DIR).resolve()
     repo_python = find_repo_python()
@@ -1102,7 +1265,8 @@ def main() -> int:
     cmake_defs = managed_python_cmake_defs(args.cmake_def, venv_root())
 
     if args.store_output and args.no_store_output:
-        raise SystemExit("--store-output and --no-store-output are mutually exclusive")
+        raise SystemExit(
+            "--store-output and --no-store-output are mutually exclusive")
     if args.jobs is not None and args.jobs < 1:
         raise SystemExit("--jobs must be at least 1")
 
@@ -1114,7 +1278,8 @@ def main() -> int:
             shutil.rmtree(error_log_dir)
         error_log_dir.mkdir(parents=True, exist_ok=True)
 
-    signing_key = None if args.no_signing_key else (args.signing_key or default_signing_key())
+    signing_key = None if args.no_signing_key else (args.signing_key
+                                                    or default_signing_key())
     if signing_key:
         if not signing_key.exists():
             raise SystemExit(f"Signing key not found: {signing_key}")
@@ -1150,7 +1315,8 @@ def main() -> int:
         if args.version_suffix is not None:
             command.extend(["--version-suffix", args.version_suffix])
         if args.version_suffix_short is not None:
-            command.extend(["--version-suffix-short", args.version_suffix_short])
+            command.extend(
+                ["--version-suffix-short", args.version_suffix_short])
         if signing_key:
             command.extend(["--signing-key", str(signing_key)])
         for definition in cmake_defs:
@@ -1161,19 +1327,23 @@ def main() -> int:
             "empty": "emptyboot",
         }
         firmware_paths = [
-            (args.build_dir or PROJECT_ROOT / "build")
-            / f"{preset}_{args.build_type}_{bootloader_components[bootloader.strip().lower()]}"
-            / "firmware"
-            for bootloader in args.bootloader.split(",")
+            (args.build_dir or PROJECT_ROOT / "build") /
+            f"{preset}_{args.build_type}_{bootloader_components[bootloader.strip().lower()]}"
+            / "firmware" for bootloader in args.bootloader.split(",")
             if bootloader.strip().lower() in bootloader_components
         ]
-        jobs.append(BuildJob(preset=preset, command=command, products_dir=products_dir, firmware_paths=firmware_paths))
+        jobs.append(
+            BuildJob(preset=preset,
+                     command=command,
+                     products_dir=products_dir,
+                     firmware_paths=firmware_paths))
 
     max_parallel = args.jobs
     print("Building presets:", ",".join(selected_presets))
     print("BBF output:", output_dir)
     print("Parallel jobs:", max_parallel)
-    print("Total elapsed:", format_elapsed(int(time.monotonic() - wrapper_started_at)))
+    print("Total elapsed:",
+          format_elapsed(int(time.monotonic() - wrapper_started_at)))
     if args.dry_run:
         for job in jobs:
             print(" ".join(str(part) for part in job.command))
@@ -1182,7 +1352,8 @@ def main() -> int:
     if not args.skip_bootstrap:
         print("Bootstrapping once before builds...")
         bootstrap = subprocess.run(
-            [*repo_python, str(PROJECT_ROOT / "utils" / "bootstrap.py")],
+            [*repo_python,
+             str(PROJECT_ROOT / "utils" / "bootstrap.py")],
             cwd=PROJECT_ROOT,
             env=child_env,
             check=False,
@@ -1193,7 +1364,9 @@ def main() -> int:
     nnvg = venv_bin_dir() / ("nnvg.exe" if os.name == "nt" else "nnvg")
     if not nnvg.exists():
         print(f"Missing managed Nunavut tool: {nnvg}", file=sys.stderr)
-        print("Run utils/bootstrap.py or rerun ./build.py without --skip-bootstrap.", file=sys.stderr)
+        print(
+            "Run utils/bootstrap.py or rerun ./build.py without --skip-bootstrap.",
+            file=sys.stderr)
         return 1
 
     if product_root.exists():
@@ -1224,7 +1397,9 @@ def main() -> int:
                     bufsize=1,
                 )
                 running[process] = job
-                threading.Thread(target=read_process_output, args=(job, process, output_queue), daemon=True).start()
+                threading.Thread(target=read_process_output,
+                                 args=(job, process, output_queue),
+                                 daemon=True).start()
 
             while True:
                 try:
@@ -1247,7 +1422,8 @@ def main() -> int:
                 last_render = now
             if running:
                 time.sleep(0.1)
-        ui.render(jobs, total_elapsed_s=int(time.monotonic() - wrapper_started_at))
+        ui.render(jobs,
+                  total_elapsed_s=int(time.monotonic() - wrapper_started_at))
     except KeyboardInterrupt:
         print("\nStopping active builds...")
         for process in running:
@@ -1268,7 +1444,9 @@ def main() -> int:
         shutil.rmtree(product_root)
 
     failed = [job for job in jobs if job.returncode != 0]
-    print_summary(jobs, output_dir, total_elapsed_s=int(time.monotonic() - wrapper_started_at))
+    print_summary(jobs,
+                  output_dir,
+                  total_elapsed_s=int(time.monotonic() - wrapper_started_at))
     if failed:
         print()
         print("Failed builds:")

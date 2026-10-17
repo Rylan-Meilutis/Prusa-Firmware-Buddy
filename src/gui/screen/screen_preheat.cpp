@@ -25,7 +25,7 @@ FilamentType pending_load_filament = FilamentType::none;
 class MI_LOAD_MANUFACTURER final : public IWindowMenuItem {
 public:
     MI_LOAD_MANUFACTURER(std::optional<uint8_t> id, std::string_view name)
-        : IWindowMenuItem({})
+        : IWindowMenuItem(string_view_utf8 {})
         , id_(id) {
         snprintf(label_.data(), label_.size(), "%.*s", static_cast<int>(name.size()), name.data());
         SetLabel(string_view_utf8::MakeRAM(label_.data()));
