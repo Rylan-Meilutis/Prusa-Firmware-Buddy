@@ -49,6 +49,7 @@ GCodeQueue queue;
 #include <indx_dock_tolerance.hpp>
 #include <printer_lock.hpp>
 #include <odometer.hpp>
+#include <print_utils.hpp>
 #include <heap.h>
 #include <FreeRTOS.h>
 #include <option/has_side_leds.h>
