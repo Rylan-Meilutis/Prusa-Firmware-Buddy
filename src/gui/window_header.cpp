@@ -209,6 +209,12 @@ void window_header_t::SetIcon(const img::Resource *res) {
 }
 
 void window_header_t::SetText(const string_view_utf8 &txt) {
+    // Finished/filtering screens refresh their action buttons every GUI tick.
+    // window_text_t already ignores an unchanged reference; do not invalidate
+    // the entire header anyway or its background/title repeatedly disappear.
+    if (label.GetText().is_same_ref(txt)) {
+        return;
+    }
     label.SetText(txt);
     Invalidate();
 }
