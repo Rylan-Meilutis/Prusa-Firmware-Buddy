@@ -13,8 +13,9 @@ class AutoPaDiagnostics(unittest.TestCase):
     def test_inspection_precedes_all_calibration_side_effects(self):
         source = (ROOT / "src/marlin_stubs/M976.cpp").read_text()
         command = source.split("void PrusaGcodeSuite::M976()", 1)[1]
-        self.assertLess(command.index("parser.seen('I')"),
-                        command.index("ScopedActiveLightHold"))
+        self.assertLess(
+            command.index("inspection_requested(parser.command_ptr)"),
+            command.index("ScopedActiveLightHold"))
         self.assertLess(command.index("report_pa_diagnostics();"),
                         command.index("configure_confidence"))
         reset = (ROOT /
@@ -46,9 +47,15 @@ std::ostringstream output;
 template<class... T> void serial(const T &...t) { (output << ... << t); output << '\n'; }
 #define SERIAL_ECHOLNPAIR(...) serial(__VA_ARGS__)
 #define SERIAL_ECHOLN(...) serial(__VA_ARGS__)
+#define HAS_INDX() 0
 """
         main = r"""
 int main() {
+ assert(inspection_requested("M976 I T0"));
+ assert(inspection_requested("M976 L0 I*22"));
+ assert(!inspection_requested("M976 A 0:0:HIPS:240"));
+ assert(!inspection_requested("M976 A 0:0:HIP-00M:240"));
+ assert(!inspection_requested("M976 T0 ; I"));
  static_assert(sizeof(History) < 1024);
  parser.t = true; parser.tool = 0;
  report_pa_diagnostics();

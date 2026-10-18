@@ -39,13 +39,62 @@ struct Record {
     uint32_t version = 0;
     bool operator==(const Record &) const = default;
 
+    // nullptr means reusable. Keep inspection and actual cache acceptance on
+    // exactly the same predicate; reporting must never relax a safety gate.
+    const char *rejection_reason(const Key &requested) const {
+        if (version != record_version) {
+            return "record_version_changed";
+        }
+        if (key.profile != requested.profile) {
+            return "profile_changed";
+        }
+        if (key.material != requested.material) {
+            return "material_changed";
+        }
+        if (key.color != requested.color || key.color_valid != requested.color_valid) {
+            return "color_changed";
+        }
+        if (key.manufacturer != requested.manufacturer) {
+            return "manufacturer_changed";
+        }
+        if (key.physical_tool != requested.physical_tool) {
+            return "physical_tool_changed";
+        }
+        if (key.nozzle != requested.nozzle) {
+            return "nozzle_changed";
+        }
+        if (key.temperature != requested.temperature) {
+            return "calibration_temperature_changed";
+        }
+        if (key.profile_temperature != requested.profile_temperature) {
+            return "profile_temperature_changed";
+        }
+        if (key.confidence_floor != requested.confidence_floor) {
+            return "confidence_floor_changed";
+        }
+        if (key.minimum_snr != requested.minimum_snr) {
+            return "minimum_snr_changed";
+        }
+        if (key.flexible != requested.flexible) {
+            return "flexible_policy_changed";
+        }
+        if (!std::isfinite(pa) || pa < 0 || pa > 0.5f) {
+            return "invalid_pa";
+        }
+        if (!std::isfinite(max_flow) || max_flow <= 0) {
+            return "invalid_max_flow";
+        }
+        if (!std::isfinite(confidence) || confidence < key.confidence_floor / 100.f || confidence > 1) {
+            return "invalid_confidence";
+        }
+        if (!std::isfinite(low_load) || !std::isfinite(high_load) || !std::isfinite(noise) || noise < 0) {
+            return "invalid_pressure_reference";
+        }
+        return nullptr;
+    }
+
     bool matches(const Key &requested) const {
-        return version == record_version && key == requested
-            && std::isfinite(pa) && pa >= 0 && pa <= 0.5f
-            && std::isfinite(max_flow) && max_flow > 0
-            && std::isfinite(confidence) && confidence >= key.confidence_floor / 100.f && confidence <= 1
-            && std::isfinite(low_load) && std::isfinite(high_load)
-            && std::isfinite(noise) && noise >= 0;
+        return rejection_reason(requested) == nullptr;
     }
 };
 } // namespace buddy::pa_cache

@@ -7,6 +7,28 @@
 
 namespace buddy::m976_diagnostics {
 
+// Marlin also flags letters inside raw batch material names (e.g. HIPS).
+// Only a standalone I token requests inspection, never the I in a manifest.
+inline bool inspection_requested(std::string_view command) {
+    command = command.substr(0, command.find_first_of(";*"));
+    while (!command.empty()) {
+        const auto start = command.find_first_not_of(" \t");
+        if (start == std::string_view::npos) {
+            break;
+        }
+        command.remove_prefix(start);
+        const auto end = command.find_first_of(" \t");
+        if (command.substr(0, end) == "I") {
+            return true;
+        }
+        if (end == std::string_view::npos) {
+            break;
+        }
+        command.remove_prefix(end);
+    }
+    return false;
+}
+
 // Deliberately separate from job results: cancellation and a new job must not
 // erase the explanation for the last attempt. RAM only; reset on reboot.
 struct Record {
