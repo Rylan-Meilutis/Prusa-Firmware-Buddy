@@ -5,6 +5,23 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
+### Loadcell confirmation and result-header update — 2026-10-18
+
+- INDX loadcell faults now wait for Continue, Unload or Abort even without a
+  discrete extruder filament sensor. Align the response handler with the
+  buttons to avoid the previously hidden invalid-response crash path.
+- Preserve the specific runout/movement/flow cause when creating the recovery
+  FSM; include the required INDX error descriptor and LCD icon.
+- Reannounce the fault once the prompt is actionable and close the parent
+  workflow when recovery ends. Abort skips reheating/unparking back to the print.
+- Do not invalidate the whole finished/canceled header for an unchanged title;
+  repeated result-screen updates now leave the header intact.
+- Matching plugin: RME Compatibility 0.1.0b129. Both supported firmware builds
+  pass, with 58 GUI tests per branch (one skipped); plugin validation covers
+  303 Python tests (four skipped) and twelve JavaScript UI suites.
+- Physical confirmation/reload behavior and LCD flicker require on-printer
+  verification. This update does not change PWM resolution or Auto PA tuning.
+
 ### LCD filtering redraw correction — 2026-10-18
 
 - Only apply LCD control/brightness writes when the brightness changes; do not
