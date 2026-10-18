@@ -10,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class RunoutConfirmation(unittest.TestCase):
 
+    def test_recovery_emits_terminal_parent_event(self):
+        text = (ROOT / "src/marlin_stubs/pause/M600.cpp").read_text()
+        handler = text.split("void PrusaGcodeSuite::M1601()", 1)[1]
+        self.assertIn("SerialPrinting::notify_workflow(recovery_workflow",
+                      handler)
+        self.assertIn('"canceled" : "closed"', handler)
+
     def test_fsm_holder_preserves_specific_fault_mode(self):
         text = (ROOT / "src/marlin_stubs/pause/pause.cpp").read_text()
         getter = text.split("LoadUnloadMode Pause::get_load_unload_mode()",
