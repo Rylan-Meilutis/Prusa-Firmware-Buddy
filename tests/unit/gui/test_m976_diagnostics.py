@@ -71,6 +71,7 @@ int main() {
   Attempt inner(pa_diagnostics.begin(0, 0, 240));
   r.outcome = "fallback"; r.reason = "low_snr";
   r.pa = 0.04f; r.confidence = 0.7f; r.minimum_confidence = 0.8f;
+  r.cache_lookup = "manufacturer_changed"; r.cache = "not_saved";
   r.snr = 2; r.minimum_snr = 5;
  }
  assert(std::string_view(r.outcome) == "fallback");
@@ -78,6 +79,7 @@ int main() {
  output.str(""); report_pa_diagnostics();
  assert(output.str().find("outcome=fallback reason=low_snr") != std::string::npos);
  assert(output.str().find("snr=2.000 minimum_snr=5.000") != std::string::npos);
+ assert(output.str().find("cache_lookup=manufacturer_changed") != std::string::npos);
  assert(output.str().find("slot=7") == std::string::npos);
  assert(std::string_view(r.outcome) == "fallback" && r.pa == 0.04f);
  parser.t = false; parser.l = true; parser.slot = 7;
