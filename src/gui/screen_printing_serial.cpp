@@ -496,7 +496,35 @@ void screen_printing_serial_data_t::unconditionalDraw() {
 }
 
 void screen_printing_serial_data_t::update_action_buttons(marlin_server::State state) {
-    header.SetText(_(caption));
+    // Pick the final title once: resetting to PRINTING before applying the
+    // result title makes repeated finish/cancel refreshes invalidate twice.
+    auto title = _(caption);
+    switch (state) {
+    case marlin_server::State::Pausing_Begin:
+    case marlin_server::State::Pausing_WaitIdle:
+    case marlin_server::State::Pausing_ParkHead:
+        title = _("PAUSING ...");
+        break;
+    case marlin_server::State::Aborting_Begin:
+    case marlin_server::State::Aborting_WaitIdle:
+    case marlin_server::State::Aborting_UnloadFilament:
+    case marlin_server::State::Aborting_ParkHead:
+    case marlin_server::State::Aborting_Preview:
+        title = _("ABORTING ...");
+        break;
+    case marlin_server::State::Finished:
+        title = _("PRINT FINISHED");
+        break;
+    case marlin_server::State::Aborted:
+        title = _("PRINT CANCELED");
+        break;
+    case marlin_server::State::Paused:
+        title = _("PAUSED");
+        break;
+    default:
+        break;
+    }
+    header.SetText(title);
     SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
     // Set the final action directly. Result-page refreshes must not alternate
     // Stop -> Continue before every draw, even while filtration is active.
@@ -512,7 +540,6 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
     case marlin_server::State::Pausing_Begin:
     case marlin_server::State::Pausing_WaitIdle:
     case marlin_server::State::Pausing_ParkHead:
-        header.SetText(_("PAUSING ..."));
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Pause, LabelRes::Pausing);
         DisableButton(BtnSocket::Middle);
         break;
@@ -533,20 +560,17 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
     case marlin_server::State::Aborting_UnloadFilament:
     case marlin_server::State::Aborting_ParkHead:
     case marlin_server::State::Aborting_Preview:
-        header.SetText(_("ABORTING ..."));
         DisableButton(BtnSocket::Middle);
         DisableButton(BtnSocket::Right);
         break;
     case marlin_server::State::Finished:
     case marlin_server::State::Aborted:
-        header.SetText(state == marlin_server::State::Finished ? _("PRINT FINISHED") : _("PRINT CANCELED"));
         // Filtration controls remain under Settings, leaving the result
         // actions identical whether or not a filter cycle is running.
         EnableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
         break;
     case marlin_server::State::Paused:
-        header.SetText(_("PAUSED"));
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resume);
         EnableButton(BtnSocket::Middle);
         break;
