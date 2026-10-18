@@ -183,9 +183,14 @@ MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
     SetLabel(_(HAS_MMU2() ? N_("Tool %u Filament") : N_("Filament %u")).formatted(label_params, static_cast<unsigned>(tool_ix) + 1));
 }
 
-void MI_ActionSelect::set_config(const ConfigItem &set) {
+void MI_ActionSelect::set_config(const ConfigItem &set, bool generate_list) {
     // By using enforce_first_item, we make sure the target filament is in the list (it might be hidden otherwise) and that it's on the first place (which is a welcome bonus)
-    generate_filament_list(filament_list, { .enforce_first_item = set.new_filament });
+    if (generate_list) {
+        generate_filament_list(filament_list, { .enforce_first_item = set.new_filament });
+    } else {
+        filament_list.clear();
+        if (set.action == Action::change) filament_list.push_back(set.new_filament);
+    }
     index_mapping.set_section_size<Action::change>(filament_list.size());
 
     color = set.color;
@@ -207,7 +212,7 @@ void MI_ActionSelect::set_config(const ConfigItem &set) {
 }
 
 void MI_ActionSelect::click(IWindowMenu &menu) {
-    set_config(config());
+    set_config(config(), true);
     MenuItemSelectMenu::click(menu);
 }
 

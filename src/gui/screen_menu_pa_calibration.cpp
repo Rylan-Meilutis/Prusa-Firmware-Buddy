@@ -21,7 +21,7 @@ void MI_AUTO_PA_MODE::OnChange([[maybe_unused]] size_t old_index) {
     config_store().auto_pa_mode.set(get_index());
 }
 void MI_AUTO_PA_MODE::Loop() {
-    set_current_item(config_store().auto_pa_mode.get());
+    set_index(config_store().auto_pa_mode.get());
 }
 
 namespace {

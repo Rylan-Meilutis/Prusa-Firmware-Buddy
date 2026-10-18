@@ -9,6 +9,10 @@
 #include <option/filament_sensor.h>
 #include <option/buddy_enable_connect.h>
 #include <option/has_toolchanger.h>
+#include <option/has_chamber_filtration_api.h>
+#if HAS_CHAMBER_FILTRATION_API()
+#include <gui/menu_item/specific/menu_items_chamber_filtration.hpp>
+#endif
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
 #include <option/has_coldpull.h>
@@ -33,6 +37,9 @@ using ScreenMenuControlSpec = ScreenMenu<EFooter::On, MI_RETURN
 #endif
     ,
     MI_MOVE_AXIS, MI_TEMPERATURE, MI_AUTO_HOME
+#if HAS_CHAMBER_FILTRATION_API()
+    , MI_CHAMBER_FILTER_CYCLE, MI_CHAMBER_FILTRATION
+#endif
 
 #if BUDDY_ENABLE_CONNECT()
     ,

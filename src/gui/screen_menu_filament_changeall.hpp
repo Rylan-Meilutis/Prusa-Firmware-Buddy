@@ -19,7 +19,7 @@ class MI_ActionSelect : public MenuItemSelectMenu {
 public:
     MI_ActionSelect(uint8_t tool_ix);
 
-    void set_config(const ConfigItem &set);
+    void set_config(const ConfigItem &set, bool generate_list = false);
     void set_selected_color(std::optional<Color> set) { color = set; }
     void set_selected_manufacturer(std::optional<uint8_t> set) { manufacturer = set; }
     ConfigItem config() const;

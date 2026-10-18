@@ -500,6 +500,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
             color_to_be_loaded = filament::get_color_to_load();
         }
     } else {
+        filament::set_manufacturer_to_load(std::nullopt);
         preheat_to(filament_to_be_loaded, target_extruder, PreheatBehavior::no_force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
     }
     filament::set_type_to_load(filament_to_be_loaded);
@@ -511,6 +512,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
 #endif
 
     if (load_unload(Pause::LoadType::load, settings)) {
+        save_loaded_metadata(target_extruder);
         M70X_process_user_response(PreheatStatus::Result::DoneHasFilament, target_extruder);
     } else {
         M70X_process_user_response(PreheatStatus::Result::DidNotFinish, target_extruder);
