@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <pa_temperature_model.hpp>
 
 namespace buddy::extrusion_calibration {
@@ -85,6 +86,7 @@ void set_job_result(size_t logical_filament, const Result &result);
 void select_job_result(size_t logical_filament);
 const pa_temperature::Model *temperature_model(size_t logical_filament);
 bool request_job_temperature(size_t logical_filament, int16_t temperature);
+bool has_measured_job_temperature(size_t logical_filament, int16_t temperature);
 // Foreground, parser-facing temperature changes only (not maintenance heating).
 void apply_print_temperature(uint8_t physical_tool, int16_t temperature);
 // INDX hardware adapter: apply the selected tool's job result without motion.
@@ -93,6 +95,7 @@ float calibrated_pressure_advance_or(float fallback);
 void set_calibration_command_active(bool active);
 bool calibration_command_active();
 uint8_t occupied_anchor_mask();
+std::optional<uint8_t> reserve_measurement_anchor(uint8_t preferred);
 void occupy_anchor(size_t logical_filament);
 void clear_anchor(size_t logical_filament);
 void note_profile_pressure_advance(float value);
