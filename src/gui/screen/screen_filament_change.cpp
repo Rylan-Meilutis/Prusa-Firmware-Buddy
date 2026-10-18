@@ -399,7 +399,7 @@ private:
 };
 #endif
 
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
 class FrameFStuckNotice : public FrameNotice {
 public:
     FrameFStuckNotice(window_t *parent, Phase phase)
@@ -507,7 +507,7 @@ using Frames = FrameDefinitionList<ScreenFilamentChange::FrameStorage,
     FrameDefinition<Phase::UnloadNozzleCleaning, FrameProgress, txt_nozzle_cleaning>,
     FrameDefinition<Phase::LoadNozzleCleaning, FrameProgress, txt_nozzle_cleaning>,
 #endif
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
     FrameDefinition<Phase::FilamentStuck, FrameFStuckNotice>,
 #endif
 #if HAS_AUTO_RETRACT()
