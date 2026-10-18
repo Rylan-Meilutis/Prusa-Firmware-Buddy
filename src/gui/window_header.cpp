@@ -216,7 +216,8 @@ void window_header_t::SetText(const string_view_utf8 &txt) {
         return;
     }
     label.SetText(txt);
-    Invalidate();
+    // SetText invalidates the label itself, which paints its own background.
+    // Clearing the enclosing frame first unnecessarily blanks every icon.
 }
 
 void window_header_t::set_show_bed_info(bool set) {
@@ -229,7 +230,8 @@ void window_header_t::set_show_bed_info(bool set) {
 void window_header_t::updateTime() {
 #if !HAS_MINI_DISPLAY() // Time is not shown on ST7789
     if (time_tools::update_time()) {
-        Invalidate(); // Invalidate whole header to avoid icon leftovers in between icons
+        // The clock has a fixed-width rectangle; only its text changed.
+        time_val.Invalidate();
     }
 #endif /* !HAS_MINI_DISPLAY() */
 }
