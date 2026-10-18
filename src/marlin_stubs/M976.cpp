@@ -539,12 +539,17 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
             }
         }
         if (entry.physical_tool >= EXTRUDERS || entry.logical_filament >= buddy::extrusion_calibration::max_logical_filaments
+            || entry.physical_tool >= PhysicalToolIndex::count || entry.logical_filament >= VirtualToolIndex::count
             || entry.temperature < thermalManager.extrude_min_temp || entry.temperature > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN
-            || (logical_mask & (1u << entry.logical_filament)) || (physical_mask & (1u << entry.physical_tool))) {
+            || (logical_mask & (1u << entry.logical_filament))) {
             return false;
         }
 #if ENABLED(PRUSA_MMU2)
         if (entry.physical_tool != 0) {
+            return false;
+        }
+#else
+        if (physical_mask & (1u << entry.physical_tool)) {
             return false;
         }
 #endif
@@ -910,9 +915,9 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         char calibration_command[64];
 #if ENABLED(PRUSA_MMU2)
         if (prepared_anchor) {
-            snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d P Z%.3f", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, static_cast<double>(prepared_anchor_z));
+            snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d P Z%.3f F%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, static_cast<double>(prepared_anchor_z), force);
         } else {
-            snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature);
+            snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d F%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, force);
         }
 #else
         snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d F%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, force);

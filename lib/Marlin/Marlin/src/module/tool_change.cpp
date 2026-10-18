@@ -28,6 +28,7 @@
 #include <serial_printing.hpp>
 #include <option/has_indx.h>
 #include <option/has_loadcell.h>
+#include <option/has_mmu2.h>
 #if HAS_LOADCELL()
   #include <feature/extrusion_calibration.hpp>
   #include <feature/pressure_advance/pressure_advance_config.hpp>
@@ -48,6 +49,11 @@ void buddy::extrusion_calibration::apply_print_temperature(uint8_t physical_tool
     if (calibration_command_active()) return;
     for (const auto logical : VirtualToolIndex::all().skip_all_disabled()) {
         if (logical.to_physical().to_raw() != physical_tool) continue;
+        #if HAS_MMU2()
+          // All MMU slots share hotend 0. Its target belongs only to the
+          // loaded filament, not every calibrated but currently parked slot.
+          if (VirtualToolIndex::currently_selected_opt() != logical) continue;
+        #endif
         if (const auto *current = job_result(logical.to_raw()); current && current->calibration_temperature == temperature) continue;
         if (!request_job_temperature(logical.to_raw(), temperature)) continue;
         if (VirtualToolIndex::currently_selected_opt() == logical) {
@@ -98,6 +104,9 @@ bool tool_change(const std::variant<VirtualToolIndex, PhysicalToolIndex, NoTool>
       [](PhysicalToolIndex physical_tool){ /* do nothing */ static_assert(PhysicalToolIndex::count == 1); },
       [](NoTool){ MMU2::mmu2.unload(); }
     );
+    #if HAS_LOADCELL()
+      buddy::extrusion_calibration::apply_selected_indx_result();
+    #endif
     return true;
 
   #elif HAS_TOOLCHANGER()
