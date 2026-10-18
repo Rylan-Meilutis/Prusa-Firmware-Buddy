@@ -25,6 +25,7 @@
 #include <common/marlin_server.hpp>
 #include <common/marlin_server_types/client_response.hpp>
 #include <common/m976_material.hpp>
+#include <common/m976_diagnostics.hpp>
 #include <common/m976_extrusion_policy.hpp>
 #include <common/m976_temperature_policy.hpp>
 #include <common/m976_dock_fan_policy.hpp>
@@ -45,6 +46,39 @@
 #include <cstring>
 
 namespace {
+buddy::m976_diagnostics::History pa_diagnostics;
+
+void report_pa_diagnostics() {
+    SERIAL_ECHOLNPAIR("PA_CAL_STATUS request_error=", pa_diagnostics.request_error, " retention=until_next_attempt_or_reboot");
+    const bool filter_tool = parser.seenval('T');
+    const bool filter_slot = parser.seenval('L');
+    const int tool = parser.intval('T', -1), slot = parser.intval('L', -1);
+    if ((filter_tool && (tool < 0 || tool >= 8)) || (filter_slot && (slot < 0 || slot >= 8))) {
+        SERIAL_ECHOLN("PA_CAL_STATUS query_error=invalid_tool_or_slot");
+        return;
+    }
+    bool found = false;
+    // The Marlin task stack is small; never put the report buffer on it.
+    static char report[448];
+    for (size_t i = 0; i < pa_diagnostics.records.size(); ++i) {
+        const auto &r = pa_diagnostics.records[i];
+        if ((filter_tool && (r.outcome == std::string_view("never_run") || r.tool != tool)) || (filter_slot && int(i) != slot)) {
+            continue;
+        }
+        found = true;
+        const int reported_tool = r.tool == 255 ? -1 : r.tool;
+        snprintf(report, sizeof(report), "PA_CAL_RESULT tool=%d slot=%u outcome=%s reason=%s result_pa=%.4f candidate_pa=%.4f confidence=%.3f minimum_confidence=%.3f snr=%.3f minimum_snr=%.3f noise=%.3f separation=%.3f cache=%s temperature=%d",
+            reported_tool, unsigned(i), r.outcome, r.reason, double(r.pa), double(r.candidate_pa), double(r.confidence), double(r.minimum_confidence), double(r.snr), double(r.minimum_snr), double(r.noise), double(r.separation), r.cache, int(r.temperature));
+        SERIAL_ECHOLN(report);
+        snprintf(report, sizeof(report), "PA_CAL_EVIDENCE tool=%d slot=%u valid_candidates=%u samples=%u transitions=%u rejected_low_signal=%u rejected_timing=%u capture_overflow=%u",
+            reported_tool, unsigned(i), unsigned(r.valid_candidates), unsigned(r.samples), unsigned(r.transitions), unsigned(r.rejected_low_signal), unsigned(r.rejected_timing), unsigned(r.capture_overflow));
+        SERIAL_ECHOLN(report);
+    }
+    if (!found) {
+        SERIAL_ECHOLN("PA_CAL_STATUS outcome=never_run reason=no_matching_attempt_this_boot");
+    }
+}
+
 constexpr float filament_area = 2.40528f;
 // Keep the search local to the slicer/profile fallback, while permitting
 // legitimate high-PA Bowden and flexible-material profiles.
@@ -445,10 +479,12 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     buddy::pa_cache::path_for(path, slot);
     buddy::pa_cache::Record record {};
     if (!buddy::pa_cache::read_record(path, record)) {
+        pa_diagnostics.records[slot].cache = "missing_or_invalid_record";
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=missing_or_invalid_record");
         return false;
     }
     if (!record.matches(cache_key(tool, slot, temperature))) {
+        pa_diagnostics.records[slot].cache = "key_or_quality_changed";
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=key_or_quality_changed");
         return false;
     }
@@ -460,6 +496,14 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     result.pressure_reference.noise = record.noise;
     buddy::extrusion_calibration::set_job_result(slot, result);
     planner.set_max_volumetric_flow(slot, result.max_flow_mm3_s);
+    auto &diagnostic = pa_diagnostics.begin(tool, slot, temperature);
+    diagnostic.outcome = "cached";
+    diagnostic.reason = "valid_cache";
+    diagnostic.cache = "hit";
+    diagnostic.pa = record.pa;
+    diagnostic.confidence = record.confidence;
+    diagnostic.minimum_confidence = record.key.confidence_floor / 100.0f;
+    diagnostic.minimum_snr = record.key.minimum_snr;
     SERIAL_ECHOLNPAIR("PA_CALIBRATION flash cache hit slot=", slot, " result=", record.pa);
     return true;
 }
@@ -480,16 +524,20 @@ void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::ex
         buddy::pa_cache::path_for(path, slot);
         buddy::pa_cache::path_for(temporary, slot, true);
         if (!buddy::pa_cache::write_record(path, temporary, record)) {
+            pa_diagnostics.records[slot].cache = "write_failed";
             SERIAL_ECHOLN("PA_CALIBRATION cache save unavailable; using job result only");
         } else {
             buddy::pa_cache::Record verified {};
             if (buddy::pa_cache::read_record(path, verified) && verified == record && verified.matches(record.key)) {
+                pa_diagnostics.records[slot].cache = "saved_and_verified";
                 SERIAL_ECHOLNPAIR("PA_CALIBRATION cache saved_and_verified slot=", slot);
             } else {
+                pa_diagnostics.records[slot].cache = "verification_failed";
                 SERIAL_ECHOLNPAIR("PA_CALIBRATION cache verification failed slot=", slot);
             }
         }
     } else {
+        pa_diagnostics.records[slot].cache = "ineligible_result";
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache not_saved slot=", slot, " reason=ineligible_result");
     }
 }
@@ -524,13 +572,19 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         }
         buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
 #endif
+        auto &batch_diagnostic = pa_diagnostics.begin(entry.physical_tool, entry.logical_filament, entry.temperature);
+        batch_diagnostic.reason = "tool_or_mmu_preparation_failed";
+        buddy::m976_diagnostics::Attempt batch_attempt(batch_diagnostic);
 #if ENABLED(PRUSA_MMU2)
         float prepared_anchor_z = NAN;
         bool prepared_anchor = false;
         if (MMU2::mmu2.Enabled()) {
             // Probe while the filament path is empty. This prevents an MMU
             // load or hanging strand from contaminating the local micro-mesh.
-            if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) return false;
+            if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
+                batch_diagnostic.reason = "homing_failed";
+                return false;
+            }
             // Move the sheet away immediately after homing. MMU preparation
             // and all heating must not leave the nozzle at the homed sheet
             // height.
@@ -542,18 +596,27 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             // "cold extrusion prevented" serial flood.
             wait_for_pa_probe_temperature(0);
             const bool path_was_empty = MMU2::mmu2.filament_path_empty_for_pa();
-            if (!path_was_empty) park_before_mmu_unload(entry.logical_filament);
-            if (!MMU2::mmu2.unload_for_pa_calibration()) return false;
+            if (!path_was_empty) {
+                park_before_mmu_unload(entry.logical_filament);
+            }
+            if (!MMU2::mmu2.unload_for_pa_calibration()) {
+                batch_diagnostic.reason = "mmu_unload_failed";
+                return false;
+            }
             // Clean even when the sensor-aware unload was skipped: an empty
             // filament path does not prove that the nozzle exterior is clean.
             clean_before_pa_probe();
             create_hotend_clearance();
             prepared_anchor_z = probe_anchor_slot(entry.logical_filament);
-            if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) return false;
+            if (!HAS_WASTEBIN() && !std::isfinite(prepared_anchor_z)) {
+                batch_diagnostic.reason = "anchor_probe_failed";
+                return false;
+            }
             create_hotend_clearance();
             M109_no_parser(0, { .target_temp = entry.temperature, .wait_heat = true, .wait_heat_or_cool = false });
             if (!buddy::m976_temperature_policy::calibration_temperature_ready(
-                    Temperature::degHotend(0), entry.temperature, thermalManager.extrude_min_temp)) {
+                    Temperature::degHotend(PhysicalToolIndex::from_raw(0)), entry.temperature, thermalManager.extrude_min_temp)) {
+                batch_diagnostic.reason = "calibration_temperature_not_reached";
                 SERIAL_ERROR_MSG("M976 calibration temperature not reached");
                 return false;
             }
@@ -562,23 +625,37 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             // this position rather than entering the normal MMU park path.
             park_for_free_air_calibration(entry.logical_filament, prepared_anchor_z);
             if (!MMU2::mmu2.tool_change_for_pa_calibration(entry.logical_filament)) {
+                batch_diagnostic.reason = "mmu_load_failed";
                 return false;
             }
             planner.synchronize();
             if (MMU2::mmu2.get_current_tool() != entry.logical_filament || MMU2::mmu2.filament_path_empty_for_pa()) {
+                batch_diagnostic.reason = "requested_mmu_filament_not_loaded";
                 SERIAL_ERROR_MSG("M976 requested MMU filament was not loaded");
                 return false;
             }
             prepared_anchor = true;
-        } else if (entry.physical_tool != active_extruder || entry.logical_filament != active_extruder) {
+        } else if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), PhysicalToolIndex::from_raw(entry.physical_tool))
+            || entry.logical_filament != entry.physical_tool) {
+            batch_diagnostic.reason = "requested_tool_not_selected";
             return false;
         }
 #else
-    CalibrationCommandGuard calibration_command_guard;
-        char tool_command[8];
-        snprintf(tool_command, sizeof(tool_command), "T%u", entry.physical_tool);
-        GcodeSuite::process_subcommands_now(tool_command);
-        if (active_extruder != entry.physical_tool) return false;
+        CalibrationCommandGuard calibration_command_guard;
+        const auto requested_tool = PhysicalToolIndex::from_raw(entry.physical_tool);
+        // Batch manifests identify a physical INDX tool.  A textual T command
+        // is a G-code/virtual tool selection and can be remapped while a job is
+        // active, causing the wrong dock to be visited.  Select the validated
+        // physical tool directly and do not cycle a tool that is already held.
+        if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), requested_tool)
+            && !tool_change(requested_tool, tool_return_t::no_return)) {
+            batch_diagnostic.reason = "tool_pickup_failed";
+            return false;
+        }
+        if (!stdext::holds_value(PhysicalToolIndex::currently_selected(), PhysicalToolIndex::from_raw(entry.physical_tool))) {
+            batch_diagnostic.reason = "requested_tool_not_selected";
+            return false;
+        }
 #endif
         char calibration_command[64];
 #if ENABLED(PRUSA_MMU2)
@@ -796,6 +873,12 @@ void park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
 } // namespace
 
 void PrusaGcodeSuite::M976() {
+    // Inspection must not acquire lighting holds, change targets, apply a
+    // cached PA value, open a dialog, or move the machine.
+    if (parser.seen('I')) {
+        report_pa_diagnostics();
+        return;
+    }
 #if HAS_SIDE_LEDS()
     leds::ScopedActiveLightHold active_light_hold;
 #endif
@@ -856,8 +939,10 @@ void PrusaGcodeSuite::M976() {
     // batch/MMU failures and cached results. Nested M976 calls restore to the batch's temporary
     // target; the outer batch guard then restores the targets that existed before the command.
     const bool manual = parser.boolval('M', false);
+    pa_diagnostics.request_error = "none";
     const auto mode = config_store().auto_pa_mode.get();
     if (!manual && mode == 0 && !parser.seen('C')) {
+        pa_diagnostics.request_error = "mode_off";
         SERIAL_ECHOLN("PA_CALIBRATION skipped mode=off");
         return;
     }
@@ -873,6 +958,7 @@ void PrusaGcodeSuite::M976() {
             const int requested_temperature = parser.intval('S', 0);
             std::array<int, buddy::extrusion_calibration::max_logical_filaments> requested_temperatures {};
             if (!parse_manual_temperatures(parser.string_arg, requested_temperatures)) {
+                pa_diagnostics.request_error = "invalid_temperature_list";
                 SERIAL_ERROR_MSG("M976 invalid per-tool temperature list");
                 return;
             }
@@ -898,6 +984,7 @@ void PrusaGcodeSuite::M976() {
             }
         }
         if (!validate_batch(entries, count) || !expand_spool_join_batch(entries, count) || !validate_batch(entries, count)) {
+            pa_diagnostics.request_error = "invalid_batch_or_loaded_material_mismatch";
             SERIAL_ERROR_MSG("M976 invalid batch or loaded-material mismatch");
             return;
         }
@@ -928,6 +1015,7 @@ void PrusaGcodeSuite::M976() {
         // The batch owns presentation of its aggregated result; nested tool
         // calibrations only measure and accumulate their job-scoped results.
         if (!run_batch(entries, count, false, force)) {
+            pa_diagnostics.request_error = "batch_tool_or_calibration_failed";
             SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
             return;
         }
@@ -963,17 +1051,21 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION anchor slot cleared=", slot);
         return;
     }
-    if (tool != active_extruder || slot >= buddy::extrusion_calibration::max_logical_filaments) {
+    if (!selected_tool.has_value() || tool != selected_tool->to_raw() || slot >= buddy::extrusion_calibration::max_logical_filaments) {
+        pa_diagnostics.request_error = "select_requested_tool_or_slot_first";
         SERIAL_ERROR_MSG("M976 select requested tool/slot first");
         return;
     }
-    const float fallback = constrain(parser.floatval('B', buddy::extrusion_calibration::profile_pressure_advance_or(material_fallback(slot))), 0.0f, absolute_pa_max);
-    const float search_default = constrain(material_fallback(slot), 0.0f, absolute_pa_max);
+    const float fallback = std::clamp(parser.floatval('B', buddy::extrusion_calibration::profile_pressure_advance_or(material_fallback(slot))), 0.0f, absolute_pa_max);
+    const float search_default = std::clamp(material_fallback(slot), 0.0f, absolute_pa_max);
+    auto &diagnostic = pa_diagnostics.begin(tool, slot, 0);
+    buddy::m976_diagnostics::Attempt attempt(diagnostic);
     marlin_server::FSM_Holder pa_fsm { PhasesPressureAdvanceCalibration::heating, { 2, static_cast<uint8_t>(slot + 1) } };
     int16_t target_temperature = 0;
     if (parser.seenval('S')) {
         target_temperature = static_cast<int16_t>(parser.value_celsius());
         if (target_temperature < thermalManager.extrude_min_temp) {
+            diagnostic.reason = "temperature_below_extrusion_minimum";
             SERIAL_ERROR_MSG("M976 temperature below extrusion minimum");
             return;
         }
@@ -989,7 +1081,13 @@ void PrusaGcodeSuite::M976() {
     #else
     const auto *cached = force ? nullptr : buddy::extrusion_calibration::job_result(slot);
     #endif
+    diagnostic.temperature = target_temperature;
     if (cached) {
+        diagnostic.outcome = "cached";
+        diagnostic.reason = "valid_cache";
+        diagnostic.cache = "hit";
+        diagnostic.pa = cached->pressure_advance;
+        diagnostic.confidence = cached->confidence;
         pressure_advance::set_axis_e_config({ cached->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(active_extruder, cached->max_flow_mm3_s);
         buddy::extrusion_calibration::configure_pressure_monitor(cached->pressure_reference, 0.8f, 8.0f);
@@ -1001,6 +1099,7 @@ void PrusaGcodeSuite::M976() {
     }
 #if !HAS_WASTEBIN()
     if (buddy::extrusion_calibration::occupied_anchor_mask() & (1u << slot)) {
+        diagnostic.reason = "anchor_occupied";
         SERIAL_ERROR_MSG("M976 anchor slot occupied; remove debris and run M976 C L<slot>");
         return;
     }
@@ -1015,6 +1114,7 @@ void PrusaGcodeSuite::M976() {
         // MMU batches arrive here with P/Z after probing while unloaded.
         pa_fsm_change(PhasesPressureAdvanceCalibration::homing, 8, slot);
         if (!all_axes_homed() && !GcodeSuite::G28_no_parser(true, true, true)) {
+            diagnostic.reason = "homing_failed";
             SERIAL_ERROR_MSG("M976 homing failed");
             return;
         }
@@ -1022,6 +1122,9 @@ void PrusaGcodeSuite::M976() {
         // Begin heating only after the bed/nozzle separation is established.
         begin_pa_probe_preheat(tool);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::homing)) {
+            diagnostic.outcome = "aborted";
+            diagnostic.reason = "user_abort_homing";
+            diagnostic.pa = fallback;
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
             planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
@@ -1033,6 +1136,9 @@ void PrusaGcodeSuite::M976() {
         pa_fsm_change(PhasesPressureAdvanceCalibration::probing, 16, slot);
         anchor_z = probe_anchor_slot(slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::probing)) {
+            diagnostic.outcome = "aborted";
+            diagnostic.reason = "user_abort_probing";
+            diagnostic.pa = fallback;
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
             planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
@@ -1041,6 +1147,7 @@ void PrusaGcodeSuite::M976() {
         create_hotend_clearance();
     }
     if (!HAS_WASTEBIN() && !std::isfinite(anchor_z)) {
+        diagnostic.reason = "anchor_probe_failed";
         SERIAL_ERROR_MSG("M976 anchor micro-mesh failed");
         return;
     }
@@ -1052,17 +1159,25 @@ void PrusaGcodeSuite::M976() {
             .wait_heat_or_cool = false,
         });
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::heating)) {
+            diagnostic.outcome = "aborted";
+            diagnostic.reason = "user_abort_heating";
+            diagnostic.pa = fallback;
             pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
             planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
             pa_fsm_change(PhasesPressureAdvanceCalibration::failed, 100, slot);
             return;
         }
     }
-    if (thermalManager.tooColdToExtrude(active_extruder)) {
+    if (thermalManager.tooColdToExtrude(*selected_tool)) {
+        diagnostic.reason = "hotend_too_cold";
         SERIAL_ERROR_MSG("M976 hotend too cold");
         return;
     }
-    park_for_free_air_calibration(slot, anchor_z);
+    if (!park_for_free_air_calibration(slot, anchor_z)) {
+        diagnostic.reason = "unsafe_purge_position";
+        SERIAL_ERROR_MSG("M976 could not reach safe calibration purge position");
+        return;
+    }
     BlockEStallDetection block_legacy_e_stall;
     buddy::extrusion_calibration::suspend_pressure_monitor(true);
     auto high_precision = Loadcell::HighPrecisionEnabler(loadcell, !loadcell.IsHighPrecisionEnabled());
@@ -1073,6 +1188,10 @@ void PrusaGcodeSuite::M976() {
     const float minimum_result_confidence = constrain(config_store().pa_confidence_floor_percent.get() / 100.0f, 0.50f, 0.95f);
     const float minimum_snr = constrain(config_store().pa_minimum_snr.get(), 3.0f, 20.0f);
     const uint8_t maximum_confidence_retries = std::min<uint8_t>(config_store().pa_confidence_retries.get(), 10);
+    diagnostic.reason = "measurement_interrupted";
+    diagnostic.minimum_confidence = minimum_result_confidence;
+    diagnostic.minimum_snr = minimum_snr;
+    diagnostic.noise = idle_noise;
     float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
     candidate_observation_count = 0;
@@ -1083,14 +1202,22 @@ void PrusaGcodeSuite::M976() {
         }
     };
     bool aborted = false;
+    const char *abort_reason = "measurement_interrupted";
     const auto measure = [&](const float candidate, const uint8_t progress) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, progress, slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) {
             aborted = true;
+            abort_reason = "user_abort_measuring";
             return buddy::extrusion_calibration::Score {};
         }
-        const float bounded_candidate = constrain(candidate, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection);
+        const float bounded_candidate = std::clamp(candidate, 0.0f, absolute_pa_max);
+        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection, slot);
+        diagnostic.valid_candidates += score.valid;
+        diagnostic.samples = score.sample_count;
+        diagnostic.transitions = score.transitions_used;
+        diagnostic.rejected_low_signal = score.rejected_low_signal;
+        diagnostic.rejected_timing = score.rejected_timing;
+        diagnostic.capture_overflow = score.capture_overflow;
         report_measurement_debug(bounded_candidate, score, idle_noise);
         record_observation(bounded_candidate, score);
         if (score.valid && score.transient < best_cost) {
@@ -1169,9 +1296,13 @@ void PrusaGcodeSuite::M976() {
          && (result_confidence(best_score, idle_noise, selection_separation()) < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr);
          ++retry) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
-            static_cast<uint8_t>(82 + (retry * 5) / std::max<uint8_t>(maximum_confidence_retries, 1)), slot);
-        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) { aborted = true; break; }
-        const auto score = run_bursts(best_pa, indx_cycles_since_ejection);
+            static_cast<uint8_t>(82 + (retry * 5) / maximum_confidence_retries), slot);
+        if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) {
+            aborted = true;
+            abort_reason = "user_abort_measuring";
+            break;
+        }
+        const auto score = run_bursts(best_pa, indx_cycles_since_ejection, slot);
         report_measurement_debug(best_pa, score, idle_noise);
         record_observation(best_pa, score);
         if (score.valid && score.transient < best_cost) {
@@ -1185,11 +1316,18 @@ void PrusaGcodeSuite::M976() {
     // fifth cycle, its periodic ejection already is the final ejection.
     if (!eject_accumulated_indx_pellet(indx_cycles_since_ejection)) {
         aborted = true;
+        abort_reason = "pellet_ejection_failed";
     }
     #endif
     pa_fsm_change(PhasesPressureAdvanceCalibration::computing, 88, slot);
-    if (pa_abort_requested(PhasesPressureAdvanceCalibration::computing)) aborted = true;
+    if (pa_abort_requested(PhasesPressureAdvanceCalibration::computing)) {
+        aborted = true;
+        abort_reason = "user_abort_computing";
+    }
     if (aborted) {
+        diagnostic.outcome = "aborted";
+        diagnostic.reason = abort_reason;
+        diagnostic.pa = fallback;
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(active_extruder, material_flow_limit(slot));
         pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);
@@ -1201,11 +1339,22 @@ void PrusaGcodeSuite::M976() {
     }
     const float separation_quality = selection_separation();
     const float confidence = result_confidence(best_score, idle_noise, separation_quality);
+    diagnostic.candidate_pa = best_pa;
+    diagnostic.confidence = confidence;
+    diagnostic.snr = result_snr(best_score, idle_noise);
+    diagnostic.separation = separation_quality;
     if (config_store().pa_calibration_debug_output.get()) {
         SERIAL_ECHOLNPAIR("PA_CAL_SELECTION best=", best_pa, " cost=", best_cost,
             " separation=", separation_quality, " confidence=", confidence);
     }
     if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
+        diagnostic.outcome = "fallback";
+        diagnostic.pa = fallback;
+        diagnostic.cache = "not_saved";
+        diagnostic.reason = !std::isfinite(best_cost)                                ? "no_valid_measurements"
+            : confidence < minimum_result_confidence && diagnostic.snr < minimum_snr ? "low_confidence_and_snr"
+            : confidence < minimum_result_confidence                                 ? "low_confidence"
+                                                                                     : "low_snr";
         const float max_flow = material_flow_limit(slot);
         pressure_advance::set_axis_e_config({ fallback, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(active_extruder, max_flow);
@@ -1231,6 +1380,9 @@ void PrusaGcodeSuite::M976() {
 
     const float max_flow = material_flow_limit(slot);
     const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score, flexible_calibration(slot) };
+    diagnostic.outcome = "success";
+    diagnostic.reason = "accepted";
+    diagnostic.pa = best_pa;
     #if HAS_INDX()
     save_cache(tool, slot, target_temperature, result);
     #endif
