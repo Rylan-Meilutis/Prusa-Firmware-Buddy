@@ -346,10 +346,6 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             lock_buttons_applied = false;
             update_action_buttons(state);
         }
-        if (!printer_lock::locked() && is_print_result(state)) {
-            update_action_buttons(state);
-        }
-
         update_progress();
         update_status();
         if (is_print_result(state)) {
@@ -501,7 +497,13 @@ void screen_printing_serial_data_t::unconditionalDraw() {
 
 void screen_printing_serial_data_t::update_action_buttons(marlin_server::State state) {
     SetButtonIconAndLabel(BtnSocket::Left, BtnRes::Settings, LabelRes::Settings);
-    SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
+    // Set the final action directly. Result-page refreshes must not alternate
+    // Stop -> Continue before every draw, even while filtration is active.
+    if (is_print_result(state)) {
+        SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
+    } else {
+        SetButtonIconAndLabel(BtnSocket::Right, BtnRes::Disconnect, LabelRes::Stop);
+    }
     EnableButton(BtnSocket::Left);
     EnableButton(BtnSocket::Right);
 
@@ -512,7 +514,6 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
         // actions identical whether or not a filter cycle is running.
         EnableButton(BtnSocket::Middle);
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Reprint, LabelRes::Reprint);
-        SetButtonIconAndLabel(BtnSocket::Right, BtnRes::SetReady, LabelRes::Continue);
         break;
     case marlin_server::State::Paused:
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resume);
