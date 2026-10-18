@@ -42,8 +42,9 @@ void set_reflash_bbf_sfn(const char *sfn);
 /// Used when persisting the accompanying durable marker fails.
 void clear_reflash_bbf_sfn();
 
-/// True only while the retained, one-shot bootloader request selects this
-/// exact short filename. Directory contents are intentionally not consulted.
+/// True only while this application boot has armed a one-shot bootloader
+/// request for this exact filename. A filename retained from a preceding boot
+/// is not a pending handoff. Directory contents are intentionally not consulted.
 bool is_reflash_bbf_sfn(const char *sfn);
 
 bool has_apendix();

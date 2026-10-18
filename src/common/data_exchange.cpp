@@ -40,6 +40,11 @@ struct __attribute__((packed)) DataExchange {
 DataExchange &ram_data_exchange = *(DataExchange *)SRAM1_BASE;
 static_assert(sizeof(DataExchange) == 100);
 
+// Unlike the bootloader exchange RAM, normal BSS is reset on each application
+// boot. A retained filename describes the preceding handoff, not a new request
+// that must keep the cleanup marker protected in this application instance.
+static bool reflash_requested_this_boot = false;
+
 #if !BOOTLOADER()
 
 /**
@@ -177,15 +182,17 @@ bool is_bootloader_valid() {
 void set_reflash_bbf_sfn(const char *sfn) {
     ram_data_exchange.fw_update_flag = FwAutoUpdate::specified;
     strlcpy((char *)ram_data_exchange.bbf_sfn, sfn, sizeof(DataExchange::bbf_sfn));
+    reflash_requested_this_boot = true;
 }
 
 void clear_reflash_bbf_sfn() {
+    reflash_requested_this_boot = false;
     ram_data_exchange.fw_update_flag = FwAutoUpdate::off;
     ram_data_exchange.bbf_sfn[0] = '\0';
 }
 
 bool is_reflash_bbf_sfn(const char *sfn) {
-    return sfn && get_auto_update_flag() == FwAutoUpdate::specified
+    return reflash_requested_this_boot && sfn && get_auto_update_flag() == FwAutoUpdate::specified
         && strncmp(ram_data_exchange.bbf_sfn, sfn, sizeof(ram_data_exchange.bbf_sfn)) == 0;
 }
 
