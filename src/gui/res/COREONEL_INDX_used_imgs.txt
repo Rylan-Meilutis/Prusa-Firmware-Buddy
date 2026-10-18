@@ -28,6 +28,7 @@ disconnect_80x80.png
 door_sensor_calibration_170x170.png
 enclosure_16x16.png
 error_16x16.png
+error_48x48.png
 error_white_48x48.png
 exposure_times_48x48.png
 fan_16x16.png
