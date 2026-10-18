@@ -31,7 +31,7 @@
 #include <marlin_server_types/marlin_server_state.h>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
-    #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch.hpp>
 #else
     #include <catch2/catch.hpp>
 #endif
@@ -39,7 +39,7 @@
 TEST_CASE("Streamed pause recovery holds host FIFO until tool restoration completes", "[rme][serial][regression]") {
     using marlin_server::State;
     for (const auto state : { State::Paused, State::Pausing_ParkHead, State::Resuming_BufferData,
-             State::Resuming_Begin, State::Resuming_Reheating, State::Resuming_ExecutingGCodeInterrupt,
+             State::Resuming_Begin, State::Resuming_Reheating,
              State::Resuming_UnparkHead_XY, State::Resuming_UnparkHead_ZE, State::MediaErrorRecovery_BufferData }) {
         CHECK(marlin_server::serial_print_fifo_held(true, state));
         CHECK_FALSE(marlin_server::serial_print_fifo_held(false, state));

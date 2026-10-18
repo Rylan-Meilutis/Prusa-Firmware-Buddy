@@ -2,7 +2,7 @@
 #include <resources/tarball_internal.hpp>
 
 #include <array>
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch.hpp>
 #include <cstring>
 #include <string>
 #include <string_view>

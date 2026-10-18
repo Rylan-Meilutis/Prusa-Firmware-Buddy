@@ -77,7 +77,7 @@ inline bool is_resuming_state(State state) {
 }
 
 inline bool serial_print_fifo_held(bool serial_job, State state) {
-    return serial_job && (state == State::Paused || state == State::Pausing_ParkHead || state == State::Resuming_ExecutingGCodeInterrupt || is_resuming_state(state));
+    return serial_job && (state == State::Paused || state == State::Pausing_ParkHead || is_resuming_state(state));
 }
 
 inline bool is_extended_paused_state(State state) {

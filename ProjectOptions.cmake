@@ -462,6 +462,11 @@ set_feature_for_printers(
   "COREONEL"
   )
 set_feature_for_printers(HAS_MMU2 "MK4" "MK3.5" "COREONE" "COREONEL")
+set_feature_for_printers_master_board(HAS_TOOL_MAPPING "MK4" "MK3.5" "COREONE" "COREONEL" "XL" "XL_DEV_KIT")
+set_feature_for_printers_master_board(HAS_SPOOL_JOIN "MK4" "MK3.5" "COREONE" "COREONEL" "XL" "XL_DEV_KIT")
+# These newer hardware-only options are explicitly unavailable on this base.
+set_feature_for_printers_master_board(HAS_INDX)
+set_feature_for_printers_master_board(HAS_WASTEBIN_FILL_TRACKING)
 set_feature_for_printers(HAS_CONFIG_STORE_WO_BACKEND "XL_DEV_KIT")
 set_feature_for_printers_master_board(HAS_CHAMBER_API "XL" "COREONE" "COREONEL")
 set_feature_for_printers_master_board(HAS_CHAMBER_FILTRATION_API "COREONE" "COREONEL" "XL")

@@ -1,4 +1,4 @@
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch.hpp>
 #include <feature/chamber/heating_policy.hpp>
 
 using buddy::chamber_heating::assisted_output;
