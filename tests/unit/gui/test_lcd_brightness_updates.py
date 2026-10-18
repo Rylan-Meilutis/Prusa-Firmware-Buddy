@@ -11,6 +11,82 @@ ROOT = Path(__file__).resolve().parents[3]
 class LcdBrightnessUpdates(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("c++"), "C++ compiler required")
+    def test_clock_and_serial_result_refresh_only_changed_widgets(self):
+        header = (ROOT / "src/gui/window_header.cpp").read_text()
+        clock = "void window_header_t::updateTime()" + header.split(
+            "void window_header_t::updateTime()", 1)[1].split(
+                "void window_header_t::update_bed_info()", 1)[0]
+        source = (ROOT / "src/gui/screen_printing_serial.cpp").read_text()
+        actions = "void screen_printing_serial_data_t::update_action_buttons" + source.split(
+            "void screen_printing_serial_data_t::update_action_buttons",
+            1)[1].split(
+                "void screen_printing_serial_data_t::update_progress()", 1)[0]
+        loop = source.split("case GUI_event_t::LOOP:",
+                            1)[1].split("case GUI_event_t::HELD_RELEASED:",
+                                        1)[0]
+        self.assertEqual(loop.count("update_action_buttons(state)"), 1)
+        self.assertIn("else if (lock_buttons_applied)", loop)
+        code = r"""
+#include <cassert>
+#include <array>
+#define HAS_MINI_DISPLAY() 0
+namespace time_tools {
+ bool changed=false;
+ bool update_time() { bool v=changed; changed=false; return v; }
+}
+struct Widget { int invalidations=0; void Invalidate() { ++invalidations; } };
+struct window_header_t {
+ Widget time_val; int full_clears=0;
+ void Invalidate() { ++full_clears; }
+ void updateTime();
+};
+namespace marlin_server { enum class State {Finished, Aborted, Paused, Printing, Idle}; }
+bool is_print_result(marlin_server::State state) {
+ return state==marlin_server::State::Finished || state==marlin_server::State::Aborted;
+}
+enum class BtnSocket { Left, Middle, Right };
+enum class BtnRes {Settings, Disconnect, SetReady, Reprint, Resume, Pause};
+enum class LabelRes {Settings, Stop, Continue, Reprint, Resume, Pause};
+struct screen_printing_serial_data_t {
+ std::array<int,3> icons{-1,-1,-1}, labels{-1,-1,-1}; int changes=0;
+ void SetButtonIconAndLabel(BtnSocket s, BtnRes i, LabelRes l) {
+  auto n=int(s);
+  if (icons[n]!=int(i) || labels[n]!=int(l)) ++changes;
+  icons[n]=int(i); labels[n]=int(l);
+ }
+ void EnableButton(BtnSocket) {} void DisableButton(BtnSocket) {}
+ void update_action_buttons(marlin_server::State);
+};
+"""
+        main = r"""
+int main() {
+ window_header_t header;
+ time_tools::changed=true;
+ for (int i=0; i<1000; ++i) header.updateTime();
+ assert(header.full_clears==0 && header.time_val.invalidations==1);
+ for (auto state : {marlin_server::State::Finished, marlin_server::State::Aborted}) {
+  screen_printing_serial_data_t screen;
+  screen.update_action_buttons(state);
+  int changes=screen.changes;
+  for (int i=0; i<1000; ++i) screen.update_action_buttons(state);
+  assert(screen.changes==changes);
+  assert(screen.labels[2]==int(LabelRes::Continue));
+  screen.update_action_buttons(marlin_server::State::Printing);
+  assert(screen.labels[2]==int(LabelRes::Stop));
+ }
+}
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            cpp, binary = Path(directory) / "test.cpp", Path(
+                directory) / "test"
+            cpp.write_text(code + clock + actions + main)
+            subprocess.run(["c++", "-std=c++17",
+                            str(cpp), "-o",
+                            str(binary)],
+                           check=True)
+            subprocess.run([str(binary)], check=True)
+
+    @unittest.skipUnless(shutil.which("c++"), "C++ compiler required")
     def test_unchanged_finished_header_does_not_invalidate(self):
         text = (ROOT / "src/gui/window_header.cpp").read_text()
         setter = "void window_header_t::SetText" + text.split(
@@ -24,8 +100,9 @@ struct string_view_utf8 {
 };
 struct Label {
  string_view_utf8 value { nullptr };
+ int invalidations = 0;
  auto &GetText() { return value; }
- void SetText(const string_view_utf8 &v) { value = v; }
+ void SetText(const string_view_utf8 &v) { value = v; ++invalidations; }
 };
 struct window_header_t {
  Label label; int invalidations = 0;
@@ -38,9 +115,9 @@ int main() {
  window_header_t header;
  const string_view_utf8 finished { "PRINT FINISHED" }, canceled { "PRINT CANCELED" };
  for (int i=0; i<1000; ++i) header.SetText(finished);
- assert(header.invalidations == 1);
+ assert(header.invalidations == 0 && header.label.invalidations == 1);
  for (int i=0; i<1000; ++i) header.SetText(canceled);
- assert(header.invalidations == 2);
+ assert(header.invalidations == 0 && header.label.invalidations == 2);
 }
 """
         with tempfile.TemporaryDirectory() as directory:
