@@ -257,6 +257,9 @@ void SideStripHandler::update() {
         const bool machine_activity = machine_operation_holds_active(print_active, terminal_print_state, host_idle_override, operation_hold_count > 0);
 
         if (print_active && !print_override_session_active) {
+            // Idle Locked/Timed selections must not survive a print and
+            // override the normal post-print activity countdown.
+            chamber_mode_state.mode = -1;
             print_brightness_overridden = false;
             print_screen_brightness_overridden = false;
             screen_brightness_wake_until_ms = 0;
@@ -302,7 +305,7 @@ void SideStripHandler::update() {
                 change_state(SideStripState::active);
             } else if (startup_activity_active) {
                 change_state(SideStripState::active);
-            } else if (guided_activity) {
+            } else if (guided_activity || machine_activity) {
                 active_timestamp_ms = time_ms;
                 change_state(SideStripState::active);
             } else if (door_open_for_leds && door_holds_active) {
@@ -366,6 +369,18 @@ void SideStripHandler::set_chamber_mode(const uint8_t mode) {
 void SideStripHandler::set_screen_on(const bool on) {
     std::lock_guard lock(mutex);
     screen_forced_off = !on;
+    if (print_active_for_leds()) {
+        // On resumes the configured print profile; Off is temporary darkness.
+        // Neither selection may pin the post-print screen awake.
+        print_screen_brightness_override = 0;
+        print_screen_brightness_overridden = !on;
+        screen_brightness_wake_until_ms = 0;
+        screen_brightness_wake_from_print_override = false;
+        return;
+    }
+    if (on) {
+        restart_idle_countdown(ticks_ms());
+    }
     screen_brightness_wake_until_ms = on ? ticks_ms() + screen_brightness_wake_ms : 0;
     screen_brightness_wake_percent = active_screen_brightness();
     screen_brightness_wake_from_print_override = false;
@@ -782,7 +797,7 @@ uint8_t SideStripHandler::current_brightness() const {
 
 uint8_t SideStripHandler::current_chamber_brightness() const {
     bool external_on = false;
-#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY() && !XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
+#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     external_on = external_light_bar::is_on();
 #endif
     return rme_light_mode::reported_brightness(current_brightness(), external_on);

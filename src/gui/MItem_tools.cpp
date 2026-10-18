@@ -308,10 +308,10 @@ void MI_SAVE_DUMP::click(IWindowMenu & /*window_menu*/) {
     }
 
     bool save_result = false;
-    window_dlg_wait_t::wait_until(_("A crash dump is being saved."), [&] {
+    gui_dlg_wait([&] {
         save_result = crash_dump::save_dump_to_usb("/usb/dump.bin");
-        return true;
-    });
+        Screens::Access()->Close();
+    }, _("A crash dump is being saved."));
     transfer_slot->done(save_result ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
 
     if (save_result) {

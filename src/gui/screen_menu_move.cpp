@@ -163,7 +163,7 @@ void ScreenMenuMove::plan_moves() {
     if (homed_axes & 4) {
         gcode.append_printf(" Z%f", (double)target_pos.z);
     }
-    if (active_extruder < EXTRUDERS) {
+    if (marlin_vars().active_extruder.get() < EXTRUDERS) {
         gcode.append_printf(" E%f", (double)target_pos.e);
     }
     if (marlin_client::gcode_try(gcode.str()) != marlin_client::GcodeTryResult::Submitted) {
