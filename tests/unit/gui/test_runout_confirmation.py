@@ -10,6 +10,21 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class RunoutConfirmation(unittest.TestCase):
 
+    def test_fsm_holder_preserves_specific_fault_mode(self):
+        text = (ROOT / "src/marlin_stubs/pause/pause.cpp").read_text()
+        getter = text.split("LoadUnloadMode Pause::get_load_unload_mode()",
+                            1)[1].split("bool Pause::should_park", 1)[0]
+        self.assertIn("get_mode().value_or(LoadUnloadMode::FilamentStuck)",
+                      getter)
+
+    def test_indx_has_recovery_error_descriptor(self):
+        text = (
+            ROOT /
+            "lib/Prusa-Error-Codes/yaml/buddy-error-codes.yaml").read_text()
+        error = text.split('code: "XX101"', 1)[1].split('code:', 1)[0]
+        self.assertIn("COREONE_INDX", error)
+        self.assertIn("COREONEL_INDX", error)
+
     def test_indx_without_extruder_sensor_keeps_all_prompt_layers(self):
         paths = [
             "src/marlin_stubs/include/pause_stubbed.hpp",

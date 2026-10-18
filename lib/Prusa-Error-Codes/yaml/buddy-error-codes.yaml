@@ -23,7 +23,7 @@
 
 Errors:
   - code: "XX101"
-    printers: [MK4, COREONE, COREONEL, iX]
+    printers: [MK4, COREONE, COREONE_INDX, COREONEL, COREONEL_INDX, iX]
     title: "STUCK FILAMENT DETECTED"
     text: "The filament seems to be stuck, please unload it from nextruder and load it again."
     action: [Unload]
