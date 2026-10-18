@@ -5,7 +5,7 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
-### Pending update — not yet published
+### Spool-mapping correction — 2026-10-17
 
 - Preserve complete per-tool loaded filament parameters before a shared user
   preset is replaced during spool synchronization. Updating one slot no longer
@@ -15,6 +15,10 @@ This replaces 6.10.1-RME for this line; older releases remain available.
   an eighth distinct spool with per-tool storage instead of dropping it.
 - Regression checks include the reproduced T7 shared-preset case. Existing
   incorrect mappings require explicit correction; no physical material is guessed.
+- Matching RME plugin: 0.1.0b125. Validation: 302 Python tests (four skipped),
+  ten JavaScript UI suites, 69 native protocol tests, and 51 GUI source checks
+  per maintained firmware branch (one skipped). Physical spool mapping requires
+  verification on the updated printer.
 
 ### Updated release — 2026-10-17
 
