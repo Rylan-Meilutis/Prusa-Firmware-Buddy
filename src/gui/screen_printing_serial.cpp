@@ -544,7 +544,6 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
         break;
     case marlin_server::State::Resuming_Begin:
     case marlin_server::State::Resuming_BufferData:
-    case marlin_server::State::Resuming_ExecutingGCodeInterrupt:
     case marlin_server::State::Resuming_UnparkHead_XY:
     case marlin_server::State::Resuming_UnparkHead_ZE:
         SetButtonIconAndLabel(BtnSocket::Middle, BtnRes::Resume, LabelRes::Resuming);

@@ -64,7 +64,7 @@ class LiveControls(unittest.TestCase):
             "src/gui/menu_item/specific/menu_items_chamber.cpp").read_text()
         self.assertIn("request_target_temperature", source)
         self.assertNotIn("marlin_client::inject", source)
-        chamber = (ROOT / "src/feature/chamber/chamber.cpp").read_text()
+        chamber = (ROOT / "src/common/feature/chamber/chamber.cpp").read_text()
         self.assertIn("pending_target_.exchange(-1)", chamber)
         self.assertIn("pending_target_.store(-1)", chamber)
 

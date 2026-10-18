@@ -551,7 +551,8 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
             return false;
         }
 #else
-        if (physical_mask & (1u << entry.physical_tool)) {
+        if (entry.logical_filament != entry.physical_tool || !is_tool_enabled(entry.physical_tool)
+            || (physical_mask & (1u << entry.physical_tool))) {
             return false;
         }
 #endif
@@ -634,8 +635,8 @@ void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot) {
     SERIAL_ECHOLNPAIR("PA_CAL_CACHE_POLICY mode=", config_store().auto_pa_mode.get(), " manual_or_F1_bypasses_cache=1");
     static char report[448];
     for (const auto logical : VirtualToolIndex::all().skip_all_disabled()) {
-        const auto i = logical;
-        const auto physical = logical;
+        const auto i = logical.to_raw();
+        const auto physical = logical.to_physical().to_raw();
         if ((filter_tool && physical != tool) || (filter_slot && i != slot)) {
             continue;
         }

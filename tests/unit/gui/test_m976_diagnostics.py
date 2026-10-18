@@ -19,7 +19,7 @@ class AutoPaDiagnostics(unittest.TestCase):
         self.assertLess(command.index("report_pa_diagnostics();"),
                         command.index("configure_confidence"))
         reset = (ROOT /
-                 "src/feature/extrusion_calibration.cpp").read_text().split(
+                 "src/common/feature/extrusion_calibration.cpp").read_text().split(
                      "void reset_job_results()", 1)[1].split("\n}", 1)[0]
         self.assertNotIn("pa_diagnostics", reset)
 

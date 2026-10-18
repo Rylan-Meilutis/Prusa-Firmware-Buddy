@@ -26,7 +26,9 @@ class MmuTemperaturePlan(unittest.TestCase):
 #include <cassert>
 #include <cstring>
 #define ENABLED(x) (x)
-#define EXTRUDERS 9
+#define EXTRUDERS (PRUSA_MMU2 ? 5 : 8)
+#define HOTENDS (PRUSA_MMU2 ? 1 : 8)
+bool is_tool_enabled(uint8_t tool) { return tool < HOTENDS; }
 #define HEATER_0_MAXTEMP 330
 #define HEATER_MAXTEMP_SAFETY_MARGIN 15
 namespace buddy::extrusion_calibration { constexpr size_t max_logical_filaments=8; }
@@ -97,10 +99,12 @@ int main() {
         function = source.split(
             "void buddy::extrusion_calibration::apply_print_temperature(",
             1)[1].split("\n}\n", 1)[0]
-        self.assertLess(function.index("currently_selected_opt() != logical"),
+        self.assertLess(function.index("physical_tool != selected_physical"),
                         function.index("request_job_temperature"))
-        mmu_change = source.split("#if HAS_MMU2()\n    match(new_tool,",
-                                  1)[1].split("#elif HAS_TOOLCHANGER()", 1)[0]
+        self.assertIn("const auto slot = pa_loaded_slot();", function)
+        loaded = source.split("static uint8_t pa_loaded_slot()", 1)[1].split("\n}", 1)[0]
+        self.assertIn("MMU2::mmu2.get_current_tool()", loaded)
+        mmu_change = source.split("MMU2::mmu2.tool_change(new_tool);", 1)[1].split("#elif HAS_TOOLCHANGER()", 1)[0]
         self.assertIn("apply_selected_indx_result", mmu_change)
 
 

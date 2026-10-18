@@ -87,7 +87,7 @@ class FilamentWorkflowSource(unittest.TestCase):
         self.assertIn('MI_CHAMBER_FILTRATION,', source)
 
     def test_backend_disable_and_snapshot_restore_close_filter_workflow(self):
-        source = read('src/feature/chamber_filtration/chamber_filtration.cpp')
+        source = read('src/common/feature/chamber_filtration/chamber_filtration.cpp')
         backend = source.split(
             'void ChamberFiltration::set_backend(',
             1)[1].split('const char *ChamberFiltration::backend_name(', 1)[0]

@@ -75,7 +75,7 @@ class ColorDisplayActivitySource(unittest.TestCase):
 
     def test_activity_cycle_has_full_duration_and_can_be_stopped_manually(
             self):
-        source = read('src/feature/chamber_filtration/chamber_filtration.cpp')
+        source = read('src/common/feature/chamber_filtration/chamber_filtration.cpp')
         setter = source.split(
             'void ChamberFiltration::set_filament_activity(',
             1)[1].split('bool ChamberFiltration::door_prompt_allowed()', 1)[0]

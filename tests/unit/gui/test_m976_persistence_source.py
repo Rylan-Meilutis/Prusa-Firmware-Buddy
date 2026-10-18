@@ -18,7 +18,7 @@ class CalibrationPersistence(unittest.TestCase):
         self.assertNotIn("pa_cache::invalidate", source)
 
     def test_job_reset_only_clears_ram(self):
-        source = (ROOT / "src/feature/extrusion_calibration.cpp").read_text()
+        source = (ROOT / "src/common/feature/extrusion_calibration.cpp").read_text()
         reset = source.split("void reset_job_results()")[1].split("\n}")[0]
         self.assertNotIn("invalidate", reset)
         self.assertNotIn("unlink", reset)
