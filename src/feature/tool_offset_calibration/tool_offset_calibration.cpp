@@ -14,6 +14,7 @@
 #include <Marlin/src/module/planner.h>
 #include <Marlin/src/module/tool_change.h>
 #include <Marlin/src/module/probe.h>
+#include <Marlin/src/feature/prusa/e-stall_detector.h>
 #include <Marlin/src/module/prusa/toolchanger.h>
 #include <marlin_server.hpp>
 #include <common/printer_model.hpp>
@@ -32,6 +33,7 @@
 #include <feature/print_status_message/print_status_message_guard.hpp>
 #include <feature/contactless_offset/contactless_offset.hpp>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
+#include <feature/extrusion_calibration.hpp>
 #include <utils/variant_utils.hpp>
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
@@ -128,14 +130,28 @@ private:
 
 /// Get nozzle temperatures for a physical tool from its loaded filament.
 /// Uses tool mapping to find the gcode tool, then looks up the filament type.
-ToolTemperatures get_tool_temperatures(PhysicalToolIndex physical_tool) {
+ToolTemperatures get_tool_temperatures(PhysicalToolIndex physical_tool, [[maybe_unused]] tool_offset_calibration::Context context = tool_offset_calibration::Context::Calibration) {
     const auto virtual_tool = stdext::get_optional<VirtualToolIndex>(physical_tool.currently_selected_virtual_tool());
     const FilamentType filament = virtual_tool.has_value() ? FilamentType::for_tool_heuristic(*virtual_tool) : FilamentType::none;
 
     if (filament != FilamentType::none) {
         const auto params = filament.parameters();
 #if HAS_NOZZLE_CLEANER()
-        return { params.nozzle_temperature, std::min<int16_t>(params.nozzle_preheat_temperature, DEFAULT_Z_PROBING_TEMP), DEFAULT_XY_PROBING_TEMP };
+        int16_t cleaning = params.nozzle_temperature;
+    #if HAS_INDX()
+        // Host-created presets can carry a generic 215 C default even when
+        // M976 just measured this HIPS slot successfully at 250 C. Reuse the
+        // accepted job temperature; do not rewrite the stored material preset
+        // or infer it from the cooled/restored hotend target.
+        if (context == tool_offset_calibration::Context::Print && virtual_tool.has_value()) {
+            if (const auto *result = buddy::extrusion_calibration::job_result(virtual_tool->to_raw())) {
+                cleaning = std::max(cleaning, result->calibration_temperature);
+            }
+        }
+    #else
+        (void)context;
+    #endif
+        return { cleaning, std::min<int16_t>(params.nozzle_preheat_temperature, DEFAULT_Z_PROBING_TEMP), DEFAULT_XY_PROBING_TEMP };
 #elif HAS_NOZZLE_CLEANER_LITE()
         // The lite cleaner cleans at the preheat temperature and rests on the
         // touchpoint until the cool-down temperature; Z probing then runs at
@@ -197,7 +213,7 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
     }
 #endif
 
-    const ToolTemperatures temps = get_tool_temperatures(tool);
+    const ToolTemperatures temps = get_tool_temperatures(tool, context);
 
 #if HAS_NOZZLE_CLEANER()
     if (context == tool_offset_calibration::Context::Print) {
@@ -498,6 +514,12 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     if (!is_hardware_available()) {
         bsod("Tool offset sensor requested, but not available on this printer");
     }
+
+    // G427's purges, pellet ejection, retractions and probing are maintenance,
+    // not ordinary printing. Keep protection suspended through all cleanup
+    // and tool restoration, including failures/abort, then re-arm normally.
+    buddy::extrusion_calibration::PressureMonitorSuspension pressure_monitor_suspension;
+    BlockEStallDetection block_e_stall;
 
     // PrintStatusMessageGuard is only meaningful while a print is running; in Calibration context
     // a wizard FSM drives the UI, so leave the status bar alone.

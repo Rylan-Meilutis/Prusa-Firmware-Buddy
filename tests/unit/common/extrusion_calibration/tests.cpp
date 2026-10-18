@@ -115,6 +115,42 @@ TEST_CASE("cached PA follows the selected logical filament rather than batch ord
 
 using buddy::extrusion_calibration::Capture;
 
+TEST_CASE("maintenance pressure suspension survives nesting and early exits then rearms") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    Score reference { .transient = 0.2f, .mean_load = 25, .noise = 0.2f, .low_load = 5, .high_load = 30, .valid = true };
+    set_job_result(0, { 0.046f, 12.f, 0.81f, true, reference, false, 250 });
+    select_job_result(0);
+    set_pressure_monitor_detection(true, true);
+    uint32_t time = 1000;
+    float e = 0;
+    const auto move_without_pressure = [&] {
+        for (int i = 0; i < 2000; ++i) {
+            time += 5000;
+            e += 0.005f;
+            record_loadcell_sample(time, 0, e);
+        }
+    };
+    const auto calibrate = [&] {
+        PressureMonitorSuspension outer;
+        {
+            PressureMonitorSuspension nested;
+            select_job_result(0); // Tool selection must not release the outer hold.
+            move_without_pressure();
+            REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+        }
+        move_without_pressure();
+        REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+        return false; // Simulate G427 failure/abort before normal completion.
+    };
+    REQUIRE_FALSE(calibrate());
+    REQUIRE(job_result(0)->calibration_temperature == 250);
+    move_without_pressure();
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::no_pressure_rise);
+    reset_job_results();
+    REQUIRE(job_result(0) == nullptr);
+}
+
 TEST_CASE("calibration capture does not permanently consume the sample buffer") {
     // Keeping the 15 KiB sample array inside the global Capture object starves
     // phase-stepping calibration even when M976 is idle.
