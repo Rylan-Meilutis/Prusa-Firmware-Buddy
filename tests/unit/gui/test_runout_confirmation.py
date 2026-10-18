@@ -31,6 +31,11 @@ class RunoutConfirmation(unittest.TestCase):
         error = text.split('code: "XX101"', 1)[1].split('code:', 1)[0]
         self.assertIn("COREONE_INDX", error)
         self.assertIn("COREONEL_INDX", error)
+        for variant in ("COREONE_INDX", "COREONEL_INDX"):
+            assets = (
+                ROOT /
+                ("src/gui/res/" + variant + "_used_imgs.txt")).read_text()
+            self.assertIn("error_48x48.png", assets.splitlines())
 
     def test_indx_without_extruder_sensor_keeps_all_prompt_layers(self):
         paths = [
