@@ -270,7 +270,9 @@ LoadUnloadMode Pause::get_load_unload_mode() {
         return LoadUnloadMode::Change;
 
     case Pause::LoadType::filament_stuck:
-        return LoadUnloadMode::FilamentStuck;
+        // Preserve the cause selected by M1601 Rn when the FSM holder is
+        // created; otherwise runout/flow faults become generic stuck notices.
+        return get_mode().value_or(LoadUnloadMode::FilamentStuck);
     }
 
     bsod_unreachable();
