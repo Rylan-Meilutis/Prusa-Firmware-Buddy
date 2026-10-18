@@ -71,8 +71,8 @@ void report_pa_diagnostics() {
         }
         found = true;
         const int reported_tool = r.tool == 255 ? -1 : r.tool;
-        snprintf(report, sizeof(report), "PA_CAL_RESULT tool=%d slot=%u outcome=%s reason=%s result_pa=%.4f candidate_pa=%.4f confidence=%.3f minimum_confidence=%.3f snr=%.3f minimum_snr=%.3f noise=%.3f separation=%.3f cache=%s cache_lookup=%s temperature=%d",
-            reported_tool, unsigned(i), r.outcome, r.reason, double(r.pa), double(r.candidate_pa), double(r.confidence), double(r.minimum_confidence), double(r.snr), double(r.minimum_snr), double(r.noise), double(r.separation), r.cache, r.cache_lookup, int(r.temperature));
+        snprintf(report, sizeof(report), "PA_CAL_RESULT tool=%d slot=%u outcome=%s reason=%s result_pa=%.4f candidate_pa=%.4f confidence=%.3f minimum_confidence=%.3f snr=%.3f minimum_snr=%.3f noise=%.3f separation=%.3f cache=%s cache_lookup=%s temperature=%d saved_cache_temperature=%d",
+            reported_tool, unsigned(i), r.outcome, r.reason, double(r.pa), double(r.candidate_pa), double(r.confidence), double(r.minimum_confidence), double(r.snr), double(r.minimum_snr), double(r.noise), double(r.separation), r.cache, r.cache_lookup, int(r.temperature), int(r.saved_cache_temperature));
         SERIAL_ECHOLN(report);
         snprintf(report, sizeof(report), "PA_CAL_EVIDENCE tool=%d slot=%u valid_candidates=%u samples=%u transitions=%u rejected_low_signal=%u rejected_timing=%u capture_overflow=%u",
             reported_tool, unsigned(i), unsigned(r.valid_candidates), unsigned(r.samples), unsigned(r.transitions), unsigned(r.rejected_low_signal), unsigned(r.rejected_timing), unsigned(r.capture_overflow));
@@ -538,14 +538,16 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
         return false;
     }
+    pa_diagnostics.records[slot].saved_cache_temperature = record.key.temperature;
     if ((reason = record.rejection_reason(cache_key(tool, slot, temperature)))) {
         pa_diagnostics.records[slot].cache = reason;
         pa_diagnostics.records[slot].cache_lookup = reason;
-        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason, " saved_temperature=", record.key.temperature, " requested_temperature=", temperature);
         return false;
     }
     buddy::extrusion_calibration::Result result { record.pa, record.max_flow, record.confidence, true };
     result.flexible = record.key.flexible;
+    result.calibration_temperature = record.key.temperature;
     result.pressure_reference.valid = true;
     result.pressure_reference.low_load = record.low_load;
     result.pressure_reference.high_load = record.high_load;
@@ -557,6 +559,7 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     diagnostic.reason = "valid_cache";
     diagnostic.cache = "hit";
     diagnostic.cache_lookup = "hit";
+    diagnostic.saved_cache_temperature = record.key.temperature;
     diagnostic.pa = record.pa;
     diagnostic.confidence = record.confidence;
     diagnostic.minimum_confidence = record.key.confidence_floor / 100.0f;
@@ -630,9 +633,11 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
 #endif
         [[maybe_unused]] const char *lookup = pa_diagnostics.records[entry.logical_filament].cache_lookup;
+        [[maybe_unused]] const auto saved_temperature = pa_diagnostics.records[entry.logical_filament].saved_cache_temperature;
         auto &batch_diagnostic = pa_diagnostics.begin(entry.physical_tool, entry.logical_filament, entry.temperature);
 #if HAS_INDX()
         batch_diagnostic.cache_lookup = force ? "bypassed_forced" : lookup;
+        batch_diagnostic.saved_cache_temperature = force ? -1 : saved_temperature;
 #else
         batch_diagnostic.cache_lookup = "no_persistent_cache_on_this_target";
 #endif
@@ -1444,7 +1449,7 @@ void PrusaGcodeSuite::M976() {
     }
 
     const float max_flow = material_flow_limit(slot);
-    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score, flexible_calibration(slot) };
+    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score, flexible_calibration(slot), target_temperature };
     diagnostic.outcome = "success";
     diagnostic.reason = "accepted";
     diagnostic.pa = best_pa;
