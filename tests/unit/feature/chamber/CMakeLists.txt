@@ -1,3 +1,3 @@
 add_executable(chamber_heating_policy_tests heating_policy_tests.cpp)
-target_include_directories(chamber_heating_policy_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(chamber_heating_policy_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/common)
 add_catch_test(chamber_heating_policy_tests)

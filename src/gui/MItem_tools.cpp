@@ -1100,7 +1100,7 @@ void MI_CHAMBER_LIGHT_MODE::OnChange([[maybe_unused]] size_t old_index) {
 
 void MI_CHAMBER_LIGHT_MODE::Loop() {
     set_items(std::span(chamber_mode_labels).first(leds::SideStripHandler::instance().chamber_print_active() ? 2 : 3));
-    set_current_item(leds::SideStripHandler::instance().chamber_mode());
+    set_index(leds::SideStripHandler::instance().chamber_mode());
 }
 
 MI_PRINT_CHAMBER_LIGHTS_ENABLE::MI_PRINT_CHAMBER_LIGHTS_ENABLE()
