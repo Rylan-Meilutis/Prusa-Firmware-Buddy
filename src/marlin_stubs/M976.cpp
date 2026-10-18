@@ -116,6 +116,7 @@ struct BatchEntry {
     std::array<char, 17> material {};
     std::array<int16_t, buddy::pa_temperature::capacity> temperatures {};
     uint8_t temperature_count = 0;
+    uint8_t temperature_point = 0;
 };
 
 struct CandidateObservation {
@@ -774,6 +775,9 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
     PressureMonitorGuard pressure_monitor_guard;
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION temperature_point tool=", entry.physical_tool,
+            " slot=", entry.logical_filament, " temperature=", entry.temperature,
+            " point=", entry.temperature_point + 1, " points=", std::max<size_t>(1, entry.temperature_count));
 #if HAS_INDX()
         if (cached[i]) {
             continue;
@@ -1361,9 +1365,7 @@ void PrusaGcodeSuite::M976() {
                 if (entry.temperature_count) {
                     entry.temperature = entry.temperatures[point];
                 }
-                SERIAL_ECHOLNPAIR("PA_CALIBRATION temperature_point tool=", entry.physical_tool,
-                    " slot=", entry.logical_filament, " temperature=", entry.temperature,
-                    " point=", point + 1, " points=", std::max<size_t>(1, entry.temperature_count));
+                entry.temperature_point = point;
             }
             if (!round_count) {
                 continue;
