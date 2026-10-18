@@ -16,6 +16,16 @@ release manifests or uploads. The updater hides incompatible assets but this
 does not remove previously published files from GitHub. Back up and withdraw
 unsupported public assets explicitly as part of an authorized release.
 
+## October 18 LCD filtering redraw correction
+
+The maintained 6.9.2-RME INDX and 6.10.3-RME XL firmware updates suppress
+redundant LCD control/brightness writes and repeated black clears while the
+panel is already off. Status-strip animation updates remain active. Executable
+stub-driver regressions cover both ST7789 and ILI9488 repeated brightness,
+off and wake transitions. Physical filtering/header behavior still requires
+verification on the updated printer; this is not a PWM-resolution change.
+The existing RME plugin b128 remains compatible and needs no new release.
+
 ## October 4 SpoolJoin and firmware-discovery release
 
 Final matrices: 6.9.0 from 1a9d28121, 15/15; 6.10.1 from a0bd232d7,
