@@ -480,8 +480,17 @@ void LEDManager::set_lcd_brightness(uint8_t brightness) {
     lcd_brightness_off = brightness == 0;
 
     static bool lcd_output_enabled = true;
+    // The LED task runs continuously, including throughout post-print filtering.
+    // Reapplying LCD control commands (or clearing an already sleeping panel)
+    // on every tick competes with GUI redraws on the shared display bus.
+    static int last_lcd_brightness = -1;
+    [[maybe_unused]] const bool lcd_brightness_changed = last_lcd_brightness != brightness;
+    last_lcd_brightness = brightness;
 
 #if HAS_ST7789_DISPLAY()
+    if (!lcd_brightness_changed) {
+        return;
+    }
     if (brightness == 0) {
         st7789v_suppress_display_writes(false);
         st7789v_brightness_set(0);
@@ -509,7 +518,7 @@ void LEDManager::set_lcd_brightness(uint8_t brightness) {
     // LCD backlight is connected to the green channel of the fourth LED (index 3) on the status strip
     auto &status_leds = get_status_leds();
     #if HAS_ILI9488_DISPLAY()
-    if (brightness == 0) {
+    if (lcd_brightness_changed && brightness == 0) {
         ili9488_suppress_display_writes(false);
         ili9488_clear_full_black();
         ili9488_suppress_display_writes(true);
@@ -520,7 +529,7 @@ void LEDManager::set_lcd_brightness(uint8_t brightness) {
             ili9488_cmd_slpin();
             lcd_output_enabled = false;
         }
-    } else {
+    } else if (lcd_brightness_changed) {
         ili9488_suppress_display_writes(false);
         if (!lcd_output_enabled) {
             ili9488_cmd_slpout();
@@ -533,6 +542,8 @@ void LEDManager::set_lcd_brightness(uint8_t brightness) {
         ili9488_brightness_set((brightness * 255) / 100);
     }
     #endif
+    // Do not skip the strip update: status animations overwrite its channels
+    // every tick, so the screen channel/off mask must still be reapplied.
     if (brightness == 0) {
         // Some XLCD revisions keep the visible backlight/status illumination on
         // a different front-strip channel than the documented index 3 green

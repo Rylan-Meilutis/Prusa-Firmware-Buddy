@@ -1,5 +1,90 @@
 # RME Upstream Release Playbook
 
+## Verified machine support — October 17
+
+Build/release only combinations present in the corresponding
+[official Prusa release assets](https://github.com/prusa3d/Prusa-Firmware-Buddy/releases).
+The build wrapper and RME updater use a verified, fail-closed support matrix:
+6.9.2 is INDX-only, 6.10.3 is XL-only, 6.8.1 is CORE One/CORE One L,
+and 6.5.7 is CORE One/CORE One L/MK4-family/MK3.5-family.
+MINI requires a separately supported release line; do not offer 6.10.x for it.
+Verify assets before extending utils/rme_firmware_support.py and the companion
+plugin firmware_support.py. Unknown versions are rejected until verified.
+
+Do not include stale cross-built BBFs from earlier output directories in new
+release manifests or uploads. The updater hides incompatible assets but this
+does not remove previously published files from GitHub. Back up and withdraw
+unsupported public assets explicitly as part of an authorized release.
+
+## October 18 LCD filtering redraw correction
+
+The maintained 6.9.2-RME INDX and 6.10.3-RME XL firmware updates suppress
+redundant LCD control/brightness writes and repeated black clears while the
+panel is already off. Status-strip animation updates remain active. Executable
+stub-driver regressions cover both ST7789 and ILI9488 repeated brightness,
+off and wake transitions. Physical filtering/header behavior still requires
+verification on the updated printer; this is not a PWM-resolution change.
+The existing RME plugin b128 remains compatible and needs no new release.
+
+## October 16 filament workflow release
+
+Canonical release refresh: 6.9.2 INDX from 1cbde25b2 and the six supported
+6.10.3 variants from e0d72b3e0. Replace the existing canonical tag/assets only
+after successful builds and manifest verification; retain backups of the
+previous release assets. MINI is still excluded from 6.10.3.
+
+Shared native gates passed: calibration 22 cases / 7284 assertions and RME
+67 cases / 432682 assertions. Both branches passed 17 GUI source checks.
+Save load metadata only on success, preserve purge metadata, defer full picker
+compatibility lists, and retain independent runtime M591 switches. A new job
+restores saved detection preferences, but explicit M591 S0 in slicer start
+code still disables INDX runout; replace with M591 R to use saved preferences.
+
+Control now exposes filter-cycle actions and settings. Backend-disable and
+idle-snapshot restoration emit filtration-close events. A touchscreen timer
+that never expires remains unconfirmed and is not claimed fixed. Hardware
+metadata persistence, UI responsiveness and filtration timeout need validation.
+No companion plugin change is needed; RME Compatibility b123 remains current.
+
+## October 10 canonical release refresh
+
+Rebuild 6.9.2 CORE One INDX from 71590a515 (1/1) and all six supported
+6.10.3 variants from f5389c476 (6/6). These include the finished-status LED
+timeout correction. Keep canonical v6.9.2-RME / v6.10.3-RME names and replace
+their assets and manifests in place. Tags identify the built source; subsequent
+documentation-only commits do not change application bytes. MINI remains
+excluded from 6.10.3 because of its application partition limit.
+
+Lighting lifecycle, resume FIFO and serial-page source checks passed (11 per
+branch). Companion RME b123 passed 287 Python tests (four skipped) and nine UI
+suites; it clears stale pause banners and coalesces background telemetry.
+Intermittent motion stalls remain unconfirmed. Hardware checks remain required
+for light timeout, pause/recovery and completion-camera timing.
+
+## October 8 maintained release lines
+
+The maintained lines are now 6.9.2-RME and 6.10.3-RME, integrating the
+corresponding upstream stable tags while preserving the RME features.
+6.9.2 ships the CORE One INDX image; 6.10.3 ships six non-MINI RME images.
+The normal MINI links overflow the unchanged 895 KiB partition by 3–4 KiB.
+Do not publish those failed images or alter flash boundaries to force a fit.
+MINI remains on 6.10.1-RME until a validated size reduction is available.
+Keep older releases as historical downloads. Publish an identity manifest
+with each release so the companion plugin can discover and verify updates.
+Upstream official availability is INDX for 6.9.2 and XL/XL+ for 6.10.3;
+custom RME builds for other machines are not upstream hardware certification.
+The 6.9.2 merge must preserve sparse preset slot IDs and legacy RME EEPROM
+material-family decoding. Do not revert these to dense-index assumptions.
+
+## October 4 release validation
+
+Final matrices: 6.9.0 from 266e42408, 15/15 in 54s; 6.10.1 from b5f09f121,
+15/15 in 55s. Calibration suite: 22 cases / 7280 assertions; existing RME
+suite: 65 / 432641. New E-reset/persistence source checks and standalone
+dock-PWM/mesh-area C++ checks passed. Plugin b118: 248 tests, four skipped.
+Tags point at built source; release-note/protocol additions are docs-only.
+This does not replace the physical regression checks below.
+
 ## October 4 INDX crash, PA persistence and adaptive mesh
 
 The ce5dfc82a dump asserts `E move without tool` during G28 XY clearance.
