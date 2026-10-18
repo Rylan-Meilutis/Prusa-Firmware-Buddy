@@ -2,6 +2,7 @@
 
 #include "pa_calibration_cache.hpp"
 #include <cstdio>
+#include <cerrno>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -29,20 +30,35 @@ inline void path_for(char (&path)[48], uint8_t slot, bool temporary = false) {
     snprintf(path, sizeof(path), "/internal/pa-cache-v1-%u.%s", unsigned(slot), temporary ? "tmp" : "bin");
 }
 
-inline bool read_record(const char *path, Record &record) {
+inline bool read_record(const char *path, Record &record, const char **reason = nullptr) {
+    const auto fail = [&](const char *why) {
+        if (reason) {
+            *reason = why;
+        }
+        return false;
+    };
     const int fd = open(path, O_RDONLY);
     if (fd < 0) {
-        return false;
+        return fail(errno == ENOENT ? "missing_record" : "record_open_failed");
     }
     FileRecord file {};
     const auto size = read(fd, &file, sizeof(file));
     char extra;
     const bool exact_size = size == sizeof(file) && read(fd, &extra, 1) == 0;
     close(fd);
-    if (!exact_size || file.record.version != record_version || file.checksum != checksum(file.record)) {
-        return false;
+    if (!exact_size) {
+        return fail("record_size_or_read_error");
+    }
+    if (file.record.version != record_version) {
+        return fail("record_version_changed");
+    }
+    if (file.checksum != checksum(file.record)) {
+        return fail("record_checksum_failed");
     }
     record = file.record;
+    if (reason) {
+        *reason = nullptr;
+    }
     return true;
 }
 
