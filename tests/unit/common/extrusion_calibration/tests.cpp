@@ -6,6 +6,131 @@
 #include <cstdlib>
 #include <cmath>
 
+TEST_CASE("Temperature PA regression is bounded and single-point jobs stay single") {
+    using namespace buddy::pa_temperature;
+    Model model;
+    REQUIRE_FALSE(model.evaluate(240).valid);
+    REQUIRE(model.add({ 250, .040f, 12, .9f, 1, 20, .2f, true, false }));
+    REQUIRE(model.count == 1);
+    REQUIRE(model.evaluate(250).valid);
+    REQUIRE_FALSE(model.evaluate(240).valid);
+    REQUIRE(model.add({ 240, .050f, 11, .8f, 2, 22, .3f, true, false }));
+    REQUIRE(model.count == 2);
+    auto result = model.evaluate(245);
+    REQUIRE(result.valid);
+    REQUIRE(std::abs(result.point.pa - .045f) < .00001f);
+    REQUIRE(std::abs(result.slope + .001f) < .00001f);
+    REQUIRE(result.point.max_flow == 11);
+    REQUIRE(result.point.noise == .3f);
+    REQUIRE_FALSE(model.evaluate(120).valid);
+    REQUIRE_FALSE(model.evaluate(251).valid);
+    REQUIRE(model.add({ 240, .050f, 11, .8f, 2, 22, .3f, true, false }));
+    REQUIRE(model.count == 2);
+    REQUIRE(model.add({ 260, .030f, 13, .9f, 1, 20, .2f, true, false }));
+    REQUIRE(std::abs(model.evaluate(255).point.pa - .035f) < .00001f);
+    REQUIRE(model.add({ 250, .15f, 12, .9f, 1, 20, .2f, true, false }));
+    REQUIRE(std::string_view(model.evaluate(245).method) == "piecewise");
+    REQUIRE(model.evaluate(250).point.pa == .15f); // Measured values are authoritative.
+    REQUIRE_FALSE(model.add({ 100, .04f, 12, .9f }));
+    REQUIRE_FALSE(model.add({ 270, NAN, 12, .9f }));
+    REQUIRE_FALSE(model.add({ 270, .04f, 12, 0 }));
+}
+
+TEST_CASE("HIPS temperature cache preserves both 250 and 240 across reopening") {
+    using namespace buddy::pa_cache;
+    char directory[] = "/tmp/rme-pa-bank-test-XXXXXX";
+    REQUIRE(mkdtemp(directory) != nullptr);
+    char path[128], temporary[128];
+    snprintf(path, sizeof(path), "%s/cache.bin", directory);
+    snprintf(temporary, sizeof(temporary), "%s/cache.tmp", directory);
+    Record saved {};
+    saved.version = record_version;
+    saved.key.temperature = 250;
+    saved.key.confidence_floor = 75;
+    saved.pa = .04f;
+    saved.max_flow = 12;
+    saved.confidence = .9f;
+    saved.high_load = 20;
+    saved.noise = .2f;
+    REQUIRE(write_record(path, temporary, saved));
+    Bank bank;
+    REQUIRE(read_bank(path, bank)); // Migrate the previous single-point file.
+    REQUIRE(bank.count == 1);
+    auto lower = saved;
+    lower.key.temperature = 240;
+    lower.pa = .05f;
+    REQUIRE(bank.insert(lower));
+    REQUIRE(write_bank(path, temporary, bank));
+    for (int job = 0; job < 4; ++job) {
+        buddy::extrusion_calibration::reset_job_results();
+        Bank reopened;
+        REQUIRE(read_bank(path, reopened));
+        REQUIRE(reopened == bank);
+        const char *reason = nullptr;
+        REQUIRE(reopened.find(saved.key, reason)->pa == .04f);
+        REQUIRE(reason == nullptr);
+        REQUIRE(reopened.find(lower.key, reason)->pa == .05f);
+        auto changed = lower.key;
+        changed.nozzle = .6f;
+        REQUIRE(reopened.find(changed, reason) == nullptr);
+        REQUIRE(std::string_view(reason) == "nozzle_changed");
+    }
+    REQUIRE_FALSE(write_bank(path, "/nonexistent-pa-cache-directory/cache.tmp", bank));
+    Bank reopened;
+    REQUIRE(read_bank(path, reopened));
+    REQUIRE(reopened == bank);
+    for (int t = 251; t < 262; ++t) {
+        auto extra = saved;
+        extra.key.temperature = t;
+        REQUIRE(bank.insert(extra));
+    }
+    REQUIRE(bank.count == buddy::pa_temperature::capacity);
+    auto changed = lower;
+    changed.key.nozzle = .6f;
+    REQUIRE(bank.insert(changed));
+    REQUIRE(bank.count == 1);
+    int fd = open(path, O_WRONLY);
+    REQUIRE(fd >= 0);
+    REQUIRE(write(fd, "bad", 3) == 3);
+    close(fd);
+    REQUIRE_FALSE(read_bank(path, reopened));
+    unlink(path);
+    rmdir(directory);
+}
+
+TEST_CASE("Job PA changes with print target but ignores maintenance temperatures") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    Result result { .04f, 12, .9f, true, {}, false, 250 };
+    result.pressure_reference.valid = true;
+    result.pressure_reference.low_load = 1;
+    result.pressure_reference.high_load = 20;
+    result.pressure_reference.noise = .2f;
+    set_job_result(0, result);
+    result.pressure_advance = .05f;
+    result.calibration_temperature = 240;
+    set_job_result(0, result);
+    select_job_result(0);
+    REQUIRE(std::abs(calibrated_pressure_advance_or(0) - .04f) < .00001f);
+    REQUIRE(request_job_temperature(0, 240));
+    select_job_result(0);
+    REQUIRE(std::abs(calibrated_pressure_advance_or(0) - .05f) < .00001f);
+    REQUIRE(request_job_temperature(0, 245));
+    select_job_result(0);
+    REQUIRE(std::abs(calibrated_pressure_advance_or(0) - .045f) < .00001f);
+    REQUIRE_FALSE(request_job_temperature(0, 120));
+    REQUIRE(job_result(0)->calibration_temperature == 245);
+    REQUIRE_FALSE(request_job_temperature(1, 245));
+    Result fallback { .035f, 10, .5f, true };
+    set_job_result(0, fallback);
+    select_job_result(0);
+    REQUIRE(temperature_model(0) == nullptr);
+    REQUIRE(calibrated_pressure_advance_or(0) == .035f);
+    reset_job_results();
+    REQUIRE(temperature_model(0) == nullptr);
+    REQUIRE_FALSE(request_job_temperature(0, 240));
+}
+
 TEST_CASE("PA flash records survive reopen and reject corruption and truncation") {
     using namespace buddy::pa_cache;
     char directory[] = "/tmp/rme-pa-cache-test-XXXXXX";

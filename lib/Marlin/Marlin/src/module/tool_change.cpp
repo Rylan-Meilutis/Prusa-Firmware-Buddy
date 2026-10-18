@@ -25,18 +25,42 @@
 #include "tool_change.h"
 #include <serial_printing.hpp>
 #include <option/has_indx.h>
-#if HAS_INDX()
-  #include <feature/extrusion_calibration.hpp>
+#include <option/has_loadcell.h>
+#if ENABLED(PRUSA_MMU2)
+#include <feature/prusa/MMU2/mmu2_mk4.h>
+#endif
+#if HAS_LOADCELL()
+  #include <common/feature/extrusion_calibration.hpp>
   #include <feature/pressure_advance/pressure_advance_config.hpp>
 
+static uint8_t pa_loaded_slot() {
+#if ENABLED(PRUSA_MMU2)
+    if (MMU2::mmu2.Enabled()) return MMU2::mmu2.get_current_tool();
+#endif
+    return active_extruder;
+}
+
 void buddy::extrusion_calibration::apply_selected_indx_result() {
-    const auto logical = VirtualToolIndex::currently_selected_opt();
-    const size_t slot = logical ? logical->to_raw() : max_logical_filaments;
+    const auto slot = pa_loaded_slot();
+    planner.synchronize();
+    if (planner.draining()) return;
     select_job_result(slot);
     if (const auto *result = job_result(slot)) {
         pressure_advance::set_axis_e_config({ result->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(slot, result->max_flow_mm3_s);
     }
+}
+
+void buddy::extrusion_calibration::apply_print_temperature(uint8_t physical_tool, int16_t temperature) {
+    if (calibration_command_active()) return;
+    const auto slot = pa_loaded_slot();
+    const auto selected_physical = ENABLED(PRUSA_MMU2) ? 0 : active_extruder;
+    if (physical_tool != selected_physical || slot >= max_logical_filaments) return;
+    if (const auto *current = job_result(slot); current && current->calibration_temperature == temperature) return;
+    if (!request_job_temperature(slot, temperature)) return;
+    apply_selected_indx_result();
+    const auto *result = job_result(slot);
+    SERIAL_ECHOLNPAIR("PA_TEMPERATURE slot=", slot, " temperature=", temperature, " result_pa=", result->pressure_advance);
 }
 #endif
 
@@ -79,6 +103,9 @@ void tool_change(const uint8_t new_tool,
     (void) z_lift;
     (void) z_return;
     MMU2::mmu2.tool_change(new_tool);
+    #if HAS_LOADCELL()
+      buddy::extrusion_calibration::apply_selected_indx_result();
+    #endif
 
   #elif HAS_TOOLCHANGER()
     SerialPrinting::notify_workflow("tool_change", "open", "Tool change in progress");

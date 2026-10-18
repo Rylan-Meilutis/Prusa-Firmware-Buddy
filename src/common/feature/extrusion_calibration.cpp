@@ -3,12 +3,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <new>
 
 namespace buddy::extrusion_calibration {
 
 namespace {
     Capture instance;
     std::array<Result, max_logical_filaments> results {};
+    std::array<pa_temperature::Model, max_logical_filaments> temperature_models {};
+    std::array<int16_t, max_logical_filaments> print_temperatures {};
     std::atomic<uint8_t> calibration_command_depth { 0 };
     std::atomic_uint8_t anchors { 0 };
     float profile_pressure_advance = NAN;
@@ -40,9 +43,18 @@ namespace {
     bool monitor_collapse_seen = false;
 } // namespace
 
-void Capture::start() {
+bool Capture::start() {
+    if (!samples_) {
+        samples_.reset(new (std::nothrow) Sample[capacity]);
+    }
+    if (!samples_) {
+        count_.store(0, std::memory_order_relaxed);
+        active_.store(false, std::memory_order_release);
+        return false;
+    }
     count_.store(0, std::memory_order_relaxed);
     active_.store(true, std::memory_order_release);
+    return true;
 }
 
 void Capture::pause() {
@@ -50,9 +62,15 @@ void Capture::pause() {
 }
 
 void Capture::resume() {
-    if (count_.load(std::memory_order_acquire) < samples_.size()) {
+    if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
         active_.store(true, std::memory_order_release);
     }
+}
+
+void Capture::release() {
+    active_.store(false, std::memory_order_release);
+    count_.store(0, std::memory_order_relaxed);
+    samples_.reset();
 }
 
 size_t Capture::stop() {
@@ -61,23 +79,23 @@ size_t Capture::stop() {
 }
 
 void Capture::record(const uint32_t time_us, const float load_g, const float e_position_mm) {
-    if (!active_.load(std::memory_order_acquire)) {
+    if (!active_.load(std::memory_order_acquire) || !samples_) {
         return;
     }
     const size_t index = count_.fetch_add(1, std::memory_order_acq_rel);
-    if (index < samples_.size()) {
+    if (index < capacity) {
         samples_[index] = { time_us, load_g, e_position_mm };
     } else {
-        count_.store(samples_.size(), std::memory_order_release);
+        count_.store(capacity, std::memory_order_release);
         active_.store(false, std::memory_order_release);
     }
 }
 
 Score Capture::score(const bool flexible) const {
-    const size_t n = std::min(size(), samples_.size());
+    const size_t n = samples_ ? std::min(size(), capacity) : 0;
     Score result;
     result.sample_count = static_cast<uint16_t>(std::min(n, size_t(std::numeric_limits<uint16_t>::max())));
-    result.capture_overflow = size() >= samples_.size();
+    result.capture_overflow = samples_ && size() >= capacity;
     if (n < 32) {
         return result;
     }
@@ -114,9 +132,13 @@ Score Capture::score(const bool flexible) const {
         float before = 0, after = 0, local_noise = 0;
         for (size_t j = i - 13; j < i - 3; ++j) {
             before += samples_[j].load_g;
-            if (j > i - 13) local_noise += std::abs(samples_[j].load_g - samples_[j - 1].load_g);
+            if (j > i - 13) {
+                local_noise += std::abs(samples_[j].load_g - samples_[j - 1].load_g);
+            }
         }
-        for (size_t j = i + 25; j < i + 35; ++j) after += samples_[j].load_g;
+        for (size_t j = i + 25; j < i + 35; ++j) {
+            after += samples_[j].load_g;
+        }
         before /= plateau_n;
         after /= plateau_n;
         const float amplitude = std::abs(after - before);
@@ -135,7 +157,9 @@ Score Capture::score(const bool flexible) const {
             const float normalized_error = (samples_[i + j].load_g - after) / amplitude;
             area += std::abs(normalized_error);
             excursion = std::max(excursion, direction * (samples_[i + j].load_g - after) / amplitude);
-            if (settled_at == 27 && std::abs(normalized_error) < 0.1f) settled_at = j;
+            if (settled_at == 27 && std::abs(normalized_error) < 0.1f) {
+                settled_at = j;
+            }
         }
         const float transition_cost = area / 27.0f + 2.0f * std::max(0.0f, excursion) + float(settled_at) / 27.0f;
         cost += transition_cost;
@@ -154,7 +178,7 @@ Score Capture::score(const bool flexible) const {
     }
 
     result.transitions_used = static_cast<uint16_t>(std::min(used, size_t(std::numeric_limits<uint16_t>::max())));
-    result.valid = used >= 4 && size() < samples_.size();
+    result.valid = used >= 4 && size() < capacity;
     if (used > 0) {
         result.transient = cost / used;
         result.transient_stddev = std::sqrt(std::max(0.0f, cost_squared / used - result.transient * result.transient));
@@ -170,10 +194,14 @@ Score Capture::score(const bool flexible) const {
 }
 
 float Capture::noise_floor() const {
-    const size_t n = std::min(size(), samples_.size());
-    if (n < 16) return std::numeric_limits<float>::infinity();
+    const size_t n = samples_ ? std::min(size(), capacity) : 0;
+    if (n < 16) {
+        return std::numeric_limits<float>::infinity();
+    }
     float mean = 0;
-    for (size_t i = 0; i < n; ++i) mean += samples_[i].load_g;
+    for (size_t i = 0; i < n; ++i) {
+        mean += samples_[i].load_g;
+    }
     mean /= n;
     float variance = 0;
     for (size_t i = 0; i < n; ++i) {
@@ -188,7 +216,9 @@ Capture &capture() { return instance; }
 void record_loadcell_sample(const uint32_t time_us, const float load_g, const float e_position_mm) {
     instance.record(time_us, load_g, e_position_mm);
 
-    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0) return;
+    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0) {
+        return;
+    }
     if (!monitor_last_time) {
         monitor_last_time = time_us;
         monitor_last_e = e_position_mm;
@@ -199,7 +229,9 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     const float de = e_position_mm - monitor_last_e;
     monitor_last_time = time_us;
     monitor_last_e = e_position_mm;
-    if (!(dt > 0 && dt < 0.1f)) return;
+    if (!(dt > 0 && dt < 0.1f)) {
+        return;
+    }
 
     monitor_filtered_load += 0.12f * (load_g - monitor_filtered_load);
     if (de / dt <= 0.05f) {
@@ -250,7 +282,6 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         && velocity >= monitor_low_velocity;
     const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.15f);
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.20f;
-    const bool presence_qualified = monitor_forward_time > 0.75f && monitor_forward_e > 0.75f && velocity >= monitor_low_velocity;
     const bool missing_from_start = presence_qualified && pressure_missing && monitor_peak_pressure <= expected * 0.65f;
     const bool bad_pressure = (qualified && pressure_collapsed) || missing_from_start;
     monitor_bad_time = bad_pressure ? monitor_bad_time + forward_dt : 0;
@@ -296,6 +327,8 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
 
 void reset_job_results() {
     results = {};
+    temperature_models = {};
+    print_temperatures = {};
     profile_pressure_advance = NAN;
     calibrated_pressure_advance = NAN;
     // Anchor occupancy protects only the active print job. A new print starts
@@ -339,6 +372,14 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_enabled.store(reference.valid, std::memory_order_release);
 }
 
+void set_pressure_monitor_detection(const bool presence, const bool movement) {
+    monitor_presence_detection.store(presence, std::memory_order_release);
+    monitor_movement_detection.store(movement, std::memory_order_release);
+    if (!presence && !movement) {
+        monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
+    }
+}
+
 void reset_pressure_monitor() {
     monitor_enabled.store(false, std::memory_order_release);
     monitor_suspend_count.store(0, std::memory_order_relaxed);
@@ -362,7 +403,9 @@ void suspend_pressure_monitor(const bool suspend) {
     }
     uint8_t count = monitor_suspend_count.load(std::memory_order_acquire);
     while (count) {
-        if (!monitor_suspend_count.compare_exchange_weak(count, count - 1, std::memory_order_acq_rel)) continue;
+        if (!monitor_suspend_count.compare_exchange_weak(count, count - 1, std::memory_order_acq_rel)) {
+            continue;
+        }
         if (count == 1) {
             // Loading/unloading can move E a long distance without nozzle
             // pressure. Re-arm from the next real sample and grant the full
@@ -379,14 +422,16 @@ void suspend_pressure_monitor(const bool suspend) {
 
 ExtrusionFault consume_extrusion_fault() {
     const auto fault = monitor_fault.exchange(ExtrusionFault::none, std::memory_order_acq_rel);
-    if (fault != ExtrusionFault::none && !monitor_fault_suspended.exchange(true, std::memory_order_acq_rel))
+    if (fault != ExtrusionFault::none && !monitor_fault_suspended.exchange(true, std::memory_order_acq_rel)) {
         monitor_suspend_count.fetch_add(1, std::memory_order_acq_rel);
+    }
     return fault;
 }
 
 void acknowledge_extrusion_fault() {
-    if (monitor_fault_suspended.exchange(false, std::memory_order_acq_rel))
+    if (monitor_fault_suspended.exchange(false, std::memory_order_acq_rel)) {
         suspend_pressure_monitor(false);
+    }
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_last_time = 0;
     monitor_forward_time = monitor_forward_e = monitor_idle_time = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
@@ -402,7 +447,24 @@ const Result *job_result(const size_t logical_filament) {
 void set_job_result(const size_t logical_filament, const Result &result) {
     if (logical_filament < results.size()) {
         results[logical_filament] = result;
-        if (result.valid) calibrated_pressure_advance = result.pressure_advance;
+        if (result.valid && !result.pressure_reference.valid) {
+            // A failed measurement/fallback must not reactivate an older
+            // accepted model during this attempt. Persistent points survive.
+            temperature_models[logical_filament] = {};
+            print_temperatures[logical_filament] = 0;
+        }
+        if (result.valid && result.pressure_reference.valid && result.calibration_temperature) {
+            const auto &reference = result.pressure_reference;
+            if (temperature_models[logical_filament].add({ result.calibration_temperature,
+                    result.pressure_advance, result.max_flow_mm3_s, result.confidence,
+                    reference.low_load, reference.high_load, reference.noise, true, result.flexible })
+                && !print_temperatures[logical_filament]) {
+                print_temperatures[logical_filament] = result.calibration_temperature;
+            }
+        }
+        if (result.valid) {
+            calibrated_pressure_advance = result.pressure_advance;
+        }
     }
 }
 
@@ -411,10 +473,45 @@ float calibrated_pressure_advance_or(const float fallback) {
 }
 
 void select_job_result(const size_t logical_filament) {
+    if (logical_filament < results.size() && results[logical_filament].valid) {
+        request_job_temperature(logical_filament, print_temperatures[logical_filament]);
+    }
     const auto *result = job_result(logical_filament);
     calibrated_pressure_advance = result ? result->pressure_advance : NAN;
     const auto speeds = m976_extrusion_policy::speeds(result && result->flexible);
     configure_pressure_monitor(result ? result->pressure_reference : Score {}, speeds.low_mm_s, speeds.high_mm_s, result && result->flexible);
+}
+
+const pa_temperature::Model *temperature_model(const size_t slot) {
+    return slot < temperature_models.size() && temperature_models[slot].count ? &temperature_models[slot] : nullptr;
+}
+
+bool has_measured_job_temperature(const size_t slot, const int16_t temperature) {
+    const auto *model = temperature_model(slot);
+    if (!model) {
+        return false;
+    }
+    return std::any_of(model->points.begin(), model->points.begin() + model->count,
+        [&](const auto &point) { return point.temperature == temperature && point.reference_valid; });
+}
+
+bool request_job_temperature(const size_t slot, const int16_t temperature) {
+    if (slot >= temperature_models.size()) {
+        return false;
+    }
+    const auto estimate = temperature_models[slot].evaluate(temperature);
+    if (!estimate.valid) {
+        return false;
+    }
+    const auto &point = estimate.point;
+    auto &result = results[slot];
+    result = { point.pa, point.max_flow, point.confidence, true, {}, point.flexible, temperature };
+    result.pressure_reference.valid = point.reference_valid;
+    result.pressure_reference.low_load = point.low_load;
+    result.pressure_reference.high_load = point.high_load;
+    result.pressure_reference.noise = point.noise;
+    print_temperatures[slot] = temperature;
+    return true;
 }
 
 void set_calibration_command_active(const bool active) {
@@ -423,7 +520,8 @@ void set_calibration_command_active(const bool active) {
         return;
     }
     uint8_t depth = calibration_command_depth.load(std::memory_order_acquire);
-    while (depth && !calibration_command_depth.compare_exchange_weak(depth, depth - 1, std::memory_order_acq_rel)) {}
+    while (depth && !calibration_command_depth.compare_exchange_weak(depth, depth - 1, std::memory_order_acq_rel)) {
+    }
 }
 
 bool calibration_command_active() {
@@ -432,14 +530,29 @@ bool calibration_command_active() {
 
 uint8_t occupied_anchor_mask() { return anchors.load(std::memory_order_acquire); }
 
+std::optional<uint8_t> reserve_measurement_anchor(const uint8_t preferred) {
+    // Foreground-only allocator. Reserve before probing: even failed cleanup
+    // may leave debris, so release requires an explicit clear or a new job.
+    for (size_t i = 0; i < max_logical_filaments; ++i) {
+        const uint8_t slot = (preferred + i) % max_logical_filaments;
+        const uint8_t bit = 1u << slot;
+        if (!(anchors.fetch_or(bit, std::memory_order_acq_rel) & bit)) {
+            return slot;
+        }
+    }
+    return std::nullopt;
+}
+
 void occupy_anchor(const size_t logical_filament) {
-    if (logical_filament < max_logical_filaments)
+    if (logical_filament < max_logical_filaments) {
         anchors.fetch_or(static_cast<uint8_t>(1u << logical_filament), std::memory_order_acq_rel);
+    }
 }
 
 void clear_anchor(const size_t logical_filament) {
-    if (logical_filament < max_logical_filaments)
+    if (logical_filament < max_logical_filaments) {
         anchors.fetch_and(static_cast<uint8_t>(~(1u << logical_filament)), std::memory_order_acq_rel);
+    }
 }
 
 } // namespace buddy::extrusion_calibration

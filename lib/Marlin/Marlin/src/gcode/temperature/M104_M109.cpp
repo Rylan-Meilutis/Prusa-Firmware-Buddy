@@ -42,6 +42,10 @@
 #endif
 
 #include "marlin_server.hpp"
+#include <option/has_loadcell.h>
+#if HAS_LOADCELL()
+  #include <common/feature/extrusion_calibration.hpp>
+#endif
 
 /** \addtogroup G-Codes
  * @{
@@ -90,6 +94,9 @@ void GcodeSuite::M104() {
         print_job_timer.pause();
       }
     #endif
+    #if HAS_LOADCELL()
+      buddy::extrusion_calibration::apply_print_temperature(target_extruder, temp);
+    #endif
   }
 
   marlin_server::set_temp_to_display(parser.seenval('D') ? parser.value_celsius() : thermalManager.degTargetHotend(target_extruder), target_extruder);
@@ -130,6 +137,10 @@ void GcodeSuite::M109() {
     .display_temp = parser.seenval('D') ? std::optional<float>(parser.value_celsius()) : std::nullopt
   };
   M109_no_parser(target_extruder, flags);
+  #if HAS_LOADCELL()
+    if (!DEBUGGING(DRYRUN) && (flags.wait_heat || flags.wait_heat_or_cool))
+      buddy::extrusion_calibration::apply_print_temperature(target_extruder, flags.target_temp);
+  #endif
 }
 
 void M109_no_parser(uint8_t target_extruder, const M109Flags& flags) {

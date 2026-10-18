@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <pa_temperature_model.hpp>
 
 namespace buddy::extrusion_calibration {
 
@@ -42,17 +45,21 @@ public:
     // remains fail-safe rather than consuming unbounded memory.
     static constexpr size_t capacity = 1280;
 
-    void start();
+    /// Allocate the capture buffer and begin a new capture. The buffer exists
+    /// only while M976 is measuring, leaving calibration/phase-stepping heap
+    /// headroom untouched during normal operation.
+    bool start();
     void pause();
     void resume();
     size_t stop();
+    void release();
     void record(uint32_t time_us, float load_g, float e_position_mm);
     Score score(bool flexible = false) const;
     float noise_floor() const;
     size_t size() const { return count_.load(std::memory_order_acquire); }
 
 private:
-    std::array<Sample, capacity> samples_ {};
+    std::unique_ptr<Sample[]> samples_;
     std::atomic_size_t count_ { 0 };
     std::atomic_bool active_ { false };
 };
@@ -77,12 +84,18 @@ void reset_job_results();
 const Result *job_result(size_t logical_filament);
 void set_job_result(size_t logical_filament, const Result &result);
 void select_job_result(size_t logical_filament);
+const pa_temperature::Model *temperature_model(size_t logical_filament);
+bool request_job_temperature(size_t logical_filament, int16_t temperature);
+bool has_measured_job_temperature(size_t logical_filament, int16_t temperature);
+// Foreground, parser-facing temperature changes only (not maintenance heating).
+void apply_print_temperature(uint8_t physical_tool, int16_t temperature);
 // INDX hardware adapter: apply the selected tool's job result without motion.
 void apply_selected_indx_result();
 float calibrated_pressure_advance_or(float fallback);
 void set_calibration_command_active(bool active);
 bool calibration_command_active();
 uint8_t occupied_anchor_mask();
+std::optional<uint8_t> reserve_measurement_anchor(uint8_t preferred);
 void occupy_anchor(size_t logical_filament);
 void clear_anchor(size_t logical_filament);
 void note_profile_pressure_advance(float value);
