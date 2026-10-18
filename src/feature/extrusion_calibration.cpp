@@ -10,6 +10,8 @@ namespace buddy::extrusion_calibration {
 namespace {
     Capture instance;
     std::array<Result, max_logical_filaments> results {};
+    std::array<pa_temperature::Model, max_logical_filaments> temperature_models {};
+    std::array<int16_t, max_logical_filaments> print_temperatures {};
     std::atomic<uint8_t> calibration_command_depth { 0 };
     std::atomic_uint8_t anchors { 0 };
     float profile_pressure_advance = NAN;
@@ -325,6 +327,8 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
 
 void reset_job_results() {
     results = {};
+    temperature_models = {};
+    print_temperatures = {};
     profile_pressure_advance = NAN;
     calibrated_pressure_advance = NAN;
     // Anchor occupancy protects only the active print job. A new print starts
@@ -435,6 +439,21 @@ const Result *job_result(const size_t logical_filament) {
 void set_job_result(const size_t logical_filament, const Result &result) {
     if (logical_filament < results.size()) {
         results[logical_filament] = result;
+        if (result.valid && !result.pressure_reference.valid) {
+            // A failed measurement/fallback must not reactivate an older
+            // accepted model during this attempt. Persistent points survive.
+            temperature_models[logical_filament] = {};
+            print_temperatures[logical_filament] = 0;
+        }
+        if (result.valid && result.pressure_reference.valid && result.calibration_temperature) {
+            const auto &reference = result.pressure_reference;
+            if (temperature_models[logical_filament].add({ result.calibration_temperature,
+                    result.pressure_advance, result.max_flow_mm3_s, result.confidence,
+                    reference.low_load, reference.high_load, reference.noise, true, result.flexible })
+                && !print_temperatures[logical_filament]) {
+                print_temperatures[logical_filament] = result.calibration_temperature;
+            }
+        }
         if (result.valid) {
             calibrated_pressure_advance = result.pressure_advance;
         }
@@ -446,10 +465,36 @@ float calibrated_pressure_advance_or(const float fallback) {
 }
 
 void select_job_result(const size_t logical_filament) {
+    if (logical_filament < results.size() && results[logical_filament].valid) {
+        request_job_temperature(logical_filament, print_temperatures[logical_filament]);
+    }
     const auto *result = job_result(logical_filament);
     calibrated_pressure_advance = result ? result->pressure_advance : NAN;
     const auto speeds = m976_extrusion_policy::speeds(result && result->flexible);
     configure_pressure_monitor(result ? result->pressure_reference : Score {}, speeds.low_mm_s, speeds.high_mm_s, result && result->flexible);
+}
+
+const pa_temperature::Model *temperature_model(const size_t slot) {
+    return slot < temperature_models.size() && temperature_models[slot].count ? &temperature_models[slot] : nullptr;
+}
+
+bool request_job_temperature(const size_t slot, const int16_t temperature) {
+    if (slot >= temperature_models.size()) {
+        return false;
+    }
+    const auto estimate = temperature_models[slot].evaluate(temperature);
+    if (!estimate.valid) {
+        return false;
+    }
+    const auto &point = estimate.point;
+    auto &result = results[slot];
+    result = { point.pa, point.max_flow, point.confidence, true, {}, point.flexible, temperature };
+    result.pressure_reference.valid = point.reference_valid;
+    result.pressure_reference.low_load = point.low_load;
+    result.pressure_reference.high_load = point.high_load;
+    result.pressure_reference.noise = point.noise;
+    print_temperatures[slot] = temperature;
+    return true;
 }
 
 void set_calibration_command_active(const bool active) {
