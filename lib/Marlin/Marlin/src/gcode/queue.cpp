@@ -1032,6 +1032,9 @@ static bool handle_remote_machine_service(const std::string_view command) {
 #if HAS_CHAMBER_API()
   SERIAL_ECHOPGM(" live_chamber=1");
 #endif
+  #if HAS_LOADCELL()
+    SERIAL_ECHOPGM(" pa_temperature_plan=1 pa_temperature_points=8");
+  #endif
   #if !PRINTER_IS_PRUSA_MINI()
     SERIAL_ECHOPGM(" host_progress=1");
     SERIAL_ECHOPGM(" mesh_area=1");

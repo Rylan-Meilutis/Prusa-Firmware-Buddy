@@ -646,7 +646,8 @@ void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot) {
             };
             report_key("saved", saved.key);
             report_key("current", current);
-            if (!saved.rejection_reason(cache_key(physical, i, saved.key.temperature))) {
+            if (config_store().get_filament_type(i) != FilamentType::none
+                && !saved.rejection_reason(cache_key(physical, i, saved.key.temperature))) {
                 model.add({ saved.key.temperature, saved.pa, saved.max_flow, saved.confidence,
                     saved.low_load, saved.high_load, saved.noise, true, saved.key.flexible });
             }
@@ -1344,6 +1345,7 @@ void PrusaGcodeSuite::M976() {
         // The batch owns presentation of its aggregated result; nested tool
         // calibrations only measure and accumulate their job-scoped results.
         size_t rounds = 1;
+        std::array<bool, buddy::extrusion_calibration::max_logical_filaments> failed_slots {};
         for (size_t i = 0; i < count; ++i) {
             rounds = std::max(rounds, size_t(entries[i].temperature_count));
         }
@@ -1351,7 +1353,7 @@ void PrusaGcodeSuite::M976() {
             static std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> round_entries;
             size_t round_count = 0;
             for (size_t i = 0; i < count; ++i) {
-                if (point >= std::max<size_t>(1, entries[i].temperature_count)) {
+                if (failed_slots[entries[i].logical_filament] || point >= std::max<size_t>(1, entries[i].temperature_count)) {
                     continue;
                 }
                 auto &entry = round_entries[round_count++];
@@ -1363,10 +1365,19 @@ void PrusaGcodeSuite::M976() {
                     " slot=", entry.logical_filament, " temperature=", entry.temperature,
                     " point=", point + 1, " points=", std::max<size_t>(1, entry.temperature_count));
             }
+            if (!round_count) {
+                continue;
+            }
             if (!run_batch(round_entries, round_count, false, force)) {
                 pa_diagnostics.request_error = "batch_tool_or_calibration_failed";
                 SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
                 return;
+            }
+            for (size_t i = 0; i < round_count; ++i) {
+                const auto slot = round_entries[i].logical_filament;
+                // Keep the failure reason and fallback for this tool. Do not
+                // replace them with a later successful point from its plan.
+                failed_slots[slot] = std::string_view(pa_diagnostics.records[slot].outcome) == "fallback";
             }
         }
         for (size_t i = 0; i < count; ++i) {
