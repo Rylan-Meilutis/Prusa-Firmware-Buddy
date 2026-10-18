@@ -63,7 +63,7 @@ void report_pa_diagnostics() {
     }
     bool found = false;
     // The Marlin task stack is small; never put the report buffer on it.
-    static char report[448];
+    static char report[640];
     for (size_t i = 0; i < pa_diagnostics.records.size(); ++i) {
         const auto &r = pa_diagnostics.records[i];
         if ((filter_tool && (r.outcome == std::string_view("never_run") || r.tool != tool)) || (filter_slot && int(i) != slot)) {
@@ -71,8 +71,8 @@ void report_pa_diagnostics() {
         }
         found = true;
         const int reported_tool = r.tool == 255 ? -1 : r.tool;
-        snprintf(report, sizeof(report), "PA_CAL_RESULT tool=%d slot=%u outcome=%s reason=%s result_pa=%.4f candidate_pa=%.4f confidence=%.3f minimum_confidence=%.3f snr=%.3f minimum_snr=%.3f noise=%.3f separation=%.3f cache=%s temperature=%d",
-            reported_tool, unsigned(i), r.outcome, r.reason, double(r.pa), double(r.candidate_pa), double(r.confidence), double(r.minimum_confidence), double(r.snr), double(r.minimum_snr), double(r.noise), double(r.separation), r.cache, int(r.temperature));
+        snprintf(report, sizeof(report), "PA_CAL_RESULT tool=%d slot=%u outcome=%s reason=%s result_pa=%.4f candidate_pa=%.4f confidence=%.3f minimum_confidence=%.3f snr=%.3f minimum_snr=%.3f noise=%.3f separation=%.3f cache=%s cache_lookup=%s temperature=%d",
+            reported_tool, unsigned(i), r.outcome, r.reason, double(r.pa), double(r.candidate_pa), double(r.confidence), double(r.minimum_confidence), double(r.snr), double(r.minimum_snr), double(r.noise), double(r.separation), r.cache, r.cache_lookup, int(r.temperature));
         SERIAL_ECHOLN(report);
         snprintf(report, sizeof(report), "PA_CAL_EVIDENCE tool=%d slot=%u valid_candidates=%u samples=%u transitions=%u rejected_low_signal=%u rejected_timing=%u capture_overflow=%u",
             reported_tool, unsigned(i), unsigned(r.valid_candidates), unsigned(r.samples), unsigned(r.transitions), unsigned(r.rejected_low_signal), unsigned(r.rejected_timing), unsigned(r.capture_overflow));
@@ -524,6 +524,7 @@ void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot) {
 bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     if (config_store().get_filament_type(slot) == FilamentType::none) {
         pa_diagnostics.records[slot].cache = "no_loaded_filament";
+        pa_diagnostics.records[slot].cache_lookup = "no_loaded_filament";
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=no_loaded_filament");
         return false;
     }
@@ -533,11 +534,13 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     const char *reason = nullptr;
     if (!buddy::pa_cache::read_record(path, record, &reason)) {
         pa_diagnostics.records[slot].cache = reason;
+        pa_diagnostics.records[slot].cache_lookup = reason;
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
         return false;
     }
     if ((reason = record.rejection_reason(cache_key(tool, slot, temperature)))) {
         pa_diagnostics.records[slot].cache = reason;
+        pa_diagnostics.records[slot].cache_lookup = reason;
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
         return false;
     }
@@ -553,6 +556,7 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     diagnostic.outcome = "cached";
     diagnostic.reason = "valid_cache";
     diagnostic.cache = "hit";
+    diagnostic.cache_lookup = "hit";
     diagnostic.pa = record.pa;
     diagnostic.confidence = record.confidence;
     diagnostic.minimum_confidence = record.key.confidence_floor / 100.0f;
@@ -625,7 +629,13 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         }
         buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
 #endif
+        [[maybe_unused]] const char *lookup = pa_diagnostics.records[entry.logical_filament].cache_lookup;
         auto &batch_diagnostic = pa_diagnostics.begin(entry.physical_tool, entry.logical_filament, entry.temperature);
+#if HAS_INDX()
+        batch_diagnostic.cache_lookup = force ? "bypassed_forced" : lookup;
+#else
+        batch_diagnostic.cache_lookup = "no_persistent_cache_on_this_target";
+#endif
         batch_diagnostic.reason = "tool_or_mmu_preparation_failed";
         buddy::m976_diagnostics::Attempt batch_attempt(batch_diagnostic);
 #if ENABLED(PRUSA_MMU2)
@@ -1124,6 +1134,7 @@ void PrusaGcodeSuite::M976() {
         }
     }
     #if HAS_INDX()
+    diagnostic.cache_lookup = force ? "bypassed_forced" : "not_checked";
     if (!target_temperature) {
         target_temperature = Temperature::degTargetHotend(PhysicalToolIndex::from_raw(tool));
     }
@@ -1132,6 +1143,7 @@ void PrusaGcodeSuite::M976() {
     // it atomically only after a new valid result is ready; an abort or weak
     // measurement must not destroy the previous successful calibration.
     #else
+    diagnostic.cache_lookup = force ? "bypassed_forced" : "job_ram_only";
     const auto *cached = force ? nullptr : buddy::extrusion_calibration::job_result(slot);
     #endif
     diagnostic.temperature = target_temperature;
