@@ -5,6 +5,34 @@ This replaces 6.10.1-RME for this line; older releases remain available.
 
 ## Changes
 
+### Additional finish/cancel header correction — 2026-10-18
+
+- Reproduce a second redraw cause in the maintained release branch: result
+  action refreshes reset the header to PRINTING before restoring PRINT FINISHED
+  or PRINT CANCELED. Choose the final translated title once instead.
+- Stop refreshing identical serial result actions every GUI loop and avoid
+  swapping the right action through Stop before selecting Continue.
+- Title and clock changes repaint their own widgets, not the full header.
+  Regression executes 1000 finish/cancel refreshes and fails on the previous
+  title-reset implementation. Physical display behavior still needs checking.
+
+### Read-only Auto PA failure diagnostics — 2026-10-18
+
+- `M976 I` reports the most recent attempt per logical slot without heating,
+  movement or applying a PA value. Filter with `T0` (physical Tool 1) or `L0`.
+  Results include the accepted/fallback PA, failure/abort reason, confidence,
+  SNR, acceptance floors and last-burst capture/rejection evidence.
+- Attempt history survives print completion/cancellation/new jobs until the
+  next attempt for that slot or reboot. It cannot recover past failures from
+  older firmware or after losing RAM on reboot. XL uses job RAM results;
+  persistent flash-cache inspection is INDX-only, on the 6.9.2 release line.
+- Both supported firmware builds pass; 63 GUI checks per maintained branch
+  (one skipped), 22 calibration cases / 7280 assertions, and executable cache
+  simulations pass. Matching plugin b130 passes 304 Python tests (four skipped)
+  and twelve JavaScript UI suites; inspection does not open a host calibration.
+- Hardware timing still requires verification. Queries use the normal serial
+  queue and do not interrupt a blocking calibration or temperature wait.
+
 ### Loadcell confirmation and result-header update — 2026-10-18
 
 - INDX loadcell faults now wait for Continue, Unload or Abort even without a
