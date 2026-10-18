@@ -37,6 +37,7 @@ struct Record {
     const char *outcome = "never_run";
     const char *reason = "no_attempt_this_boot";
     const char *cache = "not_checked";
+    const char *cache_lookup = "not_checked";
     float pa = std::numeric_limits<float>::quiet_NaN();
     float candidate_pa = std::numeric_limits<float>::quiet_NaN();
     float confidence = std::numeric_limits<float>::quiet_NaN();
