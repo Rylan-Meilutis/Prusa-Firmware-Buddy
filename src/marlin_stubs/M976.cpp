@@ -186,7 +186,28 @@ constexpr float pa_anchor_x_base = 50.0f;
 constexpr float pa_anchor_spacing = 11.0f;
 constexpr float pa_front_approach_y = 12.0f;
 
-float pa_anchor_x(const uint8_t slot) { return pa_anchor_x_base + slot * pa_anchor_spacing; }
+std::optional<uint8_t> active_measurement_anchor;
+class MeasurementAnchorGuard {
+public:
+    explicit MeasurementAnchorGuard(uint8_t slot)
+        : previous(active_measurement_anchor) {
+#if !HAS_WASTEBIN() && !HAS_INDX()
+        if (!active_measurement_anchor) {
+            active_measurement_anchor = buddy::extrusion_calibration::reserve_measurement_anchor(slot);
+        }
+        valid = active_measurement_anchor.has_value();
+#else
+        (void)slot;
+#endif
+    }
+    ~MeasurementAnchorGuard() { active_measurement_anchor = previous; }
+    bool valid = true;
+
+private:
+    std::optional<uint8_t> previous;
+};
+
+float pa_anchor_x(const uint8_t slot) { return pa_anchor_x_base + active_measurement_anchor.value_or(slot) * pa_anchor_spacing; }
 
 void move_to_front_service_position(const float x, const float z) {
     do_blocking_move_to_z(std::max(current_position.z, 10.0f), 5.0f);
@@ -753,8 +774,8 @@ void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::ex
 #endif
 
 bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> &entries, const size_t count, const bool manual, [[maybe_unused]] const bool force) {
-#if HAS_INDX()
     std::array<bool, buddy::extrusion_calibration::max_logical_filaments> cached {};
+#if HAS_INDX()
     size_t uncached_tools = 0;
     int hottest_temperature = 0;
     for (size_t i = 0; i < count; ++i) {
@@ -766,6 +787,12 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         }
     }
     DockFanGuard dock_cooling(uncached_tools, hottest_temperature);
+#else
+    for (size_t i = 0; i < count; ++i) {
+        const auto &entry = entries[i];
+        cached[i] = !force && buddy::extrusion_calibration::has_measured_job_temperature(entry.logical_filament, entry.temperature)
+            && buddy::extrusion_calibration::request_job_temperature(entry.logical_filament, entry.temperature);
+    }
 #endif
     // PA excitation and the deliberately short MMU load/unload moves are not
     // print-time filament failures. Suppress both sensor-event and loadcell
@@ -778,12 +805,10 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         SERIAL_ECHOLNPAIR("PA_CALIBRATION temperature_point tool=", entry.physical_tool,
             " slot=", entry.logical_filament, " temperature=", entry.temperature,
             " point=", entry.temperature_point + 1, " points=", std::max<size_t>(1, entry.temperature_count));
-#if HAS_INDX()
         if (cached[i]) {
             continue;
         }
         buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
-#endif
         [[maybe_unused]] const char *lookup = pa_diagnostics.records[entry.logical_filament].cache_lookup;
         [[maybe_unused]] const auto saved_temperature = pa_diagnostics.records[entry.logical_filament].saved_cache_temperature;
         auto &batch_diagnostic = pa_diagnostics.begin(entry.physical_tool, entry.logical_filament, entry.temperature);
@@ -795,6 +820,11 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
 #endif
         batch_diagnostic.reason = "tool_or_mmu_preparation_failed";
         buddy::m976_diagnostics::Attempt batch_attempt(batch_diagnostic);
+        MeasurementAnchorGuard anchor_guard(entry.logical_filament);
+        if (!anchor_guard.valid) {
+            batch_diagnostic.reason = "no_free_cleanup_anchor";
+            return false;
+        }
 #if ENABLED(PRUSA_MMU2)
         float prepared_anchor_z = NAN;
         bool prepared_anchor = false;
@@ -1153,7 +1183,7 @@ void cleanup(const uint8_t slot, const float anchor_z) {
     mapi::extruder_move(-0.8f, buddy::m976_extrusion_policy::speeds(flexible_calibration(slot)).retract_mm_s, true);
     planner.synchronize();
     do_blocking_move_to_z(anchor_z + 5.0f, 5.0f);
-    buddy::extrusion_calibration::occupy_anchor(slot);
+    buddy::extrusion_calibration::occupy_anchor(active_measurement_anchor.value_or(slot));
 #endif
 }
 
@@ -1316,6 +1346,27 @@ void PrusaGcodeSuite::M976() {
             SERIAL_ERROR_MSG("M976 invalid batch or loaded-material mismatch");
             return;
         }
+    #if !HAS_WASTEBIN() && !HAS_INDX()
+        if (!manual) {
+            size_t required = 0, available = 0;
+            const auto occupied = buddy::extrusion_calibration::occupied_anchor_mask();
+            for (size_t slot = 0; slot < buddy::extrusion_calibration::max_logical_filaments; ++slot) {
+                available += !(occupied & (1u << slot));
+            }
+            for (size_t i = 0; i < count; ++i) {
+                const auto &entry = entries[i];
+                for (size_t point = 0; point < std::max<size_t>(1, entry.temperature_count); ++point) {
+                    const auto temperature = entry.temperature_count ? entry.temperatures[point] : entry.temperature;
+                    required += force || !buddy::extrusion_calibration::has_measured_job_temperature(entry.logical_filament, temperature);
+                }
+            }
+            if (required > available) {
+                pa_diagnostics.request_error = "insufficient_cleanup_anchors";
+                SERIAL_ERROR_MSG("M976 insufficient clean anchor slots for temperature plan");
+                return;
+            }
+        }
+    #endif
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch accepted entries=", count);
     #if HAS_INDX()
         bool all_cached = !force;
@@ -1401,7 +1452,7 @@ void PrusaGcodeSuite::M976() {
             park_after_calibration();
         }
         SERIAL_ECHOLNPAIR("PA_CALIBRATION batch complete entries=", count);
-    #if HAS_INDX()
+    #if HAS_LOADCELL()
         buddy::extrusion_calibration::apply_selected_indx_result();
     #endif
         return;
@@ -1437,21 +1488,25 @@ void PrusaGcodeSuite::M976() {
             return;
         }
     }
-    #if HAS_INDX()
-    diagnostic.cache_lookup = force ? "bypassed_forced" : "not_checked";
     if (!target_temperature) {
         target_temperature = Temperature::degTargetHotend(PhysicalToolIndex::from_raw(tool));
     }
+    #if HAS_INDX()
+    diagnostic.cache_lookup = force ? "bypassed_forced" : "not_checked";
     const auto *cached = !force && restore_cache(tool, slot, target_temperature) ? buddy::extrusion_calibration::job_result(slot) : nullptr;
     // A forced retry bypasses the old record but must not erase it. Replace
     // it atomically only after a new valid result is ready; an abort or weak
     // measurement must not destroy the previous successful calibration.
     #else
     diagnostic.cache_lookup = force ? "bypassed_forced" : "job_ram_only";
-    const auto *cached = force ? nullptr : buddy::extrusion_calibration::job_result(slot);
+    const auto *cached = !force && buddy::extrusion_calibration::has_measured_job_temperature(slot, target_temperature)
+            && buddy::extrusion_calibration::request_job_temperature(slot, target_temperature)
+        ? buddy::extrusion_calibration::job_result(slot)
+        : nullptr;
     #endif
     diagnostic.temperature = target_temperature;
     if (cached) {
+        buddy::extrusion_calibration::request_job_temperature(slot, target_temperature);
         diagnostic.outcome = "cached";
         diagnostic.reason = "valid_cache";
         diagnostic.cache = "hit";
@@ -1470,13 +1525,12 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cached result=", cached->pressure_advance, " max_flow=", cached->max_flow_mm3_s);
         return;
     }
-    #if !HAS_WASTEBIN()
-    if (buddy::extrusion_calibration::occupied_anchor_mask() & (1u << slot)) {
-        diagnostic.reason = "anchor_occupied";
-        SERIAL_ERROR_MSG("M976 anchor slot occupied; remove debris and run M976 C L<slot>");
+    MeasurementAnchorGuard anchor_guard(slot);
+    if (!anchor_guard.valid) {
+        diagnostic.reason = "no_free_cleanup_anchor";
+        SERIAL_ERROR_MSG("M976 no clean anchor slot; remove debris and clear anchors");
         return;
     }
-    #endif
     // The deliberately pulsed extrusion profile is not a print-time runout or
     // autoload event. Keep sensor sampling active, but suppress event handling
     // until calibration cleanup is complete.
@@ -1770,6 +1824,7 @@ void PrusaGcodeSuite::M976() {
     save_cache(tool, slot, target_temperature, result);
     #endif
     buddy::extrusion_calibration::set_job_result(slot, result);
+    buddy::extrusion_calibration::request_job_temperature(slot, target_temperature);
     pressure_advance::set_axis_e_config({ best_pa, pressure_advance::get_axis_e_config().smooth_time });
     planner.set_max_volumetric_flow(slot, max_flow);
     pa_fsm_change(PhasesPressureAdvanceCalibration::cleanup, 92, slot);

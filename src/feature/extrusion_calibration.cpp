@@ -486,6 +486,15 @@ const pa_temperature::Model *temperature_model(const size_t slot) {
     return slot < temperature_models.size() && temperature_models[slot].count ? &temperature_models[slot] : nullptr;
 }
 
+bool has_measured_job_temperature(const size_t slot, const int16_t temperature) {
+    const auto *model = temperature_model(slot);
+    if (!model) {
+        return false;
+    }
+    return std::any_of(model->points.begin(), model->points.begin() + model->count,
+        [&](const auto &point) { return point.temperature == temperature && point.reference_valid; });
+}
+
 bool request_job_temperature(const size_t slot, const int16_t temperature) {
     if (slot >= temperature_models.size()) {
         return false;
@@ -520,6 +529,19 @@ bool calibration_command_active() {
 }
 
 uint8_t occupied_anchor_mask() { return anchors.load(std::memory_order_acquire); }
+
+std::optional<uint8_t> reserve_measurement_anchor(const uint8_t preferred) {
+    // Foreground-only allocator. Reserve before probing: even failed cleanup
+    // may leave debris, so release requires an explicit clear or a new job.
+    for (size_t i = 0; i < max_logical_filaments; ++i) {
+        const uint8_t slot = (preferred + i) % max_logical_filaments;
+        const uint8_t bit = 1u << slot;
+        if (!(anchors.fetch_or(bit, std::memory_order_acq_rel) & bit)) {
+            return slot;
+        }
+    }
+    return std::nullopt;
+}
 
 void occupy_anchor(const size_t logical_filament) {
     if (logical_filament < max_logical_filaments) {

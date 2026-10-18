@@ -116,6 +116,8 @@ TEST_CASE("Job PA changes with print target but ignores maintenance temperatures
     select_job_result(0);
     REQUIRE(std::abs(calibrated_pressure_advance_or(0) - .05f) < .00001f);
     REQUIRE(request_job_temperature(0, 245));
+    REQUIRE_FALSE(has_measured_job_temperature(0, 245));
+    REQUIRE(has_measured_job_temperature(0, 240));
     select_job_result(0);
     REQUIRE(std::abs(calibrated_pressure_advance_or(0) - .045f) < .00001f);
     REQUIRE_FALSE(request_job_temperature(0, 120));
@@ -129,6 +131,27 @@ TEST_CASE("Job PA changes with print target but ignores maintenance temperatures
     reset_job_results();
     REQUIRE(temperature_model(0) == nullptr);
     REQUIRE_FALSE(request_job_temperature(0, 240));
+}
+
+TEST_CASE("Each sheet-cleanup temperature measurement reserves a fresh anchor") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    REQUIRE(reserve_measurement_anchor(0) == 0);
+    REQUIRE(reserve_measurement_anchor(0) == 1);
+    REQUIRE(reserve_measurement_anchor(1) == 2);
+    for (uint8_t slot = 3; slot < 8; ++slot) {
+        REQUIRE(reserve_measurement_anchor(0) == slot);
+    }
+    REQUIRE_FALSE(reserve_measurement_anchor(0).has_value());
+    REQUIRE(occupied_anchor_mask() == 255);
+    clear_anchor(3);
+    REQUIRE(reserve_measurement_anchor(0) == 3);
+    REQUIRE_FALSE(reserve_measurement_anchor(0).has_value());
+    reset_job_results();
+    REQUIRE(occupied_anchor_mask() == 0);
+    REQUIRE(reserve_measurement_anchor(7) == 7);
+    REQUIRE(reserve_measurement_anchor(7) == 0);
+    reset_job_results();
 }
 
 TEST_CASE("PA flash records survive reopen and reject corruption and truncation") {
