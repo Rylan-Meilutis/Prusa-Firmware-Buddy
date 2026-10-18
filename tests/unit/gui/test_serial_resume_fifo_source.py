@@ -27,8 +27,15 @@ class SerialResumeFifoTests(unittest.TestCase):
         recovery = source.split(
             "case State::Resuming_ExecutingGCodeInterrupt:",
             1)[1].split("case State::Resuming_UnparkHead_ZE:", 1)[0]
-        self.assertLess(recovery.index("unpark_prime()"),
-                        recovery.index("unpark_head_XY()"))
+        if "unpark_prime()" in recovery:
+            self.assertLess(recovery.index("unpark_prime()"),
+                            recovery.index("unpark_head_XY()"))
+        else:
+            # 6.8.1 retains upstream's combined Z/E unpark rather than the
+            # newer cleaner-prime stage. Preserve its MMU retract accounting.
+            unpark = source.split("void unpark_head_ZE(void) {", 1)[1].split("\n}", 1)[0]
+            self.assertIn("server.resume.pos.e - current_position.e", unpark)
+            self.assertIn("mapi::extruder_move", unpark)
         self.assertLess(recovery.index("unpark_head_XY()"),
                         recovery.index("unpark_head_ZE()"))
 
