@@ -5,7 +5,17 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
-### Pending update — not yet published
+### LCD filtering redraw correction — 2026-10-18
+
+- Only apply LCD control/brightness writes when the brightness changes; do not
+  repeatedly clear an already-off panel during filtering/idle LED updates.
+- Keep status-strip animation updates and the LCD off mask active, with normal
+  off/wake transitions. This update does not change PWM resolution.
+- Executable stub-driver tests cover ST7789 and ILI9488 repeated brightness,
+  off and wake behavior. Physical header/fade behavior needs hardware verification.
+- RME Compatibility 0.1.0b128 remains compatible; no plugin update is required.
+
+### Spool-mapping correction — 2026-10-17
 
 - Preserve complete per-tool loaded filament parameters before a shared user
   preset is replaced during spool synchronization. Updating one slot no longer
@@ -15,6 +25,10 @@ This replaces 6.9.0-RME for this line; older releases remain available.
   an eighth distinct spool with per-tool storage instead of dropping it.
 - Regression checks include the reproduced T7 shared-preset case. Existing
   incorrect mappings require explicit correction; no physical material is guessed.
+- Matching RME plugin: 0.1.0b125. Validation: 302 Python tests (four skipped),
+  ten JavaScript UI suites, 69 native protocol tests, and 51 GUI source checks
+  per maintained firmware branch (one skipped). Physical spool mapping requires
+  verification on the updated printer.
 
 ### Updated release — 2026-10-17
 
