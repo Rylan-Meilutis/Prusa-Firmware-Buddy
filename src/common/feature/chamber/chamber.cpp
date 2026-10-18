@@ -126,7 +126,7 @@ void Chamber::step() {
         control_temperature, target_temperature_, marlin_server::is_printing(), heating_wait_active_);
 
     if (should_assist && !heating_assist_active_) {
-        heating_assist_previous_print_fan_ = thermalManager.get_print_fan_speed();
+        heating_assist_previous_print_fan_ = thermalManager.get_fan_speed(0);
         heating_assist_active_ = true;
     #if HAS_BED_FAN()
         previous_bed_fan_mode = bed_fan::controller().get_mode();
@@ -137,17 +137,17 @@ void Chamber::step() {
     if (should_assist) {
         // During printing, circulate only the independently configured bed
         // heat (M191 exception). Idle bed assistance above never owns a print.
-        const auto fan_pwm = thermalManager.get_print_fan_speed();
+        const auto fan_pwm = thermalManager.get_fan_speed(0);
         if (heating_assist_applied_print_fan_ != 0 && fan_pwm != heating_assist_applied_print_fan_) {
             heating_assist_previous_print_fan_ = fan_pwm;
         }
         heating_assist_applied_print_fan_ = chamber_heating::assisted_output(heating_assist_previous_print_fan_, chamber_heating_print_fan_pwm);
         if (fan_pwm != heating_assist_applied_print_fan_) {
-            thermalManager.set_print_fan_speed(heating_assist_applied_print_fan_);
+            thermalManager.set_fan_speed(0, heating_assist_applied_print_fan_);
         }
     } else if (heating_assist_active_) {
-        if (thermalManager.get_print_fan_speed() == heating_assist_applied_print_fan_) {
-            thermalManager.set_print_fan_speed(heating_assist_previous_print_fan_);
+        if (thermalManager.get_fan_speed(0) == heating_assist_applied_print_fan_) {
+            thermalManager.set_fan_speed(0, heating_assist_previous_print_fan_);
         }
     #if HAS_BED_FAN()
         if (previous_bed_fan_mode.has_value()) {
@@ -202,7 +202,7 @@ Chamber::Capabilities Chamber::capabilities_nolock() const {
 }
 
 void Chamber::set_heating_wait_active(bool active) {
-    debug_assert(marlin_server::is_marlin_server_thread());
+    assert(osThreadGetId() == marlin_server::server_task);
     std::lock_guard _lg(mutex_);
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     heating_wait_active_ = active;
