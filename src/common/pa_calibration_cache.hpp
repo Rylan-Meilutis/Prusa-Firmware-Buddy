@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <pa_temperature_model.hpp>
 
 namespace buddy::pa_cache {
 
@@ -95,6 +96,61 @@ struct Record {
 
     bool matches(const Key &requested) const {
         return rejection_reason(requested) == nullptr;
+    }
+};
+
+struct Bank {
+    std::array<Record, pa_temperature::capacity> records {};
+    uint32_t version = 1;
+    uint8_t count = 0;
+    bool operator==(const Bank &) const = default;
+
+    const Record *find(const Key &key, const char *&reason) const {
+        reason = "missing_record";
+        const Record *nearest = nullptr;
+        int distance = 1000;
+        for (size_t i = 0; i < count; ++i) {
+            if (records[i].matches(key)) {
+                reason = nullptr;
+                return &records[i];
+            }
+            const int delta = std::abs(int(records[i].key.temperature) - key.temperature);
+            if (delta < distance) {
+                distance = delta;
+                nearest = &records[i];
+            }
+        }
+        if (nearest) {
+            reason = nearest->rejection_reason(key);
+        }
+        return nullptr;
+    }
+
+    bool insert(const Record &record) {
+        if (!record.matches(record.key)) {
+            return false;
+        }
+        if (count) {
+            auto same_identity = record.key;
+            same_identity.temperature = records[0].key.temperature;
+            if (!records[0].matches(same_identity)) {
+                *this = {}; // New spool/nozzle/quality policy: never mix fits.
+            }
+        }
+        for (size_t i = 0; i < count; ++i) {
+            if (records[i].key.temperature == record.key.temperature) {
+                records[i] = record;
+                return true;
+            }
+        }
+        if (count == records.size()) {
+            // Bounded FIFO replacement: preserve the other temperatures,
+            // rather than making every future new temperature a cache miss.
+            std::move(records.begin() + 1, records.end(), records.begin());
+            --count;
+        }
+        records[count++] = record;
+        return true;
     }
 };
 } // namespace buddy::pa_cache
