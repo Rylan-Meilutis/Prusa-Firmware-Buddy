@@ -66,7 +66,8 @@ GCodeQueue queue;
 #if HAS_SIDE_LEDS()
   #include <leds/side_strip_handler.hpp>
 #endif
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
   #include "../module/prusa/tool_mapper.hpp"
   extern void rme_report_tool_mapping();
 #endif
@@ -1154,7 +1155,7 @@ static bool handle_remote_session_service(const std::string_view command) {
 
 static bool handle_remote_toolmap_service(const std::string_view command) {
   if (!command.starts_with("@RME TOOLMAP ")) return false;
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
   const auto action = command.substr(13);
   if (action.empty()) return false;
   if (action[0] == 'Q') {
@@ -1332,7 +1333,7 @@ static bool handle_remote_tune_service(const std::string_view command) {
     SERIAL_ECHO(marlin_vars().virtual_tools[tool].flow_factor.get());
   }
   SERIAL_EOL();
-#if ENABLED(PRUSA_TOOL_MAPPING)
+#if HAS_TOOL_MAPPING()
   rme_report_tool_mapping();
 #endif
   return true;
