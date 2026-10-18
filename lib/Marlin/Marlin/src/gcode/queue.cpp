@@ -1018,6 +1018,9 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
   SERIAL_ECHOPGM(" tune=1");
+  #if HAS_LOADCELL()
+    SERIAL_ECHOPGM(" pa_temperature_plan=1 pa_temperature_points=8");
+  #endif
   #if !PRINTER_IS_PRUSA_MINI()
     SERIAL_ECHOPGM(" host_progress=1");
     SERIAL_ECHOPGM(" mesh_area=1");
