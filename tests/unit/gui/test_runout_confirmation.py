@@ -8,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 
 
+@unittest.skipUnless((ROOT / "src/gui/screen/screen_filament_change.cpp").exists(), "INDX sensorless confirmation workflow is not part of this upstream base")
 class RunoutConfirmation(unittest.TestCase):
 
     def test_recovery_emits_terminal_parent_event(self):

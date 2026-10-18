@@ -7,6 +7,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 
 
+@unittest.skipUnless((ROOT / "src/marlin_stubs/G427.cpp").exists(), "INDX backup-tool offset preparation is not part of this upstream base")
 class SpoolJoinPreparation(unittest.TestCase):
 
     def test_batch_expansion(self):

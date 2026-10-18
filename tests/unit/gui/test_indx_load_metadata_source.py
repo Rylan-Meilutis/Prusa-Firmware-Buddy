@@ -29,7 +29,9 @@ class IndxLoadMetadataTransitions(unittest.TestCase):
         self.assertEqual(source.count("Screens::Access()->Close();"), 1)
 
     def test_existing_and_new_manufacturer_finish_once(self):
-        for name in ("MI_LOAD_MANUFACTURER", "MI_LOAD_NEW_MANUFACTURER"):
+        # Legacy virtual menus use one handler with an Add sentinel.
+        self.assertIn('id_ == std::optional<uint8_t> { 0xfe }', SOURCE)
+        for name in ("MI_LOAD_MANUFACTURER",):
             with self.subTest(handler=name):
                 source = class_source(name)
                 self.assertEqual(source.count("FSM_response_variant("), 1)

@@ -61,10 +61,10 @@ class IdentityTests(unittest.TestCase):
         self.assertIn("mbedtls_sha256_ret", section)
         self.assertIn("!marlin_server::printer_idle()", section)
         self.assertNotIn("fopen", section)
-        linker = (ROOT /
-                  "src/device/stm32f4/linker/stm32f4_platform.ld").read_text()
-        self.assertIn(
-            "__rme_application_end = LOADADDR(.data) + SIZEOF(.data)", linker)
+        for name in ('stm32f407vg.ld', 'stm32f407vg_boot.ld', 'stm32f42x.ld', 'stm32f42x_boot.ld'):
+            linker = (ROOT / 'src/device/stm32f4/linker' / name).read_text()
+            self.assertIn('__rme_application_start = ORIGIN(FLASH)', linker)
+            self.assertIn('__rme_application_end = LOADADDR(.data) + SIZEOF(.data)', linker)
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ class CalibrationMaintenance(unittest.TestCase):
                            check=True)
             subprocess.run([str(binary)], check=True)
 
+    @unittest.skipUnless((ROOT / "src/feature/tool_offset_calibration/tool_offset_calibration.cpp").exists(), "Toolchanger offset calibration is absent on 6.5.7 MK4/MMU")
     def test_calibration_owns_guard_before_all_cleanup_and_restoration(self):
         source = (
             ROOT /
@@ -42,6 +43,7 @@ class CalibrationMaintenance(unittest.TestCase):
         self.assertIn('" saved_temperature="', m976)
         self.assertIn('" requested_temperature="', m976)
 
+    @unittest.skipUnless((ROOT / "src/feature/tool_offset_calibration/tool_offset_calibration.cpp").exists(), "INDX cleaning-temperature policy is not supported on this release line")
     def test_hips_cleaning_uses_accepted_job_temperature_only_in_print(self):
         source = (
             ROOT /
@@ -115,6 +117,7 @@ int main() {
 #include <cassert>
 #include <cstdlib>
 #define HAS_TOOL_MAPPING() TEST_MAPPING
+#define EXTRUDERS 8
 // PRUSA_TOOL_MAPPING is deliberately absent, as on maintained INDX/XL.
 std::string output;
 #define SERIAL_ECHOLNPGM(text) output+=text

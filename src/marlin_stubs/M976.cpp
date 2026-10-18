@@ -358,7 +358,7 @@ void park_after_calibration() {
         // reinterpret the generic park point as an INDX cleaner coordinate.
         nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::exit_cleaner);
 #else
-        mapi::park(mapi::get_parking_position(mapi::ParkPosition::park));
+        mapi::park(mapi::ZAction::move_to_at_least);
 #endif
     }
 }

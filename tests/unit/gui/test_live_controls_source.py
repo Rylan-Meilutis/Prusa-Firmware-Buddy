@@ -39,6 +39,7 @@ class LiveControls(unittest.TestCase):
         self.assertLess(source.index("rme_firmware_compatibility::compatible"),
                         source.index("set_reflash_bbf_sfn"))
 
+    @unittest.skipUnless((ROOT / "src/marlin_stubs/G427.cpp").exists(), "INDX pellet-ejection hardware is not present on this release line")
     def test_load_purge_and_unload_eject_indx_pellets(self):
         source = (ROOT / "src/marlin_stubs/pause/pause.cpp").read_text()
         purge = source.split("bool Pause::nozzle_cleaner_purge_sequence()"

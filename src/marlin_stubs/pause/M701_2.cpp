@@ -133,6 +133,7 @@ void filament_gcodes::M701_load(FilamentType filament_to_be_loaded, const std::o
             // Interactive loading selects both material and color. Clear stale
             // state before opening the material picker.
             filament::set_color_to_load(std::nullopt);
+            filament::set_manufacturer_to_load(std::nullopt);
             PreheatData data = PreheatData::make(do_purge_only ? PreheatMode::Purge : PreheatMode::Load, target_extruder, *op_preheat);
             auto preheat_ret = data.mode == PreheatMode::Load ? preheat_for_change_load(data, target_extruder) : preheat(data, target_extruder, PreheatBehavior::force_preheat_bed_and_chamber(config_store().filament_change_preheat_all.get()));
             if (preheat_ret.first) {
@@ -487,6 +488,8 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     // LOAD
     // cannot do normal preheat, since printer is already preheated from unload
     if (filament_to_be_loaded == FilamentType::none) {
+        filament::set_color_to_load(std::nullopt);
+        filament::set_manufacturer_to_load(std::nullopt);
         PreheatData data = PreheatData::make(PreheatMode::Change_phase2, target_extruder, preheat);
         auto preheat_ret = preheat_for_change_load(data, target_extruder);
         if (preheat_ret.first) {

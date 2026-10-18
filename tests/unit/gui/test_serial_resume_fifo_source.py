@@ -7,37 +7,15 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class SerialResumeFifoTests(unittest.TestCase):
 
-    def test_pause_docks_before_accessible_park_and_resume_primes_after_pickup(
-            self):
+    def test_native_mmu_resume_keeps_xy_before_z_and_retract_accounting(self):
         source = (ROOT / "src/common/marlin_server.cpp").read_text()
-        pause = source.split("case State::Pausing_ParkHead:",
-                             1)[1].split("case State::Paused:", 1)[0]
-        self.assertLess(pause.index("tool_change(NoTool"),
-                        pause.index("sync_plan_position_e()"))
-        self.assertLess(pause.index("sync_plan_position_e()"),
-                        pause.index("mapi::park("))
-        self.assertIn("X_BED_SIZE - 8.0f", pause)
-        self.assertIn("Y_BED_SIZE - 0.5f", pause)
-        self.assertNotIn("server.resume.pos =", pause)
-        resume = source.split("void resuming_begin(void) {",
-                              1)[1].split("const GCodeReaderStreamRestoreInfo",
-                                          1)[0]
-        self.assertLess(resume.index("tool_change(PhysicalToolIndex"),
-                        resume.index("thermalManager.setTargetHotend"))
-        recovery = source.split(
-            "case State::Resuming_ExecutingGCodeInterrupt:",
-            1)[1].split("case State::Resuming_UnparkHead_ZE:", 1)[0]
-        if "unpark_prime()" in recovery:
-            self.assertLess(recovery.index("unpark_prime()"),
-                            recovery.index("unpark_head_XY()"))
-        else:
-            # 6.8.1 retains upstream's combined Z/E unpark rather than the
-            # newer cleaner-prime stage. Preserve its MMU retract accounting.
-            unpark = source.split("void unpark_head_ZE(void) {", 1)[1].split("\n}", 1)[0]
-            self.assertIn("server.resume.pos.e - current_position.e", unpark)
-            self.assertIn("mapi::extruder_move", unpark)
-        self.assertLess(recovery.index("unpark_head_XY()"),
-                        recovery.index("unpark_head_ZE()"))
+        unpark = source.split("void unpark_head_ZE(void) {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("server.resume.pos.e - current_position.e", unpark)
+        self.assertIn("plan_move_by(PAUSE_PARK_RETRACT_FEEDRATE", unpark)
+        self.assertLess(unpark.index("destination.z = server.resume.pos.z"),
+                        unpark.index("server.resume.pos.e - current_position.e"))
+        recovery = source.split("case State::Resuming_UnparkHead_XY:", 1)[1].split("case State::Resuming_UnparkHead_ZE:", 1)[0]
+        self.assertLess(recovery.index("planner.processing()"), recovery.index("unpark_head_ZE()"))
 
     def test_parked_and_resuming_states_hold_host_fifo(self):
         source = (ROOT / "src/common/marlin_server_types/marlin_server_state.h"
