@@ -343,15 +343,19 @@ void PrusaGcodeSuite::M1601() {
         bsod_unreachable();
     }
     LoadUnloadMode recovery_mode = LoadUnloadMode::FilamentStuck;
+    const char *recovery_workflow = "stuck_filament";
     switch (parser.byteval('R', 0)) {
     case 1:
         recovery_mode = LoadUnloadMode::FilamentRunout;
+        recovery_workflow = "filament_runout";
         break;
     case 2:
         recovery_mode = LoadUnloadMode::FilamentNotMoving;
+        recovery_workflow = "filament_movement";
         break;
     case 3:
         recovery_mode = LoadUnloadMode::FlowLimit;
+        recovery_workflow = "extrusion_flow_limit";
         break;
     default:
         break;
@@ -366,6 +370,10 @@ void PrusaGcodeSuite::M1601() {
 
     EMotorStallDetector::Instance().ClearReported();
     buddy::extrusion_calibration::acknowledge_extrusion_fault();
+    // Nested load/unload progress must not hide the cause, but the parent
+    // recovery must explicitly close so the host clears its alert/buttons.
+    SerialPrinting::notify_workflow(recovery_workflow,
+        marlin_server::aborting_or_aborted() ? "canceled" : "closed", "Extrusion recovery ended");
 }
 #else
 
