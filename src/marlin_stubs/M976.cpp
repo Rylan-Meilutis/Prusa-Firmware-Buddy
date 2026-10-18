@@ -65,6 +65,10 @@ static_assert(!buddy::m976_indx_policy::uses_sheet_contact_cleanup(true, ENABLED
 namespace {
 buddy::m976_diagnostics::History pa_diagnostics;
 
+#if HAS_INDX()
+void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot);
+#endif
+
 void report_pa_diagnostics() {
     SERIAL_ECHOLNPAIR("PA_CAL_STATUS request_error=", pa_diagnostics.request_error, " retention=until_next_attempt_or_reboot");
     const bool filter_tool = parser.seenval('T');
@@ -94,6 +98,11 @@ void report_pa_diagnostics() {
     if (!found) {
         SERIAL_ECHOLN("PA_CAL_STATUS outcome=never_run reason=no_matching_attempt_this_boot");
     }
+#if HAS_INDX()
+    report_pa_cache(filter_tool, tool, filter_slot, slot);
+#else
+    SERIAL_ECHOLN("PA_CAL_CACHE state=unsupported reason=no_persistent_cache_on_this_target");
+#endif
 }
 
 constexpr float filament_area = 2.40528f;
@@ -569,21 +578,65 @@ buddy::pa_cache::Key cache_key(uint8_t tool, uint8_t slot, int16_t temperature) 
     return key;
 }
 
+void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot) {
+    const bool requested_temperature = parser.seenval('S');
+    const int temperature = parser.intval('S', 0);
+    if (requested_temperature && (temperature < 0 || temperature > 300)) {
+        SERIAL_ECHOLN("PA_CAL_CACHE query_error=invalid_temperature");
+        return;
+    }
+    SERIAL_ECHOLNPAIR("PA_CAL_CACHE_POLICY mode=", config_store().auto_pa_mode.get(), " manual_or_F1_bypasses_cache=1");
+    static char report[448];
+    for (const auto logical : VirtualToolIndex::all().skip_all_disabled()) {
+        const auto i = logical.to_raw();
+        const auto physical = logical.to_physical().to_raw();
+        if ((filter_tool && physical != tool) || (filter_slot && i != slot)) {
+            continue;
+        }
+        char path[48];
+        buddy::pa_cache::path_for(path, i);
+        buddy::pa_cache::Record saved {};
+        const char *reason = nullptr;
+        if (!buddy::pa_cache::read_record(path, saved, &reason)) {
+            snprintf(report, sizeof(report), "PA_CAL_CACHE tool=%u slot=%u state=miss reason=%s", unsigned(physical), unsigned(i), reason);
+            SERIAL_ECHOLN(report);
+            continue;
+        }
+        const auto current = cache_key(physical, i, requested_temperature ? temperature : saved.key.temperature);
+        reason = config_store().get_filament_type(i) == FilamentType::none ? "no_loaded_filament" : saved.rejection_reason(current);
+        snprintf(report, sizeof(report), "PA_CAL_CACHE tool=%u slot=%u state=%s reason=%s result_pa=%.4f confidence=%.3f temperature=%d temperature_basis=%s",
+            unsigned(physical), unsigned(i), reason ? "miss" : "hit", reason ?: "match", double(saved.pa), double(saved.confidence), int(current.temperature), requested_temperature ? "requested" : "saved");
+        SERIAL_ECHOLN(report);
+        // Report both identities, not just the first mismatch. This remains
+        // available after reboot and never restores/applies the saved result.
+        const auto report_key = [&](const char *source, const buddy::pa_cache::Key &key) {
+            snprintf(report, sizeof(report), "PA_CAL_CACHE_KEY slot=%u source=%s profile=%.31s material=%.15s color=%lu color_valid=%u manufacturer=%u tool=%u nozzle=%.4f temperature=%d profile_temperature=%d confidence_floor=%u minimum_snr=%.3f flexible=%u",
+                unsigned(i), source, key.profile.data(), key.material.data(), static_cast<unsigned long>(key.color), unsigned(key.color_valid), unsigned(key.manufacturer), unsigned(key.physical_tool), double(key.nozzle), int(key.temperature), int(key.profile_temperature), unsigned(key.confidence_floor), double(key.minimum_snr), unsigned(key.flexible));
+            SERIAL_ECHOLN(report);
+        };
+        report_key("saved", saved.key);
+        report_key("current", current);
+    }
+}
+
 bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     if (config_store().get_filament_type(slot) == FilamentType::none) {
+        pa_diagnostics.records[slot].cache = "no_loaded_filament";
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=no_loaded_filament");
         return false;
     }
     char path[48];
     buddy::pa_cache::path_for(path, slot);
     buddy::pa_cache::Record record {};
-    if (!buddy::pa_cache::read_record(path, record)) {
-        pa_diagnostics.records[slot].cache = "missing_or_invalid_record";
-        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=missing_or_invalid_record");
+    const char *reason = nullptr;
+    if (!buddy::pa_cache::read_record(path, record, &reason)) {
+        pa_diagnostics.records[slot].cache = reason;
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
         return false;
     }
-    if (!record.matches(cache_key(tool, slot, temperature))) {
-        pa_diagnostics.records[slot].cache = "key_or_quality_changed";
-        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=key_or_quality_changed");
+    if ((reason = record.rejection_reason(cache_key(tool, slot, temperature)))) {
+        pa_diagnostics.records[slot].cache = reason;
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
         return false;
     }
     buddy::extrusion_calibration::Result result { record.pa, record.max_flow, record.confidence, true };
@@ -1074,7 +1127,7 @@ bool park_for_free_air_calibration(const uint8_t slot, const float anchor_z) {
 void PrusaGcodeSuite::M976() {
     // Inspection must not acquire lighting holds, change targets, apply a
     // cached PA value, open a dialog, or move the machine.
-    if (parser.seen('I')) {
+    if (buddy::m976_diagnostics::inspection_requested(parser.command_ptr)) {
         report_pa_diagnostics();
         return;
     }
