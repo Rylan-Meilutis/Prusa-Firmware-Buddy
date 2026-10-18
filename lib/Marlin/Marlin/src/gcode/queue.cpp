@@ -52,6 +52,7 @@ GCodeQueue queue;
 #include <heap.h>
 #include <FreeRTOS.h>
 #include <option/has_side_leds.h>
+#include <option/has_serial_print.h>
 #include <option/has_chamber_api.h>
 #if HAS_CHAMBER_API()
   #include <feature/chamber/chamber.hpp>
@@ -555,6 +556,10 @@ static std::optional<long> remote_number(const std::string_view command, const s
   return rme_protocol::signed_number(command, key, base);
 }
 
+static std::optional<double> remote_decimal(const std::string_view command, const std::string_view key) {
+  return rme_protocol::decimal_number(command, key);
+}
+
 static std::optional<uint32_t> remote_transaction(const std::string_view command) {
   return rme_protocol::transaction(command);
 }
@@ -805,7 +810,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
       return true;
     }
 
-    FilamentType type = config_store().get_filament_type(VirtualToolIndex::from_raw(static_cast<uint8_t>(*tool)));
+    FilamentType type = config_store().get_filament_type(static_cast<uint8_t>(*tool));
     if (const auto profile = remote_value(command, "profile")) {
       type = FilamentType::from_name(*profile);
       if (type == FilamentType::none) {
@@ -844,7 +849,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
 #endif
     }
 
-    config_store().set_filament_type(VirtualToolIndex::from_raw(static_cast<uint8_t>(*tool)), type);
+    config_store().set_filament_type(static_cast<uint8_t>(*tool), type);
     const auto assigned = type.parameters();
     SERIAL_ECHO("RME_FILAMENT_ASSIGNED tool="); SERIAL_ECHO(*tool);
     SERIAL_ECHO(" material="); SERIAL_ECHO(filament_material_name(assigned).data());
@@ -913,10 +918,12 @@ static bool handle_remote_filament_service(const std::string_view command) {
       // not turn an unrelated loaded PLA tool into ASA (or change its temps).
       // Preserve a complete per-tool copy before changing the shared preset;
       // explicit ASSIGN/M865 L commands can subsequently replace that copy.
-      buddy::filament_material::preserve_loaded_preset(type, VirtualToolIndex::all(),
+      std::array<uint8_t, EXTRUDERS> tools {};
+      for (uint8_t i = 0; i < EXTRUDERS; ++i) tools[i] = i;
+      buddy::filament_material::preserve_loaded_preset(type, tools,
         [](const auto tool) { return config_store().get_filament_type(tool); },
         [&](const auto tool) {
-          const FilamentType snapshot = AdHocFilamentType { tool.to_raw() };
+          const FilamentType snapshot = AdHocFilamentType { tool };
           snapshot.set_parameters(previous_params);
           config_store().set_filament_type(tool, snapshot);
         });
@@ -1095,7 +1102,7 @@ static void report_remote_session() {
   // this communications lease for printer activity.
   SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
   SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
-  const auto active_tool = rme_active_tool::snapshot(VirtualToolIndex::currently_selected());
+  const rme_active_tool::Snapshot active_tool { active_extruder < EXTRUDERS, active_extruder };
   SERIAL_ECHOPGM(" active_tool=");
   if (active_tool.selected) SERIAL_ECHO(active_tool.index);
   else SERIAL_ECHOPGM("none");
@@ -1369,24 +1376,24 @@ static bool handle_remote_service_frame(const char *raw_command) {
     const auto flow = rme_protocol::unsigned_number(command, "flow");
     const auto tool = rme_protocol::unsigned_number(command, "tool");
     const unsigned count = bed.has_value() + nozzle.has_value() + fan.has_value() + speed.has_value() + flow.has_value();
-    auto selected = PhysicalToolIndex::currently_selected_opt();
-    if (tool && *tool < PhysicalToolIndex::count) {
-      selected = PhysicalToolIndex::from_raw(*tool);
+    std::optional<uint8_t> selected = active_extruder < HOTENDS ? std::optional<uint8_t> { active_extruder } : std::nullopt;
+    if (tool && *tool < HOTENDS) {
+      selected = static_cast<uint8_t>(*tool);
     }
     bool valid = serial_remote_control::session_active() && !printer_lock::locked() && count == 1;
-    valid = valid && (!bed || *bed <= 150) && (!nozzle || (*nozzle <= 500 && selected && selected->is_enabled()))
+    valid = valid && (!bed || *bed <= 150) && (!nozzle || (*nozzle <= 500 && selected && is_tool_enabled(*selected)))
       && (!fan || *fan <= 255) && (!speed || (*speed >= 10 && *speed <= 300))
-      && (!flow || (*flow >= 50 && *flow <= 150 && tool && *tool < VirtualToolIndex::count))
-      && (!tool || *tool < PhysicalToolIndex::count);
+      && (!flow || (*flow >= 50 && *flow <= 150 && tool && *tool < EXTRUDERS))
+      && (!tool || *tool < (flow ? EXTRUDERS : HOTENDS));
     if (!valid) {
       SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=invalid_or_locked");
     } else {
       if (bed) thermalManager.setTargetBed(*bed);
       if (nozzle) thermalManager.setTargetHotend(*nozzle, *selected);
-      if (fan) thermalManager.set_print_fan_speed(*fan);
+      if (fan) thermalManager.set_fan_speed(0, *fan);
       if (speed) feedrate_percentage = *speed;
       if (flow) {
-        const auto virtual_tool = VirtualToolIndex::from_raw(*tool);
+        const auto virtual_tool = static_cast<uint8_t>(*tool);
         planner.flow_percentage[virtual_tool] = *flow;
         planner.refresh_e_factor(virtual_tool);
       }

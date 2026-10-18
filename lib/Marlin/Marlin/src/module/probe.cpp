@@ -603,7 +603,7 @@ float run_z_probe(const RunZProbeParams& params) {
     {
       idle(false); // Avoid watchdog reset in case of no move while probing
       #if ENABLED(NOZZLE_LOAD_CELL)
-        #if HAS_INDX()
+        #if 0 // INDX-only probe retry policy is absent on this upstream base.
         // A sticky flexible nozzle must reach the normal probing-failed
         // recovery UI, not repeat dozens of rejected contacts at one point.
         if (probe_idx >= 8 && FilamentType::for_tool_heuristic(VirtualToolIndex::currently_selected()).parameters().is_flexible)

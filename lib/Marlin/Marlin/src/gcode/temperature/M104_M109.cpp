@@ -44,7 +44,7 @@
 #include "marlin_server.hpp"
 #include <option/has_loadcell.h>
 #if HAS_LOADCELL()
-  #include <common/feature/extrusion_calibration.hpp>
+  #include <feature/extrusion_calibration.hpp>
 #endif
 
 /** \addtogroup G-Codes

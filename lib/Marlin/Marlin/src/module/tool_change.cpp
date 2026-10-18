@@ -30,7 +30,7 @@
 #include <feature/prusa/MMU2/mmu2_mk4.h>
 #endif
 #if HAS_LOADCELL()
-  #include <common/feature/extrusion_calibration.hpp>
+  #include <feature/extrusion_calibration.hpp>
   #include <feature/pressure_advance/pressure_advance_config.hpp>
 
 static uint8_t pa_loaded_slot() {
