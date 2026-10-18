@@ -264,7 +264,17 @@ extern "C" void main_cpp(void) {
 
 #if BUDDY_ENABLE_CONNECT()
     // On a place shared for both code branches, so we have just one connectTask buffer.
+    #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    // These 6.5.7 targets also carry the chamber-extension tasks in CCM.
+    // Keep the non-real-time Connect stack statically allocated in SRAM,
+    // preserving its size and Marlin's crash-derived CCM safety margin.
+    static uint32_t connect_stack_sram[2336];
+    static StaticTask_t connect_control_sram;
+    osThreadStaticDef(connectTask, want_error_screen ? StartConnectTaskError : StartConnectTask,
+        TASK_PRIORITY_CONNECT, 0, 2336, connect_stack_sram, &connect_control_sram);
+    #else
     osThreadCCMDef(connectTask, want_error_screen ? StartConnectTaskError : StartConnectTask, TASK_PRIORITY_CONNECT, 0, 2336);
+    #endif
 #endif
 
 #if HAS_NFC()
