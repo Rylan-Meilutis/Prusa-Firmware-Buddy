@@ -1597,7 +1597,7 @@ static bool handle_dialog_service_response(const char *command) {
   return true;
 }
 
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
 static bool handle_stuck_filament_response(const char *command) {
   if (!command_code_is(command, 'M', 1601)) return false;
 
@@ -1812,7 +1812,7 @@ void GCodeQueue::get_serial_commands() {
           continue;
         }
 
-        #if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+        #if HAS_LOADCELL()
           // M1601 owns the foreground G-code slot while its recovery FSM is
           // visible. Consume its C/U/A response directly from serial RX so a
           // paused host can act without waiting behind that blocking command.
