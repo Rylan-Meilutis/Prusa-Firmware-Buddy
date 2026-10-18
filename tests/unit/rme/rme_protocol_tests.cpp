@@ -9,6 +9,7 @@
 #include <manual_motion_safety.hpp>
 
 #include <filament_material.hpp>
+#include <filament_preset_snapshot.hpp>
 #include <filament_material_family_storage.hpp>
 #include <firmware_update_handoff.hpp>
 #include <firmware_cleanup_gate.hpp>
@@ -602,6 +603,36 @@ TEST_CASE("External filament material never exposes the custom profile name", "[
     CHECK(authoritative_name("PLA-00D", "PLA") == "PLA");
     CHECK(authoritative_name("PET-00L", "PETG") == "PETG");
     CHECK(authoritative_name("PA-CF", {}) == "PA-CF");
+}
+
+TEST_CASE("Reusing a spool preset preserves unrelated loaded tools", "[rme][filament][regression]") {
+    struct Parameters {
+        std::string_view profile;
+        std::string_view material;
+        int nozzle;
+    };
+    Parameters shared { "PLA-00C", "PLA", 215 };
+    const Parameters old = shared;
+    std::array<int, 8> loaded { 0, 1, 4, 6, 3, 2, 1, 4 };
+    std::array<Parameters, 8> snapshots {};
+    const std::array<int, 8> tools { 0, 1, 2, 3, 4, 5, 6, 7 };
+    buddy::filament_material::preserve_loaded_preset(
+        4, tools,
+        [&](int tool) { return loaded[tool]; },
+        [&](int tool) {
+            snapshots[tool] = shared;
+            loaded[tool] = 100 + tool;
+        });
+    shared = { "ASA-00N", "ASA", 260 };
+    loaded[2] = 4; // Explicit assignment only changes the requested tool.
+    CHECK(loaded[2] == 4);
+    CHECK(shared.material == "ASA");
+    CHECK(loaded[7] == 107);
+    CHECK(snapshots[7].profile == old.profile);
+    CHECK(snapshots[7].material == "PLA");
+    CHECK(snapshots[7].nozzle == 215);
+    CHECK(loaded[6] == 1);
+    CHECK(snapshots[6].profile.empty());
 }
 
 TEST_CASE("New base presets preserve the deployed EEPROM1 layout", "[rme][filament][eeprom][boot]") {
