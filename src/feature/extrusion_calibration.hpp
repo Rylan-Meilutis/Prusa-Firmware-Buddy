@@ -72,6 +72,7 @@ struct Result {
     bool valid = false;
     Score pressure_reference {};
     bool flexible = false;
+    int16_t calibration_temperature = 0; // Actual accepted request, not the restored idle target.
 };
 
 // Eight entries cover the full INDX tool complement while still fitting the
@@ -110,6 +111,15 @@ bool pressure_monitor_presence_enabled();
 bool pressure_monitor_movement_enabled();
 void reset_pressure_monitor();
 void suspend_pressure_monitor(bool suspend);
+/// Nestable exclusion for maintenance extrusion. Resume only this scope's
+/// hold, on every exit path, without changing the user's detection settings.
+class PressureMonitorSuspension {
+public:
+    PressureMonitorSuspension() { suspend_pressure_monitor(true); }
+    ~PressureMonitorSuspension() { suspend_pressure_monitor(false); }
+    PressureMonitorSuspension(const PressureMonitorSuspension &) = delete;
+    PressureMonitorSuspension &operator=(const PressureMonitorSuspension &) = delete;
+};
 ExtrusionFault consume_extrusion_fault();
 void acknowledge_extrusion_fault();
 
