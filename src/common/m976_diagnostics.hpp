@@ -34,6 +34,7 @@ inline bool inspection_requested(std::string_view command) {
 struct Record {
     uint8_t tool = 255; // No physical tool associated with an unattempted slot.
     int16_t temperature = 0;
+    int16_t saved_cache_temperature = -1;
     const char *outcome = "never_run";
     const char *reason = "no_attempt_this_boot";
     const char *cache = "not_checked";
