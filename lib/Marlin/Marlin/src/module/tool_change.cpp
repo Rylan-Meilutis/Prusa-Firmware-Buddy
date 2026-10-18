@@ -27,17 +27,34 @@
 #include <mapi/motion.hpp>
 #include <serial_printing.hpp>
 #include <option/has_indx.h>
-#if HAS_INDX()
+#include <option/has_loadcell.h>
+#if HAS_LOADCELL()
   #include <feature/extrusion_calibration.hpp>
   #include <feature/pressure_advance/pressure_advance_config.hpp>
 
 void buddy::extrusion_calibration::apply_selected_indx_result() {
     const auto logical = VirtualToolIndex::currently_selected_opt();
     const size_t slot = logical ? logical->to_raw() : max_logical_filaments;
+    planner.synchronize();
+    if (planner.draining()) return;
     select_job_result(slot);
     if (const auto *result = job_result(slot)) {
         pressure_advance::set_axis_e_config({ result->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
         planner.set_max_volumetric_flow(slot, result->max_flow_mm3_s);
+    }
+}
+
+void buddy::extrusion_calibration::apply_print_temperature(uint8_t physical_tool, int16_t temperature) {
+    if (calibration_command_active()) return;
+    for (const auto logical : VirtualToolIndex::all().skip_all_disabled()) {
+        if (logical.to_physical().to_raw() != physical_tool) continue;
+        if (const auto *current = job_result(logical.to_raw()); current && current->calibration_temperature == temperature) continue;
+        if (!request_job_temperature(logical.to_raw(), temperature)) continue;
+        if (VirtualToolIndex::currently_selected_opt() == logical) {
+            apply_selected_indx_result();
+            const auto *result = job_result(logical.to_raw());
+            SERIAL_ECHOLNPAIR("PA_TEMPERATURE slot=", logical.to_raw(), " temperature=", temperature, " result_pa=", result->pressure_advance);
+        }
     }
 }
 #endif
@@ -93,7 +110,7 @@ bool tool_change(const std::variant<VirtualToolIndex, PhysicalToolIndex, NoTool>
       [](NoTool) -> MaybePhysical { return NoTool{}; }
     );
     const bool success = prusa_toolchanger.tool_change(maybe_physical, return_type, current_position.xyz(), z_lift, z_return);
-    #if HAS_INDX()
+    #if HAS_LOADCELL()
       if (success) buddy::extrusion_calibration::apply_selected_indx_result();
     #endif
     if (!success) SerialPrinting::notify_error("tool_change", "tool_change_failed", "Tool change failed");

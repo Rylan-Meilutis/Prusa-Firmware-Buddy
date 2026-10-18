@@ -114,6 +114,8 @@ struct BatchEntry {
     uint8_t logical_filament;
     int16_t temperature;
     std::array<char, 17> material {};
+    std::array<int16_t, buddy::pa_temperature::capacity> temperatures {};
+    uint8_t temperature_count = 0;
 };
 
 struct CandidateObservation {
@@ -414,13 +416,32 @@ size_t parse_batch_manifest(const char *command, std::array<BatchEntry, buddy::e
         if (*cursor++ != ':' || material_length == 0 || *cursor < '0' || *cursor > '9') {
             return 0;
         }
-        temperature = 0;
-        while (*cursor >= '0' && *cursor <= '9') {
-            temperature = temperature * 10 + unsigned(*cursor++ - '0');
-            if (temperature > 999) {
+        do {
+            temperature = 0;
+            if (*cursor < '0' || *cursor > '9') {
                 return 0;
             }
-        }
+            while (*cursor >= '0' && *cursor <= '9') {
+                temperature = temperature * 10 + unsigned(*cursor++ - '0');
+                if (temperature > 300) {
+                    return 0;
+                }
+            }
+            if (temperature < 170) {
+                return 0;
+            }
+            const auto begin = entry.temperatures.begin();
+            if (std::find(begin, begin + entry.temperature_count, temperature) == begin + entry.temperature_count) {
+                if (entry.temperature_count == entry.temperatures.size()) {
+                    return 0;
+                }
+                entry.temperatures[entry.temperature_count++] = temperature;
+            }
+            if (*cursor != '/') {
+                break;
+            }
+            ++cursor;
+        } while (true);
         if (*cursor != ',' && *cursor != '\0') {
             return 0;
         }
@@ -433,7 +454,7 @@ size_t parse_batch_manifest(const char *command, std::array<BatchEntry, buddy::e
         }
         entry.physical_tool = physical;
         entry.logical_filament = logical;
-        entry.temperature = temperature;
+        entry.temperature = entry.temperatures[0];
         ++count;
     }
     return *cursor == '\0' ? count : 0;
@@ -489,6 +510,12 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
     uint8_t physical_mask = 0;
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
+        for (size_t point = 0; point < entry.temperature_count; ++point) {
+            if (entry.temperatures[point] < thermalManager.extrude_min_temp
+                || entry.temperatures[point] > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN) {
+                return false;
+            }
+        }
         if (entry.physical_tool >= EXTRUDERS || entry.logical_filament >= buddy::extrusion_calibration::max_logical_filaments
             || entry.temperature < thermalManager.extrude_min_temp || entry.temperature > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN
             || (logical_mask & (1u << entry.logical_filament)) || (physical_mask & (1u << entry.physical_tool))) {
@@ -595,27 +622,44 @@ void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot) {
         }
         char path[48];
         buddy::pa_cache::path_for(path, i);
-        buddy::pa_cache::Record saved {};
+        static buddy::pa_cache::Bank bank;
         const char *reason = nullptr;
-        if (!buddy::pa_cache::read_record(path, saved, &reason)) {
+        if (!buddy::pa_cache::read_bank(path, bank, &reason) || !bank.count) {
             snprintf(report, sizeof(report), "PA_CAL_CACHE tool=%u slot=%u state=miss reason=%s", unsigned(physical), unsigned(i), reason);
             SERIAL_ECHOLN(report);
             continue;
         }
-        const auto current = cache_key(physical, i, requested_temperature ? temperature : saved.key.temperature);
-        reason = config_store().get_filament_type(i) == FilamentType::none ? "no_loaded_filament" : saved.rejection_reason(current);
-        snprintf(report, sizeof(report), "PA_CAL_CACHE tool=%u slot=%u state=%s reason=%s result_pa=%.4f confidence=%.3f temperature=%d temperature_basis=%s",
-            unsigned(physical), unsigned(i), reason ? "miss" : "hit", reason ?: "match", double(saved.pa), double(saved.confidence), int(current.temperature), requested_temperature ? "requested" : "saved");
-        SERIAL_ECHOLN(report);
-        // Report both identities, not just the first mismatch. This remains
-        // available after reboot and never restores/applies the saved result.
-        const auto report_key = [&](const char *source, const buddy::pa_cache::Key &key) {
-            snprintf(report, sizeof(report), "PA_CAL_CACHE_KEY slot=%u source=%s profile=%.31s material=%.15s color=%lu color_valid=%u manufacturer=%u tool=%u nozzle=%.4f temperature=%d profile_temperature=%d confidence_floor=%u minimum_snr=%.3f flexible=%u",
-                unsigned(i), source, key.profile.data(), key.material.data(), static_cast<unsigned long>(key.color), unsigned(key.color_valid), unsigned(key.manufacturer), unsigned(key.physical_tool), double(key.nozzle), int(key.temperature), int(key.profile_temperature), unsigned(key.confidence_floor), double(key.minimum_snr), unsigned(key.flexible));
+        buddy::pa_temperature::Model model;
+        for (size_t point = 0; point < bank.count; ++point) {
+            const auto &saved = bank.records[point];
+            const auto current = cache_key(physical, i, requested_temperature ? temperature : saved.key.temperature);
+            reason = config_store().get_filament_type(i) == FilamentType::none ? "no_loaded_filament" : saved.rejection_reason(current);
+            snprintf(report, sizeof(report), "PA_CAL_CACHE tool=%u slot=%u state=%s reason=%s result_pa=%.4f confidence=%.3f temperature=%d temperature_basis=%s",
+                unsigned(physical), unsigned(i), reason ? "miss" : "hit", reason ?: "match", double(saved.pa), double(saved.confidence), int(current.temperature), requested_temperature ? "requested" : "saved");
             SERIAL_ECHOLN(report);
-        };
-        report_key("saved", saved.key);
-        report_key("current", current);
+            // Report both identities, not just the first mismatch. This remains
+            // available after reboot and never restores/applies the saved result.
+            const auto report_key = [&](const char *source, const buddy::pa_cache::Key &key) {
+                snprintf(report, sizeof(report), "PA_CAL_CACHE_KEY slot=%u source=%s profile=%.31s material=%.15s color=%lu color_valid=%u manufacturer=%u tool=%u nozzle=%.4f temperature=%d profile_temperature=%d confidence_floor=%u minimum_snr=%.3f flexible=%u",
+                    unsigned(i), source, key.profile.data(), key.material.data(), static_cast<unsigned long>(key.color), unsigned(key.color_valid), unsigned(key.manufacturer), unsigned(key.physical_tool), double(key.nozzle), int(key.temperature), int(key.profile_temperature), unsigned(key.confidence_floor), double(key.minimum_snr), unsigned(key.flexible));
+                SERIAL_ECHOLN(report);
+            };
+            report_key("saved", saved.key);
+            report_key("current", current);
+            if (!saved.rejection_reason(cache_key(physical, i, saved.key.temperature))) {
+                model.add({ saved.key.temperature, saved.pa, saved.max_flow, saved.confidence,
+                    saved.low_load, saved.high_load, saved.noise, true, saved.key.flexible });
+            }
+        }
+        if (model.count) {
+            const auto estimate = model.evaluate(requested_temperature ? temperature : model.points[0].temperature);
+            const auto fit = model.evaluate(model.points[0].temperature);
+            snprintf(report, sizeof(report), "PA_CAL_MODEL slot=%u points=%u min_temperature=%d max_temperature=%d slope=%.7f intercept=%.5f rmse=%.5f requested_temperature=%d eligible=%u method=%s result_pa=%.5f",
+                unsigned(i), unsigned(model.count), model.points[0].temperature, model.points[model.count - 1].temperature,
+                double(fit.slope), double(fit.intercept), double(fit.rmse), int(requested_temperature ? temperature : model.points[0].temperature),
+                unsigned(estimate.valid), estimate.method, double(estimate.point.pa));
+            SERIAL_ECHOLN(report);
+        }
     }
 }
 
@@ -628,21 +672,23 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     }
     char path[48];
     buddy::pa_cache::path_for(path, slot);
-    buddy::pa_cache::Record record {};
+    static buddy::pa_cache::Bank bank;
     const char *reason = nullptr;
-    if (!buddy::pa_cache::read_record(path, record, &reason)) {
+    if (!buddy::pa_cache::read_bank(path, bank, &reason) || !bank.count) {
         pa_diagnostics.records[slot].cache = reason;
         pa_diagnostics.records[slot].cache_lookup = reason;
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason);
         return false;
     }
-    pa_diagnostics.records[slot].saved_cache_temperature = record.key.temperature;
-    if ((reason = record.rejection_reason(cache_key(tool, slot, temperature)))) {
+    const auto *found = bank.find(cache_key(tool, slot, temperature), reason);
+    pa_diagnostics.records[slot].saved_cache_temperature = bank.records[0].key.temperature;
+    if (!found) {
         pa_diagnostics.records[slot].cache = reason;
         pa_diagnostics.records[slot].cache_lookup = reason;
-        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason, " saved_temperature=", record.key.temperature, " requested_temperature=", temperature);
+        SERIAL_ECHOLNPAIR("PA_CALIBRATION cache miss slot=", slot, " reason=", reason, " saved_temperature=", bank.records[0].key.temperature, " requested_temperature=", temperature);
         return false;
     }
+    const auto &record = *found;
     buddy::extrusion_calibration::Result result { record.pa, record.max_flow, record.confidence, true };
     result.flexible = record.key.flexible;
     result.calibration_temperature = record.key.temperature;
@@ -681,12 +727,15 @@ void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::ex
         char path[48], temporary[48];
         buddy::pa_cache::path_for(path, slot);
         buddy::pa_cache::path_for(temporary, slot, true);
-        if (!buddy::pa_cache::write_record(path, temporary, record)) {
+        static buddy::pa_cache::Bank bank;
+        static buddy::pa_cache::Bank verified;
+        bank = {};
+        buddy::pa_cache::read_bank(path, bank);
+        if (!bank.insert(record) || !buddy::pa_cache::write_bank(path, temporary, bank)) {
             pa_diagnostics.records[slot].cache = "write_failed";
             SERIAL_ECHOLN("PA_CALIBRATION cache save unavailable; using job result only");
         } else {
-            buddy::pa_cache::Record verified {};
-            if (buddy::pa_cache::read_record(path, verified) && verified == record && verified.matches(record.key)) {
+            if (buddy::pa_cache::read_bank(path, verified) && verified == bank) {
                 pa_diagnostics.records[slot].cache = "saved_and_verified";
                 SERIAL_ECHOLNPAIR("PA_CALIBRATION cache saved_and_verified slot=", slot);
             } else {
@@ -1218,7 +1267,8 @@ void PrusaGcodeSuite::M976() {
     HotendTargetRestorer restore_hotend_targets;
     const bool force = manual || mode == 2 || parser.boolval('F', false);
     if (parser.seen('A') || parser.seenval('K')) {
-        std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries {};
+        static std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> entries;
+        entries = {};
         size_t count = 0;
         if (strstr(parser.command_ptr, " A")) {
             count = parse_batch_manifest(parser.command_ptr, entries);
@@ -1267,10 +1317,16 @@ void PrusaGcodeSuite::M976() {
         if (!force) {
             for (size_t i = 0; i < count; ++i) {
                 const auto &entry = entries[i];
-                all_cached &= restore_cache(entry.physical_tool, entry.logical_filament, entry.temperature);
+                for (size_t point = 0; point < std::max<size_t>(1, entry.temperature_count); ++point) {
+                    all_cached &= restore_cache(entry.physical_tool, entry.logical_filament,
+                        entry.temperature_count ? entry.temperatures[point] : entry.temperature);
+                }
             }
         }
         if (all_cached) {
+            for (size_t i = 0; i < count; ++i) {
+                buddy::extrusion_calibration::request_job_temperature(entries[i].logical_filament, entries[i].temperature);
+            }
             buddy::extrusion_calibration::apply_selected_indx_result();
             SERIAL_ECHOLN("PA_CALIBRATION batch cached; no calibration moves");
             return;
@@ -1287,10 +1343,34 @@ void PrusaGcodeSuite::M976() {
         }
         // The batch owns presentation of its aggregated result; nested tool
         // calibrations only measure and accumulate their job-scoped results.
-        if (!run_batch(entries, count, false, force)) {
-            pa_diagnostics.request_error = "batch_tool_or_calibration_failed";
-            SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
-            return;
+        size_t rounds = 1;
+        for (size_t i = 0; i < count; ++i) {
+            rounds = std::max(rounds, size_t(entries[i].temperature_count));
+        }
+        for (size_t point = 0; point < rounds; ++point) {
+            static std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> round_entries;
+            size_t round_count = 0;
+            for (size_t i = 0; i < count; ++i) {
+                if (point >= std::max<size_t>(1, entries[i].temperature_count)) {
+                    continue;
+                }
+                auto &entry = round_entries[round_count++];
+                entry = entries[i];
+                if (entry.temperature_count) {
+                    entry.temperature = entry.temperatures[point];
+                }
+                SERIAL_ECHOLNPAIR("PA_CALIBRATION temperature_point tool=", entry.physical_tool,
+                    " slot=", entry.logical_filament, " temperature=", entry.temperature,
+                    " point=", point + 1, " points=", std::max<size_t>(1, entry.temperature_count));
+            }
+            if (!run_batch(round_entries, round_count, false, force)) {
+                pa_diagnostics.request_error = "batch_tool_or_calibration_failed";
+                SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
+                return;
+            }
+        }
+        for (size_t i = 0; i < count; ++i) {
+            buddy::extrusion_calibration::request_job_temperature(entries[i].logical_filament, entries[i].temperature);
         }
         // MMU batches finish by unloading. Leave the nozzle clear of the
         // anchor before restoring (and potentially cooling to) the previous
