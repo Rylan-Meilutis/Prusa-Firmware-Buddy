@@ -1415,9 +1415,6 @@ void PrusaGcodeSuite::M976() {
             if (!round_count) {
                 continue;
             }
-            if (!round_count) {
-                continue;
-            }
             if (!run_batch(round_entries, round_count, false, force)) {
                 pa_diagnostics.request_error = "batch_tool_or_calibration_failed";
                 SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");

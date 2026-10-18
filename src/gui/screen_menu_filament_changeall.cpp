@@ -67,6 +67,7 @@ public:
     WindowMenuPreloadManufacturer(window_t *parent, Rect16 rect) : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::no) {}
     void set_owner(MI_ActionSelect *owner) {
         owner_ = owner;
+        custom_count_ = 0;
         for (size_t i = 0; i < filament_manufacturer::custom_slot_count; ++i) custom_count_ += filament_manufacturer::custom(i).has_value();
         setup_items();
     }

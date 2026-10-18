@@ -29,7 +29,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <timing.h>
-#include <buddy/filename_defs.hpp>
 #include <version/version.hpp>
 #include <common/printer_model.hpp>
 
@@ -39,7 +38,7 @@ extern "C" const uint8_t __rme_application_end[];
 extern "C" bool buddy_rme_service_frame(const char *raw_command);
 
 namespace {
-constexpr size_t rme_path_buffer_size = filename_defs::path_buffer_size;
+constexpr size_t rme_path_buffer_size = FILE_PATH_BUFFER_LEN;
 constexpr size_t transfer_chunk_size = 48;
 constexpr size_t bulk_chunk_size = rme_file_transfer::bulk_payload_size;
 constexpr uint8_t bulk_window_size = rme_file_transfer::bulk_window_size;

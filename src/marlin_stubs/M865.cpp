@@ -160,7 +160,8 @@ void PrusaGcodeSuite::M865() {
         } else if (const auto preset = std::get_if<PresetFilamentType>(&type)) {
             params.base_preset = *preset;
         } else {
-            p.report_option_error('J', "Needs to be a preset filament type");
+            SERIAL_ERROR_MSG("M865 J needs to be a preset filament type");
+            return;
         }
     }
 #endif
