@@ -65,6 +65,15 @@ Upstream official availability is INDX for 6.9.2 and XL/XL+ for 6.10.3;
 custom RME builds for other machines are not upstream hardware certification.
 The 6.9.2 merge must preserve sparse preset slot IDs and legacy RME EEPROM
 material-family decoding. Do not revert these to dense-index assumptions.
+## October 18 LCD filtering redraw correction
+
+The maintained 6.9.2-RME INDX and 6.10.3-RME XL firmware updates suppress
+redundant LCD control/brightness writes and repeated black clears while the
+panel is already off. Status-strip animation updates remain active. Executable
+stub-driver regressions cover both ST7789 and ILI9488 repeated brightness,
+off and wake transitions. Physical filtering/header behavior still requires
+verification on the updated printer; this is not a PWM-resolution change.
+The existing RME plugin b128 remains compatible and needs no new release.
 
 ## October 4 SpoolJoin and firmware-discovery release
 
