@@ -42,8 +42,8 @@ protected:
     virtual invalidate_t change(int dif) override;
     void set_items(std::span<const char *const> items) {
         items_ = items;
-        if (current_item() >= item_count()) {
-            set_current_item(item_count() - 1);
+        if (get_index() >= item_count() && item_count() != 0) {
+            set_index(item_count() - 1);
         }
     }
     virtual void OnChange([[maybe_unused]] size_t old_index) {};

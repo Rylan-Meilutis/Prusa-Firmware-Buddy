@@ -1129,7 +1129,6 @@ void static finalize_print(bool finished) {
 #endif
 
     const bool was_serial_print = server.print_is_serial;
-#if HAS_SERIAL_PRINT()
     // Both successful and canceled streamed jobs need an acknowledged result
     // screen. cleanup_print/new-print initialization owns its destruction.
     if (!buddy::serial_print_finalize_policy::keep_result_screen(server.print_is_serial, server.print_state)) {

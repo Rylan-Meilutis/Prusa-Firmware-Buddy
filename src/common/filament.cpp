@@ -377,8 +377,8 @@ FilamentTypeParameters FilamentType::parameters() const {
     // Legacy/host-created TPU profiles may have base=FLEX but a cleared flag.
     // Resolve this on every read so native loading, purge and autoretract use
     // the same protection as Auto PA, without requiring an EEPROM migration.
-    result.is_flexible = result.is_flexible
-        || buddy::filament_material::is_flexible_family(filament_material_name(result));
+    result.do_not_auto_retract = result.do_not_auto_retract
+        || buddy::filament_material::is_flexible_family(filament_material_name(result).data());
     return result;
 }
 

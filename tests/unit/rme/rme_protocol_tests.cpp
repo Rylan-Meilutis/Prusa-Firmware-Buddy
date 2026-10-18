@@ -31,7 +31,7 @@
 #include <marlin_server_types/marlin_server_state.h>
 
 #if __has_include(<catch2/catch_test_macros.hpp>)
-#include <catch2/catch.hpp>
+    #include <catch2/catch.hpp>
 #else
     #include <catch2/catch.hpp>
 #endif
@@ -387,9 +387,18 @@ TEST_CASE("RME names every INDX calibration phase", "[rme][indx]") {
     CHECK(std::string_view(dock_calibration_phase(14)) == "failed"sv);
     CHECK(std::string_view(nozzle_cleaner_phase(8)) == "measuring_x"sv);
     CHECK(std::string_view(nozzle_cleaner_phase(14)) == "evaluating_y"sv);
-    CHECK(std::string_view(tool_offsets_phase(5)) == "calibrating"sv);
-    CHECK(std::string_view(tool_offsets_phase(7)) == "failed"sv);
-    CHECK(std::string_view(tool_offsets_phase(8)) == "unknown"sv);
+    CHECK(std::string_view(tool_offsets_phase(1, true, true)) == "clean_nozzles_cold"sv);
+    CHECK(std::string_view(tool_offsets_phase(2, true, true)) == "clean_nozzles_hot"sv);
+    CHECK(std::string_view(tool_offsets_phase(4, true, true)) == "homing"sv);
+    CHECK(std::string_view(tool_offsets_phase(5, true, true)) == "picking_tool"sv);
+    CHECK(std::string_view(tool_offsets_phase(6, true, true)) == "calibrating"sv);
+    CHECK(std::string_view(tool_offsets_phase(8, true, true)) == "failed"sv);
+    CHECK(std::string_view(tool_offsets_phase(1, false, false)) == "ensure_nozzles_clean"sv);
+    CHECK(std::string_view(tool_offsets_phase(3, false, false)) == "picking_tool"sv);
+    CHECK(std::string_view(tool_offsets_phase(4, false, false)) == "homing"sv);
+    CHECK(std::string_view(tool_offsets_phase(5, false, false)) == "calibrating"sv);
+    CHECK(std::string_view(tool_offsets_phase(7, false, false)) == "failed"sv);
+    CHECK(std::string_view(tool_offsets_phase(8, false, false)) == "unknown"sv);
 }
 
 TEST_CASE("RME active tool reports a parked toolchanger as none", "[rme][tool][regression]") {
@@ -515,15 +524,77 @@ TEST_CASE("M976 never uses legacy sheet-contact cleanup on INDX", "[rme][m976][i
     CHECK_FALSE(uses_sheet_contact_cleanup(false, false));
 }
 
-TEST_CASE("INDX serial motion is confined to the printable rectangle", "[rme][indx][keepout][motion]") {
+TEST_CASE("INDX serial motion protects service hardware without blocking front Y priming", "[rme][indx][keepout][motion]") {
     using namespace buddy::indx_serial_motion_safety;
     constexpr ServiceBoundary boundary { 250, 0 };
     STATIC_REQUIRE(point_is_safe(125, 100, boundary));
     STATIC_REQUIRE(point_is_safe(-20, 220, boundary)); // ordinary endstops handle non-service sides
     STATIC_REQUIRE_FALSE(point_is_safe(251, 100, boundary));
     STATIC_REQUIRE_FALSE(point_is_safe(125, -0.1f, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(125, 0, 125, -1.5f, false, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(125, -1.5f, 125, 0, false, boundary));
+    // Tool and mesh transforms may make a Y-only command appear to shift X.
+    STATIC_REQUIRE(linear_move_is_safe(88.10f, 73, 88.08f, 71.5f, false, boundary));
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(125, -1.5f, 126, -1.5f, true, boundary));
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(249, 100, 251, 100, true, boundary));
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(251, 100, 251, 98.5f, false, boundary));
+    // T7 parks at X259: P0 must perform its native escape before host moves.
+    STATIC_REQUIRE_FALSE(linear_move_is_safe(259, 0, 259, 0, false, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(250, 0, 250, 0, false, boundary));
+    STATIC_REQUIRE(linear_move_is_safe(250, 0, 242, 205, true, boundary));
     STATIC_REQUIRE(arc_is_safe(125, 100, 20, boundary));
     STATIC_REQUIRE_FALSE(arc_is_safe(245, 100, 10, boundary));
+}
+
+TEST_CASE("INDX arcs check the travelled sweep including full circles", "[rme][indx][keepout][regression]") {
+    using namespace buddy::indx_serial_motion_safety;
+    constexpr ServiceBoundary b { 250, 0 };
+    // Exact N577 -> N578 from the failed first layer.
+    CHECK(arc_sweep_is_safe(114.636f, 99.869f, 114.644f, 101.012f,
+        114.636f - 177.041f, 99.869f + 1.855f, false, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(114.636f, 99.869f, 114.644f, 101.012f,
+        114.636f - 177.041f, 99.869f + 1.855f, true, false, b));
+    CHECK(arc_sweep_is_safe(245, 90, 245, 110, 245, 100, true, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(245, 90, 245, 110, 245, 100, false, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(245, 90, 245, 90, 245, 100, false, true, b));
+    CHECK(arc_sweep_is_safe(125, 90, 125, 90, 125, 100, true, true, b));
+    CHECK_FALSE(arc_sweep_is_safe(110, 5, 90, 5, 100, 5, true, false, b));
+    CHECK(arc_sweep_is_safe(110, 5, 90, 5, 100, 5, false, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(251, 90, 245, 110, 245, 100, true, false, b));
+    CHECK_FALSE(arc_sweep_is_safe(125, 100, 125, 100, 125, 100, false, true, b));
+    CHECK_FALSE(arc_sweep_is_safe(NAN, 100, 125, 100, 125, 90, false, false, b));
+    // Independent dense sampling: accepted arcs must not cross either boundary.
+    for (bool cw : { false, true }) {
+        for (int start = 0; start < 360; start += 15) {
+            for (int travel = 15; travel < 360; travel += 15) {
+                constexpr float rad = 0.017453292519943295f;
+                const float end = start + (cw ? -travel : travel);
+                const float x = 245 + 10 * std::cos(start * rad);
+                const float y = 5 + 10 * std::sin(start * rad);
+                const float tx = 245 + 10 * std::cos(end * rad);
+                const float ty = 5 + 10 * std::sin(end * rad);
+                if (arc_sweep_is_safe(x, y, tx, ty, 245, 5, cw, false, b)) {
+                    for (int step = 0; step <= travel; ++step) {
+                        const float angle = (start + (cw ? -step : step)) * rad;
+                        CHECK(245 + 10 * std::cos(angle) <= 250.0001f);
+                        CHECK(5 + 10 * std::sin(angle) >= -0.0001f);
+                    }
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("G12 eject followed by Orca relative purge stays in calibrated cleaner lane", "[rme][indx][keepout][regression]") {
+    using buddy::indx_serial_motion_safety::cleaner_purge_move_is_safe;
+    CHECK(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, false, false));
+    CHECK(cleaner_purge_move_is_safe(0, 85.5f, 0, 87, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(-12, 87, 0, 87, true, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, false, true));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 75.9f, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 101.6f, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0.6f, 87, 0.6f, 85.5f, false, false));
+    CHECK_FALSE(cleaner_purge_move_is_safe(0, 87, 0, 85.5f, true, false));
 }
 
 TEST_CASE("External filament material never exposes the custom profile name", "[rme][filament][regression]") {
@@ -659,7 +730,18 @@ TEST_CASE("INDX dock calibration uses independent configurable axis tolerances",
     CHECK(sanitize(std::numeric_limits<float>::quiet_NaN(), default_x_mm) == default_x_mm);
 }
 
-TEST_CASE("Unhomed toolchanger axes use conservative hardware boundaries", "[motion][toolchanger][regression]") {
+TEST_CASE("INDX homed back-left corner permits travel over the bed", "[motion][indx][regression]") {
+    using namespace buddy::indx_serial_motion_safety;
+    constexpr ServiceBoundary boundary { 250, -0.9f };
+    // Native INDX X-min / Y-max home, not regular CORE One's opposite corner.
+    CHECK(linear_move_is_safe(-1, 206.5f, 9, 206.5f, true, boundary));
+    CHECK(linear_move_is_safe(-1, 206.5f, -1, 196.5f, false, boundary));
+    CHECK(linear_move_is_safe(4, 201.5f, 125, 100, true, boundary));
+    CHECK_FALSE(linear_move_is_safe(245, 100, 255, 100, true, boundary));
+    CHECK_FALSE(linear_move_is_safe(125, -10, 135, -10, true, boundary));
+}
+
+TEST_CASE("Unknown-axis range helpers clamp to configured boundaries", "[motion][toolchanger][regression]") {
     using namespace buddy::unknown_axis_motion;
     CHECK(assumed_position(AssumedBoundary::minimum, 0, 360) == 0);
     CHECK(assumed_position(AssumedBoundary::maximum, 0, 360) == 360);
