@@ -43,7 +43,7 @@ public:
     enum class LoadState {
         start = 0,
         unload_start,
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
         filament_stuck_ask,
 #endif
 #if HAS_AUTO_RETRACT()
@@ -217,7 +217,7 @@ private:
 
     void start_process(Response response);
     void unload_start_process(Response response);
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
     void filament_stuck_ask_process(Response response);
 #endif
 #if HAS_INDX()
@@ -267,7 +267,7 @@ private:
     static constexpr EnumArray<LoadState, StateHandler, static_cast<int>(LoadState::_finished)> state_handlers {
         { LoadState::start, &Pause::start_process },
             { LoadState::unload_start, &Pause::unload_start_process },
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
             { LoadState::filament_stuck_ask, &Pause::filament_stuck_ask_process },
 #endif
 #if HAS_AUTO_RETRACT()

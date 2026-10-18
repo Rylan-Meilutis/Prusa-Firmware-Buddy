@@ -56,7 +56,7 @@ enum class PhasesLoadUnload : PhaseUnderlyingType {
     UnloadNozzleCleaning,
     LoadNozzleCleaning,
 #endif
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
     FilamentStuck,
 #endif
 
