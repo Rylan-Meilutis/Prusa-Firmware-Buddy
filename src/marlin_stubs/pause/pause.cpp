@@ -7,6 +7,7 @@
  */
 
 #include "pause_stubbed.hpp"
+#include <serial_printing.hpp>
 
 #include "Marlin/src/Marlin.h"
 #include "Marlin/src/gcode/gcode.h"
@@ -1159,7 +1160,7 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
     switch (load_type) {
 
     case LoadType::filament_stuck:
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
         set(LoadState::filament_stuck_ask);
 #else
         set(LoadState::manual_unload);
@@ -1176,9 +1177,28 @@ void Pause::unload_start_process([[maybe_unused]] Response response) {
     }
 }
 
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
 void Pause::filament_stuck_ask_process(Response response) {
+    const bool entering = getPhase() != PhasesLoadUnload::FilamentStuck;
     setPhase(PhasesLoadUnload::FilamentStuck);
+    // Announce only after the actionable FSM is installed. The initial fault
+    // event precedes parking, so a host querying then can see no buttons yet.
+    if (entering) {
+        switch (get_mode().value_or(LoadUnloadMode::FilamentStuck)) {
+        case LoadUnloadMode::FilamentRunout:
+            SerialPrinting::notify_error("filament_runout", "runout", "Loadcell detected filament runout; confirm before reloading");
+            break;
+        case LoadUnloadMode::FilamentNotMoving:
+            SerialPrinting::notify_error("filament_movement", "not_moving", "Loadcell detected filament not moving");
+            break;
+        case LoadUnloadMode::FlowLimit:
+            SerialPrinting::notify_error("extrusion_flow_limit", "flow_limit", "Extrusion flow-pressure limit detected");
+            break;
+        default:
+            SerialPrinting::notify_error("stuck_filament", "stuck", "Stuck filament detected");
+            break;
+        }
+    }
 
     switch (response) {
 
@@ -1189,13 +1209,13 @@ void Pause::filament_stuck_ask_process(Response response) {
         set(LoadState::unload_wait_temp);
         break;
 
-    case Response::Ignore:
+    case Response::Continue:
         set(LoadState::_finished);
         break;
 
-    case Response::Disable:
-        config_store().stuck_filament_detection.set(false);
-        set(LoadState::_finished);
+    case Response::Abort:
+        marlin_server::print_abort();
+        set(LoadState::_stopped);
         break;
 
     default:
@@ -2003,6 +2023,9 @@ Pause::FSM_HolderLoadUnload::~FSM_HolderLoadUnload() {
 }
 
 void Pause::FSM_HolderLoadUnload::restore_temperature_and_unpark() {
+    if (marlin_server::aborting_or_aborted()) {
+        return;
+    }
     if (!marlin_client::is_printing() && !marlin_client::is_paused()) {
         return;
     }

@@ -170,7 +170,7 @@ optional<ErrCode> load_unload_attention_while_printing([[maybe_unused]] const fs
 #endif
     // MMU not supported or not active -> all load/unload during print is really attention.
     switch (GetEnumFromPhaseIndex<PhasesLoadUnload>(data.GetPhase())) {
-#if HAS_LOADCELL() && HAS_EXTRUDER_FSENSOR()
+#if HAS_LOADCELL()
     case PhasesLoadUnload::FilamentStuck:
         return ErrCode::ERR_MECHANICAL_STUCK_FILAMENT_DETECTED;
 #endif
