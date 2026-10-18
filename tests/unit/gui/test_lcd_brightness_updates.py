@@ -11,6 +11,49 @@ ROOT = Path(__file__).resolve().parents[3]
 class LcdBrightnessUpdates(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("c++"), "C++ compiler required")
+    def test_unchanged_finished_header_does_not_invalidate(self):
+        text = (ROOT / "src/gui/window_header.cpp").read_text()
+        setter = "void window_header_t::SetText" + text.split(
+            "void window_header_t::SetText", 1)[1].split(
+                "void window_header_t::set_show_bed_info", 1)[0]
+        code = r"""
+#include <cassert>
+struct string_view_utf8 {
+ const char *ref;
+ bool is_same_ref(const string_view_utf8 &other) const { return ref == other.ref; }
+};
+struct Label {
+ string_view_utf8 value { nullptr };
+ auto &GetText() { return value; }
+ void SetText(const string_view_utf8 &v) { value = v; }
+};
+struct window_header_t {
+ Label label; int invalidations = 0;
+ void Invalidate() { ++invalidations; }
+ void SetText(const string_view_utf8 &);
+};
+"""
+        main = r"""
+int main() {
+ window_header_t header;
+ const string_view_utf8 finished { "PRINT FINISHED" }, canceled { "PRINT CANCELED" };
+ for (int i=0; i<1000; ++i) header.SetText(finished);
+ assert(header.invalidations == 1);
+ for (int i=0; i<1000; ++i) header.SetText(canceled);
+ assert(header.invalidations == 2);
+}
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            cpp = Path(directory) / "test.cpp"
+            cpp.write_text(code + setter + main)
+            binary = Path(directory) / "test"
+            subprocess.run(["c++", "-std=c++17",
+                            str(cpp), "-o",
+                            str(binary)],
+                           check=True)
+            subprocess.run([str(binary)], check=True)
+
+    @unittest.skipUnless(shutil.which("c++"), "C++ compiler required")
     def test_unchanged_brightness_does_not_touch_panel(self):
         source = (ROOT / "src/leds/led_manager.cpp").read_text()
         setter = source.split("void LEDManager::set_lcd_brightness", 1)[1]
