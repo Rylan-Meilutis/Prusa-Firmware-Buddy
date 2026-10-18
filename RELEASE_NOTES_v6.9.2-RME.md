@@ -5,7 +5,18 @@ This replaces 6.9.0-RME for this line; older releases remain available.
 
 ## Changes
 
-### Unreleased — 2026-10-17
+### Pending update — not yet published
+
+- Preserve complete per-tool loaded filament parameters before a shared user
+  preset is replaced during spool synchronization. Updating one slot no longer
+  silently converts another loaded tool from PLA to ASA.
+- Matching plugin assigns native New Spool saves to the originating slot,
+  refreshes inventory immediately, retains staged mapping choices, and handles
+  an eighth distinct spool with per-tool storage instead of dropping it.
+- Regression checks include the reproduced T7 shared-preset case. Existing
+  incorrect mappings require explicit correction; no physical material is guessed.
+
+### Updated release — 2026-10-17
 
 - Extend live controls to bed/nozzle temperature, print fan, speed and flow;
   keep touchscreen non-motion setters and telemetry active in nested waits.

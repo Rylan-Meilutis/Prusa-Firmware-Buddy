@@ -40,6 +40,7 @@ GCodeQueue queue;
 #include <serial_remote_control.hpp>
 #include <config_store/store_instance.hpp>
 #include <filament.hpp>
+#include <filament_preset_snapshot.hpp>
 #include <filament_manufacturer.hpp>
 #include <rme_protocol_parser.hpp>
 #include <rme_mesh_area.hpp>
@@ -905,7 +906,21 @@ static bool handle_remote_filament_service(const std::string_view command) {
     bool visible = previous_visible;
     if (const auto requested = remote_number(command, "visible"); requested && (*requested == 0 || *requested == 1)) visible = *requested;
     const bool changed = params != previous_params || visible != previous_visible;
-    if (params != previous_params) type.set_parameters(params);
+    if (params != previous_params) {
+      // Loaded tools may still reference this shared user preset even when
+      // the host has no spool selected for them. Reusing a catalog slot must
+      // not turn an unrelated loaded PLA tool into ASA (or change its temps).
+      // Preserve a complete per-tool copy before changing the shared preset;
+      // explicit ASSIGN/M865 L commands can subsequently replace that copy.
+      buddy::filament_material::preserve_loaded_preset(type, VirtualToolIndex::all(),
+        [](const auto tool) { return config_store().get_filament_type(tool); },
+        [&](const auto tool) {
+          const FilamentType snapshot = AdHocFilamentType { tool.to_raw() };
+          snapshot.set_parameters(previous_params);
+          config_store().set_filament_type(tool, snapshot);
+        });
+      type.set_parameters(params);
+    }
     if (visible != previous_visible) type.set_visible(visible);
     if (changed) SerialPrinting::notify_configuration("filament", "preset", true, remote_transaction(command).value_or(0));
   } else return false;

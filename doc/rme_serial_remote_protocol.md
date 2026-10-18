@@ -341,6 +341,15 @@ label, but it must contain a built-in family such as `PLA`, `PETG`, or `ASA`,
 not arbitrary vendor metadata. Hosts must not infer the material family from a
 custom profile name.
 
+When `SET`/`CREATE` changes a shared user preset, loaded tools referencing
+that preset retain full per-tool snapshots of their previous profile. A catalog
+slot being reused must not change a different tool's material, temperatures,
+or flexible/filtration properties. Loading a replacement remains an explicit
+`ASSIGN` or `M865 L` operation. Color and manufacturer are preserved separately.
+For an eighth distinct spool (seven menu presets plus NEW), hosts can use
+`M865 X R N"PLA-008" J"PLA" T215 P175 B60 G0 L7 O"#0073ff"`
+to persist a per-tool profile without displacing a shared preset.
+
 Loaded profile and material can also be assigned independently:
 
 ```text
