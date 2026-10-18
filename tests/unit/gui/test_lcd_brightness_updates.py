@@ -29,6 +29,7 @@ class LcdBrightnessUpdates(unittest.TestCase):
         code = r"""
 #include <cassert>
 #include <array>
+#include <string>
 #define HAS_MINI_DISPLAY() 0
 namespace time_tools {
  bool changed=false;
@@ -40,14 +41,25 @@ struct window_header_t {
  void Invalidate() { ++full_clears; }
  void updateTime();
 };
-namespace marlin_server { enum class State {Finished, Aborted, Paused, Printing, Idle}; }
+namespace marlin_server { enum class State {
+ Finished, Aborted, Paused, Printing, Idle, Pausing_Begin, Pausing_WaitIdle,
+ Pausing_ParkHead, Resuming_Begin, Resuming_BufferData, Resuming_ExecutingGCodeInterrupt,
+ Resuming_UnparkHead_XY, Resuming_UnparkHead_ZE, Resuming_Reheating,
+ Aborting_Begin, Aborting_WaitIdle, Aborting_UnloadFilament, Aborting_ParkHead, Aborting_Preview
+}; }
 bool is_print_result(marlin_server::State state) {
  return state==marlin_server::State::Finished || state==marlin_server::State::Aborted;
 }
 enum class BtnSocket { Left, Middle, Right };
 enum class BtnRes {Settings, Disconnect, SetReady, Reprint, Resume, Pause};
-enum class LabelRes {Settings, Stop, Continue, Reprint, Resume, Pause};
+enum class LabelRes {Settings, Stop, Continue, Reprint, Resume, Pause, Pausing, Resuming, Reheating};
+#define _(text) text
 struct screen_printing_serial_data_t {
+ static constexpr const char *caption="PRINTING";
+ struct Header {
+  std::string title; int changes=0;
+  void SetText(const char *value) { if (title!=value) ++changes; title=value; }
+ } header;
  std::array<int,3> icons{-1,-1,-1}, labels{-1,-1,-1}; int changes=0;
  void SetButtonIconAndLabel(BtnSocket s, BtnRes i, LabelRes l) {
   auto n=int(s);
@@ -68,8 +80,10 @@ int main() {
   screen_printing_serial_data_t screen;
   screen.update_action_buttons(state);
   int changes=screen.changes;
+  int title_changes=screen.header.changes;
   for (int i=0; i<1000; ++i) screen.update_action_buttons(state);
   assert(screen.changes==changes);
+  assert(screen.header.changes==title_changes);
   assert(screen.labels[2]==int(LabelRes::Continue));
   screen.update_action_buttons(marlin_server::State::Printing);
   assert(screen.labels[2]==int(LabelRes::Stop));
