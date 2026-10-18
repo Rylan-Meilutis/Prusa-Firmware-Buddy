@@ -323,11 +323,22 @@ void M600_execute(xyz_pos_t park_point, uint8_t target_extruder, xyze_float_t re
 #if HAS_LOADCELL()
 void PrusaGcodeSuite::M1601() {
     LoadUnloadMode recovery_mode = LoadUnloadMode::FilamentStuck;
+    const char *recovery_workflow = "stuck_filament";
     switch (parser.byteval('R', 0)) {
-    case 1: recovery_mode = LoadUnloadMode::FilamentRunout; break;
-    case 2: recovery_mode = LoadUnloadMode::FilamentNotMoving; break;
-    case 3: recovery_mode = LoadUnloadMode::FlowLimit; break;
-    default: break;
+    case 1:
+        recovery_mode = LoadUnloadMode::FilamentRunout;
+        recovery_workflow = "filament_runout";
+        break;
+    case 2:
+        recovery_mode = LoadUnloadMode::FilamentNotMoving;
+        recovery_workflow = "filament_movement";
+        break;
+    case 3:
+        recovery_mode = LoadUnloadMode::FlowLimit;
+        recovery_workflow = "extrusion_flow_limit";
+        break;
+    default:
+        break;
     }
     M600_execute(
         XYZ_NOZZLE_PARK_POINT_M600,
@@ -339,6 +350,10 @@ void PrusaGcodeSuite::M1601() {
 
     EMotorStallDetector::Instance().ClearReported();
     buddy::extrusion_calibration::acknowledge_extrusion_fault();
+    // Nested load/unload progress must not hide the cause, but the parent
+    // recovery must explicitly close so the host clears its alert/buttons.
+    SerialPrinting::notify_workflow(recovery_workflow,
+        marlin_server::aborting_or_aborted() ? "canceled" : "closed", "Extrusion recovery ended");
 }
 #else
 
