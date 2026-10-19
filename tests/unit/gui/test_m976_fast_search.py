@@ -89,13 +89,19 @@ struct PhysicalToolIndex {
  static std::optional<PhysicalToolIndex> currently_selected();
 };
 std::optional<PhysicalToolIndex> selected;
+uint8_t active_extruder=255;
 std::optional<PhysicalToolIndex> PhysicalToolIndex::currently_selected() { return selected; }
 namespace stdext {
 bool holds_value(std::optional<PhysicalToolIndex> current, PhysicalToolIndex requested) { return current && current->raw==requested.raw; }
 }
 enum class tool_return_t { no_return };
 bool tool_change(PhysicalToolIndex tool, tool_return_t) { ++pickups; if(pickup_ok) selected=tool; return pickup_ok; }
-struct Temperature { static void setTargetHotend(int,PhysicalToolIndex) {} };
+bool tool_change(uint8_t tool,tool_return_t mode) {
+ const bool ok=tool_change(PhysicalToolIndex::from_raw(tool),mode);
+ if(ok) active_extruder=tool;
+ return ok;
+}
+struct Temperature { static void setTargetHotend(int,uint8_t) {} };
 struct DockFanGuard { DockFanGuard(size_t,int) {} };
 struct FilamentSensorEventGuard {};
 struct BlockEStallDetection {};
@@ -138,7 +144,7 @@ int main() {
  cache_all=false; commands.clear(); fail=true;
  assert(!run_batch(entries,3,false,false));
  assert(commands.size()==1); // no later temperature after preparation failure
- fail=false; commands.clear(); selected.reset(); pickup_ok=false;
+ fail=false; commands.clear(); selected.reset(); active_extruder=255; pickup_ok=false;
  assert(!run_batch(entries,3,false,false));
  assert(commands.empty());
 }
@@ -342,7 +348,8 @@ int main() {
 
     def test_actual_search_fault_matrix(self):
         source = (ROOT / "src/marlin_stubs/M976.cpp").read_text()
-        header = (ROOT / "src/feature/extrusion_calibration.hpp").read_text()
+        header = (ROOT /
+                  "src/common/feature/extrusion_calibration.hpp").read_text()
         score = "struct Score {" + header.split("struct Score {", 1)[1].split(
             "\n};", 1)[0] + "\n};"
         confidence = "float result_confidence(" + source.split(

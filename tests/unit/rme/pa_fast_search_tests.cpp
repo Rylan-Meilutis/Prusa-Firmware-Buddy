@@ -1,5 +1,4 @@
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_approx.hpp>
+#include <catch2/catch.hpp>
 #include <m976_search_policy.hpp>
 #include <m976_indx_pellet_policy.hpp>
 #include <pa_calibration_cache.hpp>
