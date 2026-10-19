@@ -1072,6 +1072,44 @@ SCENARIO("tool offset sensor verifies its firmware on first boot") {
     }
 }
 
+TEST_CASE("tool offset sensor retries a lost verification reply without bypassing verification") {
+    const auto node_id = NodeId { 1 };
+    const auto heartbeat = Heartbeat { Health::nominal, Mode::operational, 0 };
+    MockPresentation mock;
+    Application app;
+    app.receive_pnp_allocation(make_unique_id(0x706));
+    run(app, mock, make_timepoint(0));
+    app.receive_node_heartbeat(node_id, make_timepoint(1), heartbeat);
+    run(app, mock, make_timepoint(1));
+    app.receive_node_get_info_response(node_id, tool_offset_sensor_node_name);
+    run(app, mock, make_timepoint(2));
+    const auto original_request = mock.node_execute_command_request.back();
+    const auto commands_before = mock.node_execute_command_request.size();
+    const auto salt = app.request().hash_salt;
+    const auto digest = generate_random_digest();
+    REQUIRE(app.receive_digest(cyphal::FirmwareFile::firmware_tool_offset_sensor, salt, xbuddy_extension::DigestStatus::ok, digest));
+    run(app, mock, make_timepoint(3));
+    REQUIRE(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::verify);
+
+    // The device reply is lost while heartbeats continue normally.
+    app.receive_node_heartbeat(node_id, make_timepoint(1001), heartbeat);
+    run(app, mock, make_timepoint(1001));
+    CHECK(mock.node_execute_command_request.size() == commands_before);
+    run(app, mock, make_timepoint(1002));
+    REQUIRE(mock.node_execute_command_request.size() == commands_before + 1);
+    CHECK(mock.node_execute_command_request.back() == original_request);
+    CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::verify);
+
+    run(app, mock, make_timepoint(1003));
+    CHECK(mock.node_execute_command_request.size() == commands_before + 1);
+    app.receive_node_execute_command_response(node_id, 0, digest);
+    run(app, mock, make_timepoint(1003));
+    // Firmware hash alone is insufficient: it must also send sensor status.
+    CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) != xbuddy_extension::NodeState::ready);
+    app.receive_tool_offset_sensor_status(tool_offset_sensor::Status {});
+    CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::ready);
+}
+
 TEST_CASE("tool offset sensor recovers from a board reset") {
     const auto healthy_firmware = Heartbeat { Health::nominal, Mode::operational, 0 };
     const auto bootloader = Heartbeat { Health::advisory, Mode::software_update, 0 };
