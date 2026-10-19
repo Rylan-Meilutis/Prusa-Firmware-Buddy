@@ -12,7 +12,7 @@ class SpoolJoinPreparation(unittest.TestCase):
     def test_batch_expansion(self):
         source = (ROOT / "src/marlin_stubs/M976.cpp").read_text()
         function = source.split("bool expand_spool_join_batch(", 1)[1].split(
-            "\n#if HAS_INDX()\nbuddy::pa_cache::Key", 1)[0]
+            "\n}\n\n#if HAS_INDX()", 1)[0] + "\n}\n"
         offsets = (
             ROOT /
             "src/feature/tool_offset_calibration/tool_offset_calibration.cpp"
