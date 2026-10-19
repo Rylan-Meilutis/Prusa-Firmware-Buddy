@@ -74,6 +74,9 @@ int main() {
   r.cache_lookup = "manufacturer_changed"; r.cache = "not_saved";
   r.saved_cache_temperature = 240;
   r.snr = 2; r.minimum_snr = 5;
+ r.elapsed_ms=20000; r.measurement_ms=18000; r.cleanup_ms=15000;
+ r.excitation_mm=38.4f; r.measurements=4; r.ejections=3;
+ r.search="warm_verified";
  }
  assert(std::string_view(r.outcome) == "fallback");
  pa_diagnostics.begin(7, 7, 220).outcome = "success";
@@ -82,6 +85,8 @@ int main() {
  assert(output.str().find("snr=2.000 minimum_snr=5.000") != std::string::npos);
  assert(output.str().find("cache_lookup=manufacturer_changed") != std::string::npos);
  assert(output.str().find("saved_cache_temperature=240") != std::string::npos);
+ assert(output.str().find("search=warm_verified elapsed_ms=20000 measurement_ms=18000 pellet_cleanup_ms=15000") != std::string::npos);
+ assert(output.str().find("excitation_mm=38.400 measurements=4 ejections=3") != std::string::npos);
  assert(output.str().find("slot=7") == std::string::npos);
  assert(std::string_view(r.outcome) == "fallback" && r.pa == 0.04f);
  parser.t = false; parser.l = true; parser.slot = 7;

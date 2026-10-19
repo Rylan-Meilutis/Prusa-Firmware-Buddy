@@ -26,6 +26,8 @@
 #include <common/marlin_server_types/client_response.hpp>
 #include <common/m976_material.hpp>
 #include <common/m976_diagnostics.hpp>
+#include <common/m976_search_policy.hpp>
+#include <common/timing.h>
 #include <common/m976_extrusion_policy.hpp>
 #include <common/m976_temperature_policy.hpp>
 #include <common/m976_dock_fan_policy.hpp>
@@ -64,6 +66,17 @@ static_assert(!buddy::m976_indx_policy::uses_sheet_contact_cleanup(true, ENABLED
 
 namespace {
 buddy::m976_diagnostics::History pa_diagnostics;
+static_assert(sizeof(buddy::m976_diagnostics::History) <= 1024, "PA history must stay bounded; protect runtime heap headroom");
+
+class ElapsedTime {
+    uint32_t &total;
+    const uint32_t started = ticks_ms();
+
+public:
+    explicit ElapsedTime(uint32_t &total)
+        : total(total) {}
+    ~ElapsedTime() { total += uint32_t(ticks_ms() - started); }
+};
 
 #if HAS_INDX()
 void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot);
@@ -90,6 +103,9 @@ void report_pa_diagnostics() {
         const int reported_tool = r.tool == 255 ? -1 : r.tool;
         snprintf(report, sizeof(report), "PA_CAL_RESULT tool=%d slot=%u outcome=%s reason=%s result_pa=%.4f candidate_pa=%.4f confidence=%.3f minimum_confidence=%.3f snr=%.3f minimum_snr=%.3f noise=%.3f separation=%.3f cache=%s cache_lookup=%s temperature=%d saved_cache_temperature=%d",
             reported_tool, unsigned(i), r.outcome, r.reason, double(r.pa), double(r.candidate_pa), double(r.confidence), double(r.minimum_confidence), double(r.snr), double(r.minimum_snr), double(r.noise), double(r.separation), r.cache, r.cache_lookup, int(r.temperature), int(r.saved_cache_temperature));
+        SERIAL_ECHOLN(report);
+        snprintf(report, sizeof(report), "PA_CAL_USAGE tool=%d slot=%u search=%s elapsed_ms=%lu measurement_ms=%lu pellet_cleanup_ms=%lu excitation_mm=%.3f measurements=%u ejections=%u",
+            reported_tool, unsigned(i), r.search, static_cast<unsigned long>(r.elapsed_ms), static_cast<unsigned long>(r.measurement_ms), static_cast<unsigned long>(r.cleanup_ms), double(r.excitation_mm), unsigned(r.measurements), unsigned(r.ejections));
         SERIAL_ECHOLN(report);
         snprintf(report, sizeof(report), "PA_CAL_EVIDENCE tool=%d slot=%u valid_candidates=%u samples=%u transitions=%u rejected_low_signal=%u rejected_timing=%u capture_overflow=%u",
             reported_tool, unsigned(i), unsigned(r.valid_candidates), unsigned(r.samples), unsigned(r.transitions), unsigned(r.rejected_low_signal), unsigned(r.rejected_timing), unsigned(r.capture_overflow));
@@ -126,6 +142,8 @@ struct CandidateObservation {
 // The Marlin task has a deliberately small stack and batch M976 invokes a
 // nested single-tool M976. Keep optimizer history in static foreground state
 // instead of adding hundreds of bytes to both stack frames.
+// Rejected warm observations are discarded before full refinement. At most
+// 13 full candidates + 10 confirmations need to coexist; retain the old bound.
 std::array<CandidateObservation, 26> candidate_observations {};
 size_t candidate_observation_count = 0;
 
@@ -604,6 +622,10 @@ bool expand_spool_join_batch(std::array<BatchEntry, buddy::extrusion_calibration
 }
 
 #if HAS_INDX()
+// Foreground lookup scratch is shared by exact reuse and warm-start lookup;
+// do not reserve a second eight-record bank from scarce runtime heap SRAM.
+buddy::pa_cache::Bank lookup_bank;
+
 buddy::pa_cache::Key cache_key(uint8_t tool, uint8_t slot, int16_t temperature) {
     buddy::pa_cache::Key key {};
     const auto params = config_store().get_filament_type(slot).parameters();
@@ -693,7 +715,7 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     }
     char path[48];
     buddy::pa_cache::path_for(path, slot);
-    static buddy::pa_cache::Bank bank;
+    auto &bank = lookup_bank;
     const char *reason = nullptr;
     if (!buddy::pa_cache::read_bank(path, bank, &reason) || !bank.count) {
         pa_diagnostics.records[slot].cache = reason;
@@ -723,6 +745,7 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     diagnostic.outcome = "cached";
     diagnostic.reason = "valid_cache";
     diagnostic.cache = "hit";
+    diagnostic.search = "cache";
     diagnostic.cache_lookup = "hit";
     diagnostic.saved_cache_temperature = record.key.temperature;
     diagnostic.pa = record.pa;
@@ -731,6 +754,16 @@ bool restore_cache(uint8_t tool, uint8_t slot, int16_t temperature) {
     diagnostic.minimum_snr = record.key.minimum_snr;
     SERIAL_ECHOLNPAIR("PA_CALIBRATION flash cache hit slot=", slot, " result=", record.pa);
     return true;
+}
+
+float cached_search_seed(uint8_t tool, uint8_t slot, int16_t temperature) {
+    if (config_store().get_filament_type(slot) == FilamentType::none) {
+        return NAN;
+    }
+    char path[48];
+    buddy::pa_cache::path_for(path, slot);
+    auto &bank = lookup_bank;
+    return buddy::pa_cache::read_bank(path, bank) ? bank.search_seed(cache_key(tool, slot, temperature)) : NAN;
 }
 
 void save_cache(uint8_t tool, uint8_t slot, int16_t temperature, const buddy::extrusion_calibration::Result &result) {
@@ -798,6 +831,9 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
     FilamentSensorEventGuard filament_sensor_events;
     BlockEStallDetection block_e_stall;
     PressureMonitorGuard pressure_monitor_guard;
+#if HAS_INDX()
+    std::optional<uint8_t> prepared_slot;
+#endif
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
         SERIAL_ECHOLNPAIR("PA_CALIBRATION temperature_point tool=", entry.physical_tool,
@@ -805,6 +841,9 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             " point=", entry.temperature_point + 1, " points=", std::max<size_t>(1, entry.temperature_count));
         if (cached[i]) {
             continue;
+        }
+        if (entry.temperature_point && std::string_view(pa_diagnostics.records[entry.logical_filament].outcome) == "fallback") {
+            continue; // Do not spend more filament after this tool failed.
         }
         buddy::extrusion_calibration::set_job_result(entry.logical_filament, {});
         [[maybe_unused]] const char *lookup = pa_diagnostics.records[entry.logical_filament].cache_lookup;
@@ -909,12 +948,24 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
             snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d F%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, force);
         }
 #else
+    #if HAS_INDX()
+        // Keep this tool hot across its adjacent temperature points. The
+        // outer command still owns restoration on every exit. Only reuse
+        // preparation after a completed point on the same logical tool.
+        Temperature::setTargetHotend(entry.temperature, requested_tool);
+        snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d F%d%s", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, force,
+            prepared_slot == entry.logical_filament ? " P" : "");
+    #else
         snprintf(calibration_command, sizeof(calibration_command), "M976 %sT%u L%u S%d F%d", manual ? "M " : "", entry.physical_tool, entry.logical_filament, entry.temperature, force);
+    #endif
 #endif
         GcodeSuite::process_subcommands_now(calibration_command);
         if (!buddy::extrusion_calibration::job_result(entry.logical_filament)) {
             return false;
         }
+#if HAS_INDX()
+        prepared_slot = entry.logical_filament;
+#endif
     }
 #if ENABLED(PRUSA_MMU2)
     // Leave the nozzle empty for the slicer's full MBL. Its normal initial
@@ -952,10 +1003,12 @@ void extrude_flow(const float flow_mm3_s, const float seconds) {
 }
 
 #if HAS_INDX()
-bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection, const uint8_t slot) {
-    if (!buddy::m976_indx_pellet_policy::final_ejection_needed(cycles_since_ejection)) {
+bool eject_accumulated_indx_pellet(buddy::m976_indx_pellet_policy::Budget &pellet, const uint8_t slot) {
+    if (!buddy::m976_indx_pellet_policy::final_ejection_needed(pellet.cycles)) {
         return true;
     }
+    auto &usage = pa_diagnostics.records[slot];
+    ElapsedTime cleanup_time(usage.cleanup_ms);
     // First wipe the strand free, then actively cool it before ejection. A
     // freshly purged pellet is still soft enough to fold into the waste bin
     // instead of being knocked clear, where subsequent purges merge into it.
@@ -987,7 +1040,8 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection, const uint8_t
     }
     planner.synchronize();
     thermalManager.set_print_fan_speed(previous_fan_pwm);
-    cycles_since_ejection = 0;
+    pellet = {};
+    ++usage.ejections;
     #if HAS_WASTEBIN_FILL_TRACKING()
     WastebinWatcher::instance().account_ejected_pellet();
     #endif
@@ -995,10 +1049,14 @@ bool eject_accumulated_indx_pellet(uint8_t &cycles_since_ejection, const uint8_t
 }
 #endif
 
-buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cycles_since_ejection, const uint8_t slot) {
+buddy::extrusion_calibration::Score run_bursts(const float pa, buddy::m976_indx_pellet_policy::Budget &pellet, bool &position_ready, const uint8_t slot) {
+    auto &usage = pa_diagnostics.records[slot];
+    ElapsedTime measurement_time(usage.measurement_ms);
+    ++usage.measurements;
     const auto speeds = buddy::m976_extrusion_policy::speeds(flexible_calibration(slot));
     const float slow_flow = speeds.low_mm_s * filament_area;
     const float fast_flow = speeds.high_mm_s * filament_area;
+    const float cycle_mm = speeds.high_mm_s * 0.25f + speeds.low_mm_s * 0.5f;
     pressure_advance::set_axis_e_config({ pa, pressure_advance::get_axis_e_config().smooth_time });
     auto &capture = buddy::extrusion_calibration::capture();
     if (!capture.start()) {
@@ -1009,7 +1067,8 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cyc
     capture.pause();
 #else
     (void)slot;
-    (void)indx_cycles_since_ejection;
+    (void)position_ready;
+    (void)pellet;
     pressure_advance::set_calibration_mode(true);
 #endif
     // Four cycles preserve enough independent transitions for the scorer's
@@ -1020,28 +1079,44 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, uint8_t &indx_cyc
         // Keep consecutive high/low cycles over the open gap between the
         // prime block and wiper. Cleaner contact is excluded from capture.
         pressure_advance::set_calibration_mode(false);
-        if ((cycle == 0 || indx_cycles_since_ejection == 0)
+        if (pellet.would_overfill(cycle_mm)) {
+            // Never capture a cleaner contact, nor exceed the established
+            // pellet volume if excitation speeds are changed in the future.
+            if (!eject_accumulated_indx_pellet(pellet, slot) || pellet.would_overfill(cycle_mm)) {
+                capture.stop();
+                capture.release();
+                return {};
+            }
+            position_ready = false;
+        }
+        if (!position_ready
             && !nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::pa_calibration_extrusion_position)) {
             capture.stop();
             capture.release();
             return {};
         }
+        position_ready = true;
         capture.resume();
         pressure_advance::set_calibration_mode(true);
         extrude_flow(fast_flow, 0.25f);
         extrude_flow(slow_flow, 0.5f);
+        usage.excitation_mm += cycle_mm;
         planner.synchronize();
         pressure_advance::set_calibration_mode(false);
         capture.pause();
-        if (buddy::m976_indx_pellet_policy::record_cycle_and_should_eject(indx_cycles_since_ejection)
-            && !eject_accumulated_indx_pellet(indx_cycles_since_ejection, slot)) {
+        if (pellet.record(cycle_mm)
+            && !eject_accumulated_indx_pellet(pellet, slot)) {
             capture.stop();
             capture.release();
             return {};
         }
+        if (!pellet.cycles) {
+            position_ready = false; // Wipe/ejection left the extrusion gap.
+        }
 #else
         extrude_flow(slow_flow, 0.5f);
         extrude_flow(fast_flow, 0.25f);
+        usage.excitation_mm += cycle_mm;
 #endif
     }
     planner.synchronize();
@@ -1398,10 +1473,16 @@ void PrusaGcodeSuite::M976() {
         for (size_t i = 0; i < count; ++i) {
             rounds = std::max(rounds, size_t(entries[i].temperature_count));
         }
-        for (size_t point = 0; point < rounds; ++point) {
+        // INDX keeps every temperature of one physical tool adjacent, sharing
+        // pickup/preparation. Other targets retain the proven MMU unload and
+        // per-point sheet-anchor lifecycle.
+        for (size_t group = 0; group < (HAS_INDX() ? count : rounds); ++group) {
             static std::array<BatchEntry, buddy::extrusion_calibration::max_logical_filaments> round_entries;
             size_t round_count = 0;
-            for (size_t i = 0; i < count; ++i) {
+            const size_t items = HAS_INDX() ? std::max<size_t>(1, entries[group].temperature_count) : count;
+            for (size_t item = 0; item < items; ++item) {
+                const size_t i = HAS_INDX() ? group : item;
+                const size_t point = HAS_INDX() ? item : group;
                 if (failed_slots[entries[i].logical_filament] || point >= std::max<size_t>(1, entries[i].temperature_count)) {
                     continue;
                 }
@@ -1415,6 +1496,17 @@ void PrusaGcodeSuite::M976() {
             if (!round_count) {
                 continue;
             }
+    #if HAS_INDX()
+            // Preparation starts at the low probe temperature. A monotonic
+            // sweep avoids a heat/cool/reheat cycle for first/rest-layer plans.
+            // entries[].temperature still identifies the requested first-layer
+            // result; only the measurement order changes.
+            std::sort(round_entries.begin(), round_entries.begin() + round_count,
+                [](const auto &a, const auto &b) { return a.temperature < b.temperature; });
+            for (size_t point = 0; point < round_count; ++point) {
+                round_entries[point].temperature_point = point;
+            }
+    #endif
             if (!run_batch(round_entries, round_count, false, force)) {
                 pa_diagnostics.request_error = "batch_tool_or_calibration_failed";
                 SERIAL_ERROR_MSG("M976 batch tool/MMU change or calibration failed");
@@ -1469,7 +1561,7 @@ void PrusaGcodeSuite::M976() {
         return;
     }
     const float fallback = std::clamp(parser.floatval('B', buddy::extrusion_calibration::profile_pressure_advance_or(material_fallback(slot))), 0.0f, absolute_pa_max);
-    const float search_default = std::clamp(material_fallback(slot), 0.0f, absolute_pa_max);
+    float search_default = std::clamp(material_fallback(slot), 0.0f, absolute_pa_max);
     auto &diagnostic = pa_diagnostics.begin(tool, slot, 0);
     buddy::m976_diagnostics::Attempt attempt(diagnostic);
     marlin_server::FSM_Holder pa_fsm { PhasesPressureAdvanceCalibration::heating, { 2, static_cast<uint8_t>(slot + 1) } };
@@ -1504,6 +1596,7 @@ void PrusaGcodeSuite::M976() {
         diagnostic.outcome = "cached";
         diagnostic.reason = "valid_cache";
         diagnostic.cache = "hit";
+        diagnostic.search = "cache";
         diagnostic.pa = cached->pressure_advance;
         diagnostic.confidence = cached->confidence;
         pressure_advance::set_axis_e_config({ cached->pressure_advance, pressure_advance::get_axis_e_config().smooth_time });
@@ -1519,6 +1612,21 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cached result=", cached->pressure_advance, " max_flow=", cached->max_flow_mm3_s);
         return;
     }
+    float seed = NAN;
+    if (!force) {
+    #if HAS_INDX()
+        seed = cached_search_seed(tool, slot, target_temperature);
+    #else
+        if (const auto *model = buddy::extrusion_calibration::temperature_model(slot)) {
+            seed = model->search_seed(target_temperature);
+        }
+    #endif
+    }
+    const bool warm_start = std::isfinite(seed);
+    if (warm_start) {
+        search_default = std::clamp(seed, 0.0f, absolute_pa_max);
+    }
+    ElapsedTime attempt_time(diagnostic.elapsed_ms);
     MeasurementAnchorGuard anchor_guard(slot);
     if (!anchor_guard.valid) {
         diagnostic.reason = "no_free_cleanup_anchor";
@@ -1577,7 +1685,7 @@ void PrusaGcodeSuite::M976() {
         M109_no_parser(*selected_tool, {
                                            .target_temp = target_temperature,
                                            .wait_heat = true,
-                                           .wait_heat_or_cool = false,
+                                           .wait_heat_or_cool = true,
                                        });
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::heating)) {
             diagnostic.outcome = "aborted";
@@ -1616,7 +1724,12 @@ void PrusaGcodeSuite::M976() {
     float best_pa = search_default, best_cost = std::numeric_limits<float>::infinity();
     buddy::extrusion_calibration::Score best_score;
     candidate_observation_count = 0;
-    uint8_t indx_cycles_since_ejection = 0;
+    buddy::m976_indx_pellet_policy::Budget indx_cycles_since_ejection;
+    bool extrusion_position_ready = true; // park_for_free_air_calibration succeeded.
+    buddy::m976_search::SignalGuard signal_guard;
+    if (!std::isfinite(idle_noise)) {
+        signal_guard.failure = "invalid_idle_noise";
+    }
     const auto record_observation = [&](const float candidate, const buddy::extrusion_calibration::Score &score) {
         if (score.valid && candidate_observation_count < candidate_observations.size()) {
             candidate_observations[candidate_observation_count++] = { candidate, score.transient };
@@ -1625,6 +1738,9 @@ void PrusaGcodeSuite::M976() {
     bool aborted = false;
     const char *abort_reason = "measurement_interrupted";
     const auto measure = [&](const float candidate, const uint8_t progress) {
+        if (aborted || signal_guard.failure) {
+            return buddy::extrusion_calibration::Score {};
+        }
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring, progress, slot);
         if (pa_abort_requested(PhasesPressureAdvanceCalibration::measuring)) {
             aborted = true;
@@ -1632,7 +1748,9 @@ void PrusaGcodeSuite::M976() {
             return buddy::extrusion_calibration::Score {};
         }
         const float bounded_candidate = std::clamp(candidate, 0.0f, absolute_pa_max);
-        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection, slot);
+        const auto score = run_bursts(bounded_candidate, indx_cycles_since_ejection, extrusion_position_ready, slot);
+        signal_guard.observe(score.sample_count, score.capture_overflow, score.strongest_transition,
+            std::max({ 0.25f, idle_noise, score.highest_transition_noise }), minimum_snr);
         diagnostic.valid_candidates += score.valid;
         diagnostic.samples = score.sample_count;
         diagnostic.transitions = score.transitions_used;
@@ -1649,58 +1767,6 @@ void PrusaGcodeSuite::M976() {
         return score;
     };
 
-    // The objective is one-dimensional but noisy. Golden-section refinement
-    // needs no numerical derivative and reuses one measurement per iteration.
-    constexpr float initial_step = 0.02f;
-    const auto center_seed = measure(search_default, 20);
-    const auto lower_seed = measure(search_default - initial_step, 24);
-    const auto upper_seed = measure(search_default + initial_step, 28);
-    const float center_cost = center_seed.valid ? center_seed.transient : std::numeric_limits<float>::infinity();
-    const float lower_cost = lower_seed.valid ? lower_seed.transient : std::numeric_limits<float>::infinity();
-    const float upper_cost = upper_seed.valid ? upper_seed.transient : std::numeric_limits<float>::infinity();
-    float lower, upper;
-    if (lower_cost < center_cost && lower_cost <= upper_cost) {
-        lower = std::max(0.0f, search_default - 0.03f);
-        upper = search_default;
-    } else if (upper_cost < center_cost) {
-        lower = search_default;
-        upper = std::min(absolute_pa_max, search_default + 0.03f);
-    } else {
-        lower = std::max(0.0f, search_default - initial_step);
-        upper = std::min(absolute_pa_max, search_default + initial_step);
-    }
-    constexpr float golden_ratio = 0.61803398875f;
-    float left = upper - golden_ratio * (upper - lower);
-    float right = lower + golden_ratio * (upper - lower);
-    auto left_score = measure(left, 32);
-    auto right_score = measure(right, 36);
-    // Five golden-section refinements locate the basin; the three mandatory
-    // +/-0.002 verification measurements below provide the final resolution.
-    for (uint8_t iteration = 0; iteration < 5 && !aborted && upper - lower > 0.0015f; ++iteration) {
-        const float left_cost = left_score.valid ? left_score.transient : std::numeric_limits<float>::infinity();
-        const float right_cost = right_score.valid ? right_score.transient : std::numeric_limits<float>::infinity();
-        if (left_cost <= right_cost) {
-            upper = right;
-            right = left;
-            right_score = left_score;
-            left = upper - golden_ratio * (upper - lower);
-            left_score = measure(left, static_cast<uint8_t>(40 + iteration * 4));
-        } else {
-            lower = left;
-            left = right;
-            left_score = right_score;
-            right = lower + golden_ratio * (upper - lower);
-            right_score = measure(right, static_cast<uint8_t>(40 + iteration * 4));
-        }
-    }
-
-    // Confirm the apparent optimum and both immediate 0.002 neighbours. This
-    // always runs even if the minimum confidence has already been reached.
-    const float verification_center = best_pa;
-    measure(verification_center - 0.002f, 74);
-    measure(verification_center, 78);
-    measure(verification_center + 0.002f, 82);
-
     const auto selection_separation = [&]() {
         float competing_cost = std::numeric_limits<float>::infinity();
         for (size_t i = 0; i < candidate_observation_count; ++i) {
@@ -1716,10 +1782,94 @@ void PrusaGcodeSuite::M976() {
         return 0.5f + 0.5f * std::tanh(relative_margin * 5.0f);
     };
 
-    // The configured threshold is an acceptance floor, not a search target.
-    // Refinement and neighbour verification above always finish first; only a
-    // weak final signal receives bounded extra confirmations.
-    for (uint8_t retry = 0; retry < maximum_confidence_retries && !aborted
+    bool quick_verified = false;
+    diagnostic.search = "full";
+    if (warm_start && !force) {
+        const auto center = measure(search_default, 20);
+        const auto low = measure(search_default - 0.002f, 24);
+        const auto high = measure(search_default + 0.002f, 28);
+        const auto repeated = measure(search_default, 30);
+        const auto quality = [&](const auto &score) {
+            return score.valid && result_confidence(score, idle_noise, selection_separation()) >= minimum_result_confidence
+                && result_snr(score, idle_noise) >= minimum_snr;
+        };
+        quick_verified = buddy::m976_search::verified_minimum(search_default, absolute_pa_max,
+            center.transient, low.transient, high.transient, repeated.transient,
+            quality(center) && quality(low) && quality(high) && quality(repeated));
+        diagnostic.search = quick_verified ? "warm_verified" : "warm_then_full";
+        if (!quick_verified) {
+            // A rejected hint cannot bias the independent full-search result.
+            search_default = std::clamp(material_fallback(slot), 0.0f, absolute_pa_max);
+            best_pa = search_default;
+            best_cost = std::numeric_limits<float>::infinity();
+            best_score = {};
+            candidate_observation_count = 0;
+        }
+    }
+    if (!quick_verified && !aborted && !signal_guard.failure) {
+        // The objective is one-dimensional but noisy. Golden-section refinement
+        // needs no numerical derivative and reuses one measurement per iteration.
+        constexpr float initial_step = 0.02f;
+        const auto center_seed = measure(search_default, 20);
+        const auto lower_seed = measure(search_default - initial_step, 24);
+        const auto upper_seed = measure(search_default + initial_step, 28);
+        const float center_cost = center_seed.valid ? center_seed.transient : std::numeric_limits<float>::infinity();
+        const float lower_cost = lower_seed.valid ? lower_seed.transient : std::numeric_limits<float>::infinity();
+        const float upper_cost = upper_seed.valid ? upper_seed.transient : std::numeric_limits<float>::infinity();
+        float lower, upper;
+        if (lower_cost < center_cost && lower_cost <= upper_cost) {
+            lower = std::max(0.0f, search_default - 0.03f);
+            upper = search_default;
+        } else if (upper_cost < center_cost) {
+            lower = search_default;
+            upper = std::min(absolute_pa_max, search_default + 0.03f);
+        } else {
+            lower = std::max(0.0f, search_default - initial_step);
+            upper = std::min(absolute_pa_max, search_default + initial_step);
+        }
+        constexpr float golden_ratio = 0.61803398875f;
+        float left = upper - golden_ratio * (upper - lower);
+        float right = lower + golden_ratio * (upper - lower);
+        auto left_score = measure(left, 32);
+        auto right_score = measure(right, 36);
+        // Five golden-section refinements locate the basin; the three mandatory
+        // +/-0.002 verification measurements below provide the final resolution.
+        for (uint8_t iteration = 0; iteration < 5 && !aborted && !signal_guard.failure && upper - lower > 0.0015f; ++iteration) {
+            // A narrow, high-quality bracket can proceed to the same mandatory
+            // neighbour confirmation without spending the last refinement step.
+            if (!force && upper - lower <= 0.006f
+                && result_confidence(best_score, idle_noise, selection_separation()) >= minimum_result_confidence
+                && result_snr(best_score, idle_noise) >= minimum_snr) {
+                break;
+            }
+            const float left_cost = left_score.valid ? left_score.transient : std::numeric_limits<float>::infinity();
+            const float right_cost = right_score.valid ? right_score.transient : std::numeric_limits<float>::infinity();
+            if (left_cost <= right_cost) {
+                upper = right;
+                right = left;
+                right_score = left_score;
+                left = upper - golden_ratio * (upper - lower);
+                left_score = measure(left, static_cast<uint8_t>(40 + iteration * 4));
+            } else {
+                lower = left;
+                left = right;
+                left_score = right_score;
+                right = lower + golden_ratio * (upper - lower);
+                right_score = measure(right, static_cast<uint8_t>(40 + iteration * 4));
+            }
+        }
+
+        // Confirm the apparent optimum and both immediate 0.002 neighbours. This
+        // always runs even if the minimum confidence has already been reached.
+        const float verification_center = best_pa;
+        measure(verification_center - 0.002f, 74);
+        measure(verification_center, 78);
+        measure(verification_center + 0.002f, 82);
+    }
+
+    // A verified warm minimum already has independent neighbour/repeat
+    // evidence. Otherwise complete refinement before bounded confirmations.
+    for (uint8_t retry = 0; retry < maximum_confidence_retries && !aborted && !signal_guard.failure
          && (result_confidence(best_score, idle_noise, selection_separation()) < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr);
          ++retry) {
         pa_fsm_change(PhasesPressureAdvanceCalibration::measuring,
@@ -1729,13 +1879,7 @@ void PrusaGcodeSuite::M976() {
             abort_reason = "user_abort_measuring";
             break;
         }
-        const auto score = run_bursts(best_pa, indx_cycles_since_ejection, slot);
-        report_measurement_debug(best_pa, score, idle_noise);
-        record_observation(best_pa, score);
-        if (score.valid && score.transient < best_cost) {
-            best_cost = score.transient;
-            best_score = score;
-        }
+        measure(best_pa, static_cast<uint8_t>(82 + (retry * 5) / maximum_confidence_retries));
     }
     #if HAS_INDX()
     // Bound buildup during the search, then always finish the remainder in the
@@ -1774,11 +1918,12 @@ void PrusaGcodeSuite::M976() {
         SERIAL_ECHOLNPAIR("PA_CAL_SELECTION best=", best_pa, " cost=", best_cost,
             " separation=", separation_quality, " confidence=", confidence);
     }
-    if (!std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
+    if (signal_guard.failure || !std::isfinite(best_cost) || confidence < minimum_result_confidence || result_snr(best_score, idle_noise) < minimum_snr) {
         diagnostic.outcome = "fallback";
         diagnostic.pa = fallback;
         diagnostic.cache = "not_saved";
-        diagnostic.reason = !std::isfinite(best_cost)                                ? "no_valid_measurements"
+        diagnostic.reason = signal_guard.failure                                     ? signal_guard.failure
+            : !std::isfinite(best_cost)                                              ? "no_valid_measurements"
             : confidence < minimum_result_confidence && diagnostic.snr < minimum_snr ? "low_confidence_and_snr"
             : confidence < minimum_result_confidence                                 ? "low_confidence"
                                                                                      : "low_snr";
@@ -1800,8 +1945,8 @@ void PrusaGcodeSuite::M976() {
         }
         emit_pressure_advance_gcode(tool, slot, fallback);
         char report[144];
-        snprintf(report, sizeof(report), "PA_CALIBRATION tool=%u slot=%u fallback=%.3f confidence=%.2f reason=low_confidence",
-            unsigned(tool), unsigned(slot), static_cast<double>(fallback), static_cast<double>(confidence));
+        snprintf(report, sizeof(report), "PA_CALIBRATION tool=%u slot=%u fallback=%.3f confidence=%.2f reason=%s",
+            unsigned(tool), unsigned(slot), static_cast<double>(fallback), static_cast<double>(confidence), diagnostic.reason);
         SERIAL_ECHOLN(report);
     #if HAS_INDX()
         SERIAL_ECHOLNPAIR("PA_CALIBRATION cache not_saved slot=", slot, " reason=low_confidence_or_snr");
