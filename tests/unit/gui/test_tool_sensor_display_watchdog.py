@@ -13,6 +13,13 @@ class ToolSensorDisplayWatchdogTests(unittest.TestCase):
         if not compiler:
             self.skipTest("C++ compiler unavailable")
         root = pathlib.Path(__file__).resolve().parents[3]
+        worker = (root / "src/puppies/puppy_task.cpp").read_text()
+        worker = worker[worker.index(
+            "[[nodiscard]] static bool wait_for_tool_offset_sensor("):]
+        self.assertLess(
+            worker.index(
+                "bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_unknown);"
+            ), worker.index("cyphal_bridge_host().refresh(bus)"))
         source = (root / "src/gui/screen_splash.cpp").read_text()
         start = source.index("static void check_tool_sensor_bootstrap(")
         end = source.index("\n#endif", start)
