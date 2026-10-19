@@ -396,6 +396,9 @@ TEST_CASE("RME Marlin task stack retains crash-derived guard space", "[rme][stac
     CHECK(marlin_words == 1664);
     CHECK(marlin_guard_bytes >= required_guard_bytes);
     CHECK(marlin_guard_bytes >= observed_rme_overrun_bytes * 4);
+    CHECK(marlin_indx_words == 3072);
+    CHECK(marlin_indx_guard_bytes >= 4096);
+    CHECK(marlin_indx_guard_bytes >= observed_indx_overrun_bytes * 4);
 }
 
 TEST_CASE("RME firmware status accepts only matching verified metadata", "[rme][firmware][regression]") {
