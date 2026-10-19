@@ -208,6 +208,7 @@ private:
         };
         struct Verify {
             uint32_t salt;
+            bool source_requested : 1 = false;
             bool request_sent : 1 = false;
             bool received_from_device : 1 = false;
             bool received_from_source : 1 = false;
@@ -460,25 +461,27 @@ private:
             case Mode::maintenance:
             case Mode::operational: {
                 if (!verify.request_sent) {
-                    // We haven't sent our requests yet.
-                    if (filesystem.hash_request == FirmwareFile::none) {
+                    // Reserving the source slot and sending the device command
+                    // are separate operations. start_app may still be awaiting
+                    // its acknowledgement, rate-limiting the first hash command.
+                    if (!verify.source_requested) {
+                        if (filesystem.hash_request != FirmwareFile::none) {
+                            return false; // Another node owns the source slot.
+                        }
                         // Slot is open, let's request hash from the parent system
                         const auto salt = get_random_salt();
                         verify.salt = salt;
                         // Request the hash from the parent system
                         filesystem.hash_request = get_firmware_file_for_node_name(info.name);
                         filesystem.hash_salt = salt;
+                        verify.source_requested = true;
                         presentation.transmit_diagnostic_record(Severity::notice, "hash requested");
-                        // And also request it from the device at the same time.
-                        const bool sent = execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(salt));
-                        if (sent) {
-                            verify.request_sent = true;
-                        }
-                        return sent;
-                    } else {
-                        // Wait for slot to open.
-                        return false;
                     }
+                    // Retry with our original salt even if the motherboard has
+                    // already supplied its digest. Never wait on our own slot.
+                    const bool sent = execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(verify.salt));
+                    verify.request_sent = sent;
+                    return sent;
                 }
 
                 // A single lost ExecuteCommand response must not leave the
