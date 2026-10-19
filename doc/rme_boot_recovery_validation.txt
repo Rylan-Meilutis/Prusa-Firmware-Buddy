@@ -1,7 +1,9 @@
 INDX heap/startup incident - 2026-10-19
 =====================================
 
-Status: NOT VALIDATED FOR RELEASE. No replacement release published.
+Status: stable publication explicitly requested by the user after these
+software checks. This is NOT physical-printer recovery certification.
+Recovery releases: v6.9.2-RME-b3 (INDX), v6.10.3-RME-b3 (XL).
 The previously published e2a931ded INDX build is marked DO NOT INSTALL,
 prerelease, and not latest. Its files remain available for incident audit.
 
@@ -76,9 +78,8 @@ Coverage executed locally
 - Both bridge and RME suites pass with AddressSanitizer and
   UndefinedBehaviorSanitizer, halt-on-error. LeakSanitizer is NOT tested:
   it fails under the execution environment's ptrace restrictions.
-- Prior INDX source/fault-injection suite: 82 tests, one hardware-inapplicable
-  skip; prior XL suite: 78 tests, one hardware-inapplicable skip. The new boot,
-  observer and heap tests add three cases to each suite.
+- INDX source/fault-injection suite: 85 tests, one hardware-inapplicable skip.
+  XL source/fault-injection suite: 81 tests, one hardware-inapplicable skip.
 - Legacy MMU suite: 34 cases / 364012 assertions. Legacy RME: 70 cases /
   432705 assertions. These older-branch tests are compatibility evidence,
   NOT an INDX crash-recovery test.
