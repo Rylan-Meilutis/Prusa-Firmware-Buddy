@@ -126,6 +126,9 @@ CommunicationStatus CyphalBridgeFlashHost::write_chunk(PuppyModbus &bus, modbus:
 }
 
 CommunicationStatus CyphalBridgeFlashHost::write_digest(PuppyModbus &bus, modbus::ServerAddress server, DigestComputeFn compute) {
+    if (!valid) {
+        return CommunicationStatus::SKIPPED;
+    }
     const xbuddy_extension::modbus::DigestRequest current_request = current_digest_request;
 
     if (current_request == last_digest_request) {
@@ -145,7 +148,12 @@ CommunicationStatus CyphalBridgeFlashHost::write_digest(PuppyModbus &bus, modbus
     compute(current_request, file_id, modbus_digest);
 
     if (bus.write_holding_registers(server, modbus_digest)) {
-        last_digest_request = current_request;
+        // A transient read/compute failure is not an answered challenge. The
+        // bridge retries the same file+salt, sometimes without an intervening
+        // no-request poll; caching it would suppress recovery forever.
+        if (xbuddy_extension::modbus::parse_digest_status(modbus_digest.status) != xbuddy_extension::DigestStatus::retry) {
+            last_digest_request = current_request;
+        }
         return CommunicationStatus::OK;
     } else {
         // Best effort — retry on next cycle (last_digest_request not updated,
