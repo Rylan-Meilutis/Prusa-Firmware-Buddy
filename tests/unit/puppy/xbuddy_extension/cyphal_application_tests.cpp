@@ -6,6 +6,7 @@
 #include <cyphal_application_impl.hpp>
 #include <master_activity.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <modbus/traits.hpp>
 #include <vector>
 #include <utils/byte_utils.hpp>
@@ -1105,6 +1106,58 @@ TEST_CASE("tool offset sensor retries a lost verification reply without bypassin
     app.receive_node_execute_command_response(node_id, 0, digest);
     run(app, mock, make_timepoint(1003));
     // Firmware hash alone is insufficient: it must also send sensor status.
+    CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) != xbuddy_extension::NodeState::ready);
+    app.receive_tool_offset_sensor_status(tool_offset_sensor::Status {});
+    CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::ready);
+}
+
+TEST_CASE("tool offset verification retries a rate-limited first hash command") {
+    const bool cold_boot = GENERATE(false, true);
+    const bool source_first = GENERATE(false, true);
+    CAPTURE(cold_boot, source_first);
+    const auto node_id = NodeId { 1 };
+    const auto operational = Heartbeat { Health::nominal, Mode::operational, 0 };
+    const auto bootloader = Heartbeat { Health::advisory, Mode::software_update, 0 };
+    MockPresentation mock;
+    Application app;
+    uint32_t time = 0;
+    if (cold_boot) {
+        app.receive_pnp_allocation(make_unique_id(0x713));
+        run(app, mock, make_timepoint(time++));
+        app.receive_node_heartbeat(node_id, make_timepoint(time), bootloader);
+        run(app, mock, make_timepoint(time++));
+        app.receive_node_get_info_response(node_id, tool_offset_sensor_node_name);
+        run(app, mock, make_timepoint(time++));
+    } else {
+        setup_tool_offset_sensor_node(app, mock, node_id, 0x713, time);
+    }
+    app.receive_node_heartbeat(node_id, make_timepoint(time), bootloader);
+    run(app, mock, make_timepoint(time++));
+    app.receive_node_heartbeat(node_id, make_timepoint(time), bootloader);
+    run(app, mock, make_timepoint(time++));
+    REQUIRE(mock.node_execute_command_request.back().command == Command::start_app);
+    const auto commands = mock.node_execute_command_request.size();
+    // Application starts but its start_app acknowledgement is lost. The first
+    // hash command is rate-limited while the source digest slot is reserved.
+    app.receive_node_heartbeat(node_id, make_timepoint(time), operational);
+    run(app, mock, make_timepoint(time++));
+    REQUIRE(app.request().hash_request == cyphal::FirmwareFile::firmware_tool_offset_sensor);
+    const auto salt = app.request().hash_salt;
+    const auto digest = generate_random_digest();
+    if (source_first) {
+        REQUIRE(app.receive_digest(cyphal::FirmwareFile::firmware_tool_offset_sensor, salt, xbuddy_extension::DigestStatus::ok, digest));
+    }
+    time += 1001;
+    app.receive_node_heartbeat(node_id, make_timepoint(time), operational);
+    run(app, mock, make_timepoint(time++));
+    REQUIRE(mock.node_execute_command_request.size() == commands + 1);
+    CHECK(mock.node_execute_command_request.back().command == Command::get_app_salted_hash);
+    CHECK(mock.node_execute_command_request.back() == make_salted_hash_request(node_id, salt));
+    if (!source_first) {
+        REQUIRE(app.receive_digest(cyphal::FirmwareFile::firmware_tool_offset_sensor, salt, xbuddy_extension::DigestStatus::ok, digest));
+    }
+    app.receive_node_execute_command_response(node_id, 0, digest);
+    run(app, mock, make_timepoint(time++));
     CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) != xbuddy_extension::NodeState::ready);
     app.receive_tool_offset_sensor_status(tool_offset_sensor::Status {});
     CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::ready);
