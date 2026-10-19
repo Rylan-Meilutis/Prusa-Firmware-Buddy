@@ -52,6 +52,13 @@ struct Record {
     uint16_t transitions = 0;
     uint16_t rejected_low_signal = 0;
     uint16_t rejected_timing = 0;
+    uint32_t elapsed_ms = 0;
+    uint32_t measurement_ms = 0;
+    uint32_t cleanup_ms = 0;
+    float excitation_mm = 0;
+    uint16_t measurements = 0;
+    uint16_t ejections = 0;
+    const char *search = "not_started";
     bool capture_overflow = false;
 };
 

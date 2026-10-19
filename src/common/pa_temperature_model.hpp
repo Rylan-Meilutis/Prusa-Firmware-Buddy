@@ -28,6 +28,28 @@ public:
     std::array<Point, capacity> points {};
     size_t count = 0;
 
+    // Search hint only, never a reusable calibration or pressure reference.
+    // Permit a small temperature extension; a noisy fit uses the nearest
+    // measured value instead. The caller must independently verify the hint.
+    float search_seed(int16_t temperature) const {
+        const auto estimate = evaluate(temperature);
+        if (estimate.valid) {
+            return estimate.point.pa;
+        }
+        if (!count || temperature < 170 || temperature > 300) {
+            return NAN;
+        }
+        const auto &nearest = temperature < points[0].temperature ? points[0] : points[count - 1];
+        if (std::abs(int(temperature) - nearest.temperature) > 15) {
+            return NAN;
+        }
+        const auto fit = evaluate(nearest.temperature);
+        const float delta = count > 1 && fit.rmse <= 0.005f
+            ? std::clamp(fit.slope * (temperature - nearest.temperature), -0.02f, 0.02f)
+            : 0;
+        return std::clamp(nearest.pa + delta, 0.0f, 0.5f);
+    }
+
     bool add(const Point &point) {
         if (point.temperature < 170 || point.temperature > 300
             || !std::isfinite(point.pa) || point.pa < 0 || point.pa > 0.5f
