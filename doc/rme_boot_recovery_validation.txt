@@ -11,7 +11,8 @@ Established defects
    by 12288 bytes. A link/build pass did not establish runtime heap safety.
    Restore the stack to CCM at 2048 words, retaining 1536 bytes of guard
    above the historical 1664-word stack without shrinking other task stacks.
-   Final ELF heap budget: 46352 bytes versus 34064 in the reported build.
+   Final ELF heap budget with the independent observer: 46336 bytes versus
+   34064 in the reported build (the observer uses 16 static bytes).
    This fixes an introduced memory-capacity regression, not every possible
    allocation failure or leak.
 
@@ -27,6 +28,14 @@ Established defects
 4. A delayed empty start_app reply, or a malformed digest, could consume the
    pending hash command and discard its subsequent valid response. Invalid
    successful-hash payload lengths now leave the challenge pending.
+
+5. The worker's timeout was only evaluated after refresh returned, so blocked
+   I/O could prevent its own timeout. The display task now supervises sensor
+   bootstrap directly, before backlight-gated drawing. The sensor boot stage
+   is published before the very first I/O. A blocked worker causes the existing
+   startup fatal error after 30 seconds verifying or 120 seconds without flash
+   progress; there is also a six-minute absolute ceiling. These deliberately
+   exceed the worker's normal retry deadlines. No required sensor is bypassed.
 
 Failing-before / passing-after evidence
 --------------------------------------
@@ -50,12 +59,26 @@ Coverage executed locally
   stalled flashing, bridge/sensor communication failure, retry exhaustion,
   recovery success and consecutive-failure reset. Deadline tests include
   progress, wraparound and the absolute attempt ceiling.
+- Independent display observer with the worker not executing: verify/flash
+  stalls, genuine flash progress, absolute ceiling, successful completion,
+  unrelated stages, new-boot disarming and clock wrap. Its invocation precedes
+  backlight-gated drawing and the worker publishes its stage before first I/O.
+- Actual _sbrk_r through 1000 simulated volatile-RAM resets: exact fill and
+  overflow, critical-section restoration before the fatal hook, fallible
+  failure, another task's fallible request, unchanged cursor and shrink/reuse.
+  This does NOT model newlib fragmentation or simultaneous real tasks.
+- Actual early main boot/error acknowledgement control flow with all 16
+  combinations of retained validity/display flags, including a heap-error
+  message without a dump. Error-only startup does not need a sensor worker;
+  after acknowledgement, the retained flags permit normal startup next boot.
+  The harness stubs flash storage and excludes error-mode networking.
 - RME protocol suite: 67 cases / 432658 assertions.
 - Both bridge and RME suites pass with AddressSanitizer and
   UndefinedBehaviorSanitizer, halt-on-error. LeakSanitizer is NOT tested:
   it fails under the execution environment's ptrace restrictions.
-- INDX source/fault-injection suite: 82 tests, one hardware-inapplicable skip.
-  XL source/fault-injection suite: 78 tests, one hardware-inapplicable skip.
+- Prior INDX source/fault-injection suite: 82 tests, one hardware-inapplicable
+  skip; prior XL suite: 78 tests, one hardware-inapplicable skip. The new boot,
+  observer and heap tests add three cases to each suite.
 - Legacy MMU suite: 34 cases / 364012 assertions. Legacy RME: 70 cases /
   432705 assertions. These older-branch tests are compatibility evidence,
   NOT an INDX crash-recovery test.
