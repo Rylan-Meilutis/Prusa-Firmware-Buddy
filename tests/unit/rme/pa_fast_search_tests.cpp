@@ -4,7 +4,7 @@
 #include <pa_calibration_cache.hpp>
 
 using namespace buddy;
-using Catch::Approx;
+using Catch::Detail::Approx;
 
 TEST_CASE("Warm PA hints require an independently repeated bracketed minimum", "[m976][fast]") {
     using m976_search::verified_minimum;
