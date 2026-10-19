@@ -12,6 +12,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
+#if BOARD_IS_XBUDDY()
+    #include "font_builtin_ascii.hpp"
+#endif
 
 #if PRINTER_IS_PRUSA_MINI()
     #if ENABLE_TRANSLATION_JA()
@@ -63,61 +66,91 @@ const resource_entry_t resource_table[] = {
 
 #if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
 bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t *destination, const size_t size) {
+    if (!font || !destination || size > (30 * 53 + 1) / 2
+        || size != size_t((font->w + 1) / 2) * font->h) {
+        return false;
+    }
+    #if BOARD_IS_XBUDDY()
+    if (buddy::builtin_font::load(font->w, font->h, glyph, destination, size)) {
+        return true;
+    }
+    #endif
     struct ExternalFont {
         uint8_t width;
         uint8_t height;
         const char *path;
         int descriptor;
     };
-#if PRINTER_IS_PRUSA_MINI()
+    #if PRINTER_IS_PRUSA_MINI()
     static ExternalFont fonts[] {
         { 7, 13, "/internal/res/fonts/7x13.bin", -1 },
         { 9, 16, "/internal/res/fonts/9x16.bin", -1 },
         { 11, 18, "/internal/res/fonts/11x18.bin", -1 },
     };
-#else
+    #else
     static ExternalFont fonts[] {
         { 9, 16, "/internal/res/fonts/9x16.bin", -1 },
         { 11, 19, "/internal/res/fonts/11x19.bin", -1 },
         { 13, 22, "/internal/res/fonts/13x22.bin", -1 },
         { 30, 53, "/internal/res/fonts/30x53.bin", -1 },
     };
-#endif
+    #endif
     static const ExternalFont *cached_font = nullptr;
     static uint32_t cached_glyph = UINT32_MAX;
     static std::array<uint8_t, 15 * 53> cache;
     for (auto &external : fonts) {
-        if (font->w != external.width || font->h != external.height) continue;
+        if (font->w != external.width || font->h != external.height) {
+            continue;
+        }
         if (cached_font == &external && cached_glyph == glyph) {
             memcpy(destination, cache.data(), size);
             return true;
         }
-        if (external.descriptor < 0) external.descriptor = open(external.path, O_RDONLY);
-        if (external.descriptor < 0) return false;
+        if (external.descriptor < 0) {
+            external.descriptor = open(external.path, O_RDONLY);
+        }
+        if (external.descriptor < 0) {
+            return false;
+        }
         uint16_t metadata[2];
         uint32_t offsets[2];
+        // A failed decode can partially overwrite cache. Never leave its old
+        // identity valid, or the next request for that glyph returns garbage.
+        cached_font = nullptr;
+        cached_glyph = UINT32_MAX;
         if (lseek(external.descriptor, 0, SEEK_SET) != 0
             || read(external.descriptor, metadata, sizeof(metadata)) != sizeof(metadata)
             || glyph >= metadata[0] || size != metadata[1]
             || lseek(external.descriptor, 4 + glyph * sizeof(uint32_t), SEEK_SET) < 0
             || read(external.descriptor, offsets, sizeof(offsets)) != sizeof(offsets)
-            || lseek(external.descriptor, 4 + (metadata[0] + 1) * sizeof(uint32_t) + offsets[0], SEEK_SET) < 0) return false;
+            || offsets[1] < offsets[0]
+            || lseek(external.descriptor, 4 + (metadata[0] + 1) * sizeof(uint32_t) + offsets[0], SEEK_SET) < 0) {
+            return false;
+        }
         size_t output = 0;
         uint32_t remaining = offsets[1] - offsets[0];
         while (remaining--) {
             uint8_t token;
-            if (read(external.descriptor, &token, 1) != 1) return false;
+            if (read(external.descriptor, &token, 1) != 1) {
+                return false;
+            }
             const size_t length = (token & 0x7f) + 1;
-            if (output + length > size) return false;
+            if (output + length > size) {
+                return false;
+            }
             if (token & 0x80) {
                 memset(cache.data() + output, 0, length);
             } else {
-                if (remaining < length || read(external.descriptor, cache.data() + output, length) != static_cast<ssize_t>(length)) return false;
+                if (remaining < length || read(external.descriptor, cache.data() + output, length) != static_cast<ssize_t>(length)) {
+                    return false;
+                }
                 remaining -= length;
             }
             output += length;
         }
-        if (output != size) return false;
+        if (output != size) {
+            return false;
+        }
         cached_font = &external;
         cached_glyph = glyph;
         memcpy(destination, cache.data(), size);

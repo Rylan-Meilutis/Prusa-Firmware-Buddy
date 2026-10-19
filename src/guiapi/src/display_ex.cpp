@@ -252,7 +252,13 @@ void store_char_in_buffer(uint16_t char_cnt, uint16_t curr_char_idx, unichar c, 
     uint8_t pixel_size = STORE_FN_PIXEL_SIZE;
 #if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
     uint8_t external_glyph[15 * 53];
-    if (!load_external_font_glyph(pf, chr, external_glyph, bpc)) return;
+    if (!load_external_font_glyph(pf, chr, external_glyph, bpc)) {
+        // The display buffer contains earlier text/icons, not this glyph.
+        // Paint the cell background on failure; never transmit stale pixels.
+        // A later redraw will retry the resource (common xBuddy ASCII and
+        // numeric glyphs are available directly from firmware flash).
+        memset(external_glyph, 0, bpc);
+    }
     pch = external_glyph;
 #else
     pch = static_cast<uint8_t *>(const_cast<void *>(pf->pcs)) + (chr * bpc);

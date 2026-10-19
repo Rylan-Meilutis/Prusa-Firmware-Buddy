@@ -1,0 +1,40 @@
+Text corruption recovery
+========================
+
+Reproduced defects:
+- A failed external-font read returned from store_char_in_buffer without
+  painting its cell. render_line then transmitted stale shared-buffer pixels.
+- A failed decode could overwrite the cache while retaining the identity of
+  the previous glyph. Requesting that previous glyph returned damaged data.
+
+Fix:
+- xBuddy common ASCII text (95 glyphs in each of three text fonts) and all
+  sixteen large numeric glyphs are compiled into application flash. English
+  headers, footers, menu labels and editable values no longer need font-file
+  reads. Generated bitmap bytes are preserved exactly, without resizing.
+- Invalidate external-glyph cache identity before any decoding mutation;
+  reject invalid sizes and reversed resource offsets.
+- If an extended-glyph read fails, paint its cell background instead of
+  transmitting old pixels. Extended language glyphs still use managed assets.
+- Existing unchanged-title/clock redraw suppression is retained. This fix
+  does not disable text painting, introduce periodic full-screen clears,
+  allocate heap buffers, increase task stacks or add threads.
+
+Tests:
+tests/unit/gui/test_font_render_recovery.py compiles the real loader and
+renderer under address/undefined sanitizers. Checks all 301 builtin glyphs,
+no file accesses for common text, output canaries, invalid arguments, partial
+decode failure followed by re-reading the old glyph, all four font sizes and
+a failed glyph beside a successfully painted glyph in one display batch.
+Both tests fail against pre-fix production code and pass with the fix.
+CTest target: font_render_recovery_faults.
+
+The unchanged-header/clock/filtering regression suite also passes. Root
+checkout builds pass for INDX, CORE One/L, MK4 and XL. RAM and CCM usage are
+unchanged; common glyph data adds about 43 KiB of application flash on xBuddy.
+
+No device photo, installed-build identity or hardware reproduction was supplied.
+These defects are verified in software; they are not proof that font-resource
+failure was the sole cause of the reported printer's display corruption.
+Physical display/print testing remains unverified. Do not claim crash-proof,
+complete code-path coverage, or hardware certification from these tests.

@@ -1,6 +1,13 @@
 # All these tests need buddy_utils
 link_libraries(buddy_utils)
 
+add_test(NAME font_render_recovery_faults
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_font_render_recovery.py"
+         )
+set_tests_properties(
+  font_render_recovery_faults PROPERTIES LABELS "gui;fonts;fault-injection" TIMEOUT 120
+  )
+
 # define the test executable
 add_executable(
   rectangle_tests ${CMAKE_SOURCE_DIR}/src/guiapi/src/Rect16.cpp
