@@ -511,6 +511,18 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
     uint32_t timeout_start_ms = ticks_ms();
     ToolSensorBootstrapDeadline deadline(timeout_start_ms);
     static unsigned stalled_attempts = 0;
+    const auto recover = [] {
+    #if HAS_XBUDDY_EXTENSION()
+        xbe_requires_reset = true;
+    #endif
+    #if HAS_XL_CAN()
+        xl_can_requires_reset = true;
+    #endif
+        if (++stalled_attempts >= 3) {
+            puppy_run_timeout();
+        }
+        return false;
+    };
 
     // The sensor is required, but waiting forever does not repair it. Keep
     // servicing the bridge; recover on stalled verification/flash and report
@@ -523,10 +535,10 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
         // We should run this as often as possible to minimize time when
         // the bridge is waiting for firmware chunk.
         if (cyphal_bridge_host().refresh(bus) == CommunicationStatus::ERROR) {
-            return false;
+            return recover();
         }
         if (tool_offset_sensor.refresh(bus) == CommunicationStatus::ERROR) {
-            return false;
+            return recover();
         }
 
         using xbuddy_extension::NodeState;
@@ -534,22 +546,13 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
         const auto progress = node_state == NodeState::flash ? cyphal_bridge_host().get_flash_progress_percent() : 0;
         if (node_state != NodeState::ready && deadline.stalled(ticks_ms(), node_state == NodeState::flash, progress)) {
             log_error(Puppies, "Tool offset sensor bootstrap stalled: state=%u progress=%u attempt=%u", unsigned(node_state), unsigned(progress), stalled_attempts + 1);
-    #if HAS_XBUDDY_EXTENSION()
-            xbe_requires_reset = true;
-    #endif
-    #if HAS_XL_CAN()
-            xl_can_requires_reset = true;
-    #endif
-            if (++stalled_attempts >= 3) {
-                puppy_run_timeout();
-            }
-            return false;
+            return recover();
         }
         switch (node_state) {
         case NodeState::unknown:
             if (ticks_diff(ticks_ms(), timeout_start_ms) > absent_timeout_ms) {
-                log_info(Puppies, "Tool offset sensor not detected, single tool -> continuing without it");
-                return false;
+                log_error(Puppies, "Required tool offset sensor not detected, recovering");
+                return recover();
             }
             bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_unknown);
             break;
