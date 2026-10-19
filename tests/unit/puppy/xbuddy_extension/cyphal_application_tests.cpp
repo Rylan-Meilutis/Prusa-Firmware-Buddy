@@ -1163,6 +1163,30 @@ TEST_CASE("tool offset verification retries a rate-limited first hash command") 
     CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::ready);
 }
 
+TEST_CASE("tool offset verification ignores delayed or malformed digest replies") {
+    const auto bad_size = GENERATE(0, 1, 31, 33);
+    const auto node_id = NodeId { 1 };
+    const auto heartbeat = Heartbeat { Health::nominal, Mode::operational, 0 };
+    MockPresentation mock;
+    Application app;
+    app.receive_pnp_allocation(make_unique_id(0x714));
+    run(app, mock, make_timepoint(0));
+    app.receive_node_heartbeat(node_id, make_timepoint(1), heartbeat);
+    run(app, mock, make_timepoint(1));
+    app.receive_node_get_info_response(node_id, tool_offset_sensor_node_name);
+    run(app, mock, make_timepoint(2));
+    const auto digest = generate_random_digest();
+    REQUIRE(app.receive_digest(cyphal::FirmwareFile::firmware_tool_offset_sensor, app.request().hash_salt, xbuddy_extension::DigestStatus::ok, digest));
+    run(app, mock, make_timepoint(3));
+    // A delayed start_app acknowledgement has an empty payload. It must not
+    // satisfy the outstanding hash command or make its valid reply stale.
+    app.receive_node_execute_command_response(node_id, 0, std::vector<std::byte>(bad_size));
+    app.receive_node_execute_command_response(node_id, 0, digest);
+    run(app, mock, make_timepoint(4));
+    app.receive_tool_offset_sensor_status(tool_offset_sensor::Status {});
+    CHECK(app.get_node_state(cyphal::NodeName::cz_prusa3d_honeybee_tool_offset_sensor) == xbuddy_extension::NodeState::ready);
+}
+
 TEST_CASE("tool offset sensor recovers from a board reset") {
     const auto healthy_firmware = Heartbeat { Health::nominal, Mode::operational, 0 };
     const auto bootloader = Heartbeat { Health::advisory, Mode::software_update, 0 };
