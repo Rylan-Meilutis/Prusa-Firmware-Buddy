@@ -183,9 +183,11 @@ struct TaskControlBlock {
 };
 static TaskControlBlock task_control_block;
 
-/// Keep task stacks together and in the CCMRAM.
+/// Keep task stacks together and in the CCMRAM, except the larger INDX stack.
 struct TaskStack {
+#if !HAS_INDX()
     uint32_t marlin[buddy::task_stack_requirements::marlin_words];
+#endif
 #if HAS_POWER_PANIC()
     // The complete AC-fault logging/notification path needs more than the
     // historical 80 words. An overflow here corrupts the adjacent task TCB.
@@ -208,6 +210,12 @@ struct TaskStack {
 #endif
 };
 static TaskStack __attribute__((section(".ccmram"))) task_stack;
+
+#if HAS_INDX()
+// Auto PA plus filesystem restore needs more depth than fits in remaining CCM.
+// Do not reclaim this space by reducing any other task's stack.
+alignas(8) static uint32_t marlin_stack_sram[buddy::task_stack_requirements::marlin_indx_words];
+#endif
 
 /// Helper to run freertos task.
 static TaskHandle_t create_task(const char *name, void (*func)(), osPriority priority, std::span<uint32_t> stack, StaticTask_t &tcb) {
@@ -583,7 +591,11 @@ extern "C" void main_cpp(void) {
     buddy::hw::io_expander2.initialize();
 #endif
 
+#if HAS_INDX()
+    defaultTaskHandle = create_task("marlin", app_run, TASK_PRIORITY_DEFAULT_TASK, marlin_stack_sram, task_control_block.marlin);
+#else
     defaultTaskHandle = create_task("marlin", app_run, TASK_PRIORITY_DEFAULT_TASK, task_stack.marlin, task_control_block.marlin);
+#endif
 
 #if HAS_POWER_PANIC()
     power_panic::check_ac_fault_at_startup();
