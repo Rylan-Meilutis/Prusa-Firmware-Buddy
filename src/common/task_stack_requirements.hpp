@@ -20,12 +20,13 @@ static_assert(marlin_guard_bytes >= observed_rme_overrun_bytes * 4);
 
 // An older INDX build overflowed the unchanged 1664-word allocation while
 // restoring Auto PA through littlefs. Keep that historical finding distinct
-// from any current boot failure. INDX has spare SRAM, but not enough CCM for
-// this guard; its Marlin stack is therefore allocated in ordinary SRAM.
-inline constexpr size_t marlin_indx_words = 3072;
+// from any current boot failure. Keep the guard in CCM: ordinary SRAM is the
+// runtime heap, not spare stack capacity. The 2048-word allocation fits CCM
+// without shrinking other stacks and restores the full pre-SRAM-change heap.
+inline constexpr size_t marlin_indx_words = 2048;
 inline constexpr size_t observed_indx_overrun_bytes = 176;
 inline constexpr size_t marlin_indx_guard_bytes = (marlin_indx_words - marlin_words) * sizeof(uint32_t);
-static_assert(marlin_indx_guard_bytes >= 4096);
+static_assert(marlin_indx_guard_bytes >= 1536);
 static_assert(marlin_indx_guard_bytes >= observed_indx_overrun_bytes * 4);
 
 } // namespace buddy::task_stack_requirements

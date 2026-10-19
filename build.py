@@ -825,6 +825,54 @@ def find_arm_size() -> Path | None:
     return candidates[-1] if candidates else None
 
 
+def check_indx_runtime_memory(symbol_table: str) -> int:
+    """Reject static layouts which consume the known-working INDX heap budget.
+
+    This is a release floor, not a measurement of dynamic heap high-water use.
+    The interrupt-stack reservation must match src/common/heap.cpp.
+    """
+    symbols = {}
+    for line in symbol_table.splitlines():
+        fields = line.split()
+        if len(fields) in (3, 4):
+            symbols[fields[-1]] = (int(
+                fields[0], 16), int(fields[1], 16) if len(fields) == 4 else 0)
+    heap_start = symbols["end"][0]
+    heap_end = symbols["_estack"][0] - 2048
+    stack_start, stack_size = symbols["_ZL10task_stack"]
+    if not (0x10000000 <= stack_start < stack_start + stack_size <=
+            0x10010000):
+        raise ValueError("INDX task stacks must stay entirely in CCM")
+    if any("marlin_stack_sram" in name for name in symbols):
+        raise ValueError(
+            "INDX Marlin stack must not consume runtime heap SRAM")
+    available = heap_end - heap_start
+    if available < 44 * 1024:
+        raise ValueError(
+            f"INDX initial heap budget {available} bytes is below 44 KiB")
+    return available
+
+
+def validate_runtime_memory(job: BuildJob) -> None:
+    if job.preset != "coreone_indx":
+        return
+    arm_size = find_arm_size()
+    if arm_size is None:
+        raise ValueError(
+            "Cannot validate INDX memory: ARM binutils unavailable")
+    arm_nm = arm_size.with_name("arm-none-eabi-nm")
+    if not job.firmware_paths:
+        raise ValueError("Cannot validate INDX memory: missing ELF")
+    for firmware in job.firmware_paths:
+        result = subprocess.run(
+            [str(arm_nm), "-S", str(firmware)],
+            capture_output=True,
+            text=True,
+            check=True)
+        available = check_indx_runtime_memory(result.stdout)
+        print(f"INDX initial heap budget: {available} bytes (44 KiB minimum)")
+
+
 def read_map_regions(map_path: Path) -> dict[str, tuple[int, int]]:
     regions: dict[str, tuple[int, int]] = {}
     in_memory_configuration = False
@@ -1413,6 +1461,15 @@ def main() -> int:
                 returncode = process.poll()
                 if returncode is None:
                     continue
+                if returncode == 0:
+                    try:
+                        validate_runtime_memory(job)
+                    except (ValueError, KeyError, OSError,
+                            subprocess.CalledProcessError) as error:
+                        print(
+                            f"[{job.preset}] Runtime memory validation failed: {error}",
+                            file=sys.stderr)
+                        returncode = 1
                 job.finish(returncode)
                 running.pop(process)
 
