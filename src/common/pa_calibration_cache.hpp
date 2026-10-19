@@ -105,6 +105,20 @@ struct Bank {
     uint8_t count = 0;
     bool operator==(const Bank &) const = default;
 
+    float search_seed(const Key &key) const {
+        pa_temperature::Model model;
+        for (size_t i = 0; i < count; ++i) {
+            auto identity = key;
+            identity.temperature = records[i].key.temperature;
+            const auto &r = records[i];
+            if (r.matches(identity)) {
+                model.add({ r.key.temperature, r.pa, r.max_flow, r.confidence,
+                    r.low_load, r.high_load, r.noise, true, r.key.flexible });
+            }
+        }
+        return model.search_seed(key.temperature);
+    }
+
     const Record *find(const Key &key, const char *&reason) const {
         reason = "missing_record";
         const Record *nearest = nullptr;

@@ -1,0 +1,128 @@
+Auto PA fast path and verification
+=================================
+
+Behavior
+--------
+- Exact compatible cache hits still return before calibration preparation,
+  heating or extrusion. Cache identity and acceptance thresholds are unchanged.
+- A compatible measured temperature model supplies a search hint. Within the
+  measured temperature range it uses the existing bounded model. Outside that
+  range, a hint is allowed only within 15 C of an endpoint; a good linear fit
+  supplies at most a +/-0.02 s adjustment. Otherwise use the nearest point.
+  A hint NEVER counts as a cache hit or pressure/runout reference.
+- Warm verification measures the hint, its +/-0.002 neighbours, then the hint
+  independently again. All four captures must pass the configured confidence
+  and SNR floors. Both centre captures must beat both neighbours, and their
+  costs must agree within max(0.01, 10% of initial centre cost). Clipped boundary
+  hints, flat curves, noisy repeats and insufficient signal cannot fast-pass.
+- Failed warm verification discards its search observations and starts the
+  material-default full search. Thus a rejected hint cannot anchor a bad fit.
+- An automatic full search may skip its final refinement once its bracket is
+  <=0.006 s with adequate confidence/SNR. Its final three neighbour checks are
+  unchanged. Manual/forced runs retain all refinement steps and bypass warm
+  verification and cache reuse, providing a baseline comparison path.
+- Three consecutive captures lacking sufficient peak signal stop further
+  excitation. A good signal resets that counter. Empty/overflowed captures or
+  an invalid idle-noise capture fail closed without futile search/retries.
+  Normal cleanup and the existing safe fallback remain mandatory; rejected
+  measurements never replace a successful flash cache.
+- INDX groups temperatures by tool and measures each group lowest-to-highest
+  after low-temperature preparation, avoiding needless cooldown waits. The
+  original first-layer result is still selected after the plan completes.
+  It retains the active calibration target
+  and skips redundant pre-probe preparation only after a completed point on
+  the same logical tool. Temperature waits include cooling, so a lower point
+  cannot accidentally be measured at the preceding higher temperature.
+  MMU/other targets retain the original round ordering, unload and sheet-anchor
+  lifecycle. INDX skips remaining temperature points after a tool fallback.
+- Reuse the extrusion-gap position across candidate captures until cleanup
+  actually leaves it. Keep four cycles per capture, five-cycle pellet limit,
+  fifteen-second cooling dwell, two native cleaning sweeps and final ejection.
+  An additional twelve-millimetre pending filament budget prevents a future
+  excitation speed change from overfilling the existing pellet allowance.
+
+Diagnostics
+-----------
+M976 I L0             retained last-attempt result, failure evidence and usage
+M976 I L0 S250        additionally inspect cache eligibility at 250 C
+
+PA_CAL_USAGE includes:
+  search: cache, full, warm_verified or warm_then_full (not_started before search)
+  elapsed_ms: single-point preparation/search/cleanup time, excluding tool pickup
+  measurement_ms: captures including any pellet cleanup inside a capture
+  pellet_cleanup_ms: subset spent in periodic/final INDX wipe/cool/eject
+  excitation_mm: commanded positive filament feed in calibration bursts ONLY
+  measurements, ejections: counts for this point
+
+Do not add measurement_ms and pellet_cleanup_ms: they overlap. Feed accounting
+is commanded excitation, not a filament sensor measurement, and excludes native
+cleaner/loading motion. These RAM diagnostics retain only the latest attempt per
+slot until another attempt or reboot, not the sum of a multi-temperature plan.
+
+Bounds
+------
+No new heap allocations, dynamic containers or RTOS tasks in the optimizer.
+Candidate history retains its previous 26-entry bound (failed warm observations
+are discarded before full search); diagnostic history is compile-time
+limited to 1024 bytes for all eight slots. Warm verification uses four captures;
+full refinement uses at most thirteen before configured confirmations (0..10).
+Warm rejection plus full search plus confirmations is bounded at 27 captures.
+Cache hit uses zero calibration captures. The temperature bank format is
+unchanged because the excitation/scoring and pressure-reference semantics are
+unchanged. The existing INDX 44 KiB initial-heap/CCM stack release gate applies.
+
+Validation
+----------
+New native tests: tests/unit/rme/pa_fast_search_tests.cpp
+Executable production-code fixtures: tests/unit/gui/test_m976_fast_search.py
+
+The fixtures compile the actual optimizer/confidence code, burst sequence,
+INDX batch runner and batch schedule with deterministic peripheral stubs.
+They execute under AddressSanitizer/UndefinedBehaviorSanitizer and cover:
+- Correct hint, wrong hint, forced baseline, boundary hints, flat/noisy fits;
+- A sweep of 31 optima, faults at each of 17 measurement positions, retry
+  budgets 0/1/6/10, and cancellation at positions 0..27;
+- Low signal, capture allocation/no-data failure, overflow, invalid idle noise,
+  low confidence, invalid costs, timing rejection and repeated-centre drift;
+- Cache-only batches with no pickup/excitation, forced bypass, same-tool
+  preparation sharing, tool changes and preparation/pickup failures;
+- All combinations of 1..8 tools and 1..8 points for INDX and legacy/MMU order;
+- Capture release, cleaner contact excluded from capture, failed ejection,
+  retained pellet budget, rigid/flexible excitation and planner drain;
+- Temperature hint bounds, independent validity of cache hits, and every
+  spool/nozzle/quality identity field preventing an incompatible hint;
+- Thousands of pellet-budget cycles without exceeding previous limits.
+
+These tests are NOT a whole-printer simulator or a guarantee against crashes.
+They do not emulate loadcell mechanics, pellet solidification, simultaneous
+STM32 tasks/peripherals, heap fragmentation, thermal timing or long prints.
+Hardware comparison of warm verification versus forced full calibration,
+including HIPS, is required before claiming accuracy/time/filament savings.
+No firmware is flashed or public release changed by these tests.
+
+Local results (2026-10-19)
+--------------------------
+- Python source/control/fault suite: 62 tests passed.
+- RME: 72 cases / 444720 assertions; extrusion calibration: 27 / 7393;
+  Marlin MMU: 34 / 364012; MMU host: 4 / 110041; MMU modbus: 4 / 6420.
+  All five executables also passed with address/undefined sanitizers.
+- m976_fast_path_faults CTest target passed in normal and sanitizer builds.
+- Final ARM firmware builds passed for CORE One INDX, CORE One, CORE One L,
+  MK4 (MMU enabled), and XL in the current checkout. They are local builds,
+  not published release artifacts or evidence of a physical successful print.
+- INDX initial heap gate: 46420 bytes available (45056-byte minimum); task
+  stacks remain in CCM. This is static layout evidence, not runtime heap or
+  task-stack high-water/fragmentation testing.
+
+Reproduction
+------------
+python3 -m unittest discover -s tests/unit/gui
+cmake --build <native-build> --target rme_protocol_tests extrusion_calibration_tests mmu_tests mmu2-modbus_tests
+<native-build>/tests/unit/rme/rme_protocol_tests
+<native-build>/tests/unit/common/extrusion_calibration/extrusion_calibration_tests
+<native-build>/tests/unit/mmu2/mmu_tests
+<native-build>/tests/unit/mmu2-modbus/mmu2-modbus_tests
+
+Repeat native executables in a build using -fsanitize=address,undefined and
+-fno-omit-frame-pointer. LeakSanitizer is not covered: detect_leaks=0 is needed
+in this ptrace-restricted execution environment. Sanitizer errors must halt.
