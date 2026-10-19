@@ -1,0 +1,93 @@
+INDX heap/startup incident - 2026-10-19
+=====================================
+
+Status: NOT VALIDATED FOR RELEASE. No replacement release published.
+The previously published e2a931ded INDX build is marked DO NOT INSTALL,
+prerelease, and not latest. Its files remain available for incident audit.
+
+Established defects
+-------------------
+1. Moving a 3072-word Marlin stack into SRAM reduced initial heap capacity
+   by 12288 bytes. A link/build pass did not establish runtime heap safety.
+   Restore the stack to CCM at 2048 words, retaining 1536 bytes of guard
+   above the historical 1664-word stack without shrinking other task stacks.
+   Final ELF heap budget: 46352 bytes versus 34064 in the reported build.
+   This fixes an introduced memory-capacity regression, not every possible
+   allocation failure or leak.
+
+2. A lost start_app acknowledgement can rate-limit the first device hash
+   command after the source hash slot is reserved. The old code then waits
+   on its own occupied slot, or changes the salt if the source responds first.
+   Track slot ownership separately and retry the same challenge.
+
+3. A retryable source digest failure was cached as answered. An identical
+   file/salt retry could be suppressed forever. Cache only terminal results.
+   Do not compute/send digest responses after request validity is lost.
+
+4. A delayed empty start_app reply, or a malformed digest, could consume the
+   pending hash command and discard its subsequent valid response. Invalid
+   successful-hash payload lengths now leave the challenge pending.
+
+Failing-before / passing-after evidence
+--------------------------------------
+Native bridge regression: initial command never sent (2 commands vs 3);
+source-first variant also showed a changed salt (3 instead of 2).
+Production write_digest harness: retry suppression and stale-request tests
+both failed before correction; all three harness cases pass afterward.
+Malformed-reply regression: all four payload sizes failed before correction
+and pass afterward (empty, 1, 31, 33 bytes).
+
+Coverage executed locally
+--------------------------
+- Actual bridge state machine: cold startup and already-running sensor reset,
+  lost startup acknowledgement, source digest before/after device request,
+  lost hash reply/retransmission, malformed/delayed replies, readiness gating.
+  Full suite: 14 cases / 774 assertions.
+- Actual motherboard digest function: no request, invalid/stale status,
+  transient digest failure then success, successful-response deduplication,
+  unavailable source, bus-write loss/retry and changed salt.
+- Actual required-sensor boot loop: absent sensor, silent verification,
+  stalled flashing, bridge/sensor communication failure, retry exhaustion,
+  recovery success and consecutive-failure reset. Deadline tests include
+  progress, wraparound and the absolute attempt ceiling.
+- RME protocol suite: 67 cases / 432658 assertions.
+- Both bridge and RME suites pass with AddressSanitizer and
+  UndefinedBehaviorSanitizer, halt-on-error. LeakSanitizer is NOT tested:
+  it fails under the execution environment's ptrace restrictions.
+- INDX source/fault-injection suite: 82 tests, one hardware-inapplicable skip.
+  XL source/fault-injection suite: 78 tests, one hardware-inapplicable skip.
+- Legacy MMU suite: 34 cases / 364012 assertions. Legacy RME: 70 cases /
+  432705 assertions. These older-branch tests are compatibility evidence,
+  NOT an INDX crash-recovery test.
+- Final local INDX and XL BBFs built. INDX build now fails closed if required
+  symbols/tools are absent, task stacks leave CCM, an SRAM Marlin stack
+  returns, or initial heap falls below 44 KiB. This is a static release floor,
+  NOT a measurement of runtime heap high-water usage.
+
+Not tested / release blockers
+-----------------------------
+- Whole-printer INDX crash -> persistent error state -> warm/cold reboot.
+  The repository simulator documents MK4 integration support and has no
+  CORE One INDX/bridge/tool-sensor machine model. Native fault injection does
+  not emulate STM32 peripherals, real CAN timing or retained physical power.
+- Hardware startup, installed-tool combinations, power-loss recovery and
+  repeated real sensor-board resets after a heap failure.
+- Runtime heap peak/fragmentation with networking, display, PA/filesystem,
+  transfers and printing active together; extended print/soak testing.
+- No proof yet of the exact reason reflashing restores the reported machine.
+  The old supplied dump does not establish the current crash's cause.
+
+Do not describe these tests as all-code-path coverage or as hardware recovery
+certification. Do not replace a stable/latest release on the strength of a
+successful build or these component tests alone.
+
+Reproduction
+------------
+python3 -m unittest discover -s tests/unit/gui -p '*.py'
+cmake --build <native-build> --target xbuddy_extension_cyphal_application_tests rme_protocol_tests
+<native-build>/tests/unit/puppy/xbuddy_extension/xbuddy_extension_cyphal_application_tests
+<native-build>/tests/unit/rme/rme_protocol_tests
+
+Run the same executables in a separate host build with address/undefined
+sanitizer instrumentation. Setting detect_leaks=0 is an environment workaround
+and must never be reported as passing leak checks.
