@@ -527,6 +527,9 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
     // The sensor is required, but waiting forever does not repair it. Keep
     // servicing the bridge; recover on stalled verification/flash and report
     // an error if repeated bootstrap attempts cannot bring the sensor up.
+    // Publish before the first potentially blocking I/O so the independent
+    // display-task observer also covers a stall on the very first refresh.
+    bootstrap_state_set(0, BootstrapStage::tool_offset_sensor_unknown);
     for (;;) {
         // At this point, puppy_task_loop() is not yet running, so we must
         // manually call refresh() on puppies. Without this, the bridge can't make
