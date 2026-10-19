@@ -8,6 +8,9 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
+#if BOARD_IS_XBUDDY()
+    #include "font_builtin_ascii.hpp"
+#endif
 
 #if PRINTER_IS_PRUSA_MINI()
     #if ENABLE_TRANSLATION_JA()
@@ -34,6 +37,15 @@ constexpr font_t font_bold_30x53 { 30, 53, FontCharacterSet::digits, nullptr };
 
 #if PRINTER_IS_PRUSA_MINI() || BOARD_IS_XBUDDY()
 bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t *destination, const size_t size) {
+    if (!font || !destination || size > (30 * 53 + 1) / 2
+        || size != (size_t(font->w) * font->h + 1) / 2) {
+        return false;
+    }
+    #if BOARD_IS_XBUDDY()
+    if (buddy::builtin_font::load(font->w, font->h, glyph, destination, size)) {
+        return true;
+    }
+    #endif
     struct ExternalFont {
         uint8_t width;
         uint8_t height;
@@ -64,11 +76,16 @@ bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t 
         }
         uint16_t metadata[2];
         uint32_t offsets[2];
+        // A failed decode can partially overwrite cache. Never leave its old
+        // identity valid, or the next request for that glyph returns garbage.
+        cached_font = nullptr;
+        cached_glyph = UINT32_MAX;
         if (lseek(external.descriptor, 0, SEEK_SET) != 0
             || read(external.descriptor, metadata, sizeof(metadata)) != sizeof(metadata)
             || glyph >= metadata[0] || size != metadata[1]
             || lseek(external.descriptor, 4 + glyph * sizeof(uint32_t), SEEK_SET) < 0
             || read(external.descriptor, offsets, sizeof(offsets)) != sizeof(offsets)
+            || offsets[1] < offsets[0]
             || lseek(external.descriptor, 4 + (metadata[0] + 1) * sizeof(uint32_t) + offsets[0], SEEK_SET) < 0) {
             return false;
         }
