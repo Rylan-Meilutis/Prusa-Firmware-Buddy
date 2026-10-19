@@ -16,6 +16,11 @@
 #include <option/has_xl_can.h>
 #include <option/resources.h>
 #include <version/version.hpp>
+#if HAS_TOOL_OFFSET_SENSOR()
+    #include <tool_sensor_bootstrap_policy.hpp>
+    #include <optional>
+    #include <timing.h>
+#endif
 
 #if HAS_MINI_DISPLAY()
     #define SPLASHSCREEN_PROGRESSBAR_X 16
@@ -219,6 +224,36 @@ void ScreenSplash::draw() {
     display::draw_text(Rect16(340, 130, 60, 16), string_view_utf8::MakeCPUFLASH("DEBUG"), Font::small, COLOR_BLACK, COLOR_RED);
     #endif
 #endif //_DEBUG
+}
+
+#if HAS_TOOL_OFFSET_SENSOR()
+// Runs on the display task, not the worker being supervised. A deadline checked
+// only after refresh() returns cannot bound a stuck filesystem/Modbus refresh.
+// Leave the worker time to perform its normal 15s/60s recovery first.
+static void check_tool_sensor_bootstrap(buddy::BootstrapState state) {
+    static std::optional<buddy::puppies::ToolSensorBootstrapDeadline> deadline;
+    const bool sensor_stage = state.stage == BootstrapStage::tool_offset_sensor_unknown
+        || state.stage == BootstrapStage::tool_offset_sensor_verify
+        || state.stage == BootstrapStage::tool_offset_sensor_flash;
+    if (!sensor_stage) {
+        deadline.reset();
+        return;
+    }
+    const auto now = ticks_ms();
+    if (!deadline) {
+        deadline.emplace(now);
+    }
+    if (deadline->stalled(now, state.stage == BootstrapStage::tool_offset_sensor_flash,
+            state.percent, 30'000, 120'000, 360'000)) {
+        fatal_error(ErrCode::ERR_SYSTEM_PUPPY_RUN_TIMEOUT);
+    }
+}
+#endif
+
+void ScreenSplash::check_bootstrap_progress() {
+#if HAS_TOOL_OFFSET_SENSOR()
+    check_tool_sensor_bootstrap(buddy::bootstrap_state_get());
+#endif
 }
 
 void ScreenSplash::windowEvent(window_t *, GUI_event_t event, void *) {
