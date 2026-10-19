@@ -481,6 +481,16 @@ private:
                     }
                 }
 
+                // A single lost ExecuteCommand response must not leave the
+                // node in Verify forever while healthy heartbeats continue.
+                // Reuse the same challenge: the motherboard's digest may
+                // already have arrived. execute_command bounds retransmits to
+                // one per second and the node is still not trusted until both
+                // hashes match and its sensor status has been received.
+                if (!verify.received_from_device && (!last_command_valid || now >= last_command.timepoint + execute_command_timeout)) {
+                    return execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(verify.salt));
+                }
+
                 if (!verify.received_from_source) {
                     // We are waiting for the digest from the board.
                     if (filesystem.hash_response == get_firmware_file_for_node_name(info.name) && filesystem.hash_salt == verify.salt) {
