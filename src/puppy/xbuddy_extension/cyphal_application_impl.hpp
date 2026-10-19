@@ -825,6 +825,12 @@ public:
                 // expired, ignore
                 return;
             }
+            if (status == 0 && node->last_command.command == Command::get_app_salted_hash && output.size() != 32) {
+                // An empty delayed start_app reply (or a malformed digest)
+                // cannot answer a hash challenge. Keep it pending so a valid
+                // reply or the bounded retransmission can still complete it.
+                return;
+            }
             node->last_command_valid = false;
             if (status == 2) {
                 // not authorized == might as well be without a hash
