@@ -12,6 +12,7 @@
 #include <cerrno>
 #include <cstdint>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <string.h> //strncmp
 #include <assert.h>
 #include <charconv>
@@ -3651,36 +3652,54 @@ static void _server_update_vars() {
     }();
 
     const bool media = usb_host::is_media_inserted();
-    // The cleanup marker only needs to be inspected once after boot/media
-    // insertion. Reopening it on every server cycle creates needless FatFs
-    // contention and can block the watchdog behind a concurrent upload or
-    // crash-dump export. Defer the one inspection while any storage producer
-    // owns the shared transfer slot.
+    // Stop after a conclusive inspection, not after the first attempt: USB
+    // mount/read/unlink can fail transiently during startup. Retry at most once
+    // per second and serialize with other storage producers.
     static firmware_update_handoff::CleanupGate firmware_cleanup_gate;
-    if (firmware_cleanup_gate.should_check(media, transfers::Monitor::instance.id().has_value())) {
+    if (firmware_cleanup_gate.should_check(media, transfers::Monitor::instance.id().has_value(), ticks_ms())) {
         // A UI-selected or serial-staged BBF is copied/uploaded to the shared
         // short bootloader-safe filename. Consume it after the application
         // returns from the requested bootloader attempt. This must not depend
         // on an insertion edge: after an update the USB drive is commonly
         // already present when Marlin starts observing media state.
-        if (FILE *marker = fopen("/usb/FWUPD.UI", "rb")) {
-            fclose(marker);
+        auto cleanup_slot = transfers::Monitor::instance.allocate(
+            transfers::Monitor::Type::Link, "/usb/FWUPD.UI", 0);
+        if (cleanup_slot) {
+            bool cleanup_complete = false;
+            struct stat marker {};
+            errno = 0;
+            const bool marker_present = stat("/usb/FWUPD.UI", &marker) == 0;
+            if (!marker_present && errno == ENOENT) {
+                // A merely staged candidate has no handoff marker: keep it.
+                cleanup_complete = true;
+            }
             // The server runs concurrently with M997's pre-reset TX drain.
             // A visible marker is not a completed bootloader attempt while
             // the retained request still selects this exact candidate.
-            if (firmware_update_handoff::candidate_cleanup_allowed(
-                    data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
+            if (marker_present && S_ISREG(marker.st_mode) && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
                 // Keep the marker until the staged image is definitely gone.
                 errno = 0;
                 const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
                 errno = 0;
                 const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
                 if (safe_stage_removed && legacy_stage_removed) {
-                    remove("/usb/FWUPD.RME.rme-verified");
-                    remove("/usb/FWUPD.RME.rme-verified-tmp");
-                    remove("/usb/FWUPD.UI");
+                    bool metadata_removed = true;
+                    for (const char *path : { "/usb/FWUPD.RME.rme-verified", "/usb/FWUPD.RME.rme-verified-tmp" }) {
+                        errno = 0;
+                        if (remove(path) != 0 && errno != ENOENT) {
+                            metadata_removed = false;
+                        }
+                    }
+                    if (metadata_removed) {
+                        errno = 0;
+                        cleanup_complete = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
+                    }
                 }
             }
+            if (cleanup_complete) {
+                firmware_cleanup_gate.complete();
+            }
+            cleanup_slot->done(cleanup_complete ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
         }
     }
     if (marlin_vars().media_inserted != media) {
