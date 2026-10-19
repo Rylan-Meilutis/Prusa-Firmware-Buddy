@@ -3,9 +3,10 @@ INDX heap/startup incident - 2026-10-19
 
 Status: stable publication explicitly requested by the user after these
 software checks. This is NOT physical-printer recovery certification.
-Recovery releases: v6.9.2-RME-b3 (INDX), v6.10.3-RME-b3 (XL).
-The previously published e2a931ded INDX build is marked DO NOT INSTALL,
-prerelease, and not latest. Its files remain available for incident audit.
+Recovery releases: v6.9.2-RME (INDX), v6.10.3-RME (XL), updated in place.
+The previously published e2a931ded INDX image is superseded. Release metadata
+and prior binaries are backed up locally for incident audit. The mistaken
+new -b3 releases/tags are removed; unrelated historical build tags are untouched.
 
 Established defects
 -------------------
