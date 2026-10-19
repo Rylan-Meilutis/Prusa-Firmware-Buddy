@@ -1001,18 +1001,29 @@ TEST_CASE("firmware candidate cleanup waits for bootloader handoff") {
     CHECK(firmware_update_handoff::candidate_cleanup_allowed(false));
 }
 
-TEST_CASE("firmware cleanup marker waits for storage ownership and is checked once", "[rme][file][firmware]") {
+TEST_CASE("firmware cleanup retries failures but stops after a conclusive check", "[rme][file][firmware]") {
     firmware_update_handoff::CleanupGate gate;
 
-    CHECK_FALSE(gate.should_check(false, false));
-    CHECK_FALSE(gate.should_check(true, true));
-    CHECK(gate.should_check(true, false));
-    CHECK_FALSE(gate.should_check(true, false));
-    CHECK_FALSE(gate.should_check(true, true));
+    CHECK_FALSE(gate.should_check(false, false, 0));
+    CHECK_FALSE(gate.should_check(true, true, 0));
+    CHECK(gate.should_check(true, false, 0));
+    CHECK_FALSE(gate.should_check(true, false, 999));
+    CHECK(gate.should_check(true, false, 1000));
+    CHECK_FALSE(gate.should_check(true, true, 2000));
+    CHECK(gate.should_check(true, false, 2000));
+    gate.complete();
+    CHECK_FALSE(gate.should_check(true, false, 3000));
 
     // Removing and reinserting the medium starts a new inspection lifetime.
-    CHECK_FALSE(gate.should_check(false, false));
-    CHECK(gate.should_check(true, false));
+    CHECK_FALSE(gate.should_check(false, false, 3001));
+    CHECK(gate.should_check(true, false, 3002));
+}
+
+TEST_CASE("firmware cleanup retry timer tolerates clock wrap", "[rme][file][firmware]") {
+    firmware_update_handoff::CleanupGate gate;
+    CHECK(gate.should_check(true, false, UINT32_MAX - 500));
+    CHECK_FALSE(gate.should_check(true, false, 498));
+    CHECK(gate.should_check(true, false, 499));
 }
 
 TEST_CASE("Auto PA uses gentle flexible filament feeds", "[rme][pa]") {

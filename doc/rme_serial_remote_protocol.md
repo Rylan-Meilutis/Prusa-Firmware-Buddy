@@ -776,9 +776,12 @@ cleanup marker; directory contents alone cannot arm it. The application arms
 the retained exact-file request first and then atomically publishes the marker.
 While that request still selects `FWUPD.RME`, the application must preserve the
 candidate even if its normal server task observes the marker before reset. The
-bootloader clears the retained request before the next application startup;
-only then may marker-driven cleanup remove the candidate. Cleanup is retried
-until the protected file is gone. A private `FWUPD.UI.tmp` used for atomic
+next application startup treats the previous retained request as consumed;
+only a request armed during the current application boot can inhibit cleanup.
+Marker-driven cleanup retries transient filesystem failures at most once per
+second, under the shared transfer latch, until the candidate, private verified
+metadata and marker are gone. A conclusive absent marker stops checks for that
+media lifetime; merely uploaded candidates are never removed. A private `FWUPD.UI.tmp` used for atomic
 marker publication is hidden from listings and removed by `FIRMWARE UNSTAGE`.
 
 An idle host can discard a candidate idempotently:
