@@ -269,6 +269,7 @@ void gui_run(void) {
     // Show bootstrap screen untill firmware initializes
     TaskDeps::provide(TaskDeps::Dependency::gui_display_ready);
     while (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done)) {
+        ScreenSplash::check_bootstrap_progress();
         gui_bare_loop();
     }
 

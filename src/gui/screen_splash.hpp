@@ -15,6 +15,9 @@ public:
     ScreenSplash();
     ~ScreenSplash();
 
+    /// Independent boot observer; must run even while the backlight is off.
+    static void check_bootstrap_progress();
+
 private:
     virtual void draw() override;
 

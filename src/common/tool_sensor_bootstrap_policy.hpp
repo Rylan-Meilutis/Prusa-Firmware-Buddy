@@ -12,14 +12,16 @@ public:
         : started_(now)
         , last_progress_(now) {}
 
-    bool stalled(uint32_t now, bool flashing, uint8_t progress) {
+    bool stalled(uint32_t now, bool flashing, uint8_t progress,
+        uint32_t verify_timeout = 15'000, uint32_t flash_timeout = 60'000,
+        uint32_t attempt_timeout = 300'000) {
         if (flashing != flashing_ || (flashing && progress > progress_)) {
             last_progress_ = now;
         }
         flashing_ = flashing;
         progress_ = progress;
-        return uint32_t(now - started_) >= 300'000
-            || uint32_t(now - last_progress_) >= (flashing ? 60'000u : 15'000u);
+        return uint32_t(now - started_) >= attempt_timeout
+            || uint32_t(now - last_progress_) >= (flashing ? flash_timeout : verify_timeout);
     }
 
 private:
