@@ -1,0 +1,33 @@
+Firmware post-flash cleanup: delayed-marker recovery
+
+The prior cleanup gate treated a single missing FWUPD.UI handoff marker as a
+conclusive check for that USB insertion. A production-code simulation reproduced
+this failure: ENOENT on the first inspection, then a visible marker on the same
+mounted volume, left FWUPD.RME staged indefinitely. This is a reproduced failure
+mode, not proof that delayed metadata visibility caused the user's incident.
+
+The fix preserves a marker-less, unflashed candidate and rechecks for the marker
+every 30 seconds. Filesystem failures retry every second. Active transfers defer
+inspection. A newly armed M997 request remains protected before reset. Completed
+cleanup still stops further inspections until the medium is removed/reinserted.
+No arbitrary user BBFs are removed: only FWUPD.RME, legacy FWUPD.BBF and the exact
+existing verification/marker paths participate in post-handoff cleanup.
+
+Validation:
+- The delayed-marker simulation fails on the previous server cleanup block and
+  passes on the fixed block. It executes the extracted production C++ cleanup
+  block, not a Python reimplementation, under ASan/UBSan (LSan disabled because
+  this environment does not permit its required process inspection).
+- Injected failures cover marker stat and every cleanup unlink, including the
+  legacy BBF and both verification files. The marker survives until retries
+  complete. Unflashed candidates, active transfers and pre-reset handoffs stay
+  protected.
+- Native gate tests cover slow rechecks, retry throttling, transfer deferral,
+  successful completion and clock wrap. CTest registers the executable fault
+  regression as firmware_cleanup_recovery_faults.
+- Plugin regression feeds a real-candidate snapshot followed by a completed-
+  cleanup snapshot and confirms idle refresh clears the display without hiding
+  the earlier candidate or reconnecting. No UI bug was reproduced in that path.
+
+Physical bootloader/USB-drive testing remains pending. These host fault fixtures
+do not emulate every property of the bootloader, FAT filesystem or USB hardware.
