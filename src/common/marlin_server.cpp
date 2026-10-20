@@ -4030,9 +4030,9 @@ static void _server_update_vars() {
     }();
 
     const bool media = usb_host::is_media_inserted();
-    // Stop after a conclusive inspection, not after the first attempt: USB
-    // mount/read/unlink can fail transiently during startup. Retry at most once
-    // per second and serialize with other storage producers.
+    // USB metadata visibility and unlink can fail transiently during startup.
+    // Missing markers receive a slow recheck, not a permanent success latch.
+    // Serialize every attempt with other storage producers.
     static firmware_update_handoff::CleanupGate firmware_cleanup_gate;
     if (firmware_cleanup_gate.should_check(media, transfers::Monitor::instance.id().has_value(), ticks_ms())) {
         // A UI-selected or serial-staged BBF is copied/uploaded to the shared
@@ -4047,9 +4047,11 @@ static void _server_update_vars() {
             struct stat marker {};
             errno = 0;
             const bool marker_present = stat("/usb/FWUPD.UI", &marker) == 0;
-            if (!marker_present && errno == ENOENT) {
+            const bool marker_missing = !marker_present && errno == ENOENT;
+            if (marker_missing) {
                 // A merely staged candidate has no handoff marker: keep it.
-                cleanup_complete = true;
+                // Recheck slowly in case the marker becomes visible later.
+                firmware_cleanup_gate.marker_absent();
             }
             // The server runs concurrently with M997's pre-reset TX drain.
             // A visible marker is not a completed bootloader attempt while
@@ -4077,7 +4079,7 @@ static void _server_update_vars() {
             if (cleanup_complete) {
                 firmware_cleanup_gate.complete();
             }
-            cleanup_slot->done(cleanup_complete ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
+            cleanup_slot->done(cleanup_complete || marker_missing ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
         }
     }
     if (marlin_vars().media_inserted != media) {
