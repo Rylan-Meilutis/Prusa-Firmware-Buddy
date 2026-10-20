@@ -1,6 +1,14 @@
 # All these tests need buddy_utils
 link_libraries(buddy_utils)
 
+add_test(NAME serial_pause_recovery_faults
+         COMMAND "${Python3_EXECUTABLE}"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/test_serial_pause_recovery.py"
+         )
+set_tests_properties(
+  serial_pause_recovery_faults PROPERTIES LABELS "serial;pause;fault-injection" TIMEOUT 120
+  )
+
 add_test(NAME font_render_recovery_faults
          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_font_render_recovery.py"
          )
