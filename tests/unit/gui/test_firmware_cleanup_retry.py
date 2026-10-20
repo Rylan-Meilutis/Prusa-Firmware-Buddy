@@ -1,5 +1,6 @@
 """Run the actual server cleanup block against transient filesystem faults."""
 import pathlib
+import os
 import shutil
 import subprocess
 import tempfile
@@ -32,6 +33,7 @@ class FirmwareCleanupRetryTests(unittest.TestCase):
 static uint32_t now_ms = 0;
 static bool inserted = true, busy = false, armed = false;
 static int stat_failures = 1, unlink_failures = 1, inspections = 0;
+static std::string fail_path = "/usb/FWUPD.RME";
 static std::set<std::string> files;
 uint32_t ticks_ms() { return now_ms; }
 namespace usb_host { bool is_media_inserted() { return inserted; } }
@@ -57,7 +59,7 @@ int fake_stat(const char *path, struct stat *result) {
     return 0;
 }
 int fake_remove(const char *path) {
-    if (std::string(path) == "/usb/FWUPD.RME" && unlink_failures > 0) {
+    if (std::string(path) == fail_path && unlink_failures > 0) {
         --unlink_failures; errno = EBUSY; return -1;
     }
     if (!files.erase(path)) { errno = ENOENT; return -1; }
@@ -84,6 +86,32 @@ int main() {
     inserted = false; poll(); inserted = true;
     files.insert("/usb/FWUPD.UI"); armed = true; poll();
     assert(files.count("/usb/FWUPD.RME")); // Must survive pre-reset handoff.
+
+    // A successful ENOENT is not a lifetime guarantee that a mount's metadata
+    // is fully visible. Reproduce a marker becoming visible after that check,
+    // without requiring physical removal/reinsertion of the USB drive.
+    inserted = false; poll(); inserted = true; armed = false;
+    files = {"/usb/FWUPD.RME", "/usb/FWUPD.BBF"};
+    now_ms = 10000; poll();
+    assert(files.size() == 2); // Merely staged: absolutely no deletion.
+    const int before = inspections;
+    files.insert("/usb/FWUPD.UI");
+    now_ms = 10001; poll(); assert(inspections == before); // Rate limited.
+    now_ms = 40000; poll();
+    assert(files.empty()); // Both protected and legacy image must be consumed.
+
+    // Every unlink failure must retain the marker and retry. In particular,
+    // removing the .RME image must not stop retries for a leftover .BBF.
+    for (const char *path : {"/usb/FWUPD.RME", "/usb/FWUPD.BBF",
+             "/usb/FWUPD.RME.rme-verified", "/usb/FWUPD.RME.rme-verified-tmp",
+             "/usb/FWUPD.UI"}) {
+        inserted = false; poll(); inserted = true;
+        files = {"/usb/FWUPD.RME", "/usb/FWUPD.BBF", "/usb/FWUPD.UI",
+                 "/usb/FWUPD.RME.rme-verified", "/usb/FWUPD.RME.rme-verified-tmp"};
+        fail_path = path; unlink_failures = 1; now_ms += 40000;
+        poll(); assert(files.count("/usb/FWUPD.UI"));
+        now_ms += 1000; poll(); assert(files.empty());
+    }
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
@@ -91,10 +119,13 @@ int main() {
             binary = pathlib.Path(directory) / "test"
             cpp.write_text(harness)
             subprocess.run([
-                compiler, "-std=c++17", "-I",
+                compiler, "-std=c++17", "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer", "-I",
                 str(root / "src/common"),
                 str(cpp), "-o",
                 str(binary)
             ],
                            check=True)
-            subprocess.run([str(binary)], check=True)
+            subprocess.run([str(binary)],
+                           check=True,
+                           env=dict(os.environ, ASAN_OPTIONS="detect_leaks=0"))

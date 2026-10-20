@@ -990,6 +990,21 @@ TEST_CASE("firmware cleanup retry timer tolerates clock wrap", "[rme][file][firm
     CHECK(gate.should_check(true, false, 499));
 }
 
+TEST_CASE("absent firmware marker is rechecked without touching a staged image", "[rme][file][firmware]") {
+    firmware_update_handoff::CleanupGate gate;
+    CHECK(gate.should_check(true, false, 0));
+    gate.marker_absent();
+    CHECK_FALSE(gate.should_check(true, false, 1000));
+    CHECK_FALSE(gate.should_check(true, false, 29999));
+    CHECK_FALSE(gate.should_check(true, true, 30000));
+    CHECK(gate.should_check(true, false, 30000));
+    // An I/O failure after the slow recheck returns to the normal retry rate.
+    CHECK_FALSE(gate.should_check(true, false, 30999));
+    CHECK(gate.should_check(true, false, 31000));
+    gate.complete();
+    CHECK_FALSE(gate.should_check(true, false, 61000));
+}
+
 TEST_CASE("Auto PA uses gentle flexible filament feeds", "[rme][pa]") {
     using namespace buddy::m976_extrusion_policy;
     CHECK(is_flexible("FLEX-001", "FLEX", false));

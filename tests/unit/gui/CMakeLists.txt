@@ -1,6 +1,14 @@
 # All these tests need buddy_utils
 link_libraries(buddy_utils)
 
+add_test(NAME firmware_cleanup_recovery_faults
+         COMMAND "${Python3_EXECUTABLE}" -m unittest discover -s "${CMAKE_CURRENT_SOURCE_DIR}" -p
+                 "test_firmware*py"
+         )
+set_tests_properties(
+  firmware_cleanup_recovery_faults PROPERTIES LABELS "firmware;usb;fault-injection" TIMEOUT 120
+  )
+
 add_test(NAME serial_pause_recovery_faults
          COMMAND "${Python3_EXECUTABLE}"
                  "${CMAKE_CURRENT_SOURCE_DIR}/test_serial_pause_recovery.py"
