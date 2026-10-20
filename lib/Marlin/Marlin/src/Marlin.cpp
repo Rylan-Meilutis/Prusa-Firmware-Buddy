@@ -242,7 +242,8 @@ bool anyHeatherIsActive() {
 
 void manage_inactivity() {
 
-  if (queue.length < BUFSIZE) queue.get_available_commands();
+  // The serial parser owns its capacity check and reserved recovery slots.
+  queue.get_available_commands();
 
   [[maybe_unused]] const millis_t ms = millis();
 

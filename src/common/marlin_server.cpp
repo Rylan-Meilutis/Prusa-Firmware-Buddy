@@ -1734,6 +1734,10 @@ bool serial_print_active() {
     return server.print_is_serial && (is_printing_state(server.print_state) || is_extended_paused_state(server.print_state));
 }
 
+bool serial_print_fifo_held() {
+    return serial_print_fifo_held(server.print_is_serial, server.print_state);
+}
+
 void print_start(const char *filename, const GCodeReaderPosition &resume_pos, PreviewSkipIfAble skip_preview, ResetToolMapping reset_tool_mapping) {
 #if HAS_SELFTEST()
     if (SelftestInstance().IsInProgress()) {
