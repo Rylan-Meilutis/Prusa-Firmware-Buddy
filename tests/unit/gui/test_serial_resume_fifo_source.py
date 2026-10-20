@@ -33,7 +33,8 @@ class SerialResumeFifoTests(unittest.TestCase):
         else:
             # 6.8.1 retains upstream's combined Z/E unpark rather than the
             # newer cleaner-prime stage. Preserve its MMU retract accounting.
-            unpark = source.split("void unpark_head_ZE(void) {", 1)[1].split("\n}", 1)[0]
+            unpark = source.split("void unpark_head_ZE(void) {",
+                                  1)[1].split("\n}", 1)[0]
             self.assertIn("server.resume.pos.e - current_position.e", unpark)
             self.assertIn("mapi::extruder_move", unpark)
         self.assertLess(recovery.index("unpark_head_XY()"),
@@ -45,11 +46,11 @@ class SerialResumeFifoTests(unittest.TestCase):
         policy = source.split(
             "bool serial_print_fifo_held(bool serial_job, State state) {",
             1)[1].split("\n}", 1)[0]
-        for required in ("serial_job", "State::Paused",
-                         "State::Pausing_ParkHead", "is_resuming_state"):
+        for required in ("serial_job", "State::Paused", "is_pausing_state",
+                         "is_resuming_state"):
             self.assertIn(required, policy)
-        self.assertNotIn("State::Pausing_WaitIdle",
-                         policy)  # Drain before parking.
+        # Held job moves are not active pause housekeeping; runtime tests
+        # verify this does not deadlock Pausing_WaitIdle.
 
     def test_injected_recovery_commands_run_and_held_fifo_is_not_busy(self):
         source = (ROOT / "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()

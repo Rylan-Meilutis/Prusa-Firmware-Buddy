@@ -445,6 +445,12 @@ void GcodeSuite::G2_G3(const bool clockwise) {
 
   TERN_(SF_ARC_FIX, relative_mode = relative_mode_backup);
 
+  if (!PhysicalToolIndex::currently_selected_opt().has_value() && destination.e != current_position.e) {
+    SERIAL_ERROR_MSG("Extrusion rejected: no tool selected");
+    destination = current_position;
+    return;
+  }
+
   xy_float_t arc_offset = { 0, 0 };
   if (parser.seenval('R')) {
     const float r = parser.value_linear_units();

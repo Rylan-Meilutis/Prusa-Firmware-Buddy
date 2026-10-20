@@ -102,6 +102,29 @@ Every accepted frame receives `ok`. Plugins detect support with the read-only
 
 ## Session and event subscription
 
+Session snapshots include `pause_phase=none|pausing|paused|resuming`. This
+distinguishes a completed, ordinary pause from parking or tool restoration:
+`printer_state=PAUSED` alone also covers transitional states and is not proof
+that the printer can resume. Older firmware omits `pause_phase`.
+
+During a serial pause, ordinary queued job commands are retained until tool
+restoration completes. Serial reception and priority recovery dispatch remain
+live, including at full job-FIFO capacity. A numbered ordinary command which
+cannot fit is not accepted: the accepted-line watermark is restored and a
+`Resend:` request is emitted. Unnumbered overflowing ordinary commands are
+explicitly rejected. Recovery frames may be sent unnumbered using the host's
+serialized transport, without consuming the job's numbered sequence. Never
+open another serial writer.
+
+The plugin periodically queries authoritative state over that priority path,
+reconciles a completed firmware pause without replaying M601 or waiting behind
+the held job FIFO, and suppresses host pause/resume/cancel motion macros: the
+firmware owns tool parking and restoration. A late host G0/G1 or G2/G3 asking
+for extrusion with no selected tool is rejected before planning, not treated
+as a firmware invariant failure. Neither recovery nor state reconciliation
+automatically overrides a printer recovery dialog.
+
+
 Open a protocol session before relying on structured asynchronous events:
 
 ```text

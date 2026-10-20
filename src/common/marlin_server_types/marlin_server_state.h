@@ -82,7 +82,20 @@ inline bool is_resuming_state(State state) {
 }
 
 inline bool serial_print_fifo_held(bool serial_job, State state) {
-    return serial_job && (state == State::Paused || state == State::Pausing_ParkHead || state == State::Resuming_ExecutingGCodeInterrupt || is_resuming_state(state));
+    return serial_job && (is_pausing_state(state) || state == State::Paused || state == State::Resuming_ExecutingGCodeInterrupt || is_resuming_state(state));
+}
+
+inline const char *serial_pause_phase(State state) {
+    if (is_pausing_state(state)) {
+        return "pausing";
+    }
+    if (state == State::Paused) {
+        return "paused";
+    }
+    if (is_resuming_state(state) || state == State::Resuming_ExecutingGCodeInterrupt) {
+        return "resuming";
+    }
+    return "none";
 }
 
 inline bool is_extended_paused_state(State state) {

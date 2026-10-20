@@ -121,6 +121,12 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
 
   get_destination_from_command();                 // Get X Y [Z[I[J[K]]]] [E] F (and set cutter power)
 
+  if (!PhysicalToolIndex::currently_selected_opt().has_value() && destination.e != current_position.e) {
+    SERIAL_ERROR_MSG("Extrusion rejected: no tool selected");
+    destination = current_position;
+    return;
+  }
+
   if (external_move) {
     #if HAS_INDX()
       if (xy_move_requested && axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
