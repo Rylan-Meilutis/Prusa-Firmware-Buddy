@@ -56,7 +56,9 @@ class LiveControls(unittest.TestCase):
             "if (queue.length < BUFSIZE) queue.get_available_commands()",
             source)
         queue = (ROOT / "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()
-        self.assertIn("length < recovery_capacity", queue)
+        self.assertIn("while (serial_data_available())", queue)
+        self.assertIn("if (length >= recovery_capacity)", queue)
+        self.assertIn("last_N = accepted_line_before", queue)
 
     def test_chamber_ui_uses_mailbox_not_motion_injection(self):
         source = (

@@ -1122,6 +1122,7 @@ static void report_remote_session() {
   // this communications lease for printer activity.
   SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
   SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
+  SERIAL_ECHOPGM(" pause_phase="); SERIAL_ECHO(marlin_server::serial_pause_phase(marlin_vars().print_state));
   const auto active_tool = rme_active_tool::snapshot(VirtualToolIndex::currently_selected());
   SERIAL_ECHOPGM(" active_tool=");
   if (active_tool.selected) SERIAL_ECHO(active_tool.index);
@@ -1681,7 +1682,8 @@ void GCodeQueue::get_serial_commands() {
   // Always drain up to the hidden recovery capacity. A blocking foreground
   // command may not have raised a pause/error FSM yet, but the host must still
   // be able to submit heat-wait cancellation, pause, abort, and service G-codes.
-  while ((buddy_rme_binary_upload_active() || length < recovery_capacity) && serial_data_available()) {
+  // Recovery frames must remain readable even when the held job FIFO is full.
+  while (serial_data_available()) {
     for (uint8_t i = 0; i < NUM_SERIAL; ++i) {
       int c;
       if ((c = read_serial(i)) < 0) continue;
@@ -1722,6 +1724,7 @@ void GCodeQueue::get_serial_commands() {
 
         while (*command == ' ') command++;                // Skip leading spaces
         char *npos = (*command == 'N') ? command : nullptr;  // Require the N parameter to start the line
+        const auto accepted_line_before = last_N;
 
         if (npos) {
 
@@ -1879,6 +1882,17 @@ void GCodeQueue::get_serial_commands() {
         }
 #endif
 
+        if (length >= recovery_capacity) {
+          if (npos) {
+            last_N = accepted_line_before;
+            SERIAL_ECHOPAIR("Resend:", last_N + 1);
+            SERIAL_EOL();
+          } else {
+            SERIAL_ERROR_MSG("Command buffer full: retry command after resume");
+          }
+          continue;
+        }
+
         // Add the command to the queue
         _enqueue(serial_line_buffer[i], true
           #if NUM_SERIAL > 1
@@ -1928,8 +1942,8 @@ void GCodeQueue::get_serial_commands() {
  */
 void GCodeQueue::get_available_commands() {
 
-  if (!pause_serial_commands)
-    get_serial_commands();
+  // Hold job execution, not recovery/service reception.
+  get_serial_commands();
 
 }
 

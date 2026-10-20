@@ -38,11 +38,11 @@ class SerialResumeFifoTests(unittest.TestCase):
         policy = source.split(
             "bool serial_print_fifo_held(bool serial_job, State state) {",
             1)[1].split("\n}", 1)[0]
-        for required in ("serial_job", "State::Paused",
-                         "State::Pausing_ParkHead", "is_resuming_state"):
+        for required in ("serial_job", "State::Paused", "is_pausing_state",
+                         "is_resuming_state"):
             self.assertIn(required, policy)
-        self.assertNotIn("State::Pausing_WaitIdle",
-                         policy)  # Drain before parking.
+        # Pending host moves belong to resume. The runtime regression checks
+        # that held FIFO work is not counted as active pause housekeeping.
 
     def test_injected_recovery_commands_run_and_held_fifo_is_not_busy(self):
         source = (ROOT / "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()
