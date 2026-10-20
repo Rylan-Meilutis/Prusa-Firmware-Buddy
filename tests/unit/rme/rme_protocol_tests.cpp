@@ -38,14 +38,14 @@
 
 TEST_CASE("Streamed pause recovery holds host FIFO until tool restoration completes", "[rme][serial][regression]") {
     using marlin_server::State;
-    for (const auto state : { State::Paused, State::Pausing_ParkHead, State::Resuming_BufferData,
+    for (const auto state : { State::Pausing_Begin, State::Pausing_WaitIdle, State::Paused, State::Pausing_ParkHead, State::Resuming_BufferData,
              State::Resuming_Begin, State::Resuming_Reheating,
              State::Resuming_UnparkHead_XY, State::Resuming_UnparkHead_ZE, State::MediaErrorRecovery_BufferData }) {
         CHECK(marlin_server::serial_print_fifo_held(true, state));
         CHECK_FALSE(marlin_server::serial_print_fifo_held(false, state));
     }
-    for (const auto state : { State::Idle, State::Printing, State::Pausing_Begin,
-             State::Pausing_WaitIdle, State::Finishing_WaitIdle, State::Aborting_Begin }) {
+    for (const auto state : { State::Idle, State::Printing,
+             State::Finishing_WaitIdle, State::Aborting_Begin }) {
         CHECK_FALSE(marlin_server::serial_print_fifo_held(true, state));
     }
 }

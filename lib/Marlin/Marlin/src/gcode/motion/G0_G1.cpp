@@ -81,6 +81,12 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
 
   get_destination_from_command();                 // Get X Y [Z[I[J[K]]]] [E] F (and set cutter power)
 
+  if (active_extruder >= EXTRUDERS && destination.e != current_position.e) {
+    SERIAL_ERROR_MSG("Extrusion rejected: no tool selected");
+    destination = current_position;
+    return;
+  }
+
   #ifdef G0_FEEDRATE
     if (fast_move) {
       #if ENABLED(VARIABLE_G0_FEEDRATE)

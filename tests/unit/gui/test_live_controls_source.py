@@ -39,7 +39,9 @@ class LiveControls(unittest.TestCase):
         self.assertLess(source.index("rme_firmware_compatibility::compatible"),
                         source.index("set_reflash_bbf_sfn"))
 
-    @unittest.skipUnless((ROOT / "src/marlin_stubs/G427.cpp").exists(), "INDX pellet-ejection hardware is not present on this release line")
+    @unittest.skipUnless(
+        (ROOT / "src/marlin_stubs/G427.cpp").exists(),
+        "INDX pellet-ejection hardware is not present on this release line")
     def test_load_purge_and_unload_eject_indx_pellets(self):
         source = (ROOT / "src/marlin_stubs/pause/pause.cpp").read_text()
         purge = source.split("bool Pause::nozzle_cleaner_purge_sequence()"
@@ -57,7 +59,9 @@ class LiveControls(unittest.TestCase):
             "if (queue.length < BUFSIZE) queue.get_available_commands()",
             source)
         queue = (ROOT / "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()
-        self.assertIn("length < recovery_capacity", queue)
+        self.assertIn("while (serial_data_available())", queue)
+        self.assertIn("if (length >= recovery_capacity)", queue)
+        self.assertIn("last_N = accepted_line_before", queue)
 
     def test_chamber_ui_uses_mailbox_not_motion_injection(self):
         source = (

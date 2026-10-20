@@ -1,0 +1,64 @@
+RME serial pause/cancel recovery update - 2026-10-19
+
+Failure evidence
+---------------
+The supplied DUMP_B1 (1).BIN identifies source 84a5c78e15208e64e1aba4ab6afe9d493ea498c5,
+6.9.2-RME COREONE_INDX. The stopped serial job had reached Aborted and released
+its tool. The ordinary command FIFO was executing N200797 G1 E-6.5, followed
+by Z/mode/heater-shutdown commands consistent with a host cancellation macro.
+The planner correctly detected an E move without a selected tool, but its
+internal assertion crashed firmware for this externally supplied command.
+The dump is not proof of the cause of the earlier pause transition stall.
+
+Corrections
+-----------
+- Keep serial reception and recovery/service dispatch alive while paused,
+  pausing, restoring a tool, or at full normal job FIFO capacity.
+- Hold queued job commands through every pause/restoration stage. Held host
+  moves are not active pause housekeeping; internal recovery injection still
+  runs and still counts as busy. Do not wait forever for a deliberately held
+  FIFO to drain before parking or restoring the tool.
+- Do not overflow the bounded command array. An ordinary numbered line which
+  cannot fit is not accepted, restores the prior accepted-line watermark,
+  and requests Resend. Excess unnumbered ordinary commands are rejected.
+- Report pause_phase=none|pausing|paused|resuming in session snapshots.
+  The older coarse PAUSED device state also includes transitional states.
+- Reject G0/G1 and G2/G3 extrusion with no selected tool before planning or
+  changing current position. Do not weaken the planner's internal assertion,
+  permit ordinary G-code to use service-move exemptions, or bypass cold-
+  extrusion protection. Legacy branches use their existing raw tool index.
+- Companion plugin 0.1.0b135 reconciles missed pause completion without
+  replaying M601 or waiting behind held M400/M114 commands. It does not treat
+  a pausing snapshot as a completed pause or override a recovery dialog.
+- Recovery queries/controls use the existing serialized transport, not a
+  second writer. When the host exposes raw-send primitives, these recovery
+  frames remain unnumbered and do not consume a blocked job's line number.
+- Suppress competing host pause/resume/cancel motion macros on RME printers.
+  Firmware owns parking and tool restoration. Unsupported printers retain
+  their original macro behavior. Retain reported spaghetti/fault reasons.
+
+Validation and limits
+---------------------
+Execute tests/unit/gui/test_serial_pause_recovery.py through CTest's
+serial_pause_recovery_faults target or directly. The fixtures execute extracted
+production FIFO/RX entry points, busy detection, full-FIFO rejection, and G1
+handling under AddressSanitizer and UndefinedBehaviorSanitizer. They exercise
+1,000 repeats of the exact 6.5 mm retract with no tool, valid selected-tool
+retraction and no-tool XYZ-only movement, all pause/restoration stages with a
+full FIFO, internal recovery injection, and accepted-line watermark recovery.
+Source checks keep service dispatch before capacity rejection and cover the
+corresponding arc-command guard. Existing INDX pause parking, resume priming,
+Auto PA, font recovery, and MMU checks remain part of the release gates.
+
+Companion plugin tests cover lost pause actions, host Pausing marker waits,
+transitional snapshots, stale/terminal jobs, rejected resume retries, original
+fault reasons, macro suppression, and recovery line-number independence.
+
+These are host/stub regression checks and ARM build checks, not a complete
+physical printer simulator or proof that every firmware path cannot fail.
+LeakSanitizer is disabled under the ptrace-restricted test environment;
+AddressSanitizer and UndefinedBehaviorSanitizer remain enabled in the new
+executable fault fixtures. No printer was flashed, moved, or used for a
+spaghetti-pause/cancel hardware test while producing this update.
+Supervised hardware validation remains required. Existing Auto PA/font
+improvements and the initial-heap release floor remain in place.
