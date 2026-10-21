@@ -50,6 +50,7 @@
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <transfers/monitor.hpp>
 #include <firmware_cleanup_gate.hpp>
+#include <firmware_cleanup_receipt.hpp>
 
 #include <option/has_leds.h>
 #if HAS_LEDS()
@@ -4047,7 +4048,9 @@ static void _server_update_vars() {
             struct stat marker {};
             errno = 0;
             const bool marker_present = stat("/usb/FWUPD.UI", &marker) == 0;
-            const bool marker_missing = !marker_present && errno == ENOENT;
+            const bool primary_missing = !marker_present && errno == ENOENT;
+            const auto receipt = firmware_update_handoff::cleanup_receipt_state();
+            const bool marker_missing = primary_missing && receipt == firmware_update_handoff::ReceiptState::missing;
             if (marker_missing) {
                 // A merely staged candidate has no handoff marker: keep it.
                 // Recheck slowly in case the marker becomes visible later.
@@ -4056,7 +4059,9 @@ static void _server_update_vars() {
             // The server runs concurrently with M997's pre-reset TX drain.
             // A visible marker is not a completed bootloader attempt while
             // the retained request still selects this exact candidate.
-            if (marker_present && S_ISREG(marker.st_mode) && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
+            const bool handoff_authorized = (marker_present && S_ISREG(marker.st_mode))
+                || receipt == firmware_update_handoff::ReceiptState::valid;
+            if (handoff_authorized && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
                 // Keep the marker until the staged image is definitely gone.
                 errno = 0;
                 const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
@@ -4072,7 +4077,8 @@ static void _server_update_vars() {
                     }
                     if (metadata_removed) {
                         errno = 0;
-                        cleanup_complete = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
+                        const bool primary_removed = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
+                        cleanup_complete = primary_removed && firmware_update_handoff::remove_cleanup_receipt();
                     }
                 }
             }
