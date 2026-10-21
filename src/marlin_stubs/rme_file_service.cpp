@@ -1419,6 +1419,7 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
         }
         constexpr const char *paths[] = {
             "/usb/FWUPD.RME",
+            "/usb/FWUPD.BBF",
             "/usb/FWUPD.RME.rme-part",
             "/usb/FWUPD.RME.rme-meta",
             "/usb/FWUPD.RME.rme-tmp",
