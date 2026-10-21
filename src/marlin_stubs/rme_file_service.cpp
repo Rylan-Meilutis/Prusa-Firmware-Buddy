@@ -317,11 +317,6 @@ bool report_firmware_status() {
             firmware_validation.sha_initialized = true;
             if (mbedtls_sha256_starts_ret(&firmware_validation.sha, false) != 0) {
                 stop_firmware_validation();
-                if (!firmware_update_handoff::clear_cleanup_authorization()) {
-                    release_upload_slot(transfers::Monitor::Outcome::ErrorStorage);
-                    report_error("cleanup_authorization_failed");
-                    return true;
-                }
                 SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=query_hash_failed");
                 return false;
             }
@@ -1112,6 +1107,11 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             }
             if (is_firmware_candidate(*path)) {
                 stop_firmware_validation();
+                if (!firmware_update_handoff::clear_cleanup_authorization()) {
+                    release_upload_slot(transfers::Monitor::Outcome::ErrorStorage);
+                    report_error("cleanup_authorization_failed");
+                    return true;
+                }
             }
             bool matching_resume = upload.suspended && upload.expected_size == *size
                 && upload.final_path == *path && upload.expected_sha == requested_sha;
