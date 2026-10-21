@@ -8,6 +8,7 @@
 #include <common/path_utils.h>
 #include <common/crash_dump/dump.hpp>
 #include <common/data_exchange.hpp>
+#include <common/firmware_cleanup_receipt.hpp>
 #include <marlin_server.hpp>
 #include <serial_remote_control.hpp>
 #include <rme_protocol_parser.hpp>
@@ -206,7 +207,8 @@ bool parse_sha256(const std::string_view text, std::array<uint8_t, 32> &result) 
 bool firmware_armed() {
     struct stat marker {};
     return data_exchange::is_reflash_bbf_sfn("FWUPD.RME")
-        && stat(firmware_marker_path, &marker) == 0 && S_ISREG(marker.st_mode);
+        && ((stat(firmware_marker_path, &marker) == 0 && S_ISREG(marker.st_mode))
+            || firmware_update_handoff::cleanup_receipt_state() == firmware_update_handoff::ReceiptState::valid);
 }
 
 struct FirmwareValidationState {
@@ -1116,6 +1118,11 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             }
             if (is_firmware_candidate(*path)) {
                 stop_firmware_validation();
+                if (!firmware_update_handoff::clear_cleanup_authorization()) {
+                    release_upload_slot(transfers::Monitor::Outcome::ErrorStorage);
+                    report_error("cleanup_authorization_failed");
+                    return true;
+                }
             }
             bool matching_resume = upload.suspended && upload.expected_size == *size
                 && upload.final_path == *path && upload.expected_sha == requested_sha;
@@ -1414,6 +1421,8 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
             "/usb/FWUPD.RME.rme-verified-tmp",
             "/usb/FWUPD.UI",
             "/usb/FWUPD.UI.tmp",
+            "/usb/FWUPD.CLN",
+            "/usb/FWUPD.TCL",
         };
         bool ok = true;
         for (const char *path : paths) {

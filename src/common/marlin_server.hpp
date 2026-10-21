@@ -176,7 +176,7 @@ resume_state_t *get_resume_data();
 void set_resume_data(const resume_state_t *data);
 
 #if HAS_NOZZLE_CLEANER()
-void unpark_prime();
+bool unpark_prime();
 #endif
 void unpark_head_XY();
 void unpark_head_ZE();

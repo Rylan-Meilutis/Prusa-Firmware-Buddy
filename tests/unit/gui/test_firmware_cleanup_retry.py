@@ -30,6 +30,7 @@ class FirmwareCleanupRetryTests(unittest.TestCase):
 #include <sys/stat.h>
 #include "firmware_cleanup_gate.hpp"
 #include "firmware_update_handoff.hpp"
+#include "firmware_cleanup_receipt.hpp"
 static uint32_t now_ms = 0;
 static bool inserted = true, busy = false, armed = false;
 static int stat_failures = 1, unlink_failures = 1, inspections = 0;
@@ -67,6 +68,18 @@ int fake_remove(const char *path) {
 }
 #define stat(path, result) fake_stat(path, result)
 #define remove fake_remove
+namespace firmware_update_handoff {
+ReceiptState cleanup_receipt_state() {
+    return files.count("/usb/FWUPD.CLN") ? ReceiptState::valid : ReceiptState::missing;
+}
+bool remove_cleanup_receipt() {
+    for (auto path : {"/usb/FWUPD.TCL", "/usb/FWUPD.CLN"}) {
+        errno = 0;
+        if (remove(path) != 0 && errno != ENOENT) return false;
+    }
+    return true;
+}
+}
 void poll() {
 ''' + block + r'''
 }
@@ -99,6 +112,12 @@ int main() {
     now_ms = 10001; poll(); assert(inspections == before); // Rate limited.
     now_ms = 40000; poll();
     assert(files.empty()); // Both protected and legacy image must be consumed.
+
+    // The reported failure: the primary marker is permanently absent.
+    inserted = false; poll(); inserted = true;
+    files = {"/usb/FWUPD.RME", "/usb/FWUPD.CLN"};
+    armed = false;
+    now_ms += 40000; poll(); assert(files.empty());
 
     // Every unlink failure must retain the marker and retry. In particular,
     // removing the .RME image must not stop retries for a leftover .BBF.

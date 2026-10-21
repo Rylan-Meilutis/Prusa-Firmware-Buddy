@@ -17,6 +17,13 @@ set_tests_properties(
   serial_pause_recovery_faults PROPERTIES LABELS "serial;pause;fault-injection" TIMEOUT 120
   )
 
+add_test(NAME pause_move_boundary_faults
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_pause_move_boundary.py"
+         )
+set_tests_properties(
+  pause_move_boundary_faults PROPERTIES LABELS "serial;pause;motion;fault-injection" TIMEOUT 120
+  )
+
 add_test(NAME font_render_recovery_faults
          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_font_render_recovery.py"
          )
