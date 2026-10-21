@@ -923,7 +923,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
         SERIAL_ECHO(binary_chunk_size);
         SERIAL_ECHOPGM(" max_size=");
         SERIAL_ECHO(maximum_file_size);
-        SERIAL_ECHOLNPGM(" list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1 firmware_status=1 firmware_running=1 firmware_unstage=1 crash_dump=1 durable_resume=1 shared_transfer_latch=1");
+        SERIAL_ECHOLNPGM(" list=1 stat=1 read=1 write=1 overwrite=1 delete=1 rename=1 mkdir=1 print=1 flash=1 firmware_status=1 firmware_running=1 firmware_unstage=1 firmware_guarded_unstage=1 crash_dump=1 durable_resume=1 shared_transfer_latch=1");
         return true;
     }
     if (action_is(action, "ABORT")) {
@@ -1391,6 +1391,27 @@ extern "C" bool buddy_rme_firmware_service(const char *raw_command) {
         if (!slot) {
             SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=transfer_busy");
             return true;
+        }
+        // Host-side post-flash recovery must never remove a candidate that
+        // was replaced after its status query. Compare under the same storage
+        // latch as deletion. A guard without both fields fails closed.
+        const auto expected_sha = value(command, "sha256");
+        const auto expected_size = number(command, "size");
+        if (expected_sha || value(command, "size")) {
+            std::array<uint8_t, 32> digest {};
+            struct stat candidate {};
+            rme_firmware_status::VerifiedMetadata metadata {};
+            if (!expected_sha || !expected_size || !*expected_size
+                || !parse_sha256(*expected_sha, digest)
+                || upload.file || upload.suspended
+                || stat(firmware_candidate_path, &candidate) != 0
+                || !S_ISREG(candidate.st_mode) || candidate.st_size != *expected_size
+                || !read_verified_firmware_metadata(*expected_size, metadata)
+                || metadata.sha256 != digest) {
+                slot->done(transfers::Monitor::Outcome::Stopped);
+                SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=firmware code=candidate_changed");
+                return true;
+            }
         }
         stop_firmware_validation();
         if (upload.suspended && strcmp(upload.final_path.data(), firmware_candidate_path) == 0) {
