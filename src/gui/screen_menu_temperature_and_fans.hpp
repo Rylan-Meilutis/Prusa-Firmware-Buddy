@@ -2,6 +2,8 @@
 #pragma once
 
 #include <option/has_chamber_api.h>
+#include <option/has_chamber_filtration_api.h>
+#include "MItem_menus.hpp"
 #include <option/has_indx.h>
 #include <option/has_toolchanger.h>
 #include <option/xbuddy_extension_variant.h>
@@ -33,6 +35,9 @@ using ScreenMenuTemperatureAndFansBase = ScreenMenu<EFooter::On,
     MI_HEATBED,
 #if HAS_CHAMBER_API()
     MI_CHAMBER_TARGET_TEMP,
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+    MI_CHAMBER_FILTRATION,
 #endif
     MI_PRINTFAN,
 #if HAS_INDX()
