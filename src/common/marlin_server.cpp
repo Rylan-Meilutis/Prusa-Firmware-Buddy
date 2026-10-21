@@ -1,5 +1,6 @@
 #include "marlin_server.hpp"
 #include "serial_print_finalize_policy.hpp"
+#include <feature/chamber/material_cooling_policy.hpp>
 
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>
@@ -1719,6 +1720,9 @@ bool printer_paused_extended() {
 
 #if HAS_SERIAL_PRINT()
 void serial_print_start() {
+    if (server.print_state != State::SerialPrintInit) {
+        buddy::chamber_material::serial_job.reset();
+    }
     capture_serial_print_snapshot();
     // Status history survives between jobs. Mark the boundary before the
     // streamed startup command executes so the serial UI cannot present an

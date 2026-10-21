@@ -83,6 +83,8 @@ GCodeQueue queue;
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
 #include <option/has_chamber_filtration_api.h>
+#include <option/has_xbuddy_extension.h>
+#include <feature/chamber/material_cooling_policy.hpp>
 #include <option/has_side_leds.h>
 #include <option/has_spool_join.h>
 #if HAS_SPOOL_JOIN()
@@ -1308,6 +1310,56 @@ static bool handle_remote_indx_service(const std::string_view command) {
 // Fixed-size streaming snapshot: no JSON, heap allocation, event history, or
 // queued GUI requests. Local Tune changes and serial overrides share this state.
 static bool handle_remote_tune_service(const std::string_view command) {
+  if (command.starts_with("@RME CHAMBER JOB ")) {
+    #if HAS_XBUDDY_EXTENSION()
+    if (!serial_remote_control::session_active() || printer_lock::locked()
+        || !(marlin_server::serial_print_active() || marlin_vars().print_state.get() == marlin_server::State::SerialPrintInit)) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=chamber code=no_serial_job_or_locked");
+    } else if (command == "@RME CHAMBER JOB allow_cooling=0" || command == "@RME CHAMBER JOB allow_cooling=1") {
+      buddy::chamber_material::serial_job.report(command.back() == '1');
+      SERIAL_ECHOLNPGM("RME_CHAMBER job_accepted=1");
+    } else {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=chamber code=invalid_argument");
+    }
+    #else
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=chamber code=unsupported");
+    #endif
+    return true;
+  }
+  if (command.starts_with("@RME CHAMBER SET ")) {
+    if (!serial_remote_control::session_active() || printer_lock::locked()) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=chamber code=locked_or_no_session");
+      return true;
+    }
+    const auto material = rme_protocol::unsigned_number(command, "material_cooling");
+    const auto print_filter = rme_protocol::unsigned_number(command, "print_filter");
+    const auto post_filter = rme_protocol::unsigned_number(command, "post_filter");
+    // One explicit field per command; reject malformed/unknown/extra arguments
+    // before mutating persistent settings.
+    const auto valid = [&](std::string_view name, const auto &value) {
+      const auto argument = command.substr(17);
+      return value && *value <= 1 && argument.size() == name.size() + 2
+        && argument.starts_with(name) && argument[name.size()] == '=' && argument.back() == '0' + *value;
+    };
+    #if HAS_XBUDDY_EXTENSION()
+    if (valid("material_cooling", material)) {
+      config_store().xbe_material_chamber_cooling.set(*material != 0);
+    } else
+    #endif
+    #if HAS_CHAMBER_FILTRATION_API()
+    if (valid("print_filter", print_filter)) {
+      config_store().chamber_print_filtration_enable.set(*print_filter != 0);
+    } else if (valid("post_filter", post_filter)) {
+      config_store().chamber_post_print_filtration_enable.set(*post_filter != 0);
+    } else
+    #endif
+    {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=chamber code=invalid_or_unsupported_setting");
+      return true;
+    }
+    SERIAL_ECHOLNPGM("RME_CHAMBER accepted=1");
+    return true;
+  }
   if (command != "@RME TUNE QUERY") return false;
   SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
   SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
@@ -1331,6 +1383,13 @@ static bool handle_remote_tune_service(const std::string_view command) {
   SERIAL_ECHOPGM(" screen_print="); SERIAL_ECHO(lights.print_screen);
   SERIAL_ECHOPGM(" chamber_print="); SERIAL_ECHO(lights.print_chamber);
   SERIAL_ECHOPGM(" status_print="); SERIAL_ECHO(lights.print_status);
+  #if HAS_XBUDDY_EXTENSION()
+  SERIAL_ECHOPGM(" material_cooling="); SERIAL_ECHO(config_store().xbe_material_chamber_cooling.get() ? 1 : 0);
+  #endif
+  #if HAS_CHAMBER_FILTRATION_API()
+  SERIAL_ECHOPGM(" print_filter="); SERIAL_ECHO(config_store().chamber_print_filtration_enable.get() ? 1 : 0);
+  SERIAL_ECHOPGM(" post_filter="); SERIAL_ECHO(config_store().chamber_post_print_filtration_enable.get() ? 1 : 0);
+  #endif
   for (const auto tool : VirtualToolIndex::all()) {
     SERIAL_ECHOPGM(" F"); SERIAL_ECHO(tool.to_raw()); SERIAL_CHAR('=');
     SERIAL_ECHO(marlin_vars().virtual_tools[tool].flow_factor.get());
