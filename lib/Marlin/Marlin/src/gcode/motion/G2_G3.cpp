@@ -213,7 +213,7 @@ void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset,
   // We leave out the square term because it is very small.
   // In CNC applications even very small deviations can be visible, so we use a smaller segment length at low speeds.
   const float segment_mm = std::clamp(std::min(fast_sqrt(8 * radius * float(MAX_ARC_DEVIATION)), feedrate_mm_s * (1.f / float(MIN_ARC_SEGMENTS_PER_SEC))), float(MIN_ARC_SEGMENT_MM), float(MAX_ARC_SEGMENT_MM));
-  const uint32_t segments = std::max(uint32_t(flat_mm / segment_mm + 0.8f), 1ul);
+  const uint32_t segments = std::max(uint32_t(flat_mm / segment_mm + 0.8f), uint32_t(1));
 
   // Add hints to help optimize the move
   PlannerHints hints {

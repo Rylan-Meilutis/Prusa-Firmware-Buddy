@@ -50,6 +50,7 @@
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <transfers/monitor.hpp>
 #include <firmware_cleanup_gate.hpp>
+#include <firmware_cleanup_receipt.hpp>
 
 #include <option/has_leds.h>
 #if HAS_LEDS()
@@ -393,6 +394,10 @@ namespace {
         GCodeLiteral gcode_interrupt_command;
 #endif
 
+        // Physical filament state at the completed pause boundary. Runtime
+        // only: do not change the persisted power-panic resume structure.
+        std::optional<float> pause_retracted_distance;
+
         /// When print_resume is called during the pausing (or possibly other sequences), we first have to finish the sequence and then start resuming.
         /// This flag stores that we have a resume pending and we should start executing it when we can.
         bool resume_pending : 1 = false;
@@ -571,6 +576,7 @@ namespace {
 #endif
 
     void process_pausing_begin_state(Pause_Type type, bool notify_serial_host) {
+        print_state.pause_retracted_distance.reset();
         if (!server.print_is_serial) {
             switch (type) {
 
@@ -2863,14 +2869,24 @@ static void _server_print_loop(void) {
         break;
 
     case State::Pausing_WaitIdle:
-        if (!is_processing()) {
+        // idle() can be called between planner segments of a single G1/arc.
+        // Even an empty planner is not a completed command at that point.
+        if (!idle_running && !is_processing()) {
             server.resume.pos = current_position;
+#if HAS_FILAMENT_TRACKER() && HAS_AUTO_RETRACT()
+            if (const auto tool = PhysicalToolIndex::currently_selected_opt()) {
+                print_state.pause_retracted_distance = buddy::auto_retract().retracted_distance(*tool).value_or(buddy::filament_tracker().get_retracted_distance(*tool).value_or(0));
+            }
+#endif
             retract_and_lift();
             park_head(true);
             server.print_state = State::Pausing_ParkHead;
         }
         break;
     case State::Pausing_ParkHead:
+        if (idle_running) {
+            break; // Tool docking itself calls idle(); never enter it recursively.
+        }
         if (!planner.processing()) {
 #if HAS_INDX()
             // Park the tool to its dock after pausing
@@ -2957,6 +2973,9 @@ static void _server_print_loop(void) {
         break;
     }
     case State::Resuming_Begin:
+        if (idle_running) {
+            break;
+        }
 #if HAS_CRASH_DETECTION()
     #if ENABLED(AXIS_MEASURE)
         if (crash_s.is_repeated_crash() && xy_axes_length_ok() != Axis_length_t::ok) {
@@ -2985,7 +3004,7 @@ static void _server_print_loop(void) {
         break;
 
     case State::Resuming_ExecutingGCodeInterrupt: {
-        if (is_processing()) {
+        if (idle_running || is_processing()) {
             break;
         }
 
@@ -3002,13 +3021,24 @@ static void _server_print_loop(void) {
         // Prime in nozzle cleaning area if available.
     #if HAS_CRASH_DETECTION()
         // trigger when clicking "Resume" after pause
-        if ((crash_s.get_state() == Crash_s::PRINTING) ||
+        if (server.print_is_serial || (crash_s.get_state() == Crash_s::PRINTING) ||
             // trigger when tool was lost
             (crash_s.get_state() == Crash_s::RECOVERY && crash_s.is_toolchange_event())) {
-            unpark_prime();
+            if (!unpark_prime()) {
+                if (server.print_state == State::Resuming_ExecutingGCodeInterrupt) {
+                    server.print_state = State::Paused;
+                    SerialPrinting::notify_error("resume", "prime_failed", "Resume stopped: tool priming did not complete");
+                }
+                break;
+            }
         }
     #else // HAS_CRASH_DETECTION()
-        unpark_prime();
+        if (!unpark_prime()) {
+            if (server.print_state == State::Resuming_ExecutingGCodeInterrupt) {
+                server.print_state = State::Paused;
+            }
+            break;
+        }
     #endif // #else // HAS_CRASH_DETECTION()
 #endif // HAS_NOZZLE_CLEANER()
 
@@ -3018,7 +3048,7 @@ static void _server_print_loop(void) {
     }
 
     case State::Resuming_UnparkHead_XY:
-        if (is_processing()) {
+        if (idle_running || is_processing()) {
             break;
         }
         unpark_head_ZE();
@@ -3026,7 +3056,7 @@ static void _server_print_loop(void) {
         break;
 
     case State::Resuming_UnparkHead_ZE:
-        if (is_processing()) {
+        if (idle_running || is_processing()) {
             break;
         }
 
@@ -3671,7 +3701,12 @@ void resuming_begin(void) {
     //
     // And waiting after they've heat up wouldn't work, for obivous reasons.
     if (server.resume.active_tool != PrusaToolChanger::MARLIN_NO_TOOL_PICKED) {
-        tool_change(PhysicalToolIndex::from_raw(server.resume.active_tool), tool_return_t::no_return);
+        if (!tool_change(PhysicalToolIndex::from_raw(server.resume.active_tool), tool_return_t::no_return)) {
+            if (server.print_state == State::Resuming_Begin) {
+                server.print_state = State::Paused;
+            }
+            return;
+        }
         // Crash recovery must resume in place, without the park detour
         if (!crash_s.did_trigger()) {
             // Park for the reheat and the long Z return; on INDX the park position is over the wastebin
@@ -3790,17 +3825,34 @@ static void park_head([[maybe_unused]] bool is_pause) {
 }
 
 #if HAS_NOZZLE_CLEANER()
-void unpark_prime() {
+bool unpark_prime() {
     if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
-        return;
+        return false;
     }
 
     if (!all_axes_homed() || thermalManager.tooColdToExtrude(active_extruder)) {
-        return;
+        return false;
     }
 
-    nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean);
+    if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)
+        || planner.draining() || thermalManager.tooColdToExtrude(active_extruder)
+        || server.print_state != State::Resuming_ExecutingGCodeInterrupt) {
+        return false;
+    }
+    #if HAS_FILAMENT_TRACKER() && HAS_AUTO_RETRACT()
+    if (print_state.pause_retracted_distance.has_value()) {
+        // purge_clean ends with an auto-retract. Physically restore the saved
+        // filament state over the bin BEFORE returning to the perimeter.
+        mapi::restore_retracted_distance(*print_state.pause_retracted_distance,
+            buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
+        if (planner.draining() || thermalManager.tooColdToExtrude(active_extruder)
+            || server.print_state != State::Resuming_ExecutingGCodeInterrupt) {
+            return false;
+        }
+    }
+    #endif
     sync_e_position_to(server.resume.pos.e);
+    return true;
 }
 #endif // HAS_NOZZLE_CLEANER()
 
@@ -4082,7 +4134,9 @@ static void _server_update_vars() {
             struct stat marker {};
             errno = 0;
             const bool marker_present = stat("/usb/FWUPD.UI", &marker) == 0;
-            const bool marker_missing = !marker_present && errno == ENOENT;
+            const bool primary_missing = !marker_present && errno == ENOENT;
+            const auto receipt = firmware_update_handoff::cleanup_receipt_state();
+            const bool marker_missing = primary_missing && receipt == firmware_update_handoff::ReceiptState::missing;
             if (marker_missing) {
                 // A merely staged candidate has no handoff marker: keep it.
                 // Recheck slowly in case the marker becomes visible later.
@@ -4091,7 +4145,9 @@ static void _server_update_vars() {
             // The server runs concurrently with M997's pre-reset TX drain.
             // A visible marker is not a completed bootloader attempt while
             // the retained request still selects this exact candidate.
-            if (marker_present && S_ISREG(marker.st_mode) && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
+            const bool handoff_authorized = (marker_present && S_ISREG(marker.st_mode))
+                || receipt == firmware_update_handoff::ReceiptState::valid;
+            if (handoff_authorized && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
                 // Keep the marker until the staged image is definitely gone.
                 errno = 0;
                 const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
@@ -4107,7 +4163,8 @@ static void _server_update_vars() {
                     }
                     if (metadata_removed) {
                         errno = 0;
-                        cleanup_complete = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
+                        const bool primary_removed = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
+                        cleanup_complete = primary_removed && firmware_update_handoff::remove_cleanup_receipt();
                     }
                 }
             }
