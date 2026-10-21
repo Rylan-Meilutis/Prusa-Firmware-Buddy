@@ -13,6 +13,78 @@ import unittest
 
 class FirmwareHandoffPathsTests(unittest.TestCase):
 
+    def test_file_upload_invalidates_authorization_under_latch_not_in_query(
+            self):
+        compiler = shutil.which("c++")
+        if not compiler:
+            self.skipTest("C++ compiler unavailable")
+        root = pathlib.Path(__file__).resolve().parents[3]
+        service = (root / "src/marlin_stubs/rme_file_service.cpp").read_text()
+        begin = service.index('action_is(action, "WRITE_BEGIN")')
+        start = service.index('            if (!claim_upload_slot', begin)
+        finish = service.index('            bool matching_resume', start)
+        guard = service[start:finish]
+        status = service[service.index('bool report_firmware_status()'):service
+                         .index('void release_upload_slot')]
+        self.assertNotIn('clear_cleanup_authorization', status)
+        harness = r'''
+#include <cassert>
+#include <array>
+#include <optional>
+#include <string>
+bool held=false, competitor=false, clear_ok=true, firmware=true;
+int invalidations=0, validation_stops=0, resume_reads=0;
+std::string error;
+namespace transfers { struct Monitor { enum class Outcome {ErrorStorage}; }; }
+bool claim_upload_slot(const char *,unsigned) {
+ if(competitor) return false;
+ held=true; return true;
+}
+void release_upload_slot(transfers::Monitor::Outcome) { held=false; }
+void report_error(const char *e) { error=e; }
+bool is_firmware_candidate(const std::array<char,256>&) {return firmware;}
+void stop_firmware_validation() {assert(held); ++validation_stops;}
+namespace firmware_update_handoff {
+bool clear_cleanup_authorization() { assert(held); ++invalidations; return clear_ok; }
+}
+bool begin_upload() {
+ std::optional<std::array<char,256>> path=std::array<char,256>{};
+ std::optional<unsigned> size=100;
+''' + guard + r'''
+ ++resume_reads; return true;
+}
+int main() {
+ // Line, bulk and binary transports share this actual dispatch block.
+ for(int transport=0;transport<3;++transport) {
+  held=false; competitor=true; error.clear();
+  int before=invalidations, reads=resume_reads;
+  begin_upload();
+  assert(!held && error=="transfer_busy" && invalidations==before && resume_reads==reads);
+  competitor=false; clear_ok=false; error.clear();
+  begin_upload();
+  assert(!held && error=="cleanup_authorization_failed" && resume_reads==reads);
+  clear_ok=true; error.clear(); begin_upload();
+  assert(held && error.empty() && resume_reads==reads+1);
+  held=false; firmware=false; before=invalidations;
+  begin_upload(); assert(held && invalidations==before);
+  held=false; firmware=true;
+ }
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            cpp = pathlib.Path(directory) / "test.cpp"
+            cpp.write_text(harness)
+            binary = pathlib.Path(directory) / "test"
+            subprocess.run([
+                compiler, "-std=c++17", "-fsanitize=address,undefined",
+                str(cpp), "-o",
+                str(binary)
+            ],
+                           check=True)
+            subprocess.run([str(binary)],
+                           check=True,
+                           env=dict(os.environ, ASAN_OPTIONS="detect_leaks=0"))
+
     def test_handoff_routes_and_missing_marker_recovery(self):
         compiler = shutil.which("c++")
         if not compiler:
