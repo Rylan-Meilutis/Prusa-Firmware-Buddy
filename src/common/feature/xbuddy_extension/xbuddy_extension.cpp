@@ -79,15 +79,15 @@ void XBuddyExtension::step() {
                 if (!file_name.empty()) {
                     // An unrecognized sliced material must not inherit a
                     // permissive PLA profile just because it is still loaded.
-                    all &= from_file ? chamber_material::permits_cooling(filament_material_name(from_file.parameters())) : chamber_material::permits_cooling(file_name);
+                    all &= from_file ? chamber_material::permits_cooling(filament_material_name(from_file.parameters()).data()) : chamber_material::permits_cooling(file_name);
                 } else {
                     const auto parameters = config_store().get_filament_type(tool).parameters();
-                    all &= chamber_material::permits_cooling(filament_material_name(parameters));
+                    all &= chamber_material::permits_cooling(filament_material_name(parameters).data());
                 }
             });
         }
         const auto current = config_store().get_filament_type(marlin_vars().active_extruder.get());
-        const bool current_permitted = chamber_material::permits_cooling(filament_material_name(current.parameters()));
+        const bool current_permitted = chamber_material::permits_cooling(filament_material_name(current.parameters()).data());
         if (marlin_server::serial_print_active()) {
             // A selected loaded tool contradicting the manifest can only make
             // this job more restrictive. Parked/no-tool intervals do not poison
