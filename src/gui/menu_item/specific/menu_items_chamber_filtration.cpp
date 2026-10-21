@@ -144,6 +144,13 @@ void MI_CHAMBER_ALWAYS_FILTER::OnChange(size_t) {
 MI_CHAMBER_FANS_WITH_FILTER::MI_CHAMBER_FANS_WITH_FILTER()
     : WI_ICON_SWITCH_OFF_ON_t(config_store().xbe_cooling_fans_with_filter.get(), _("Chamber Fans With Filter")) {}
 
+MI_CHAMBER_MATERIAL_COOLING::MI_CHAMBER_MATERIAL_COOLING()
+    : WI_ICON_SWITCH_OFF_ON_t(config_store().xbe_material_chamber_cooling.get(), _("Material-aware Cooling")) {}
+
+void MI_CHAMBER_MATERIAL_COOLING::OnChange(size_t) {
+    config_store().xbe_material_chamber_cooling.set(value());
+}
+
 void MI_CHAMBER_FANS_WITH_FILTER::OnChange(size_t) {
     config_store().xbe_cooling_fans_with_filter.set(value());
 }

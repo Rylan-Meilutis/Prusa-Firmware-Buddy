@@ -101,3 +101,10 @@ add_subdirectory(lazyfilelist)
 add_subdirectory(jogwheel)
 add_subdirectory(window)
 add_subdirectory(neopixel)
+add_test(NAME chamber_material_cooling
+         COMMAND ${Python3_EXECUTABLE}
+                 "${CMAKE_CURRENT_SOURCE_DIR}/test_chamber_material_cooling.py"
+         )
+set_tests_properties(
+  chamber_material_cooling PROPERTIES LABELS "chamber;filtration;safety" TIMEOUT 120
+  )

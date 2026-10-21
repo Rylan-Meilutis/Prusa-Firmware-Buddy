@@ -507,11 +507,11 @@ struct CurrentStore
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Serial Printing Auto Start")> serial_print_auto_start;
 
     static constexpr uint16_t bed_heater_safety_timeout_default_s =
-    #if !HAS_HUMAN_INTERACTIONS()
+#if !HAS_HUMAN_INTERACTIONS()
         600;
-    #else
+#else
         1800;
-    #endif
+#endif
     StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Bed Safety Timeout Config")> bed_heater_safety_timeout_s;
     StoreItem<uint16_t, bed_heater_safety_timeout_default_s, ItemFlag::user_interface, journal::hash("Hotend Safety Timeout Config")> hotend_heater_safety_timeout_s;
 
@@ -748,6 +748,7 @@ struct CurrentStore
     StoreItem<uint8_t, 102, ItemFlag::features, journal::hash("XBuddy Extension Chamber Fan Max Control Limit")> xbe_cooling_fan_max_auto_pwm;
     StoreItem<uint8_t, PWM255::from_percent(70).value, ItemFlag::features, journal::hash("XBE Filtration Fan Max Auto PWM")> xbe_filtration_fan_max_auto_pwm;
     StoreItem<bool, false, ItemFlag::features, journal::hash("XBE cooling fans with filter")> xbe_cooling_fans_with_filter;
+    StoreItem<bool, false, ItemFlag::features, journal::hash("XBE material aware chamber cooling")> xbe_material_chamber_cooling;
     StoreItem<uint8_t, 30, ItemFlag::features, journal::hash("XBE filtration fan print offset")> xbe_filtration_fan_print_offset_pct;
 #endif
 

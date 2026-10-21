@@ -85,6 +85,14 @@ protected:
 };
 
 #if HAS_XBUDDY_EXTENSION()
+class MI_CHAMBER_MATERIAL_COOLING : public WI_ICON_SWITCH_OFF_ON_t {
+public:
+    MI_CHAMBER_MATERIAL_COOLING();
+
+protected:
+    void OnChange(size_t) override;
+};
+
 class MI_CHAMBER_FANS_WITH_FILTER : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_CHAMBER_FANS_WITH_FILTER();

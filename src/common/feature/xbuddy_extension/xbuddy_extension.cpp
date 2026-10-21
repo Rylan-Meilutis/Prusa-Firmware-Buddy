@@ -5,6 +5,9 @@
 #include <common/temperature.hpp>
 #include <puppies/xbuddy_extension.hpp>
 #include <feature/chamber/chamber.hpp>
+#include <feature/chamber/material_cooling_policy.hpp>
+#include <filament.hpp>
+#include <gcode_info.hpp>
 #include <feature/chamber_filtration/chamber_filtration.hpp>
 #include <marlin_server.hpp>
 #include <leds/side_strip_handler.hpp>
@@ -59,6 +62,44 @@ void XBuddyExtension::step() {
     const auto filtration_backend = chamber_filtration().backend();
     const auto filtration_pwm = chamber_filtration().output_pwm();
     const auto temp = chamber().current_temperature();
+    const bool material_cooling = config_store().xbe_material_chamber_cooling.get();
+    const bool printing = marlin_server::is_filtration_job_active(marlin_vars().print_state.get());
+    bool material_permits_cooling = false;
+    if (material_cooling && printing) {
+        // Local files supply the complete tool set, so a later ABS/ASA tool is
+        // protected even while PLA is selected. Serial jobs require a complete
+        // host manifest, never stale local-file metadata or just the first tool.
+        bool any = false;
+        bool all = true;
+        if (!marlin_server::serial_print_active()) {
+            GCodeInfo::getInstance().for_each_used_extruder([&](uint8_t, uint8_t tool, const auto &info) {
+                any = true;
+                const std::string_view file_name = info.filament_name ? info.filament_name->data() : "";
+                const auto from_file = FilamentType::from_name(file_name);
+                if (!file_name.empty()) {
+                    // An unrecognized sliced material must not inherit a
+                    // permissive PLA profile just because it is still loaded.
+                    all &= from_file ? chamber_material::permits_cooling(filament_material_name(from_file.parameters())) : chamber_material::permits_cooling(file_name);
+                } else {
+                    const auto parameters = config_store().get_filament_type(tool).parameters();
+                    all &= chamber_material::permits_cooling(filament_material_name(parameters));
+                }
+            });
+        }
+        const auto current = config_store().get_filament_type(marlin_vars().active_extruder.get());
+        const bool current_permitted = chamber_material::permits_cooling(filament_material_name(current.parameters()));
+        if (marlin_server::serial_print_active()) {
+            // A selected loaded tool contradicting the manifest can only make
+            // this job more restrictive. Parked/no-tool intervals do not poison
+            // a valid manifest, but cannot enable cooling by themselves either.
+            if (current) {
+                chamber_material::serial_job.observe(current_permitted);
+            }
+            material_permits_cooling = chamber_material::serial_job.permits() && current_permitted;
+        } else {
+            material_permits_cooling = any ? all : current_permitted;
+        }
+    }
 
     std::lock_guard _lg(mutex_);
 
@@ -70,7 +111,7 @@ void XBuddyExtension::step() {
 
     puppies::xbuddy_extension.set_rgbw_led({ bed_leds_color_.r, bed_leds_color_.g, bed_leds_color_.b, bed_leds_color_.w });
     puppies::xbuddy_extension.set_white_led(chamber_leds_pwm);
-#if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
+    #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
     const bool chamber_light_target_on = leds::SideStripHandler::instance().chamber_light_on();
     const bool external_light_on = leds::external_light_bar::target_on(chamber_leds_pwm > 0 || chamber_light_target_on);
     static bool last_external_light_on = false;
@@ -85,7 +126,7 @@ void XBuddyExtension::step() {
         last_external_light_valid = true;
     }
     leds::external_light_bar::apply(external_light_on);
-#endif
+    #endif
     puppies::xbuddy_extension.set_white_strobe_frequency(strobe_freq_);
     puppies::xbuddy_extension.set_usb_power(config_store().xbe_usb_power.get());
 
@@ -152,7 +193,14 @@ void XBuddyExtension::step() {
             break;
         }
 
-        // Apply emergency & spinup fan control
+        // Keep filter airflow independent. On DIY hardware the filter shares
+        // these fans, so only its required airflow survives the material gate.
+        cooling_fans_actual_pwm_ = FanPWM { static_cast<uint8_t>(chamber_material::normal_pwm(
+            cooling_fans_actual_pwm_.value, material_cooling, printing, material_permits_cooling,
+            filtration_backend == ChamberFiltrationBackend::xbe_filter_on_cooling_fans ? filtration_pwm.value : 0,
+            filtration_backend != ChamberFiltrationBackend::xbe_official_filter || config_store().xbe_cooling_fans_with_filter.get())) };
+
+        // Apply emergency & spinup fan control AFTER material restrictions.
         cooling_fans_actual_pwm_ = chamber_cooling.apply_pwm_overrides(rpm0.value_or(0) > 5 && rpm1.value_or(0) > 5, cooling_fans_actual_pwm_);
         filtration_fan_actual_pwm_ = chamber_cooling.apply_pwm_overrides(rpm2.value_or(0) > 5, filtration_fan_actual_pwm_);
 
