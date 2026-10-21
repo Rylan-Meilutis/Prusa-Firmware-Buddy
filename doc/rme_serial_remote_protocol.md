@@ -21,6 +21,40 @@ the printer's Reprint button.
 
 ## Live print controls (capability `RME_MACHINE tune=1`)
 
+### Chamber cooling and filtration
+
+Compatible snapshots add `material_cooling` (standard XBuddy chamber hardware),
+`print_filter`, and `post_filter` (filtration-capable hardware), each 0/1. Omitted
+fields mean unsupported, not Off. Set one saved field per command:
+`@RME CHAMBER SET material_cooling=1`, `@RME CHAMBER SET print_filter=1`, or
+`@RME CHAMBER SET post_filter=1`. A live RME session and unlocked printer are
+required. Invalid/extra arguments cannot partially change settings. Read back
+with the existing `@RME TUNE QUERY`; no additional polling loop is needed.
+
+Material-aware cooling defaults Off to preserve saved behavior. On permits normal
+chamber cooling only when the fans are already enabled for PLA/PETG/PET/FLEX/TPU/TPE, and suppresses it for ABS/ASA/HIPS,
+other polymers, and unknown materials during the print (including pauses).
+Local files consider all used materials. The plugin inspects the streamed job's
+complete slicer material list (including unknown entries), then sends
+`@RME CHAMBER JOB allow_cooling=0|1` after the serial print-start boundary and
+before sliced movement. This runtime-only permission never enables disabled
+fans. Missing metadata denies normal cooling. Once forbidden material is reported
+or observed, the restriction is latched until the next serial job; switching back
+to PLA cannot undo it. Old hosts without this job manifest remain fail-closed.
+Stale local-file metadata is never used for serial jobs. User profiles inherit
+their configured base material. This is not a filament-identification sensor:
+loaded-tool assignments must match the actual filament.
+
+The independent filter fan retains its existing filtration and temperature
+controls. DIY filters sharing chamber fans retain their required filtration
+airflow. Emergency thermal cooling always overrides material restrictions.
+Idle and post-print behavior are unchanged. Firmware controls are also available
+under Temperature & Fans > Chamber Filtration, with print/post-print options
+before filter-maintenance items. The plugin exposes the same saved switches in
+its settings and disables them on firmware that omits the corresponding fields.
+
+### Lighting and other live controls
+
 Lighting extension: `RME_TUNE` includes `lcd` (-1 unsupported, 0 off, 1 on),
 `screen_print`, `chamber_print`, and `status_print` percentages (-1 unsupported).
 `@RME LIGHT LCD value=0|1` independently controls the LCD on side-strip machines.
