@@ -30,6 +30,7 @@ class FirmwareCleanupRetryTests(unittest.TestCase):
 #include <sys/stat.h>
 #include "firmware_cleanup_gate.hpp"
 #include "firmware_update_handoff.hpp"
+#include "firmware_cleanup_receipt.hpp"
 static uint32_t now_ms = 0;
 static bool inserted = true, busy = false, armed = false;
 static int stat_failures = 1, unlink_failures = 1, inspections = 0;
@@ -67,6 +68,18 @@ int fake_remove(const char *path) {
 }
 #define stat(path, result) fake_stat(path, result)
 #define remove fake_remove
+namespace firmware_update_handoff {
+ReceiptState cleanup_receipt_state() {
+    return files.count("/usb/FWUPD.CLN") ? ReceiptState::valid : ReceiptState::missing;
+}
+bool remove_cleanup_receipt() {
+    for (auto path : {"/usb/FWUPD.TCL", "/usb/FWUPD.CLN"}) {
+        errno = 0;
+        if (remove(path) != 0 && errno != ENOENT) return false;
+    }
+    return true;
+}
+}
 void poll() {
 ''' + block + r'''
 }
@@ -86,6 +99,12 @@ int main() {
     inserted = false; poll(); inserted = true;
     files.insert("/usb/FWUPD.UI"); armed = true; poll();
     assert(files.count("/usb/FWUPD.RME")); // Must survive pre-reset handoff.
+
+    // The reported failure: the primary marker is permanently absent.
+    inserted = false; poll(); inserted = true;
+    files = {"/usb/FWUPD.RME", "/usb/FWUPD.CLN"};
+    armed = false;
+    now_ms += 40000; poll(); assert(files.empty());
 
     // A successful ENOENT is not a lifetime guarantee that a mount's metadata
     // is fully visible. Reproduce a marker becoming visible after that check,

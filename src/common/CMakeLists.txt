@@ -21,12 +21,13 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             error_code_mangle.cpp
             ExtInterruptHandler.cpp
             filament.cpp
-            filament_list.cpp
-            filament_to_load.cpp
             filament_color.cpp
+            filament_list.cpp
             filament_manufacturer.cpp
+            filament_to_load.cpp
             filename_type.cpp
             filepath_operation.cpp
+            firmware_cleanup_receipt.cpp
             footer_def.cpp
             footer_eeprom.cpp
             fsm_states.cpp
@@ -59,9 +60,9 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             Pin.cpp
             ping_manager.cpp
             print_utils.cpp
+            printer_lock.cpp
             printer_model.cpp
             probe_analysis.cpp
-            printer_lock.cpp
             random_common.cpp
             random_hw.cpp
             ring_allocator.cpp
@@ -179,7 +180,9 @@ if(FILAMENT_SENSOR)
 endif()
 
 if(HAS_LOADCELL)
-  target_sources(firmware PRIVATE loadcell.cpp probe_position_lookback.cpp feature/extrusion_calibration.cpp)
+  target_sources(
+    firmware PRIVATE feature/extrusion_calibration.cpp loadcell.cpp probe_position_lookback.cpp
+    )
 endif()
 if(HAS_LOADCELL_HX717)
   target_sources(firmware PRIVATE hx717.cpp)

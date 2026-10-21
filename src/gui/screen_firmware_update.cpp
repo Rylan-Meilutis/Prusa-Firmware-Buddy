@@ -11,6 +11,9 @@
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
+#include <cerrno>
+#include <firmware_cleanup_receipt.hpp>
+#include <transfers/monitor.hpp>
 
 namespace {
 // A neutral extension prevents bootloader auto-discovery. Installation is
@@ -18,6 +21,11 @@ namespace {
 constexpr const char *staged_firmware_path = "/usb/FWUPD.RME";
 
 bool stage_firmware_for_bootloader(const char *source_path) {
+    auto slot = transfers::Monitor::instance.allocate(
+        transfers::Monitor::Type::Link, staged_firmware_path, 0);
+    if (!slot || !firmware_update_handoff::clear_cleanup_authorization()) {
+        return false;
+    }
     // This runs on the GUI task. Keep the copy buffer out of its constrained
     // stack; overflowing that stack made the picker appear to freeze before
     // it could request the reboot.
@@ -25,8 +33,16 @@ bool stage_firmware_for_bootloader(const char *source_path) {
     const bool source_is_staging_path = strcasecmp(source_path, staged_firmware_path) == 0;
 
     if (!source_is_staging_path) {
+        for (const char *metadata : { "/usb/FWUPD.RME.rme-verified", "/usb/FWUPD.RME.rme-verified-tmp" }) {
+            errno = 0;
+            if (remove(metadata) != 0 && errno != ENOENT) {
+                return false;
+            }
+        }
         FILE *source = fopen(source_path, "rb");
-        if (!source) return false;
+        if (!source) {
+            return false;
+        }
 
         FILE *destination = fopen(staged_firmware_path, "wb");
         if (!destination) {
@@ -51,6 +67,7 @@ bool stage_firmware_for_bootloader(const char *source_path) {
         }
     }
 
+    slot->done(transfers::Monitor::Outcome::Finished);
     return true;
 }
 } // namespace

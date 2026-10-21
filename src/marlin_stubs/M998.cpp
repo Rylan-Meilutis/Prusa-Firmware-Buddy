@@ -9,6 +9,10 @@
 #include <cstring>
 #include <serial_remote_control.hpp>
 #include <unistd.h>
+#include <firmware_cleanup_receipt.hpp>
+#include <transfers/monitor.hpp>
+#include <optional>
+#include <utility>
 
 namespace {
 constexpr const char *temporary_path = "/usb/FWUPD.TMP";
@@ -29,6 +33,7 @@ struct UploadState {
 // Avoid newlib's lazy per-stream heap buffer. The legacy uploader keeps this
 // one file open and writes sequentially for the complete image.
 std::array<char, 512> upload_file_buffer {};
+std::optional<transfers::Monitor::Slot> upload_slot;
 
 void reset_state(bool remove_temporary) {
     if (upload.file) {
@@ -39,6 +44,10 @@ void reset_state(bool remove_temporary) {
         mbedtls_sha256_free(&upload.sha);
     }
     upload = {};
+    if (upload_slot) {
+        upload_slot->done(remove_temporary ? transfers::Monitor::Outcome::Stopped : transfers::Monitor::Outcome::Finished);
+        upload_slot.reset();
+    }
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
     if (remove_temporary) {
         remove(temporary_path);
@@ -47,31 +56,49 @@ void reset_state(bool remove_temporary) {
 
 const char *value_after(const char *body, char key) {
     while (*body) {
-        while (*body == ' ') ++body;
-        if (*body == key && body[1] != ' ' && body[1] != '\0') return body + 1;
-        while (*body && *body != ' ') ++body;
+        while (*body == ' ') {
+            ++body;
+        }
+        if (*body == key && body[1] != ' ' && body[1] != '\0') {
+            return body + 1;
+        }
+        while (*body && *body != ' ') {
+            ++body;
+        }
     }
     return nullptr;
 }
 
 bool parse_u32(const char *value, uint32_t &result) {
-    if (!value) return false;
+    if (!value) {
+        return false;
+    }
     char *end = nullptr;
     const unsigned long parsed = strtoul(value, &end, 10);
-    if (end == value || (*end != ' ' && *end != '\0') || parsed > UINT32_MAX) return false;
+    if (end == value || (*end != ' ' && *end != '\0') || parsed > UINT32_MAX) {
+        return false;
+    }
     result = parsed;
     return true;
 }
 
 uint8_t hex_nibble(char value) {
-    if (value >= '0' && value <= '9') return value - '0';
-    if (value >= 'a' && value <= 'f') return value - 'a' + 10;
-    if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+    if (value >= '0' && value <= '9') {
+        return value - '0';
+    }
+    if (value >= 'a' && value <= 'f') {
+        return value - 'a' + 10;
+    }
+    if (value >= 'A' && value <= 'F') {
+        return value - 'A' + 10;
+    }
     return 0xff;
 }
 
 bool parse_sha(const char *value, std::array<uint8_t, 32> &result) {
-    if (!value) return false;
+    if (!value || strcspn(value, " ") != result.size() * 2) {
+        return false;
+    }
     for (size_t index = 0; index < result.size(); ++index) {
         const uint8_t high = hex_nibble(value[index * 2]);
         const uint8_t low = hex_nibble(value[index * 2 + 1]);
@@ -92,6 +119,10 @@ void report_error(const char *message, bool abort_upload = false) {
 }
 
 void begin_upload(const char *body) {
+    if (transfers::Monitor::instance.id().has_value() && !upload_slot) {
+        report_error("TRANSFER_BUSY");
+        return;
+    }
     uint32_t size = 0;
     std::array<uint8_t, 32> sha {};
     if (!parse_u32(value_after(body, 'S'), size) || size == 0 || size > maximum_size
@@ -101,6 +132,18 @@ void begin_upload(const char *body) {
     }
 
     reset_state(true);
+    auto slot = transfers::Monitor::instance.allocate(
+        transfers::Monitor::Type::Link, firmware_path, size);
+    if (!slot) {
+        report_error("TRANSFER_BUSY");
+        return;
+    }
+    upload_slot.emplace(std::move(*slot));
+    if (!firmware_update_handoff::clear_cleanup_authorization()) {
+        report_error("CLEANUP_AUTHORIZATION");
+        reset_state(true);
+        return;
+    }
     upload.file = fopen(temporary_path, "wb");
     if (!upload.file || setvbuf(upload.file, upload_file_buffer.data(), _IOFBF, upload_file_buffer.size()) != 0) {
         report_error("OPEN");
@@ -138,7 +181,8 @@ void write_chunk(const char *body) {
     size_t decoded_size = 0;
     if (encoded_size == 0 || encoded_size > 64
         || mbedtls_base64_decode(decoded.data(), decoded.size(), &decoded_size,
-            reinterpret_cast<const unsigned char *>(encoded), encoded_size) != 0
+               reinterpret_cast<const unsigned char *>(encoded), encoded_size)
+            != 0
         || decoded_size == 0 || decoded_size > upload.expected_size - upload.received) {
         report_error("CHUNK");
         return;
@@ -172,8 +216,12 @@ void finish_upload() {
     upload.active = false;
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
     bool file_ok = upload.file && fflush(upload.file) == 0;
-    if (upload.file && file_ok) file_ok = fsync(fileno(upload.file)) == 0;
-    if (upload.file && fclose(upload.file) != 0) file_ok = false;
+    if (upload.file && file_ok) {
+        file_ok = fsync(fileno(upload.file)) == 0;
+    }
+    if (upload.file && fclose(upload.file) != 0) {
+        file_ok = false;
+    }
     upload.file = nullptr;
     if (!file_ok) {
         report_error("WRITE", true);
@@ -184,6 +232,7 @@ void finish_upload() {
         return;
     }
     SERIAL_ECHOLN("FW_UPLOAD COMPLETE /usb/FWUPD.BBF");
+    reset_state(false);
 }
 } // namespace
 
@@ -200,13 +249,21 @@ void PrusaGcodeSuite::M998() {
         return;
     }
     switch (phase) {
-    case 0: begin_upload(body); break;
-    case 1: write_chunk(body); break;
-    case 2: finish_upload(); break;
+    case 0:
+        begin_upload(body);
+        break;
+    case 1:
+        write_chunk(body);
+        break;
+    case 2:
+        finish_upload();
+        break;
     case 3:
         reset_state(true);
         SERIAL_ECHOLN("FW_UPLOAD ABORTED");
         break;
-    default: report_error("PHASE"); break;
+    default:
+        report_error("PHASE");
+        break;
     }
 }
