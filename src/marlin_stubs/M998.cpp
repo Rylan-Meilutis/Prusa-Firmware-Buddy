@@ -9,6 +9,10 @@
 #include <cstring>
 #include <serial_remote_control.hpp>
 #include <unistd.h>
+#include <firmware_cleanup_receipt.hpp>
+#include <transfers/monitor.hpp>
+#include <optional>
+#include <utility>
 
 namespace {
 constexpr const char *temporary_path = "/usb/FWUPD.TMP";
@@ -29,6 +33,7 @@ struct UploadState {
 // Avoid newlib's lazy per-stream heap buffer. The legacy uploader keeps this
 // one file open and writes sequentially for the complete image.
 std::array<char, 512> upload_file_buffer {};
+std::optional<transfers::Monitor::Slot> upload_slot;
 
 void reset_state(bool remove_temporary) {
     if (upload.file) {
@@ -39,6 +44,10 @@ void reset_state(bool remove_temporary) {
         mbedtls_sha256_free(&upload.sha);
     }
     upload = {};
+    if (upload_slot) {
+        upload_slot->done(remove_temporary ? transfers::Monitor::Outcome::Stopped : transfers::Monitor::Outcome::Finished);
+        upload_slot.reset();
+    }
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
     if (remove_temporary) {
         remove(temporary_path);
@@ -87,7 +96,7 @@ uint8_t hex_nibble(char value) {
 }
 
 bool parse_sha(const char *value, std::array<uint8_t, 32> &result) {
-    if (!value) {
+    if (!value || strcspn(value, " ") != result.size() * 2) {
         return false;
     }
     for (size_t index = 0; index < result.size(); ++index) {
@@ -110,6 +119,10 @@ void report_error(const char *message, bool abort_upload = false) {
 }
 
 void begin_upload(const char *body) {
+    if (transfers::Monitor::instance.id().has_value() && !upload_slot) {
+        report_error("TRANSFER_BUSY");
+        return;
+    }
     uint32_t size = 0;
     std::array<uint8_t, 32> sha {};
     if (!parse_u32(value_after(body, 'S'), size) || size == 0 || size > maximum_size
@@ -119,6 +132,18 @@ void begin_upload(const char *body) {
     }
 
     reset_state(true);
+    auto slot = transfers::Monitor::instance.allocate(
+        transfers::Monitor::Type::Link, firmware_path, size);
+    if (!slot) {
+        report_error("TRANSFER_BUSY");
+        return;
+    }
+    upload_slot.emplace(std::move(*slot));
+    if (!firmware_update_handoff::clear_cleanup_authorization()) {
+        report_error("CLEANUP_AUTHORIZATION");
+        reset_state(true);
+        return;
+    }
     upload.file = fopen(temporary_path, "wb");
     if (!upload.file || setvbuf(upload.file, upload_file_buffer.data(), _IOFBF, upload_file_buffer.size()) != 0) {
         report_error("OPEN");
@@ -207,6 +232,7 @@ void finish_upload() {
         return;
     }
     SERIAL_ECHOLN("FW_UPLOAD COMPLETE /usb/FWUPD.BBF");
+    reset_state(false);
 }
 } // namespace
 

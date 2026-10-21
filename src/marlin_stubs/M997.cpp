@@ -8,6 +8,7 @@
 #include <array>
 #include <rme_firmware_compatibility.hpp>
 #include "data_exchange.hpp"
+#include <firmware_cleanup_receipt.hpp>
 #include "serial_printing.hpp"
 #include "serial_remote_control.hpp"
 #include <transfers/monitor.hpp>
@@ -18,6 +19,12 @@
 #endif
 
 static void update_main_board(bool update_older, const char *sfn) {
+    auto handoff_slot = transfers::Monitor::instance.allocate(
+        transfers::Monitor::Type::Link, "/usb/FWUPD.CLN", 0);
+    if (!handoff_slot) {
+        SERIAL_ERROR_MSG("M997 blocked: transfer in progress");
+        return;
+    }
     if (*sfn) { // Flash selected BBF
         std::array<char, 32> candidate_path {};
         snprintf(candidate_path.data(), candidate_path.size(), "/usb/%s", sfn);
@@ -33,6 +40,11 @@ static void update_main_board(bool update_older, const char *sfn) {
         }
         char selected_sfn[13] {};
         strlcpy(selected_sfn, sfn, sizeof(selected_sfn));
+        if ((strcasecmp(selected_sfn, "FWUPD.RME") == 0 || strcasecmp(selected_sfn, "FWUPD.BBF") == 0)
+            && !firmware_update_handoff::clear_cleanup_authorization()) {
+            SERIAL_ERROR_MSG("M997 could not clear prior cleanup authorization");
+            return;
+        }
         // Preserve direct M998/legacy M997 compatibility while ensuring the
         // bootloader cannot auto-discover the staged file on a later reboot.
         if (strcasecmp(selected_sfn, "FWUPD.BBF") == 0) {
@@ -72,11 +84,15 @@ static void update_main_board(bool update_older, const char *sfn) {
             // before the retained request allowed that task to delete the
             // candidate during the pre-reset TX drain.
             data_exchange::set_reflash_bbf_sfn(selected_sfn);
-            if (rename(marker_temp_path, marker_path) != 0) {
-                data_exchange::clear_reflash_bbf_sfn();
+            if (!firmware_update_handoff::persist_cleanup_receipt()) {
                 remove(marker_temp_path);
-                SERIAL_ERROR_MSG("M997 could not publish one-shot firmware cleanup");
+                data_exchange::clear_reflash_bbf_sfn();
+                SERIAL_ERROR_MSG("M997 could not persist cleanup receipt");
                 return;
+            }
+            if (rename(marker_temp_path, marker_path) != 0) {
+                remove(marker_temp_path);
+                SERIAL_ECHOLNPGM("echo:M997 using cleanup receipt fallback");
             }
         } else {
             data_exchange::set_reflash_bbf_sfn(selected_sfn);

@@ -33,6 +33,7 @@ if(BOARD IN_LIST BUDDY_BOARDS)
             filament_tools.cpp
             filename_type.cpp
             filepath_operation.cpp
+            firmware_cleanup_receipt.cpp
             footer_def.cpp
             footer_eeprom.cpp
             fsm_states.cpp
