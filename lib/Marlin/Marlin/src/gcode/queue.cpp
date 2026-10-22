@@ -65,6 +65,9 @@ GCodeQueue queue;
 #include <option/has_tool_mapping.h>
 #if HAS_TOOL_MAPPING()
   #include "../module/prusa/tool_mapper.hpp"
+  #include <rme_tool_review.hpp>
+  #include <gcode/gcode_info.hpp>
+  #include <common/marlin_server_types/fsm/print_preview_phases.hpp>
   extern void rme_report_tool_mapping();
 #endif
 #if __has_include(<option/has_indx.h>)
@@ -94,6 +97,9 @@ GCodeQueue queue;
   #define RME_HAS_WASTEBIN_FILL_TRACKING() 0
 #endif
 #include <algorithm>
+#if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+  #include <serial_collision_recovery.hpp>
+#endif
 #include <cerrno>
 #include <cctype>
 #include <cstdint>
@@ -178,7 +184,11 @@ bool GCodeQueue::has_commands_queued() {
     #if HAS_SERIAL_PRINT()
       && !marlin_server::serial_print_fifo_held()
     #endif
-  ) || injected_commands_P;
+  ) || (injected_commands_P
+    #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+      && !buddy::serial_collision::pending()
+    #endif
+  );
 }
 
 bool GCodeQueue::current_command_from_serial() {
@@ -264,6 +274,12 @@ bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
  * or remain to process.
  */
 bool GCodeQueue::process_injected_command() {
+  #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+    // A pre-existing pause/runout/UI macro must not alter checkpoint state
+    // while waiting for consent, homing or restoring the interrupted move.
+    // Serial ISR recovery uses direct handlers, not this injection stream.
+    if (buddy::serial_collision::pending()) return false;
+  #endif
   if (injected_commands_P == nullptr) {
     const auto inject_gcode = inject_queue.get_gcode();
     if (inject_gcode.has_value()) {
@@ -287,6 +303,11 @@ bool GCodeQueue::process_injected_command() {
   char cmd[i + 1];
   memcpy_P(cmd, injected_commands_P, i);
   cmd[i] = '\0';
+  #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+    // Internal macros may change modes/tools too. Drain protected print moves
+    // before consuming the macro pointer, but not during recovery housekeeping.
+    if (i && !buddy::serial_collision::prepare("")) return true;
+  #endif
   injected_commands_P = c ? injected_commands_P + i + 1 : nullptr;
 
   // Execute command if non-blank
@@ -1116,8 +1137,15 @@ static void report_remote_session() {
   // Avoid the generic word "active": host state parsers can otherwise mistake
   // this communications lease for printer activity.
   SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
+  #if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
+    SERIAL_ECHOPGM(" tool_review=1");
+  #endif
   SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
   SERIAL_ECHOPGM(" pause_phase="); SERIAL_ECHO(marlin_server::serial_pause_phase(marlin_vars().print_state));
+  #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+    SERIAL_ECHOPGM(" collision_recovery=1 collision_monitoring=");
+    SERIAL_ECHO(buddy::serial_collision::monitoring_available() ? 1 : 0);
+  #endif
   const auto active_tool = rme_active_tool::snapshot(VirtualToolIndex::currently_selected());
   SERIAL_ECHOPGM(" active_tool=");
   if (active_tool.selected) SERIAL_ECHO(active_tool.index);
@@ -1150,6 +1178,156 @@ static bool handle_remote_session_service(const std::string_view command) {
   } else return false;
   return true;
 }
+
+#if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
+static rme_tool_review::State remote_review;
+
+static bool remote_review_in_front() {
+  return marlin_vars().peek_fsm_states([](const fsm::States &states) {
+    const auto top = states.get_top();
+    return top && top->fsm_type == ClientFSM::PrintPreview
+      && top->data.GetPhase() == std::to_underlying(PhasesPrintPreview::tools_mapping);
+  });
+}
+
+static uint32_t remote_review_revision() {
+  uint32_t hash = 2166136261u;
+  const auto add = [&](uint8_t value) { hash = (hash ^ value) * 16777619u; };
+  add(tool_mapper.is_enabled());
+  for (uint8_t i = 0; i < GcodeToolIndex::count; ++i) add(tool_mapper.to_virtual(i, true));
+  add(spool_join.get_num_joins());
+  for (uint8_t i = 0; i < spool_join.get_num_joins(); ++i) {
+    const auto join = spool_join.get_join_nr(i);
+    add(join.spool_1); add(join.spool_2);
+  }
+  return hash;
+}
+
+static void report_remote_review() {
+  if (remote_review.phase == rme_tool_review::Phase::submitted)
+    remote_review.revision = remote_review_revision();
+  SERIAL_ECHOPGM("RME_REVIEW id="); SERIAL_ECHO(remote_review.id);
+  SERIAL_ECHOPGM(" state="); SERIAL_ECHO(rme_tool_review::name(remote_review.phase));
+  SERIAL_ECHOPGM(" revision="); SERIAL_ECHO(remote_review.revision);
+  if (remote_review.phase == rme_tool_review::Phase::submitted) {
+    SERIAL_ECHOPGM(" enabled="); SERIAL_ECHO(tool_mapper.is_enabled() ? 1 : 0);
+    SERIAL_ECHOPGM(" mapping=");
+    for (uint8_t i = 0; i < GcodeToolIndex::count; ++i) {
+      if (i) SERIAL_CHAR(',');
+      SERIAL_ECHO(tool_mapper.to_virtual(i, true));
+    }
+    SERIAL_ECHOPGM(" joins=");
+    if (!spool_join.get_num_joins()) SERIAL_ECHOPGM("none");
+    for (uint8_t i = 0; i < spool_join.get_num_joins(); ++i) {
+      if (i) SERIAL_CHAR(',');
+      const auto join = spool_join.get_join_nr(i);
+      SERIAL_ECHO(join.spool_1); SERIAL_CHAR(':'); SERIAL_ECHO(join.spool_2);
+    }
+  }
+  SERIAL_EOL();
+}
+
+static void remote_review_close(rme_tool_review::Phase next) {
+  if (remote_review.phase == rme_tool_review::Phase::editing)
+    marlin_server::fsm_destroy(ClientFSM::PrintPreview);
+  remote_review.phase = next;
+  remote_review.revision = remote_review_revision();
+  report_remote_review();
+}
+
+static void remote_review_tick() {
+  if (!remote_review.active()) return;
+  if (!serial_remote_control::session_active() || !marlin_server::printer_idle() || marlin_server::serial_print_active()) {
+    remote_review_close(rme_tool_review::Phase::cancelled);
+    return;
+  }
+  if (remote_review.phase != rme_tool_review::Phase::editing || !remote_review_in_front()) return;
+  const auto response = marlin_server::get_response_from_phase(PhasesPrintPreview::tools_mapping);
+  if (response == Response::Print) remote_review_close(rme_tool_review::Phase::submitted);
+  else if (response == Response::Abort) remote_review_close(rme_tool_review::Phase::cancelled);
+}
+
+static bool handle_remote_review_service(const std::string_view command) {
+  constexpr std::string_view prefix = "@RME REVIEW ";
+  if (!command.starts_with(prefix)) return false;
+  const auto action = command.substr(prefix.size());
+  const auto id = remote_number(command, "id");
+  if (rme_protocol::action_is(action, "QUERY")) { report_remote_review(); return true; }
+  if (!id || *id <= 0 || *id > INT32_MAX || !serial_remote_control::session_active()) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=invalid_id_or_session");
+    return true;
+  }
+  if (rme_protocol::action_is(action, "BEGIN")) {
+    if (remote_review.matches(*id)) { report_remote_review(); return true; }
+    // Initial configuration is part of BEGIN, not a separate RESET/SET batch:
+    // retrying a blocked/lost BEGIN must never erase live LCD edits or joins.
+    const auto mapping = rme_protocol::value(command, "mapping");
+    const auto enabled = remote_number(command, "enabled");
+    uint8_t assigned = 0;
+    if (mapping) {
+      bool valid = enabled && (*enabled == 0 || *enabled == 1) && mapping->size() == GcodeToolIndex::count * 2 - 1;
+      for (size_t i = 0; valid && i < GcodeToolIndex::count; ++i) {
+        const auto digit = (*mapping)[i * 2];
+        const uint8_t tool = digit - '0';
+        valid = digit >= '0' && tool < VirtualToolIndex::count && !(assigned & (1u << tool))
+          && (!i || (*mapping)[i * 2 - 1] == ',');
+        if (valid) assigned |= uint8_t(1u << tool);
+      }
+      if (!valid) {
+        SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=invalid_mapping");
+        return true;
+      }
+    }
+    const bool has_fsm = marlin_vars().peek_fsm_states([](const fsm::States &states) { return bool(states.get_top()); });
+    if (printer_lock::locked() || !marlin_server::printer_idle() || marlin_server::serial_print_active() || has_fsm || !remote_review.begin(*id)) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=printer_busy");
+      return true;
+    }
+    GCodeInfo::getInstance().reset_info();
+    if (mapping) {
+      for (uint8_t i = 0; i < GcodeToolIndex::count; ++i)
+        tool_mapper.set_mapping(i, (*mapping)[i * 2] - '0');
+      tool_mapper.set_enable(*enabled);
+    }
+    spool_join.reset();
+  } else if (!remote_review.matches(*id)) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=stale_id");
+    return true;
+  } else if (rme_protocol::action_is(action, "TOOL") && remote_review.phase == rme_tool_review::Phase::loading) {
+    const auto logical = remote_number(command, "logical");
+    const auto material = rme_protocol::value(command, "material");
+    if (!logical || *logical < 0 || size_t(*logical) >= GcodeToolIndex::count || !material || material->size() >= filament_name_buffer_size) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=invalid_tool");
+      return true;
+    }
+    GCodeInfo::getInstance().set_serial_review_tool(GcodeToolIndex::from_raw(*logical), *material);
+    remote_review.used |= uint8_t(1u << *logical);
+  } else if (rme_protocol::action_is(action, "SHOW") && remote_review.phase == rme_tool_review::Phase::loading && remote_review.used) {
+    remote_review.phase = rme_tool_review::Phase::editing;
+    marlin_server::fsm_create(PhasesPrintPreview::tools_mapping, { 1, ++remote_review.generation, 0, 0 });
+  } else if (rme_protocol::action_is(action, "SUBMIT") && remote_review.phase == rme_tool_review::Phase::editing && remote_review_in_front()) {
+    remote_review_close(rme_tool_review::Phase::submitted);
+    return true;
+  } else if (rme_protocol::action_is(action, "COMMIT")) {
+    if (remote_review.phase == rme_tool_review::Phase::complete) { report_remote_review(); return true; }
+    const bool has_fsm = marlin_vars().peek_fsm_states([](const fsm::States &states) { return bool(states.get_top()); });
+    const auto revision = rme_protocol::unsigned_number(command, "revision");
+    if (has_fsm || !revision || !remote_review.commit(*id, *revision, remote_review_revision())) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=stale_revision");
+      report_remote_review();
+      return true;
+    }
+  } else if (rme_protocol::action_is(action, "REJECT") && remote_review.phase == rme_tool_review::Phase::submitted) {
+    remote_review.phase = rme_tool_review::Phase::editing;
+    marlin_server::fsm_create(PhasesPrintPreview::tools_mapping, { 2, ++remote_review.generation, 0, 0 });
+  } else if (rme_protocol::action_is(action, "CANCEL") && remote_review.active()) {
+    remote_review_close(rme_tool_review::Phase::cancelled);
+    return true;
+  }
+  report_remote_review();
+  return true;
+}
+#endif
 
 static bool handle_remote_toolmap_service(const std::string_view command) {
   if (!command.starts_with("@RME TOOLMAP ")) return false;
@@ -1454,6 +1632,9 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_manufacturer_service(command)
       || handle_remote_machine_service(command)
       || handle_remote_stats_service(command)
+      #if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
+      || handle_remote_review_service(command)
+      #endif
       || handle_remote_toolmap_service(command)
       || handle_remote_spool_join_service(command)
       || handle_remote_dock_service(command)
@@ -1477,6 +1658,21 @@ static void report_service_queue_status() {
     const auto top = states.get_top();
     if (!top) return;
     const uint8_t raw_phase = top->data.GetPhase();
+#if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
+    if (remote_review.phase == rme_tool_review::Phase::editing && top->fsm_type == ClientFSM::PrintPreview) {
+      workflow = "tool_mapping";
+      phase = "review";
+      state = "waiting";
+    }
+#endif
+#if HAS_CRASH_DETECTION()
+    if (top->fsm_type == ClientFSM::CrashRecovery) {
+      workflow = "collision";
+      phase = raw_phase == std::to_underlying(PhasesCrashRecovery::serial_collision) ? "inspection" : "recovery";
+      state = raw_phase == std::to_underlying(PhasesCrashRecovery::serial_collision)
+          || raw_phase == std::to_underlying(PhasesCrashRecovery::home_fail) ? "waiting" : "active";
+    }
+#endif
 #if RME_HAS_INDX()
     switch (top->fsm_type) {
       case ClientFSM::NozzleMismatch: {
@@ -1658,6 +1854,9 @@ void GCodeQueue::get_serial_commands() {
   if (!serial_drain_guard) return;
 
   buddy_rme_firmware_service_tick();
+  #if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
+    remote_review_tick();
+  #endif
 
   // RME bulk frames are consumed out-of-band and never copied into the
   // MAX_CMD_SIZE G-code queue.
@@ -1962,6 +2161,10 @@ void GCodeQueue::get_available_commands() {
  */
 void GCodeQueue::advance() {
 
+  #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+    if (buddy::serial_collision::replay_one()) return;
+  #endif
+
   // Process immediate commands
   if (process_injected_command()) {
     delay(1); // Safety measure to avoid locking async job in inject queue (buffering a file)
@@ -1977,6 +2180,13 @@ void GCodeQueue::advance() {
     delay(1);
     return;
   }
+
+  #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+    // Replayed commands were already acknowledged. Execute them internally,
+    // ahead of the untouched host FIFO, without consuming another host line.
+    if (get_current_sdpos() == SDPOS_INVALID
+        && !buddy::serial_collision::prepare(command_buffer[index_r])) return;
+  #endif
 
   last_executed_sdpos = queue.get_current_sdpos();
   current_command_serial = last_executed_sdpos == SDPOS_INVALID;

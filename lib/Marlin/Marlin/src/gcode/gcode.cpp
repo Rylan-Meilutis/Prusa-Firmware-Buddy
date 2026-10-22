@@ -40,6 +40,7 @@ GcodeSuite gcode;
 
 #include <option/has_cancel_object.h>
 #include <option/has_crash_detection.h>
+#include <option/has_serial_print.h>
 #include <option/has_tool_offset_pin_calibration.h>
 #if HAS_CANCEL_OBJECT()
   #include <feature/cancel_object/cancel_object.hpp>
@@ -47,6 +48,9 @@ GcodeSuite gcode;
 
 #if HAS_CRASH_DETECTION()
   #include "../feature/prusa/crash_recovery.hpp"
+  #if HAS_SERIAL_PRINT()
+    #include <serial_collision_recovery.hpp>
+  #endif
 #endif
 
 #include <option/has_toolchanger.h>
@@ -735,7 +739,13 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
   #if HAS_CRASH_DETECTION()
     // this is done one step down from process_next_command in order to handle subcommands
     // and injected commands correctly: the state needs to reset at each logical move
-    crash_s.start_new_gcode(queue.get_current_sdpos());
+    crash_s.start_new_gcode(
+      #if HAS_SERIAL_PRINT()
+        buddy::serial_collision::gcode_position(queue.get_current_sdpos())
+      #else
+        queue.get_current_sdpos()
+      #endif
+    );
   #endif
 
   #if ENABLED(PROCESS_CUSTOM_GCODE)

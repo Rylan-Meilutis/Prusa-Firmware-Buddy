@@ -37,9 +37,9 @@ struct Score {
 
 class Capture {
 public:
-    // A calibration excitation captures just under 1,000 samples at the
-    // loadcell sampling rate (field diagnostics consistently report 974-978).
-    // Keep more than 30% scheduling margin, but do not permanently reserve the
+    // Four bounded-speed plateaus capture about 1,000 samples. Pre-motion
+    // planner waits are excluded by resume_on_motion(), leaving margin for
+    // acceleration without permanently reserving the
     // former 24 KiB buffer from the system heap for a one-second operation.
     // score() already rejects capture_overflow, so an unexpectedly long run
     // remains fail-safe rather than consuming unbounded memory.
@@ -51,6 +51,8 @@ public:
     bool start();
     void pause();
     void resume();
+    /// Exclude queue-start latency, then retain every sample once E moves.
+    void resume_on_motion(float baseline_e_position_mm);
     size_t stop();
     void release();
     void record(uint32_t time_us, float load_g, float e_position_mm);
@@ -62,9 +64,14 @@ private:
     std::unique_ptr<Sample[]> samples_;
     std::atomic_size_t count_ { 0 };
     std::atomic_bool active_ { false };
+    // Protected together with the buffer by InterruptDisabler. This also
+    // prevents a loadcell producer from using the buffer while it is released.
+    bool waiting_for_motion_ = false;
+    float motion_baseline_e_ = 0;
 };
 
 Capture &capture();
+Score nominal_pressure_reference(const Score &measured, float low_mm_s, float high_mm_s, bool flexible);
 void record_loadcell_sample(uint32_t time_us, float load_g, float e_position_mm);
 
 struct Result {

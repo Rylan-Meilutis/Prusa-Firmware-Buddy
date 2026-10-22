@@ -82,15 +82,19 @@ inline bool is_resuming_state(State state) {
 }
 
 inline bool serial_print_fifo_held(bool serial_job, State state) {
-    return serial_job && (is_pausing_state(state) || state == State::Paused || is_resuming_state(state) || state == State::Resuming_ExecutingGCodeInterrupt);
+    return serial_job && (is_pausing_state(state) || state == State::Paused || is_resuming_state(state) || state == State::Resuming_ExecutingGCodeInterrupt || state == State::CrashRecovery_Begin || state == State::CrashRecovery_Retracting || state == State::CrashRecovery_Lifting || state == State::CrashRecovery_XY_Measure || state == State::CrashRecovery_XY_HOME || state == State::CrashRecovery_HOMEFAIL || state == State::CrashRecovery_Axis_NOK || state == State::CrashRecovery_Repeated_Crash);
 }
 
 inline const char *serial_pause_phase(State state) {
     if (is_pausing_state(state)) {
         return "pausing";
     }
-    if (state == State::Paused) {
+    if (state == State::Paused || state == State::CrashRecovery_Repeated_Crash
+        || state == State::CrashRecovery_HOMEFAIL || state == State::CrashRecovery_Axis_NOK) {
         return "paused";
+    }
+    if (serial_print_fifo_held(true, state) && !is_pausing_state(state)) {
+        return "resuming";
     }
     if (is_resuming_state(state) || state == State::Resuming_ExecutingGCodeInterrupt) {
         return "resuming";

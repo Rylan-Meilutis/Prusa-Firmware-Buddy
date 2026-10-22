@@ -10,6 +10,7 @@
 
     #include "../../module/planner.h"
     #include "crash_recovery_counters.hpp"
+    #include <interrupt_disabler.hpp>
 
     /// sanity check
     #if DISABLED(SENSORLESS_HOMING)
@@ -110,6 +111,7 @@ public:
     using Counter = Crash_s_Counters::Counter;
 
     uint16_t segments_finished;
+    bool has_motion_snapshot = false;
     AxesHomeLevel crash_axes_home_level; /// axis state before crashing
     bool leveling_active; /// state of MBL before crashing
     RecoverFlags recover_flags; /// instruction replay flags before crashing
@@ -187,6 +189,25 @@ public:
 
     /// Return true if crash is currently active
     bool is_active() { return active; }
+
+    /// Main-task-only: conservatively retain checkpoints until physical
+    /// execution discards every corresponding block (not merely lookahead).
+    bool serial_checkpoint_in_flight(uint32_t token) const {
+        buddy::InterruptDisabler guard;
+        if (state != PRINTING) {
+            return true;
+        }
+        // Observe the physical tail and crash state together; a quick-stop ISR
+        // must not clear/discard blocks between these observations.
+        const auto tail = planner.block_buffer_tail;
+        const auto head = planner.block_buffer_head;
+        for (auto index = tail; index != head; index = uint8_t((index + 1) % BLOCK_BUFFER_SIZE)) {
+            if (crash_block[index].sdpos == token) {
+                return true;
+            }
+        }
+        return state != PRINTING;
+    }
 
     /// Return true if trigger() was called (valid saved state is present)
     bool did_trigger() { return state != PRINTING; }

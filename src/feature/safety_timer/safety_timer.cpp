@@ -223,6 +223,14 @@ void SafetyTimer::trigger() {
         has_anything_to_disable |= (Hotend::for_tool(tool).nozzle_target_temp() > 0);
     }
 
+    // Parked tools may retain requested print temperatures even though they
+    // cannot heat (INDX). Clearing those targets is normal pause housekeeping,
+    // not a heater failure requiring user acknowledgement. Use the physical
+    // tool, not a virtual/MMU slot, and snapshot before disabling the heaters.
+    const auto selected_tool = PhysicalToolIndex::currently_selected_opt();
+    const bool nozzle_heating_disabled = selected_tool.has_value()
+        && Hotend::for_tool(*selected_tool).nozzle_target_temp() > 0;
+
     const bool should_activate = marlin_server::is_processing() || marlin_server::is_printing();
     const bool bed_timeout_expired = bed_timer_enabled_ && bed_activity_timer_.state() == utils::TimerState::finished;
 
@@ -240,25 +248,32 @@ void SafetyTimer::trigger() {
         constexpr bool disable_all = true;
 #endif
 
-        if (disable_all && bed_timeout_expired) {
-            has_anything_to_disable |= (Temperature::degTargetBed() > 0);
-        }
+        const bool bed_heating_disabled = disable_all && bed_timeout_expired && Temperature::degTargetBed() > 0;
+        has_anything_to_disable |= bed_heating_disabled;
 
         if (has_anything_to_disable) {
 #ifdef ACTION_ON_SAFETY_TIMER_EXPIRED
-            host_action_safety_timer_expired();
+            if (nozzle_heating_disabled || bed_heating_disabled) {
+                host_action_safety_timer_expired();
+            }
 #endif
 
             if (disable_all && bed_timeout_expired) {
                 Temperature::disable_all_heaters();
 #if HAS_HUMAN_INTERACTIONS()
-                marlin_server::set_warning(WarningType::HeatersTimeout);
+                if (bed_heating_disabled) {
+                    marlin_server::set_warning(WarningType::HeatersTimeout);
+                } else if (nozzle_heating_disabled) {
+                    marlin_server::set_warning(WarningType::NozzleTimeout);
+                }
 #endif
                 bed_activity_timer_.stop();
             } else {
                 Temperature::disable_hotend();
 #if HAS_HUMAN_INTERACTIONS()
-                marlin_server::set_warning(WarningType::NozzleTimeout);
+                if (nozzle_heating_disabled) {
+                    marlin_server::set_warning(WarningType::NozzleTimeout);
+                }
 #endif
             }
             activity_timer_.stop();
@@ -285,13 +300,17 @@ void SafetyTimer::trigger() {
     }
 
 #ifdef ACTION_ON_SAFETY_TIMER_EXPIRED
-    host_action_safety_timer_expired();
+    if (nozzle_heating_disabled) {
+        host_action_safety_timer_expired();
+    }
 #endif
 
     Temperature::disable_hotend();
     clear_temp_to_display();
 #if HAS_HUMAN_INTERACTIONS()
-    marlin_server::set_warning(WarningType::NozzleTimeout);
+    if (nozzle_heating_disabled) {
+        marlin_server::set_warning(WarningType::NozzleTimeout);
+    }
 #endif
 }
 

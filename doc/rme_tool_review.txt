@@ -1,0 +1,56 @@
+RME serial tool mapping and fallback review
+==========================================
+
+Firmware advertises tool_review=1 in RME_SESSION when both native tool mapping
+and spool join are supported. The plugin holds the serial job before sending
+any job G-code. It supplies used-tool/material metadata and opens the existing
+printer mapping screen, including that screen's spool-join chain editor.
+
+The transaction is scoped to a nonzero, positive 31-bit job ID:
+  @RME REVIEW BEGIN id=123 mapping=0,1,2,3,4,5,6,7 enabled=1
+  @RME REVIEW TOOL id=123 logical=0 material=ASA
+  @RME REVIEW SHOW id=123
+
+BEGIN is idle-only, requires an active RME lease, and refuses other live FSMs,
+serial prints, and a different active review. TOOL is accepted only during
+metadata loading, bounded by GcodeToolIndex::count and firmware filament name
+capacity. SHOW requires at least one used tool. Metadata cannot change under
+the displayed screen. Existing TOOLMAP and SPOOLJOIN service commands configure
+web selections; the native screen edits the same mapper and join configuration.
+The initial full mapping (one digit per tool, firmware tool-count dependent) and
+join reset happen only on a new accepted BEGIN. Retrying the manifest with the
+same ID is non-destructive. A blocked BEGIN is retried after QUERY shows no
+other active review; the web confirmation button stays disabled until editing
+is acknowledged. Another printer dialog must first finish or be dismissed.
+
+LCD Print and web REVIEW SUBMIT both close the native screen and publish:
+  RME_REVIEW id=123 state=submitted revision=... enabled=1 mapping=... joins=...
+
+The plugin validates used primary materials and every fallback chain against
+the loaded inventory. It rejects shared/cyclic/unattached chains and wrong or
+unloaded materials. Unassigned unused native slots are normalized to remaining
+host-only mapping rows, without duplicating primaries.
+
+Only REVIEW COMMIT with the matching ID and current configuration fingerprint
+may complete the transaction. The plugin releases the print hold only after a
+matching complete record for a revision it validated. REVIEW REJECT restores
+editing and displays a printer-side rejection explanation. LCD Abort, REVIEW
+CANCEL, a closed/expired lease, or leaving idle cancels the review. Terminal IDs
+cannot be reopened by duplicate BEGIN/SHOW/SUBMIT frames. QUERY can recover a
+lost submission or completion record. This is not a cryptographic protocol.
+
+The plugin keeps review ownership through nested filament dialogs, prevents
+background Ok/none records from deleting it, and latches completion through
+the late asynchronous PrintStarted event. Browser popup identity is job-scoped,
+not dependent on a late filename. Confirmation from either UI closes both.
+
+Older firmware and jobs without usable bounded material metadata retain the
+existing host-only review. Native review has no automatic acceptance timeout.
+No extra motion, automatic homing, sensor policy, or collision-detection enable
+is introduced by the review protocol. The separate collision-recovery path
+still requires supported native stall monitoring and explicit user consent.
+
+Validation: production service/tick extraction with ASan/UBSan fault injection,
+plugin transaction and UI regressions, firmware builds, MMU/Modbus regressions,
+and the INDX runtime heap-floor check. These are host/build checks, not a claim
+of physical printer or LCD hardware validation.
