@@ -74,7 +74,8 @@ std::optional<FilamentType> FilamentType::from_gcode_param(const std::string_vie
 }
 
 bool FilamentType::matches(const std::string_view &name) const {
-    return parameters().name == name;
+    const auto params = parameters();
+    return params.name == name || buddy::filament_material::matches(name, std::string_view(filament_material_name(params).data()));
 }
 
 void FilamentType::build_name_with_info(std::string_view filament_name, StringBuilder &builder) const {

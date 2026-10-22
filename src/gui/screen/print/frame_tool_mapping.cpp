@@ -17,6 +17,7 @@
 #include <fsm/print_preview_phases.hpp>
 #include <multi_filament_change.hpp>
 #include <screen_menu_filament_changeall.hpp>
+#include <filament_color.hpp>
 #include <option/has_mmu2.h>
 #include <bsod/bsod.h>
 
@@ -241,8 +242,8 @@ void ColumnItem::printExtension(Rect16 extension_rect, Color color_text, Color c
         data = Data {
             .tool_name = virtual_tool->compact_display_name(tool_name_buf),
             .nozzle_diameter = CompactOptional<float, NAN> { config_store().get_nozzle_diameter(physical_tool) },
-            .filament_name = config_store().get_filament_type(*virtual_tool).parameters().name,
-            .color = std::nullopt, // TODO: Support loaded filament colors
+            .filament_name = filament_material_name(config_store().get_filament_type(*virtual_tool).parameters()),
+            .color = filament_color::loaded(virtual_tool->to_raw()),
         };
         break;
     }
