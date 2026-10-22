@@ -182,6 +182,7 @@ int main() {
 #include <vector>
 #define HAS_INDX() INDX
 #define SERIAL_ERROR_MSG(...) ((void)0)
+#define SERIAL_ECHOLN(...) ((void)0)
 namespace buddy::extrusion_calibration { constexpr size_t max_logical_filaments=8; }
 buddy::m976_diagnostics::History pa_diagnostics;
 std::vector<std::tuple<int,int>> visited;
@@ -263,6 +264,7 @@ int main() {
 #include <cmath>
 #define HAS_INDX() 1
 #define SERIAL_ERROR_MSG(...) ((void)0)
+#define SERIAL_ECHOLN(...) ((void)0)
 constexpr float filament_area=2.40528f;
 buddy::m976_diagnostics::History pa_diagnostics;
 struct ElapsedTime { explicit ElapsedTime(uint32_t &) {} };
@@ -275,6 +277,7 @@ struct Capture {
  bool start() { capturing=start_ok; return start_ok; }
  void pause() { capturing=false; }
  void resume() { capturing=true; }
+ void resume_on_motion(float) { capturing=true; }
  void stop() { capturing=false; }
  void release() { ++releases; }
  Score score(bool) { return {}; }
@@ -287,12 +290,14 @@ Config get_axis_e_config() { return {}; }
 void set_axis_e_config(Config) {}
 void set_calibration_mode(bool) {}
 }
-struct { bool stopped=false; bool draining() { return stopped; } void synchronize() {} } planner;
+struct { bool stopped=false; bool draining() { return stopped; } void synchronize() {} float get_axis_position_mm(int) {return 0;} } planner;
+#define E_AXIS 0
 namespace nozzle_cleaner {
 enum class Sequence { pa_calibration_extrusion_position };
 bool load_and_execute(Sequence) { assert(!capturing); return clean_calls++ != fail_clean; }
 }
 bool flexible_calibration(uint8_t) { return flexible; }
+auto measurement_speeds(uint8_t) {return buddy::m976_extrusion_policy::speeds(flexible);}
 void extrude_flow(float, float) { assert(capturing); ++extrusions; }
 bool eject_accumulated_indx_pellet(buddy::m976_indx_pellet_policy::Budget &budget, uint8_t) {
  assert(!capturing);

@@ -11,6 +11,7 @@
 #include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include <rme_host_progress.hpp>
+#include <rme_passive_command.hpp>
 
 static rme_host_progress::State rme_progress;
 #include <option/has_side_leds.h>
@@ -34,46 +35,98 @@ int8_t SerialPrinting::last_status_progress = -1;
 
 namespace {
 const char *classify_workflow(const char *message) {
-    if (strstr(message, "MMU")) return "mmu";
-    if (strstr(message, "loading filament") || strstr(message, "Loading filament")) return "filament_load";
-    if (strstr(message, "unloading filament") || strstr(message, "Unloading filament")) return "filament_unload";
-    if (strstr(message, "vent") || strstr(message, "Vent")) return "chamber_vent";
-    if (strstr(message, "filter") || strstr(message, "Filter")) return "filtration";
-    if (strstr(message, "Tool change") || strstr(message, "tool change")) return "tool_change";
-    if (strstr(message, "Filament runout") || strstr(message, "filament runout")) return "filament_runout";
-    if (strstr(message, "stuck") || strstr(message, "Stuck")) return "stuck_filament";
-    if (strstr(message, "Pressure") || strstr(message, "PA calibration")) return "pressure_advance";
-    if (strstr(message, "Probing") || strstr(message, "probe")) return "probing";
-    if (strstr(message, "Heating") || strstr(message, "heat soaking")) return "heating";
-    if (strstr(message, "firmware") || strstr(message, "Firmware")) return "firmware_update";
-    if (strstr(message, "bucket") || strstr(message, "waste")) return "waste_bin";
+    if (strstr(message, "MMU")) {
+        return "mmu";
+    }
+    if (strstr(message, "loading filament") || strstr(message, "Loading filament")) {
+        return "filament_load";
+    }
+    if (strstr(message, "unloading filament") || strstr(message, "Unloading filament")) {
+        return "filament_unload";
+    }
+    if (strstr(message, "vent") || strstr(message, "Vent")) {
+        return "chamber_vent";
+    }
+    if (strstr(message, "filter") || strstr(message, "Filter")) {
+        return "filtration";
+    }
+    if (strstr(message, "Tool change") || strstr(message, "tool change")) {
+        return "tool_change";
+    }
+    if (strstr(message, "Filament runout") || strstr(message, "filament runout")) {
+        return "filament_runout";
+    }
+    if (strstr(message, "stuck") || strstr(message, "Stuck")) {
+        return "stuck_filament";
+    }
+    if (strstr(message, "Pressure") || strstr(message, "PA calibration")) {
+        return "pressure_advance";
+    }
+    if (strstr(message, "Probing") || strstr(message, "probe")) {
+        return "probing";
+    }
+    if (strstr(message, "Heating") || strstr(message, "heat soaking")) {
+        return "heating";
+    }
+    if (strstr(message, "firmware") || strstr(message, "Firmware")) {
+        return "firmware_update";
+    }
+    if (strstr(message, "bucket") || strstr(message, "waste")) {
+        return "waste_bin";
+    }
     return "printer";
 }
 
 const char *rme_device_state() {
     switch (printer_state::get_state(false)) {
-    case printer_state::DeviceState::Idle: return "idle";
-    case printer_state::DeviceState::Printing: return "printing";
-    case printer_state::DeviceState::Paused: return "paused";
-    case printer_state::DeviceState::Finished: return "finished";
-    case printer_state::DeviceState::Stopped: return "stopped";
-    case printer_state::DeviceState::Ready: return "ready";
-    case printer_state::DeviceState::Busy: return "busy";
-    case printer_state::DeviceState::Attention: return "attention";
-    case printer_state::DeviceState::Error: return "error";
-    case printer_state::DeviceState::Unknown: return "unknown";
+    case printer_state::DeviceState::Idle:
+        return "idle";
+    case printer_state::DeviceState::Printing:
+        return "printing";
+    case printer_state::DeviceState::Paused:
+        return "paused";
+    case printer_state::DeviceState::Finished:
+        return "finished";
+    case printer_state::DeviceState::Stopped:
+        return "stopped";
+    case printer_state::DeviceState::Ready:
+        return "ready";
+    case printer_state::DeviceState::Busy:
+        return "busy";
+    case printer_state::DeviceState::Attention:
+        return "attention";
+    case printer_state::DeviceState::Error:
+        return "error";
+    case printer_state::DeviceState::Unknown:
+        return "unknown";
     }
     return "unknown";
 }
 
 void emit_rme_event(const char *type, const char *workflow, const char *state, const char *code, const char *message, int progress) {
-    SERIAL_ECHOPGM("RME_EVENT seq="); SERIAL_ECHO(serial_remote_control::next_event_sequence());
-    SERIAL_ECHOPGM(" type="); SERIAL_ECHO(type);
-    SERIAL_ECHOPGM(" workflow="); SERIAL_ECHO(workflow ? workflow : "printer");
-    if (state) { SERIAL_ECHOPGM(" state="); SERIAL_ECHO(state); }
-    if (code) { SERIAL_ECHOPGM(" code="); SERIAL_ECHO(code); }
-    if (progress >= 0) { SERIAL_ECHOPGM(" progress="); SERIAL_ECHO(progress); }
-    if (message) { SERIAL_ECHOPGM(" message=\""); SERIAL_ECHO(message); SERIAL_CHAR('"'); }
+    SERIAL_ECHOPGM("RME_EVENT seq=");
+    SERIAL_ECHO(serial_remote_control::next_event_sequence());
+    SERIAL_ECHOPGM(" type=");
+    SERIAL_ECHO(type);
+    SERIAL_ECHOPGM(" workflow=");
+    SERIAL_ECHO(workflow ? workflow : "printer");
+    if (state) {
+        SERIAL_ECHOPGM(" state=");
+        SERIAL_ECHO(state);
+    }
+    if (code) {
+        SERIAL_ECHOPGM(" code=");
+        SERIAL_ECHO(code);
+    }
+    if (progress >= 0) {
+        SERIAL_ECHOPGM(" progress=");
+        SERIAL_ECHO(progress);
+    }
+    if (message) {
+        SERIAL_ECHOPGM(" message=\"");
+        SERIAL_ECHO(message);
+        SERIAL_CHAR('"');
+    }
     SERIAL_EOL();
 }
 } // namespace
@@ -129,31 +182,45 @@ void SerialPrinting::notify_status(const char *message, int progress_percent, bo
 }
 
 void SerialPrinting::notify_error(const char *workflow, const char *code, const char *message) {
-    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::error))
+    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::error)) {
         emit_rme_event("error", workflow, "waiting", code, message, -1);
+    }
     if (marlin_server::serial_print_active() && serial_remote_control::legacy_notifications_enabled()) {
-        SERIAL_ECHOPGM("//action:notification "); SERIAL_ECHOLN(message);
+        SERIAL_ECHOPGM("//action:notification ");
+        SERIAL_ECHOLN(message);
     }
 }
 
 void SerialPrinting::notify_progress(const char *workflow, const char *state, const char *code, const char *message, const int progress_percent) {
-    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::progress))
+    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::progress)) {
         emit_rme_event("progress", workflow, state, code, message, std::clamp(progress_percent, 0, 100));
+    }
 }
 
 void SerialPrinting::notify_workflow(const char *workflow, const char *state, const char *message, const int progress_percent) {
-    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::workflow))
+    if (serial_remote_control::subscribed(serial_remote_control::EventSubscription::workflow)) {
         emit_rme_event("workflow", workflow, state, nullptr, message, progress_percent);
+    }
 }
 
 void SerialPrinting::notify_configuration(const char *domain, const char *key, const bool from_host, const uint32_t transaction) {
-    if (!serial_remote_control::subscribed(serial_remote_control::EventSubscription::configuration)) return;
-    SERIAL_ECHOPGM("RME_CHANGE seq="); SERIAL_ECHO(serial_remote_control::next_event_sequence());
-    SERIAL_ECHOPGM(" revision="); SERIAL_ECHO(serial_remote_control::next_configuration_revision());
-    SERIAL_ECHOPGM(" domain="); SERIAL_ECHO(domain);
-    SERIAL_ECHOPGM(" key="); SERIAL_ECHO(key);
-    SERIAL_ECHOPGM(" origin="); SERIAL_ECHO(from_host ? "host" : "local");
-    if (transaction) { SERIAL_ECHOPGM(" tx="); SERIAL_ECHO(transaction); }
+    if (!serial_remote_control::subscribed(serial_remote_control::EventSubscription::configuration)) {
+        return;
+    }
+    SERIAL_ECHOPGM("RME_CHANGE seq=");
+    SERIAL_ECHO(serial_remote_control::next_event_sequence());
+    SERIAL_ECHOPGM(" revision=");
+    SERIAL_ECHO(serial_remote_control::next_configuration_revision());
+    SERIAL_ECHOPGM(" domain=");
+    SERIAL_ECHO(domain);
+    SERIAL_ECHOPGM(" key=");
+    SERIAL_ECHO(key);
+    SERIAL_ECHOPGM(" origin=");
+    SERIAL_ECHO(from_host ? "host" : "local");
+    if (transaction) {
+        SERIAL_ECHOPGM(" tx=");
+        SERIAL_ECHO(transaction);
+    }
     SERIAL_EOL();
 }
 
@@ -720,24 +787,7 @@ bool SerialPrinting::serial_command_hook(const char *command) {
     // those would immediately cancel RME Off on the next G1. Passive status
     // traffic must not keep the LEDs awake forever either.
     if (rme_light_mode::serial_commands_wake_lights(marlin_server::serial_print_active())
-        && command[0] != '\0'
-        && command[0] != ';'
-        // RME service traffic is out-of-band machine synchronization. Session
-        // keepalives and queries must not look like physical user activity or
-        // a connected host will keep the chamber LEDs awake forever.
-        && command[0] != '@'
-        && !command_starts_with(command, 'M', 27)
-        && !command_starts_with(command, 'M', 73)
-        && !command_starts_with(command, 'M', 105)
-        && !command_starts_with(command, 'M', 114)
-        && !command_starts_with(command, 'M', 115)
-        && !command_starts_with(command, 'M', 117)
-        && !command_starts_with(command, 'M', 153)
-        && !command_starts_with(command, 'M', 155)
-        // M865 is the legacy-compatible RME filament metadata service. Hosts
-        // may query it periodically while idle, so it must behave like the
-        // out-of-band @RME synchronization commands above.
-        && !command_starts_with(command, 'M', 865)) {
+        && !rme_passive_command::keeps_idle(command)) {
         leds::SideStripHandler::instance().activity_ping();
     }
 #endif

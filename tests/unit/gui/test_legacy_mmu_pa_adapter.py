@@ -10,8 +10,10 @@ ROOT = Path(__file__).resolve().parents[3]
 
 @unittest.skipUnless(shutil.which("c++"), "C++ compiler required")
 class LegacyMmuPaAdapter(unittest.TestCase):
+
     def test_only_loaded_filament_tracks_print_temperature(self):
-        source = (ROOT / "lib/Marlin/Marlin/src/module/tool_change.cpp").read_text()
+        source = (ROOT /
+                  "lib/Marlin/Marlin/src/module/tool_change.cpp").read_text()
         adapter = "static uint8_t pa_loaded_slot()" + source.split(
             "static uint8_t pa_loaded_slot()", 1)[1].split(
                 "\n#endif\n\n#include <option/has_toolchanger.h>", 1)[0]
@@ -86,9 +88,14 @@ int main() {
             path = Path(directory)
             (path / "adapter.cpp").write_text(stubs + adapter + main)
             subprocess.run([
-                "c++", "-std=c++20", "-I", str(ROOT / "src/common"),
+                "c++", "-std=c++20", "-I",
+                str(ROOT / "tests/unit/common/extrusion_calibration/stubs"),
+                "-I",
+                str(ROOT / "src/common"),
                 str(path / "adapter.cpp"),
                 str(ROOT / "src/common/feature/extrusion_calibration.cpp"),
-                "-o", str(path / "adapter")
-            ], check=True)
+                "-o",
+                str(path / "adapter")
+            ],
+                           check=True)
             subprocess.run([str(path / "adapter")], check=True)

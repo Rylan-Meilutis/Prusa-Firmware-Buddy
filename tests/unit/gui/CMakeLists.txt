@@ -1,6 +1,20 @@
 # All these tests need buddy_utils
 link_libraries(buddy_utils)
 
+add_test(NAME passive_diagnostics COMMAND "${Python3_EXECUTABLE}"
+                                          "${CMAKE_CURRENT_SOURCE_DIR}/test_passive_diagnostics.py"
+         )
+add_test(NAME m976_capture_timing COMMAND "${Python3_EXECUTABLE}"
+                                          "${CMAKE_CURRENT_SOURCE_DIR}/test_m976_capture_timing.py"
+         )
+add_test(NAME safety_timer_warning_faults
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_safety_timer_warning.py"
+         )
+set_tests_properties(
+  passive_diagnostics m976_capture_timing safety_timer_warning_faults
+  PROPERTIES LABELS "rme;pa;fault-injection" TIMEOUT 120
+  )
+
 add_test(NAME firmware_cleanup_recovery_faults
          COMMAND "${Python3_EXECUTABLE}" -m unittest discover -s "${CMAKE_CURRENT_SOURCE_DIR}" -p
                  "test_firmware*py"

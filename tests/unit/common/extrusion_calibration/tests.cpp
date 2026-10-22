@@ -5,6 +5,78 @@
 #include <pa_calibration_cache_storage.hpp>
 #include <cstdlib>
 #include <cmath>
+#include <m976_extrusion_policy.hpp>
+#include <thread>
+#include <atomic>
+
+TEST_CASE("Capture motion gate excludes queue waits but retains stationary noise captures") {
+    using namespace buddy::extrusion_calibration;
+    auto &buffer = capture();
+    REQUIRE(buffer.start());
+    buffer.pause();
+    buffer.resume_on_motion(5);
+    for (unsigned i = 0; i < 10000; ++i) {
+        buffer.record(i, 0, 5);
+    }
+    REQUIRE(buffer.size() == 0);
+    for (unsigned i = 0; i < 100; ++i) {
+        buffer.record(10000 + i, 1, 5 + .01f * (i + 1));
+    }
+    REQUIRE(buffer.stop() == 100);
+    buffer.release();
+    REQUIRE(buffer.start());
+    for (unsigned i = 0; i < 100; ++i) {
+        buffer.record(i, i % 2 ? 1 : -1, 0);
+    }
+    REQUIRE(buffer.stop() == 100);
+    REQUIRE(buffer.noise_floor() > 0);
+    buffer.release();
+}
+
+TEST_CASE("Capture producer cannot use released buffers across repeated jobs") {
+    using namespace buddy::extrusion_calibration;
+    auto &buffer = capture();
+    std::atomic_bool running { true };
+    std::thread producer([&] {
+        unsigned time = 0;
+        while (running.load()) {
+            ++time;
+            buffer.record(time, 1, time * .01f);
+        }
+    });
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        REQUIRE(buffer.start());
+        buffer.pause();
+        buffer.resume_on_motion(0);
+        buffer.stop();
+        buffer.release();
+    }
+    running.store(false);
+    producer.join();
+    REQUIRE(buffer.size() == 0);
+}
+
+TEST_CASE("Retained extrusion limits preserve capture time and monitor reference units") {
+    using namespace buddy::m976_extrusion_policy;
+    for (const float cap : { 2.f, 4.f, 5.f, 8.f, 100.f }) {
+        const auto bounded = bounded_speeds(false, cap);
+        REQUIRE(bounded.high_mm_s <= cap);
+        REQUIRE(bounded.high_mm_s > bounded.low_mm_s);
+        buddy::extrusion_calibration::Score measured;
+        measured.valid = true;
+        measured.low_load = 3 + 10 * bounded.low_mm_s;
+        measured.high_load = 3 + 10 * bounded.high_mm_s;
+        measured.noise = .25f;
+        const auto reference = buddy::extrusion_calibration::nominal_pressure_reference(measured, bounded.low_mm_s, bounded.high_mm_s, false);
+        REQUIRE(reference.valid);
+        REQUIRE(reference.low_load == 11.f);
+        REQUIRE(std::abs(reference.high_load - 83.f) < .0001f);
+        REQUIRE(reference.noise == .25f);
+    }
+    REQUIRE(bounded_speeds(false, 0).high_mm_s == 0);
+    REQUIRE(bounded_speeds(false, NAN).high_mm_s == 0);
+    REQUIRE(bounded_speeds(true, 100).high_mm_s == 1.f);
+}
 
 TEST_CASE("Temperature PA regression is bounded and single-point jobs stay single") {
     using namespace buddy::pa_temperature;

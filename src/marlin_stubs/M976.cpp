@@ -934,7 +934,9 @@ bool run_batch(const std::array<BatchEntry, buddy::extrusion_calibration::max_lo
         // is a G-code/virtual tool selection and can be remapped while a job is
         // active, causing the wrong dock to be visited.  Select the validated
         // physical tool directly and do not cycle a tool that is already held.
-        if (active_extruder != requested_tool) tool_change(requested_tool, tool_return_t::no_return);
+        if (active_extruder != requested_tool) {
+            tool_change(requested_tool, tool_return_t::no_return);
+        }
         if (active_extruder != requested_tool) {
             batch_diagnostic.reason = "tool_pickup_failed";
             return false;
@@ -1049,11 +1051,26 @@ bool eject_accumulated_indx_pellet(buddy::m976_indx_pellet_policy::Budget &pelle
 }
 #endif
 
+buddy::m976_extrusion_policy::Speeds measurement_speeds(const uint8_t slot) {
+    float maximum = planner.settings.max_feedrate_mm_s[E_AXIS_N(active_extruder)];
+    // Also bound acceleration/deceleration time per plateau. Very soft saved
+    // E acceleration settings must not stretch four cycles into a long capture.
+    maximum = std::min(maximum, float(planner.settings.max_acceleration_mm_per_s2[E_AXIS_N(active_extruder)]) * 0.08f);
+    if (active_extruder < EXTRUDERS) {
+        maximum = std::min(maximum, planner.max_volumetric_flow_mm3_s[active_extruder] / filament_area);
+    }
+    return buddy::m976_extrusion_policy::bounded_speeds(flexible_calibration(slot), maximum);
+}
+
 buddy::extrusion_calibration::Score run_bursts(const float pa, buddy::m976_indx_pellet_policy::Budget &pellet, bool &position_ready, const uint8_t slot) {
     auto &usage = pa_diagnostics.records[slot];
     ElapsedTime measurement_time(usage.measurement_ms);
     ++usage.measurements;
-    const auto speeds = buddy::m976_extrusion_policy::speeds(flexible_calibration(slot));
+    const auto speeds = measurement_speeds(slot);
+    if (!(speeds.high_mm_s > speeds.low_mm_s && speeds.low_mm_s > 0)) {
+        SERIAL_ECHOLN("PA_CALIBRATION measurement rejected reason=extrusion_speed_limit");
+        return {};
+    }
     const float slow_flow = speeds.low_mm_s * filament_area;
     const float fast_flow = speeds.high_mm_s * filament_area;
     const float cycle_mm = speeds.high_mm_s * 0.25f + speeds.low_mm_s * 0.5f;
@@ -1063,13 +1080,14 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, buddy::m976_indx_
         SERIAL_ERROR_MSG("M976 capture memory unavailable");
         return {};
     }
-#if HAS_INDX()
     capture.pause();
+#if HAS_INDX()
 #else
     (void)slot;
     (void)position_ready;
     (void)pellet;
     pressure_advance::set_calibration_mode(true);
+    capture.resume_on_motion(planner.get_axis_position_mm(E_AXIS));
 #endif
     // Four cycles preserve enough independent transitions for the scorer's
     // rejection margin. A 0.5 s slow plateau still greatly exceeds the
@@ -1096,7 +1114,7 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, buddy::m976_indx_
             return {};
         }
         position_ready = true;
-        capture.resume();
+        capture.resume_on_motion(planner.get_axis_position_mm(E_AXIS));
         pressure_advance::set_calibration_mode(true);
         extrude_flow(fast_flow, 0.25f);
         extrude_flow(slow_flow, 0.5f);
@@ -1955,7 +1973,9 @@ void PrusaGcodeSuite::M976() {
     }
 
     const float max_flow = material_flow_limit(slot);
-    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, best_score, flexible_calibration(slot), target_temperature };
+    const auto actual_speeds = measurement_speeds(slot);
+    const auto reference = buddy::extrusion_calibration::nominal_pressure_reference(best_score, actual_speeds.low_mm_s, actual_speeds.high_mm_s, flexible_calibration(slot));
+    const buddy::extrusion_calibration::Result result { best_pa, max_flow, confidence, true, reference, flexible_calibration(slot), target_temperature };
     diagnostic.outcome = "success";
     diagnostic.reason = "accepted";
     diagnostic.pa = best_pa;
