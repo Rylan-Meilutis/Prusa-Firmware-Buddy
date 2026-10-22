@@ -1,4 +1,5 @@
 #include "filament.hpp"
+#include "filament_material.hpp"
 #include "filament_list.hpp"
 #include "filament_eeprom.hpp"
 
@@ -257,7 +258,8 @@ std::optional<FilamentType> FilamentType::from_gcode_param(const std::string_vie
 }
 
 bool FilamentType::matches(const std::string_view &name) const {
-    return parameters().name.data() == name;
+    const auto params = parameters();
+    return std::string_view(params.name.data()) == name || buddy::filament_material::matches(name, std::string_view(filament_material_name(params).data()));
 }
 
 void FilamentType::build_name_with_info(StringBuilder &builder) const {

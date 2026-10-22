@@ -1,0 +1,32 @@
+Loaded filament review corrections -- 2026-10-22
+================================================
+
+Printer-side approval in the supplied trace succeeds: REVIEW transitions
+editing -> submitted -> complete on the same ID/revision, then the actual
+file starts and reaches G28. This is distinct from the previously fixed
+late-review/printer_busy failure. Do not remove the native review commit
+gate or allow remapping an already-started serial print.
+
+The web frontend could retain incompatible mapping drafts across different
+jobs with the same tool count. Companion plugin b145 resets drafts by job
+identity, retains them during updates to that same job, and explains any
+remaining material/native-readiness reason for disabled approval. A real
+Knockout button regression reproduces stale drafts against b144, then checks
+ASA/TPU approval and loading/editing/submitted states against b145.
+
+The firmware compatibility check compared TPU literally with FLEX, despite
+both being explicit family aliases in host mapping. Compare canonical family
+names, without stripping specialty-grade or profile suffixes. Profile matching
+retains exact saved-profile identity as well as explicit inherited material.
+Never infer a polymer merely from an arbitrary profile's prefix.
+
+The printer mapping screen used the saved profile name for its loaded column
+and explicitly left loaded colors unset. Show authoritative material names
+and stored loaded colors, including valid black and white. Footer loaded
+material labels use the same family name. Saved profile identities remain
+unchanged for persistence, filament configuration and PA cache keys.
+
+Validation includes production-row selection, black/white/blue/unknown colors,
+explicit TPU/FLEX/TPE aliases, custom profiles with and without inherited
+material, and rejection of mismatched/specialty materials. Hardware validation
+remains pending.

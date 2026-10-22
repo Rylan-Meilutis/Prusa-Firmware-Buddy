@@ -12,6 +12,7 @@
 #include "timing.h"
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "filament.hpp"
+#include "filament_material.hpp"
 #include "M70X.hpp"
 #include <option/developer_mode.h>
 #include "printers.h"
@@ -257,7 +258,8 @@ bool PrintPreview::check_correct_filament_type(uint8_t physical_extruder, uint8_
     const FilamentTypeParameters loaded_filament_params = loaded_filament_type.parameters();
 
     // when filament type not known, return that filament type is OK
-    return strcmp(extruder_info.filament_name->data(), "---") == 0 || strcmp(extruder_info.filament_name->data(), loaded_filament_params.name.data()) == 0;
+    return strcmp(extruder_info.filament_name->data(), "---") == 0
+        || buddy::filament_material::matches(extruder_info.filament_name->data(), filament_material_name(loaded_filament_params).data());
 }
 
 static bool check_correct_filament_type_tools_mapping(uint8_t physical_extruder) {

@@ -7,6 +7,8 @@
 #include <raii/auto_restore.hpp>
 #include <ScreenHandler.hpp>
 #include <screen_menu_filament_changeall.hpp>
+#include <filament_color.hpp>
+#include <filament_color_gui.hpp>
 #include <img_resources.hpp>
 #include <marlin_print_preview.hpp>
 #include <utility_extensions.hpp>
@@ -148,7 +150,7 @@ void print_right_tool_into_buffer(size_t idx, std::array<std::array<char, ToolsM
     // IDX here means REAL
 
     const FilamentType loaded_filament_type = config_store().get_filament_type(idx);
-    FilamentTypeParameters::Name loaded_filament_name = loaded_filament_type.parameters().name;
+    FilamentTypeParameters::Name loaded_filament_name = filament_material_name(loaded_filament_type.parameters());
 
 #if HAS_MMU2()
     static constexpr std::array unknown_filament_names = {
@@ -530,8 +532,18 @@ void ToolsMappingBody::Draw() {
     for (auto &left_fil : left_gcode_texts) {
         left_fil.Draw();
     }
-    for (auto &right_tool : right_phys_texts) {
+    for (size_t real = 0; real < right_phys_texts.size(); ++real) {
+        auto &right_tool = right_phys_texts[real];
         right_tool.Draw();
+        if (right_tool.IsVisible()) {
+            auto rect = right_tool.GetRect();
+            rect = Rect16::Left_t { static_cast<int16_t>(rect.Right() - 24) };
+            rect = Rect16::Width_t { 24 };
+            display::fill_rect(rect, right_tool.GetBackColor());
+            if (const auto color = filament_color::loaded(real)) {
+                filament_color_gui::draw_swatch(rect, *color, right_tool.GetBackColor());
+            }
+        }
     }
     for (auto &left_color : left_gcode_colors) {
         left_color.Draw();
