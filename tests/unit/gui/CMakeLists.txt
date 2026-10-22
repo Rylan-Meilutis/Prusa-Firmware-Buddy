@@ -1,6 +1,14 @@
 # All these tests need buddy_utils
 link_libraries(buddy_utils)
 
+add_test(NAME heater_timeout_lighting
+         COMMAND "${Python3_EXECUTABLE}"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/test_heater_timeout_lighting.py"
+         )
+set_tests_properties(
+  heater_timeout_lighting PROPERTIES LABELS "heaters;lighting;fault-injection" TIMEOUT 120
+  )
+
 add_test(NAME passive_diagnostics COMMAND "${Python3_EXECUTABLE}"
                                           "${CMAKE_CURRENT_SOURCE_DIR}/test_passive_diagnostics.py"
          )
