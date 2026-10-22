@@ -52,6 +52,7 @@
 #include <transfers/monitor.hpp>
 #include <firmware_cleanup_gate.hpp>
 #include <firmware_cleanup_receipt.hpp>
+#include <async_job/async_job.hpp>
 
 #include <option/has_leds.h>
 #if HAS_LEDS()
@@ -4218,58 +4219,66 @@ static void _server_update_vars() {
     // Missing markers receive a slow recheck, not a permanent success latch.
     // Serialize every attempt with other storage producers.
     static firmware_update_handoff::CleanupGate firmware_cleanup_gate;
-    if (firmware_cleanup_gate.should_check(media, transfers::Monitor::instance.id().has_value(), ticks_ms())) {
-        // A UI-selected or serial-staged BBF is copied/uploaded to the shared
-        // short bootloader-safe filename. Consume it after the application
-        // returns from the requested bootloader attempt. This must not depend
-        // on an insertion edge: after an update the USB drive is commonly
-        // already present when Marlin starts observing media state.
-        auto cleanup_slot = transfers::Monitor::instance.allocate(
-            transfers::Monitor::Type::Link, "/usb/FWUPD.UI", 0);
-        if (cleanup_slot) {
-            bool cleanup_complete = false;
-            struct stat marker {};
-            errno = 0;
-            const bool marker_present = stat("/usb/FWUPD.UI", &marker) == 0;
-            const bool primary_missing = !marker_present && errno == ENOENT;
-            const auto receipt = firmware_update_handoff::cleanup_receipt_state();
-            const bool marker_missing = primary_missing && receipt == firmware_update_handoff::ReceiptState::missing;
-            if (marker_missing) {
-                // A merely staged candidate has no handoff marker: keep it.
-                // Recheck slowly in case the marker becomes visible later.
-                firmware_cleanup_gate.marker_absent();
-            }
-            // The server runs concurrently with M997's pre-reset TX drain.
-            // A visible marker is not a completed bootloader attempt while
-            // the retained request still selects this exact candidate.
-            const bool handoff_authorized = (marker_present && S_ISREG(marker.st_mode))
-                || receipt == firmware_update_handoff::ReceiptState::valid;
-            if (handoff_authorized && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
-                // Keep the marker until the staged image is definitely gone.
+    static AsyncJob firmware_cleanup_job;
+    // FAT unlink walks and writes the entire cluster chain. A slow USB drive
+    // can take longer than the watchdog period even for a single BBF. Keep
+    // all cleanup I/O off Marlin, including stat/receipt reads. Never discard
+    // or reissue a running cleanup: it owns both the gate and transfer slot.
+    // is_active() also synchronizes worker writes before we inspect the gate.
+    if (!firmware_cleanup_job.is_active() && firmware_cleanup_gate.should_check(media, transfers::Monitor::instance.id().has_value(), ticks_ms())) {
+        firmware_cleanup_job.issue([](AsyncJobExecutionControl &) {
+            // A UI-selected or serial-staged BBF is copied/uploaded to the shared
+            // short bootloader-safe filename. Consume it after the application
+            // returns from the requested bootloader attempt. This must not depend
+            // on an insertion edge: after an update the USB drive is commonly
+            // already present when Marlin starts observing media state.
+            auto cleanup_slot = transfers::Monitor::instance.allocate(
+                transfers::Monitor::Type::Link, "/usb/FWUPD.UI", 0);
+            if (cleanup_slot) {
+                bool cleanup_complete = false;
+                struct stat marker {};
                 errno = 0;
-                const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
-                errno = 0;
-                const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
-                if (safe_stage_removed && legacy_stage_removed) {
-                    bool metadata_removed = true;
-                    for (const char *path : { "/usb/FWUPD.RME.rme-verified", "/usb/FWUPD.RME.rme-verified-tmp" }) {
-                        errno = 0;
-                        if (remove(path) != 0 && errno != ENOENT) {
-                            metadata_removed = false;
+                const bool marker_present = stat("/usb/FWUPD.UI", &marker) == 0;
+                const bool primary_missing = !marker_present && errno == ENOENT;
+                const auto receipt = firmware_update_handoff::cleanup_receipt_state();
+                const bool marker_missing = primary_missing && receipt == firmware_update_handoff::ReceiptState::missing;
+                if (marker_missing) {
+                    // A merely staged candidate has no handoff marker: keep it.
+                    // Recheck slowly in case the marker becomes visible later.
+                    firmware_cleanup_gate.marker_absent();
+                }
+                // The server runs concurrently with M997's pre-reset TX drain.
+                // A visible marker is not a completed bootloader attempt while
+                // the retained request still selects this exact candidate.
+                const bool handoff_authorized = (marker_present && S_ISREG(marker.st_mode))
+                    || receipt == firmware_update_handoff::ReceiptState::valid;
+                if (handoff_authorized && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
+                    // Keep the marker until the staged image is definitely gone.
+                    errno = 0;
+                    const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;
+                    errno = 0;
+                    const bool legacy_stage_removed = remove("/usb/FWUPD.BBF") == 0 || errno == ENOENT;
+                    if (safe_stage_removed && legacy_stage_removed) {
+                        bool metadata_removed = true;
+                        for (const char *path : { "/usb/FWUPD.RME.rme-verified", "/usb/FWUPD.RME.rme-verified-tmp" }) {
+                            errno = 0;
+                            if (remove(path) != 0 && errno != ENOENT) {
+                                metadata_removed = false;
+                            }
+                        }
+                        if (metadata_removed) {
+                            errno = 0;
+                            const bool primary_removed = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
+                            cleanup_complete = primary_removed && firmware_update_handoff::remove_cleanup_receipt();
                         }
                     }
-                    if (metadata_removed) {
-                        errno = 0;
-                        const bool primary_removed = remove("/usb/FWUPD.UI") == 0 || errno == ENOENT;
-                        cleanup_complete = primary_removed && firmware_update_handoff::remove_cleanup_receipt();
-                    }
                 }
+                if (cleanup_complete) {
+                    firmware_cleanup_gate.complete();
+                }
+                cleanup_slot->done(cleanup_complete || marker_missing ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
             }
-            if (cleanup_complete) {
-                firmware_cleanup_gate.complete();
-            }
-            cleanup_slot->done(cleanup_complete || marker_missing ? transfers::Monitor::Outcome::Finished : transfers::Monitor::Outcome::ErrorStorage);
-        }
+        });
     }
     if (marlin_vars().media_inserted != media) {
         marlin_vars().media_inserted = media;
