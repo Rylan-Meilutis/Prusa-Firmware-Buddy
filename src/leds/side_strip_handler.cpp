@@ -772,7 +772,10 @@ bool SideStripHandler::deep_idle() const {
 
 LightState SideStripHandler::current_light_state() const {
     std::lock_guard lock(mutex);
-    return light_state_for_strip_state(state);
+    // UI/config changes invalidate the chamber output between LED-manager
+    // updates. Unknown means "recalculate", not a one-frame deep-idle/off
+    // request for the status strip (which would also restart its animation).
+    return state == SideStripState::unknown ? resolved_light_state : light_state_for_strip_state(state);
 }
 
 bool SideStripHandler::chamber_light_on() const {
@@ -810,6 +813,9 @@ bool SideStripHandler::is_dimmed() const {
 }
 
 void SideStripHandler::change_state(SideStripState state) {
+    if (state != SideStripState::unknown) {
+        resolved_light_state = light_state_for_strip_state(state);
+    }
     if (this->state != state) {
         this->state = state;
 
