@@ -148,6 +148,15 @@ public:
      */
     void reset_info();
 
+    // Serial preflight owns this metadata only while the printer is idle and
+    // before publishing the mapping FSM. Never mutate it under a live screen.
+    void set_serial_review_tool(GcodeToolIndex tool, std::string_view material) {
+        auto &info = per_extruder_info[tool];
+        info = {};
+        info.filament_used_g = 1.f; // Used marker, not a print consumption estimate.
+        info.filament_name = material;
+    }
+
     const time_buff &get_printing_time() const { return info_.printing_time; } ///< Get string representation of printing time left
     bool is_loaded() const { return is_loaded_; }
 

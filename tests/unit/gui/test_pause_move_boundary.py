@@ -77,6 +77,7 @@ int main() {
 #include <marlin_server_types/marlin_server_state.h>
 using marlin_server::State;
 #define HAS_INDX() 1
+namespace buddy::serial_collision { void suspend() {} bool pending() { return false; } }
 #define HAS_CRASH_DETECTION() 1
 #define HAS_FILAMENT_TRACKER() 1
 #define HAS_AUTO_RETRACT() 1
@@ -212,6 +213,7 @@ bool tool_change(NoTool,tool_return_t) {
 }
 namespace SerialPrinting {
 void paused(const char*) {} void notify_error(const char*,const char*,const char*) {}
+void notify_workflow(const char*,const char*,const char*,int) {}
 void resume(bool) {
  assert(!idle_running && primed==1 && returned==1 && ze_returns==1);
  ++host_resumes;

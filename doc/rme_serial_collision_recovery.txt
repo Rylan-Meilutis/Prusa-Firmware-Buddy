@@ -1,0 +1,77 @@
+RME serial collision recovery
+=============================
+
+Implementation
+--------------
+Serial G0/G1/G2/G3 motion can use native motor-stall crash detection when it is
+enabled and phase stepping is off. This does not detect every collision, belt
+skip, warped part, or layer shift. It does not enable detection or change the
+user's motion mode automatically. SESSION reports collision_recovery=1 and
+collision_monitoring=0|1; the latter describes the current detection setting
+and phase-stepping compatibility, not a guarantee of detecting a collision.
+
+An eight-command, statically bounded journal stores the original motion text,
+feedrate and relative-axis mode. Each command gets a distinct planner recovery
+identity, independent of the host's line number and the invalid serial SD
+position. Physical planner completion retires checkpoints; lookahead completion
+does not. A full journal waits for the oldest command to finish without
+deliberately draining all lookahead. State-changing commands drain motion
+before execution. Known display/progress/telemetry commands are not barriers.
+No journal storage is allocated from the heap.
+
+On a detected collision:
+1. Native ISR handling stops motion and snapshots the live planner block.
+2. Host streaming/FIFO execution is held. Acknowledged motion stays journaled;
+   unconsumed host commands and existing injection macros remain held.
+3. The printer and RME show an Abort/Continue inspection prompt. Abort is the
+   first/default response. An ordinary host Resume cannot authorize homing.
+4. Continue requires known Z, at least 5 mm of remaining Z clearance and the
+   original physical tool and virtual/MMU filament still selected.
+5. Retract/lift and home XY. Do not home/probe Z into the model. A failed home
+   waits for Retry or Abort rather than resuming with an unknown position.
+6. Reheat/prime using the existing recovery handlers, return, and replay the
+   interrupted segment/command suffix followed by other journaled commands.
+   Do not send duplicate host acknowledgements or request old host lines.
+7. Release the normal FIFO after journal replay. A second collision requires
+   another inspection; it is not silently accepted.
+
+No live motion snapshot, missing checkpoint, unknown Z, changed tool/filament,
+toolchange/homing fault, or insufficient clearance cancels rather than guessing
+a replay. A part that has moved/warped loose must be cancelled: XY rehoming
+cannot restore its position or adhesion. Extrusion progress inherits native
+crash recovery's approximation under pressure advance; this is not an encoder
+measurement of actual filament flow or physical nozzle position.
+
+Protocol and companion plugin
+-----------------------------
+RME_DIALOG workflow=collision phase=inspection state=waiting
+RME_PROMPT Abort,Continue
+@RME DIALOG RESPOND A"Continue"
+@RME DIALOG RESPOND A"Abort"
+
+Use only the currently offered response. Homing failure offers Retry/Abort.
+The companion plugin reconstructs the inspection warning from DIALOG QUERY
+after reconnect even when the original collision event was missed. Existing
+priority dialog responses do not consume serial job line numbers. No second
+serial writer or additional periodic poll was added.
+
+Validation
+----------
+tests/unit/gui/test_serial_collision_recovery.py executes production journal,
+dispatcher, FIFO, inspection gate, physical-tail retirement and native planner
+partial-replay code under AddressSanitizer/UndefinedBehaviorSanitizer. Actual
+line/arc generators exercise straight, clockwise/counterclockwise, full-circle
+and helical paths, replay at each segment and several partial-segment positions,
+and check endpoint/extrusion suffixes. Tests also cover saturation, repeated jobs,
+repeated collisions, invalid snapshots, disabled/incompatible monitoring,
+unchanged host FIFO, no duplicate dispatch, missing consent, changed tools,
+unknown Z and unavailable clearance. The existing pause/prime, Auto PA and
+heater warning suites remain enabled. Plugin tests cover missed collision events
+and reconstruction of the prompt without issuing any motion automatically.
+
+These are host/stub fault tests and ARM build checks, not a physical printer
+simulator. Supervised hardware validation is still required, including detection
+sensitivity, false positives, real stall/step loss, homing clearance, and print
+quality after recovery. Do not intentionally collide with a warped live print
+to test this implementation. No firmware or plugin release is made by these
+source changes.

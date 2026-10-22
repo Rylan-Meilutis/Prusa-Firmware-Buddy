@@ -186,6 +186,7 @@
 
 #if HAS_CRASH_DETECTION()
     #include "crash_recovery_type.hpp"
+    #include <serial_collision_recovery.hpp>
 #endif
 
 #if HAS_POWER_PANIC()
@@ -1752,7 +1753,7 @@ void serial_print_start() {
 #endif
 
 bool serial_print_active() {
-    return server.print_is_serial && (is_printing_state(server.print_state) || is_extended_paused_state(server.print_state));
+    return server.print_is_serial && (is_printing_state(server.print_state) || is_extended_paused_state(server.print_state) || serial_print_fifo_held(true, server.print_state));
 }
 
 bool serial_print_fifo_held() {
@@ -1895,6 +1896,13 @@ void serial_print_finalize(void) {
 
 void print_abort(void) {
 
+#if HAS_CRASH_DETECTION()
+    if (server.print_is_serial && buddy::serial_collision::pending()) {
+        server.print_state = State::Aborting_Begin;
+        return;
+    }
+#endif
+
     switch (server.print_state) {
 
 #if HAS_POWER_PANIC()
@@ -1984,7 +1992,7 @@ void print_pause(bool notify_serial_host) {
  */
 static void measure_axes_and_home() {
     #if ENABLED(AXIS_MEASURE)
-    if (crash_s.is_repeated_crash()) {
+    if (crash_s.is_repeated_crash() && !(server.print_is_serial && buddy::serial_collision::pending())) {
         // Measure axes
         enqueue_gcode("G163 X Y S" STRINGIFY(AXIS_MEASURE_STALL_GUARD) " P" STRINGIFY(AXIS_MEASURE_CRASH_PERIOD));
         server.print_state = State::CrashRecovery_XY_Measure;
@@ -2301,6 +2309,17 @@ void update_sfn() {
 }
 
 void print_resume(bool notify_serial_host) {
+    if (is_abort_state(server.print_state)) {
+        return;
+    }
+#if HAS_CRASH_DETECTION()
+    // A host resume is not inspection consent. Only the active crash dialog
+    // may authorize homing; the post-home Paused transition may resume normally.
+    if (server.print_is_serial && buddy::serial_collision::pending()
+        && server.print_state != State::Paused && !is_resuming_state(server.print_state)) {
+        return;
+    }
+#endif
     if (server.print_state == State::Paused) {
         update_sfn();
         print_state.notify_serial_host_on_resume = notify_serial_host;
@@ -2683,9 +2702,11 @@ static void _server_print_loop(void) {
 #if HAS_CRASH_DETECTION()
         crash_s.reset();
         crash_s.counters.reset();
+        buddy::serial_collision::reset();
         endstops.enable_globally(true);
 
-        // Crash Detection is disabled during serial printing, because it does not work
+        // Serial motion arms detection only after its bounded replay checkpoint
+        // has been committed. Homing/toolchange/modal commands remain barriers.
         if (!server.print_is_serial) {
             crash_s.set_state(Crash_s::PRINTING);
         }
@@ -2874,6 +2895,11 @@ static void _server_print_loop(void) {
         // Even an empty planner is not a completed command at that point.
         if (!idle_running && !is_processing()) {
             server.resume.pos = current_position;
+#if HAS_CRASH_DETECTION()
+            if (server.print_is_serial) {
+                buddy::serial_collision::suspend();
+            }
+#endif
 #if HAS_FILAMENT_TRACKER() && HAS_AUTO_RETRACT()
             if (const auto tool = PhysicalToolIndex::currently_selected_opt()) {
                 print_state.pause_retracted_distance = buddy::auto_retract().retracted_distance(*tool).value_or(buddy::filament_tracker().get_retracted_distance(*tool).value_or(0));
@@ -3096,6 +3122,11 @@ static void _server_print_loop(void) {
         server.print_state = State::Printing;
 #if HAS_SERIAL_PRINT()
         if (server.print_is_serial) {
+    #if HAS_CRASH_DETECTION()
+            if (buddy::serial_collision::pending()) {
+                SerialPrinting::notify_workflow("collision", "closed", "XY rehomed; replaying interrupted movement", 100);
+            }
+    #endif
             SerialPrinting::resumed();
         }
 #endif
@@ -3103,6 +3134,12 @@ static void _server_print_loop(void) {
 
     case State::Aborting_Begin:
 #if HAS_CRASH_DETECTION()
+        if (server.print_is_serial && buddy::serial_collision::pending()) {
+            buddy::serial_collision::reset();
+            if (fsm_states.is_active(ClientFSM::CrashRecovery)) {
+                fsm_destroy(ClientFSM::CrashRecovery);
+            }
+        }
         if (crash_s.is_toolchange_in_progress()) {
             break; // Wait for toolchange to end
         }
@@ -3288,10 +3325,23 @@ static void _server_print_loop(void) {
 
 #if HAS_CRASH_DETECTION()
     case State::CrashRecovery_Begin: {
-        // pause and set correct resume position: this will stop media reading and clear the queue
-        // TODO: this is completely broken for crashes coming from serial printing
+        const bool serial_collision = server.print_is_serial && crash_s.get_state() == Crash_s::TRIGGERED_ISR;
+        if (server.print_is_serial && !serial_collision) {
+            SerialPrinting::notify_error("collision", "unsupported_recovery", "Serial tool/homing fault: cancelling rather than guessing a replay checkpoint");
+            server.print_state = State::Aborting_Begin;
+            break;
+        }
+        if (serial_collision && !buddy::serial_collision::begin()) {
+            SerialPrinting::notify_error("collision", "checkpoint_unavailable", "Collision: safe replay unavailable; cancelling print");
+            server.print_state = State::Aborting_Begin;
+            break;
+        }
+        // Serial FIFO remains intact; its acknowledged motion suffix is kept
+        // in the journal. Only media jobs seek/clear the media-backed queue.
         process_pausing_begin_state(Pause_Type::Crash);
-        set_media_position(crash_s.sdpos);
+        if (!server.print_is_serial) {
+            set_media_position(crash_s.sdpos);
+        }
 
         const auto orig_crash_state = crash_s.get_state();
 
@@ -3309,6 +3359,15 @@ static void _server_print_loop(void) {
         }
 
         static constexpr Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::running, SelftestSubtestState_t::undef);
+
+        if (serial_collision) {
+            server.resume.pos = current_position;
+            fsm_create(PhasesCrashRecovery::serial_collision, cr_fsm.Serialize());
+            SerialPrinting::notify_error("collision", "inspection_required", "Collision detected: inspect the print and clear obstructions; Continue rehomes XY; cancel if the part moved");
+            SerialPrinting::paused("collision");
+            server.print_state = State::CrashRecovery_Repeated_Crash;
+            break;
+        }
 
         /**
          * Unreadable switch with 4 posibilites:
@@ -3464,7 +3523,7 @@ static void _server_print_loop(void) {
                 set_axis_is_not_at_home(Y_AXIS);
                 crash_s.count_crash(); // Count as another crash
 
-                if (crash_s.is_repeated_crash()) { // Cannot home repeatedly
+                if (crash_s.is_repeated_crash() || (server.print_is_serial && buddy::serial_collision::pending())) { // Cannot home repeatedly
                     disable_XY(); // Let user move the carriage
                     Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::undef, SelftestSubtestState_t::undef);
                     fsm_change(PhasesCrashRecovery::home_fail, cr_fsm.Serialize()); // Retry screen
@@ -3474,7 +3533,7 @@ static void _server_print_loop(void) {
             }
         }
 
-        if (!crash_s.is_repeated_crash()) {
+        if (!crash_s.is_repeated_crash() || (server.print_is_serial && buddy::serial_collision::pending())) {
             fsm_destroy(ClientFSM::CrashRecovery);
 
             // Necessary for print_resume to work
@@ -3499,6 +3558,9 @@ static void _server_print_loop(void) {
     }
     case State::CrashRecovery_HOMEFAIL: {
         switch (marlin_server::get_response_from_phase(PhasesCrashRecovery::home_fail)) {
+        case Response::Abort:
+            server.print_state = State::Aborting_Begin;
+            break;
         case Response::Retry: {
             Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::running, SelftestSubtestState_t::undef);
             fsm_change(PhasesCrashRecovery::home, cr_fsm.Serialize()); // Homing screen
@@ -3533,6 +3595,29 @@ static void _server_print_loop(void) {
         break;
     }
     case State::CrashRecovery_Repeated_Crash: {
+        if (server.print_is_serial && buddy::serial_collision::pending()) {
+            switch (marlin_server::get_response_from_phase(PhasesCrashRecovery::serial_collision)) {
+            case Response::Continue:
+                // Never home through the print, probe Z, or guess a lost Z.
+                // A full bed provides no room for a safe clearance lift.
+                if (!axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise)
+                    || current_position.z + 5 > Z_MAX_POS || !buddy::serial_collision::tool_unchanged()) {
+                    SerialPrinting::notify_error("collision", "no_clearance", "Collision recovery cancelled: safe Z clearance unavailable");
+                    server.print_state = State::Aborting_Begin;
+                    break;
+                }
+                fsm_change(PhasesCrashRecovery::home, {});
+                retract();
+                server.print_state = State::CrashRecovery_Retracting;
+                break;
+            case Response::Abort:
+                server.print_state = State::Aborting_Begin;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
         switch (marlin_server::get_response_from_phase(PhasesCrashRecovery::repeated_crash)) {
         case Response::Resume:
             fsm_destroy(ClientFSM::CrashRecovery);

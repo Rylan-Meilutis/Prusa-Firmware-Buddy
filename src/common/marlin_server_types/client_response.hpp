@@ -309,10 +309,9 @@ enum class PhasesCrashRecovery : PhaseUnderlyingType {
     home_fail, //< Homing failed, ask to retry
     #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     tool_recovery, //< Toolchanger recovery, tool fell off
-    _last = tool_recovery
-    #else
-    _last = home_fail
     #endif
+    serial_collision, //< Inspection/clearance confirmation before serial recovery
+    _last = serial_collision
 };
 constexpr inline ClientFSM client_fsm_from_phase(PhasesCrashRecovery) { return ClientFSM::CrashRecovery; }
 #endif
@@ -739,10 +738,11 @@ inline constexpr PhaseResponses CrashRecoveryResponses[] = {
     {}, // axis short
     {}, // axis long
     { Response::Resume, Response::Pause }, // repeated crash
-    { Response::Retry }, // home_fail
+    { Response::Retry, Response::Abort }, // home_fail
     #if HAS_TOOL_CRASH_RECOVERY() && HAS_DWARF()
     { Response::Continue }, // toolchanger recovery
     #endif
+    { Response::Abort, Response::Continue }, // serial collision: cancel is the default
 };
 static_assert(std::size(ClientResponses::CrashRecoveryResponses) == CountPhases<PhasesCrashRecovery>());
 #endif

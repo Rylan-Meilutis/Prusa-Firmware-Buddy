@@ -439,6 +439,18 @@ FrameToolMapping::FrameToolMapping(window_frame_t *parent)
 FrameToolMapping::~FrameToolMapping() {
 }
 
+void FrameToolMapping::update(const fsm::PhaseData &data) {
+    if (!data[0]) {
+        return; // Normal local-file preview has no serial review payload.
+    }
+    // A rejection can close/reopen within one GUI cycle. Refresh this frame
+    // even when the intermediate FSM destruction wasn't rendered.
+    update_mapping();
+    if (data[0] == 2) {
+        bottom_status_.SetText(_("Mapping rejected by host. Check materials and fallback spools."));
+    }
+}
+
 ToolVariant FrameToolMapping::focused_tool() {
     if (auto index = gcode_tools_menu_.focused_item_index()) {
         if (auto tool = items_[*index].gcode_tool) {

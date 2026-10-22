@@ -11,6 +11,16 @@
 #include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include <rme_host_progress.hpp>
+#include <rme_passive_command.hpp>
+#include <option/has_crash_detection.h>
+#if HAS_CRASH_DETECTION()
+    #include <serial_collision_recovery.hpp>
+    #include <serial_collision_journal.hpp>
+    #include <module/motion.h>
+    #include <gcode/gcode.h>
+    #include <feature/prusa/crash_recovery.hpp>
+    #include <feature/phase_stepping/phase_stepping.hpp>
+#endif
 
 static rme_host_progress::State rme_progress;
 #include <option/has_side_leds.h>
@@ -35,6 +45,199 @@ uint32_t SerialPrinting::last_host_time_to_end_ms = 0;
 uint32_t SerialPrinting::status_message_baseline_id = 0;
 const char *SerialPrinting::last_status_message = nullptr;
 int8_t SerialPrinting::last_status_progress = -1;
+
+#if HAS_CRASH_DETECTION()
+namespace buddy::serial_collision {
+namespace {
+    Journal<MAX_CMD_SIZE> journal;
+    static_assert(sizeof(journal) <= 1024, "Serial collision journal must preserve heap headroom");
+    uint32_t current_token = Journal<MAX_CMD_SIZE>::invalid;
+    bool recovering = false;
+    std::optional<PhysicalToolIndex> recovery_tool;
+    std::optional<VirtualToolIndex> recovery_filament;
+
+    bool interrupted() {
+        return crash_s.get_state() != Crash_s::PRINTING && crash_s.get_state() != Crash_s::IDLE;
+    }
+
+    const char *command_payload(const char *command) {
+        while (*command == ' ') {
+            ++command;
+        }
+        if (*command == 'N') {
+            ++command;
+            if (*command == '-') {
+                ++command;
+            }
+            while (*command >= '0' && *command <= '9') {
+                ++command;
+            }
+            while (*command == ' ') {
+                ++command;
+            }
+        }
+        return command;
+    }
+
+    bool passive_command(const char *command) {
+        // Display/progress/telemetry traffic must not force a printing stop or be
+        // replayed as motion. Unknown commands remain conservative drain barriers.
+        command = command_payload(command);
+        if (std::strncmp(command, "M976", 4) == 0
+            && (command[4] == ' ' || command[4] == '\t')
+            && rme_passive_command::keeps_idle(command)) {
+            return true;
+        }
+        for (const char *code : { "M73", "M105", "M114", "M115", "M117" }) {
+            const size_t length = std::strlen(code);
+            if (std::strncmp(command, code, length) == 0
+                && !(command[length] >= '0' && command[length] <= '9') && command[length] != '.') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool motion_command(const char *command) {
+        // Numbered/checksummed commands retain their original text for replay.
+        command = command_payload(command);
+        if (*command++ != 'G') {
+            return false;
+        }
+        while (*command == '0' && command[1] >= '0' && command[1] <= '9') {
+            ++command;
+        }
+        return *command >= '0' && *command <= '3'
+            && !(command[1] >= '0' && command[1] <= '9') && command[1] != '.';
+    }
+} // namespace
+
+void reset() {
+    journal.clear();
+    current_token = Journal<MAX_CMD_SIZE>::invalid;
+    recovering = false;
+    recovery_tool.reset();
+    recovery_filament.reset();
+}
+
+bool pending() { return recovering; }
+bool monitoring_available() { return crash_s.is_enabled() && !phase_stepping::any_axis_enabled(); }
+bool tool_unchanged() {
+    return recovery_tool == PhysicalToolIndex::currently_selected_opt()
+        && recovery_filament == VirtualToolIndex::currently_selected_opt();
+}
+void suspend() {
+    crash_s.deactivate();
+    current_token = Journal<MAX_CMD_SIZE>::invalid;
+}
+
+bool prepare(const char *command) {
+    if (!marlin_server::serial_print_active() || marlin_vars().print_state != marlin_server::State::Printing) {
+        return true;
+    }
+    if (interrupted() || recovering) {
+        return false;
+    }
+    if (!monitoring_available()) {
+        // Respect the user's motion/detection settings. Do not add barriers
+        // or pretend to monitor stalls in an incompatible phase-stepping mode.
+        if (crash_s.is_active()) {
+            planner.synchronize();
+            if (interrupted()) {
+                return false;
+            }
+            suspend();
+            journal.clear();
+        }
+        return true;
+    }
+    const bool motion = motion_command(command);
+    if (!motion && passive_command(command)) {
+        return true;
+    }
+    if (!motion) {
+        planner.synchronize();
+        // An ISR may have interrupted the drain. Do not consume this command
+        // or discard any checkpoint until recovery has handled that snapshot.
+        if (interrupted() || marlin_vars().print_state != marlin_server::State::Printing) {
+            return false;
+        }
+        journal.clear();
+        current_token = Journal<MAX_CMD_SIZE>::invalid;
+        crash_s.deactivate();
+    }
+    if (!motion) {
+        return true;
+    }
+    do {
+        journal.retire_completed([](uint32_t token) { return crash_s.serial_checkpoint_in_flight(token); });
+        if (!journal.full()) {
+            break;
+        }
+        // Maintain lookahead rather than stopping every eight short moves.
+        // Wait only for the oldest protected command to finish physically.
+        idle(true);
+        if (interrupted() || marlin_vars().print_state != marlin_server::State::Printing) {
+            return false;
+        }
+    } while (true);
+    const auto *record = journal.append(command, feedrate_mm_s, gcode.axis_relative);
+    if (!record) {
+        return false;
+    }
+    current_token = record->token;
+    if (crash_s.get_state() == Crash_s::IDLE) {
+        crash_s.set_state(Crash_s::PRINTING);
+    } else {
+        crash_s.activate();
+    }
+    return true;
+}
+
+uint32_t gcode_position(uint32_t media_position) {
+    return marlin_server::serial_print_active() && current_token != Journal<MAX_CMD_SIZE>::invalid
+        ? current_token
+        : media_position;
+}
+
+bool begin() {
+    // Native replay can only recover segmented XYZ moves with known Z. A
+    // toolchange/no-tool/unknown-position snapshot must never be guessed.
+    recovering = true;
+    recovery_tool = PhysicalToolIndex::currently_selected_opt();
+    recovery_filament = VirtualToolIndex::currently_selected_opt();
+    return crash_s.has_motion_snapshot && !crash_s.is_toolchange_event()
+        && (crash_s.recover_flags & Crash_s::RECOVER_PARTIAL_REPLAY)
+        && crash_s.crash_axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise)
+        && recovery_tool.has_value()
+        && recovery_filament.has_value()
+        && journal.freeze(crash_s.sdpos);
+}
+
+bool replay_one() {
+    if (!recovering || marlin_vars().print_state != marlin_server::State::Printing) {
+        return false;
+    }
+    const auto *record = journal.next();
+    if (!record) {
+        return false;
+    }
+    current_token = record->token;
+    feedrate_mm_s = record->feedrate;
+    gcode.axis_relative = record->relative;
+    // Replay is internal: the host already received the original command's
+    // acknowledgement. Never emit another numbered-command acknowledgement.
+    gcode.process_subcommands_now(const_cast<char *>(record->command.data()));
+    if (!interrupted()) {
+        journal.advance();
+        if (!journal.replaying()) {
+            recovering = false;
+        }
+    }
+    return true;
+}
+} // namespace buddy::serial_collision
+#endif
 
 namespace {
 const char *classify_workflow(const char *message) {
@@ -822,24 +1025,7 @@ bool SerialPrinting::serial_command_hook(const char *command) {
     // those would immediately cancel RME Off on the next G1. Passive status
     // traffic must not keep the LEDs awake forever either.
     if (rme_light_mode::serial_commands_wake_lights(marlin_server::serial_print_active())
-        && command[0] != '\0'
-        && command[0] != ';'
-        // RME service traffic is out-of-band machine synchronization. Session
-        // keepalives and queries must not look like physical user activity or
-        // a connected host will keep the chamber LEDs awake forever.
-        && command[0] != '@'
-        && !command_starts_with(command, 'M', 27)
-        && !command_starts_with(command, 'M', 73)
-        && !command_starts_with(command, 'M', 105)
-        && !command_starts_with(command, 'M', 114)
-        && !command_starts_with(command, 'M', 115)
-        && !command_starts_with(command, 'M', 117)
-        && !command_starts_with(command, 'M', 153)
-        && !command_starts_with(command, 'M', 155)
-        // M865 is the legacy-compatible RME filament metadata service. Hosts
-        // may query it periodically while idle, so it must behave like the
-        // out-of-band @RME synchronization commands above.
-        && !command_starts_with(command, 'M', 865)) {
+        && !rme_passive_command::keeps_idle(command)) {
         leds::SideStripHandler::instance().activity_ping();
     }
 #endif

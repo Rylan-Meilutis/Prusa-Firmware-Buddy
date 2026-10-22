@@ -126,3 +126,25 @@ cmake --build <native-build> --target rme_protocol_tests extrusion_calibration_t
 Repeat native executables in a build using -fsanitize=address,undefined and
 -fno-omit-frame-pointer. LeakSanitizer is not covered: detect_leaks=0 is needed
 in this ptrace-restricted execution environment. Sanitizer errors must halt.
+October 21 capture-overflow correction
+-------------------------------------
+Retained E feedrate/volumetric limits previously stretched four nominal
+0.75-second cycles beyond the fixed 1,280-sample buffer. Queue-start waits
+were also recorded as measurement data. Reproduced with the production burst,
+capture and planner flow-limiter code before this correction.
+
+Excitation speeds/distances now respect existing limits while retaining the
+requested plateau durations. Capture waits for executed E movement after each
+resume; pre-motion scheduling waits do not consume its buffer. Idle-noise
+measurements still retain stationary samples. The capture buffer remains
+1,280 samples (no heap increase); producer access is excluded during pointer
+release, and allocation/free remain outside the short producer exclusion.
+Pressure references are expressed at the nominal monitor/cache velocities,
+without increasing measurement confidence or scaling measured noise. Low
+signal, allocation failures and true overflow still reject/cache nothing.
+
+Read-only M976 I inspection also bypasses the serial activity wake path, not
+only the calibration lighting hold. Numbered/checksummed inspection is covered.
+Native policy/capture tests, ASan/UBSan production timing regressions, bounded
+search/cleanup tests and firmware builds are release checks; they do not replace
+supervised physical printer validation.
