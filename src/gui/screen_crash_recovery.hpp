@@ -75,7 +75,7 @@ struct WinsRepeatedCrash {
     RadioButton radio;
     RepeatedBeep beep;
 
-    WinsRepeatedCrash(ScreenCrashRecovery &screen);
+    WinsRepeatedCrash(ScreenCrashRecovery &screen, PhasesCrashRecovery phase = PhasesCrashRecovery::repeated_crash);
 };
 
 struct WinsHomeFail {

@@ -181,7 +181,7 @@ WinsAxisNok::WinsAxisNok(ScreenCrashRecovery &screen)
     #endif
 }
 
-WinsRepeatedCrash::WinsRepeatedCrash(ScreenCrashRecovery &screen)
+WinsRepeatedCrash::WinsRepeatedCrash(ScreenCrashRecovery &screen, PhasesCrashRecovery phase)
     : text_long(&screen, text_long_repeat_rc, is_multiline::yes, is_closed_on_click_t::no, _(en_text_long_repeat))
     , icon_nozzle_crash(&screen, icon_nozzle_crash_rc, &img::nozzle_crash_101x64)
     , icon_nozzle(&screen, icon_nozzle_rc, &img::nozzle_shape_48x48)
@@ -192,7 +192,12 @@ WinsRepeatedCrash::WinsRepeatedCrash(ScreenCrashRecovery &screen)
           _(en_text_repeat_info)
     #endif
               )
-    , radio(&screen, GuiDefaults::GetButtonRect_AvoidFooter(screen.GetRect()), ClientResponses::get_available_responses(PhasesCrashRecovery::repeated_crash)) {
+    , radio(&screen, GuiDefaults::GetButtonRect_AvoidFooter(screen.GetRect()), ClientResponses::get_available_responses(phase)) {
+
+    if (phase == PhasesCrashRecovery::serial_collision) {
+        text_long.SetText(_(en_text_long_check));
+        text_info.SetText(_("Inspect the print and clear obstructions. Continue will rehome XY. Cancel if the part has moved."));
+    }
 
     text_long.SetAlignment(Align_t::Center());
     text_info.SetAlignment(Align_t::Center());
@@ -401,6 +406,10 @@ void ScreenCrashRecovery::change_phase(PhasesCrashRecovery new_phase) {
 
     case PhasesCrashRecovery::repeated_crash:
         window.emplace<WinsRepeatedCrash>(*this);
+        break;
+
+    case PhasesCrashRecovery::serial_collision:
+        window.emplace<WinsRepeatedCrash>(*this, new_phase);
         break;
 
     case PhasesCrashRecovery::home_fail:

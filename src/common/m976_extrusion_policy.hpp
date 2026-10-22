@@ -22,4 +22,13 @@ constexpr Speeds speeds(bool flexible) {
     return flexible ? Speeds { 0.2f, 1.0f, 2.0f } : Speeds { 0.8f, 8.0f, 20.0f };
 }
 
+constexpr Speeds bounded_speeds(bool flexible, float maximum_mm_s) {
+    const auto requested = speeds(flexible);
+    // Respect retained printer/flow limits without lengthening the requested
+    // time plateaus. Never raise a user's extrusion limit for calibration.
+    const float high = maximum_mm_s > 0 ? (maximum_mm_s < requested.high_mm_s ? maximum_mm_s : requested.high_mm_s) : 0;
+    const float low = high * 0.25f < requested.low_mm_s ? high * 0.25f : requested.low_mm_s;
+    return { low, high, requested.retract_mm_s };
+}
+
 } // namespace buddy::m976_extrusion_policy
