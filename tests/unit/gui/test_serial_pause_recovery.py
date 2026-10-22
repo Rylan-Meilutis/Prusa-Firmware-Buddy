@@ -62,6 +62,7 @@ class SerialPauseRecovery(unittest.TestCase):
 #include <cstring>
 #include <marlin_server_types/marlin_server_state.h>
 #define HAS_SERIAL_PRINT() 1
+#define HAS_CRASH_DETECTION() 0
 #define HAS_SELFTEST() 0
 namespace marlin_server {
 State state = State::Printing;

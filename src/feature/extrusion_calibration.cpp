@@ -1,5 +1,6 @@
 #include "extrusion_calibration.hpp"
 #include <m976_extrusion_policy.hpp>
+#include <interrupt_disabler.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -52,35 +53,60 @@ bool Capture::start() {
         active_.store(false, std::memory_order_release);
         return false;
     }
+    buddy::InterruptDisabler guard;
+    waiting_for_motion_ = false;
     count_.store(0, std::memory_order_relaxed);
     active_.store(true, std::memory_order_release);
     return true;
 }
 
 void Capture::pause() {
+    buddy::InterruptDisabler guard;
     active_.store(false, std::memory_order_release);
 }
 
 void Capture::resume() {
+    buddy::InterruptDisabler guard;
+    waiting_for_motion_ = false;
+    if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
+        active_.store(true, std::memory_order_release);
+    }
+}
+
+void Capture::resume_on_motion(float baseline_e_position_mm) {
+    buddy::InterruptDisabler guard;
+    motion_baseline_e_ = baseline_e_position_mm;
+    waiting_for_motion_ = true;
     if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
         active_.store(true, std::memory_order_release);
     }
 }
 
 void Capture::release() {
-    active_.store(false, std::memory_order_release);
-    count_.store(0, std::memory_order_relaxed);
-    samples_.reset();
+    std::unique_ptr<Sample[]> retired;
+    {
+        buddy::InterruptDisabler guard;
+        active_.store(false, std::memory_order_release);
+        count_.store(0, std::memory_order_relaxed);
+        retired = std::move(samples_);
+    } // Free outside the short producer exclusion, never inside an interrupt.
 }
 
 size_t Capture::stop() {
-    active_.store(false, std::memory_order_release);
+    pause();
     return size();
 }
 
 void Capture::record(const uint32_t time_us, const float load_g, const float e_position_mm) {
+    buddy::InterruptDisabler guard;
     if (!active_.load(std::memory_order_acquire) || !samples_) {
         return;
+    }
+    if (waiting_for_motion_) {
+        if (!std::isfinite(e_position_mm) || e_position_mm == motion_baseline_e_) {
+            return;
+        }
+        waiting_for_motion_ = false;
     }
     const size_t index = count_.fetch_add(1, std::memory_order_acq_rel);
     if (index < capacity) {
@@ -212,6 +238,23 @@ float Capture::noise_floor() const {
 }
 
 Capture &capture() { return instance; }
+
+Score nominal_pressure_reference(const Score &measured, float low_mm_s, float high_mm_s, bool flexible) {
+    auto reference = measured;
+    if (!measured.valid || !(high_mm_s > low_mm_s)) {
+        reference.valid = false;
+        return reference;
+    }
+    // Cache/monitor reference velocities have always been the nominal policy
+    // velocities. Keep those units even when a retained limit lowers the
+    // actual excitation. Do not scale confidence/SNR or measured noise.
+    const auto nominal = buddy::m976_extrusion_policy::speeds(flexible);
+    const float slope = (measured.high_load - measured.low_load) / (high_mm_s - low_mm_s);
+    reference.low_load = measured.low_load + slope * (nominal.low_mm_s - low_mm_s);
+    reference.high_load = measured.low_load + slope * (nominal.high_mm_s - low_mm_s);
+    reference.valid = std::isfinite(reference.low_load) && std::isfinite(reference.high_load);
+    return reference;
+}
 
 void record_loadcell_sample(const uint32_t time_us, const float load_g, const float e_position_mm) {
     instance.record(time_us, load_g, e_position_mm);

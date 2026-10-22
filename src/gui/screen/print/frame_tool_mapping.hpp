@@ -160,6 +160,7 @@ public:
 
     FrameToolMapping(window_frame_t *parent);
     ~FrameToolMapping();
+    void update(const fsm::PhaseData &data);
 
 public:
     ToolVariant focused_tool();

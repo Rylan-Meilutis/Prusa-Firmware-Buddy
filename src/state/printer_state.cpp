@@ -84,6 +84,7 @@ optional<ErrCode> crash_recovery_attention(const PhasesCrashRecovery &phase) {
     case PhasesCrashRecovery::axis_short:
         return ErrCode::CONNECT_CRASH_RECOVERY_AXIS_SHORT;
     case PhasesCrashRecovery::repeated_crash:
+    case PhasesCrashRecovery::serial_collision:
         return ErrCode::CONNECT_CRASH_RECOVERY_REPEATED_CRASH;
     case PhasesCrashRecovery::home_fail:
         return ErrCode::CONNECT_CRASH_RECOVERY_HOME_FAIL;

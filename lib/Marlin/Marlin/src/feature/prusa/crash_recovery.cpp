@@ -42,6 +42,9 @@ void Crash_s::stop_and_save() {
 
     // get the current live block
     const block_t *current_block = planner.get_current_processed_block();
+    // Serial recovery cannot infer progress from a future/unprocessed block
+    // or reuse an earlier crash's sdpos when no live motion was captured.
+    has_motion_snapshot = current_block != nullptr;
     float e_position;
 
     if (!current_block && planner.movesplanned()) {
@@ -392,6 +395,7 @@ void Crash_s::reset() {
     repeated_crash = false;
     toolchange_in_progress = false;
     segments_finished = 0;
+    has_motion_snapshot = false;
     recover_flags = RECOVER_DEFAULT_FLAGS;
     state = IDLE;
     vars_locked = false;
