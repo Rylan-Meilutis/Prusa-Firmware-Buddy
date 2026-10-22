@@ -644,9 +644,9 @@ def make_version_build_command(args: argparse.Namespace, version: str,
     if args.final:
         command.append("--final")
     if args.version_suffix is not None:
-        command.extend(["--version-suffix", args.version_suffix])
+        command.append("--version-suffix=" + args.version_suffix)
     if args.version_suffix_short is not None:
-        command.extend(["--version-suffix-short", args.version_suffix_short])
+        command.append("--version-suffix-short=" + args.version_suffix_short)
     if args.no_clean_output:
         command.append("--no-clean-output")
     for definition in managed_python_cmake_defs(args.cmake_def,
@@ -1313,10 +1313,10 @@ def main() -> int:
         if args.final:
             command.append("--final")
         if args.version_suffix is not None:
-            command.extend(["--version-suffix", args.version_suffix])
+            command.append("--version-suffix=" + args.version_suffix)
         if args.version_suffix_short is not None:
-            command.extend(
-                ["--version-suffix-short", args.version_suffix_short])
+            command.append("--version-suffix-short=" +
+                           args.version_suffix_short)
         if signing_key:
             command.extend(["--signing-key", str(signing_key)])
         for definition in cmake_defs:
