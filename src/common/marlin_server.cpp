@@ -3889,7 +3889,9 @@ void unpark_head_ZE(void) {
 
 #if HAS_PAUSE()
     // Undo E retract
-    mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
+    if (PhysicalToolIndex::currently_selected_opt().has_value()) {
+        mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
+    }
 #endif
 }
 
