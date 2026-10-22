@@ -54,7 +54,7 @@ class SerialResumeFifoTests(unittest.TestCase):
         busy = source.split("bool GCodeQueue::has_commands_queued() {",
                             1)[1].split("\n}", 1)[0]
         self.assertIn("!marlin_server::serial_print_fifo_held()", busy)
-        self.assertIn("|| injected_commands_P", busy)
+        self.assertIn("|| (injected_commands_P", busy)
 
 
 if __name__ == "__main__":
