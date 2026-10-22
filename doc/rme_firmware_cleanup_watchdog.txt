@@ -1,0 +1,48 @@
+Firmware handoff cleanup watchdog -- 2026-10-22
+================================================
+
+Evidence
+--------
+DUMP_B1 (2).BIN, SHA256:
+8347b1131a285ee4ef87cea307b215475b50697fca65d681f3a4457abcaaed16
+COREONE_INDX 6.9.2-RME, commit:
+63bad2f449f354545e7e606f5f9f33effd6e138c
+
+Decoded with the matching release ELF and CrashDebug. The raw exception
+backtrace is trigger_crash_dump -> iwdg_warning_cb -> wdt_tick_1ms ->
+SysTick_Handler. Modbus processing was interrupted by the watchdog; its
+presence below that interrupt is not evidence of a Modbus crash.
+
+Marlin was suspended in USBH_exec(Write), under sync_window -> move_window ->
+get_fat -> remove_chain -> f_unlink -> unlink_r -> remove ->
+marlin_server::_server_update_vars (release line 4249, legacy FWUPD.BBF
+deletion). Startup handoff cleanup performed synchronous USB filesystem I/O
+in Marlin. FAT-chain deletion can exceed the roughly four-second watchdog
+period on a slow drive. The dump does not establish why the drive was slow.
+
+Correction
+----------
+Run the whole cleanup attempt on the existing AsyncJob executor, including
+marker stat and receipt reads. Marlin only schedules/polls the job; it does
+not wait on USB. Do not discard or reissue active cleanup. The active state
+synchronizes access to CleanupGate between Marlin and the worker. No new
+thread or watchdog bypass is introduced.
+
+Acquire the shared transfer slot inside the worker before accessing storage.
+If another producer wins before execution, leave cleanup pending for retry.
+Preserve the armed-candidate guard, authorization receipt, candidate and
+metadata deletion ordering, retry policy, and marker retention on errors.
+
+Validation
+----------
+The production cleanup block is executed by test_firmware_cleanup_retry.py
+with a deterministic worker. It checks queued delays and a ten-second
+simulated unlink while Marlin continues cycling, no duplicate job or Marlin
+filesystem access, transfer-slot ownership throughout I/O, a competing
+producer before worker execution, transient failures, and unflashed-image
+preservation. test_firmware_handoff_paths.py retains end-to-end application
+handoff/receipt/cleanup fault coverage. These are host fault simulations,
+not physical USB or bootloader certification.
+
+All 92 GUI/firmware host tests pass. COREONE_INDX ARM firmware links with
+the watchdog enabled. The reported printer has not been flashed or tested.
