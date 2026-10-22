@@ -32,19 +32,10 @@ struct { operator unsigned() const {return selected < 0 ? 255 : selected;} } act
 int hotend_disables=0, all_disables=0, display_clears=0;
 bool processing=false, printing=false;
 std::optional<WarningType> warning;
-struct PhysicalToolIndex {
-    static std::array<int, 8> all() { return {0,1,2,3,4,5,6,7}; }
-    static std::optional<int> currently_selected_opt() {
-        return selected < 0 ? std::nullopt : std::optional<int>(selected);
-    }
-};
 struct Hotend {
     int target=0;
-    static Hotend &for_tool(int i);
-    int nozzle_target_temp() const { return target; }
 };
 std::array<Hotend,8> hotends{};
-Hotend &Hotend::for_tool(int i) { return hotends.at(i); }
 struct Temperature {
     static int degTargetHotend(unsigned i) {return hotends.at(i).target;}
     static int degTargetBed() { return bed_target; }

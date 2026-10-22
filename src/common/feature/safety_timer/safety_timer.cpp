@@ -221,9 +221,8 @@ void SafetyTimer::trigger() {
     // cannot heat (INDX). Clearing those targets is normal pause housekeeping,
     // not a heater failure requiring user acknowledgement. Use the physical
     // tool, not a virtual/MMU slot, and snapshot before disabling the heaters.
-    const auto selected_tool = PhysicalToolIndex::currently_selected_opt();
-    const bool nozzle_heating_disabled = selected_tool.has_value()
-        && Hotend::for_tool(*selected_tool).nozzle_target_temp() > 0;
+    const bool nozzle_heating_disabled = active_extruder < HOTENDS
+        && Temperature::degTargetHotend(active_extruder) > 0;
 
     const bool should_activate = marlin_server::is_processing() || marlin_server::is_printing();
     const bool bed_timeout_expired = bed_timer_enabled_ && bed_activity_timer_.state() == utils::TimerState::finished;
