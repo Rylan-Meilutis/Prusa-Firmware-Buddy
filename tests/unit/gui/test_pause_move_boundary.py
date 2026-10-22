@@ -130,6 +130,7 @@ struct xyze_pos_t {
 };
 using xyze_float_t=xyze_pos_t;
 struct NoTool {};
+struct PrusaToolChanger { static constexpr int MARLIN_NO_TOOL_PICKED=255; };
 bool selected=true, idle_running=false, queued=false, cold=false, homed=true;
 bool fail_clean=false, cancel_clean=false, abort_restore=false, cold_during_clean=false;
 int active_extruder=0, docked=0, primed=0, returned=0, synced=0, host_resumes=0, ze_returns=0;
@@ -147,7 +148,7 @@ struct PhysicalToolIndex {
 struct {
  bool print_is_serial=true;
  State print_state=State::Printing;
- struct { xyze_pos_t pos{}; int fan_speed=50, print_speed=100; } resume;
+ struct { xyze_pos_t pos{}; int fan_speed=50, print_speed=100, active_tool=0; } resume;
 } server;
 struct { std::optional<float> pause_retracted_distance; bool notify_serial_host_on_resume=true; struct { bool is_empty() { return true; } } gcode_interrupt_command; } print_state;
 struct MoveHints { bool extrusion_safety_checks:1=false, is_printing_move:1=true; };
@@ -296,6 +297,12 @@ int main() {
  reset(); server.print_is_serial=false; crash_s.state=Crash_s::PRINTING;
  server.print_state=State::Resuming_ExecutingGCodeInterrupt;
  firmware_loop(); assert(primed==1 && returned==1);
+ // Host startup/control pause before the first T command: no purge, no E sync.
+ reset(); selected=false; homed=false; cold=true;
+ server.print_is_serial=true; server.resume.active_tool=255;
+ assert(unpark_prime()); assert(primed==0 && synced==0);
+ server.resume.active_tool=0; assert(!unpark_prime());
+ server.resume.active_tool=255; server.print_is_serial=false; assert(!unpark_prime());
 }
 '''
         self.run_cpp(

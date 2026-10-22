@@ -1,6 +1,13 @@
 # All these tests need buddy_utils
 link_libraries(buddy_utils)
 
+add_test(NAME pause_confirmation COMMAND "${Python3_EXECUTABLE}"
+                                         "${CMAKE_CURRENT_SOURCE_DIR}/test_pause_confirmation.py"
+         )
+set_tests_properties(
+  pause_confirmation PROPERTIES LABELS "serial;pause;gui;fault-injection" TIMEOUT 120
+  )
+
 add_test(NAME heater_timeout_lighting
          COMMAND "${Python3_EXECUTABLE}"
                  "${CMAKE_CURRENT_SOURCE_DIR}/test_heater_timeout_lighting.py"

@@ -932,6 +932,9 @@ void screen_printing_serial_data_t::pauseAction() {
         marlin_client::print_resume();
         break;
     case marlin_server::State::Printing:
+        if (MsgBoxWarning(_("Pause this print?"), Responses_YesNo, 1) != Response::Yes) {
+            break;
+        }
         marlin_client::print_pause();
         break;
     default:
