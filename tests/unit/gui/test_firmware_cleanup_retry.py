@@ -31,11 +31,14 @@ class FirmwareCleanupRetryTests(unittest.TestCase):
 #include "firmware_cleanup_gate.hpp"
 #include "firmware_update_handoff.hpp"
 #include "firmware_cleanup_receipt.hpp"
+#include "firmware_cleanup_async_stub.hpp"
 static uint32_t now_ms = 0;
 static bool inserted = true, busy = false, armed = false;
 static int stat_failures = 1, unlink_failures = 1, inspections = 0;
 static std::string fail_path = "/usb/FWUPD.RME";
 static std::set<std::string> files;
+static bool slow_unlink = false;
+void poll();
 uint32_t ticks_ms() { return now_ms; }
 namespace usb_host { bool is_media_inserted() { return inserted; } }
 namespace data_exchange { bool is_reflash_bbf_sfn(const char *) { return armed; } }
@@ -43,16 +46,23 @@ namespace transfers {
 struct Monitor {
     enum class Type { Link };
     enum class Outcome { Finished, ErrorStorage };
-    struct Slot { void done(Outcome) {} };
+    struct Slot {
+        bool owns = true;
+        Slot() { assert(!busy); busy = true; }
+        Slot(Slot&& other) { owns = other.owns; other.owns = false; }
+        ~Slot() { if (owns) busy = false; }
+        void done(Outcome) { assert(busy); }
+    };
     std::optional<int> id() { return busy ? std::optional<int>(1) : std::nullopt; }
     std::optional<Slot> allocate(Type, const char *, int) {
-        return busy ? std::nullopt : std::optional<Slot>(Slot{});
+        return busy ? std::nullopt : std::optional<Slot>(std::in_place);
     }
     static Monitor instance;
 };
 Monitor Monitor::instance;
 }
 int fake_stat(const char *path, struct stat *result) {
+    assert(in_cleanup_worker && busy);
     ++inspections;
     if (stat_failures > 0) { --stat_failures; errno = EBUSY; return -1; }
     if (!files.count(path)) { errno = ENOENT; return -1; }
@@ -60,6 +70,15 @@ int fake_stat(const char *path, struct stat *result) {
     return 0;
 }
 int fake_remove(const char *path) {
+    assert(in_cleanup_worker && busy);
+    if (slow_unlink && std::string(path) == "/usb/FWUPD.RME") {
+        const auto issues = cleanup_issues;
+        const auto before = inspections;
+        // Model slow FAT-chain writes: Marlin keeps cycling while the worker
+        // is inside unlink, without starting a second cleanup or touching FAT.
+        for (unsigned i = 0; i < 10000; ++i) { ++now_ms; poll(); }
+        assert(cleanup_issues == issues && inspections == before);
+    }
     if (std::string(path) == fail_path && unlink_failures > 0) {
         --unlink_failures; errno = EBUSY; return -1;
     }
@@ -84,6 +103,19 @@ void poll() {
 ''' + block + r'''
 }
 int main() {
+    // No filesystem operation may execute on Marlin, even if the worker is
+    // queued for longer than the watchdog window. Do not reissue the job.
+    defer_cleanup = true;
+    files = {"/usb/FWUPD.UI", "/usb/FWUPD.RME"};
+    poll();
+    assert(inspections == 0 && cleanup_issues == 1);
+    for (now_ms = 1; now_ms < 10000; ++now_ms) poll();
+    assert(inspections == 0 && cleanup_issues == 1);
+    // Another storage producer can win before the worker starts: defer safely.
+    busy = true; AsyncJob::run();
+    assert(inspections == 0 && files.size() == 2);
+    busy = false; defer_cleanup = false;
+    inserted = false; poll(); inserted = true; now_ms = 0;
     files = {"/usb/FWUPD.UI", "/usb/FWUPD.RME", "/usb/FWUPD.RME.rme-verified"};
     poll(); // First USB access is temporarily not ready.
     assert(inspections == 1 && files.count("/usb/FWUPD.RME"));
@@ -131,6 +163,10 @@ int main() {
         poll(); assert(files.count("/usb/FWUPD.UI"));
         now_ms += 1000; poll(); assert(files.empty());
     }
+    inserted = false; poll(); inserted = true;
+    files = {"/usb/FWUPD.RME", "/usb/FWUPD.UI"};
+    slow_unlink = true; fail_path.clear(); unlink_failures = 0;
+    now_ms += 40000; poll(); assert(files.empty());
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
@@ -140,7 +176,8 @@ int main() {
             subprocess.run([
                 compiler, "-std=c++17", "-fsanitize=address,undefined",
                 "-fno-omit-frame-pointer", "-I",
-                str(root / "src/common"),
+                str(root / "src/common"), "-I",
+                str(root / "tests/unit/gui"),
                 str(cpp), "-o",
                 str(binary)
             ],

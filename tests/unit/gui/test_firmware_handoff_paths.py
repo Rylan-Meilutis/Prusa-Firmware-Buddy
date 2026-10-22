@@ -131,6 +131,7 @@ int main() {
 #include <mbedtls/sha256.h>
 #include "firmware_cleanup_receipt.hpp"
 #include "firmware_cleanup_gate.hpp"
+#include "firmware_cleanup_async_stub.hpp"
 #include "firmware_update_handoff.hpp"
 #include "rme_protocol_parser.hpp"
 #if __has_include("rme_firmware_compatibility.hpp")
@@ -397,6 +398,7 @@ void file_flash(std::string_view action) {
                 compiler, "-std=c++20", "-fsanitize=address,undefined",
                 "-fno-omit-frame-pointer", "-I",
                 str(root / "src/common"), "-I",
+                str(root / "tests/unit/gui"), "-I",
                 str(mbedtls / "include"),
                 str(cpp), *objects, "-Wl,--gc-sections", "-o",
                 str(binary)
