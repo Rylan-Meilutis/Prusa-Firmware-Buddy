@@ -2,6 +2,7 @@
 #include <led_animation_controller/simple_transition_controller.hpp>
 #include "marlin_server.hpp"
 #include <marlin_vars.hpp>
+#include <warning_type.hpp>
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_i2c_expander.h>
 #include <option/xbuddy_extension_variant.h>
@@ -40,7 +41,24 @@ static bool print_active_for_leds() {
 
 static bool guided_activity_active() {
     return marlin_vars().peek_fsm_states([](const fsm::States &states) {
-        return states.get_top().has_value();
+        for (size_t index = 0; index < static_cast<size_t>(ClientFSM::_count); ++index) {
+            const auto type = static_cast<ClientFSM>(index);
+            const auto &data = states[type];
+            if (!data) {
+                continue;
+            }
+            if (type == ClientFSM::Warning) {
+                const auto warning = static_cast<WarningType>(data->GetData()[0]);
+                // A timeout reports completed heater shutdown, not ongoing
+                // activity. Keep the warning visible but allow normal dim/off.
+                if (warning == WarningType::NozzleTimeout || warning == WarningType::HeatersTimeout) {
+                    continue;
+                }
+            }
+            // A workflow underneath a timeout warning still owns its hold.
+            return true;
+        }
+        return false;
     });
 }
 
