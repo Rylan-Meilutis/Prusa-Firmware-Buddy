@@ -199,12 +199,12 @@ bool load_unload_phase_has_progress_data(PhasesLoadUnload phase) {
 #if HAS_LOADCELL()
 bool nozzle_cleaning_phase_has_progress_data(PhaseNozzleCleaningFailed phase) {
     switch (phase) {
-#if HAS_NOZZLE_CLEANING_FAILED_PURGING()
+    #if HAS_NOZZLE_CLEANING_FAILED_PURGING()
     case PhaseNozzleCleaningFailed::wait_temp:
     case PhaseNozzleCleaningFailed::purge:
     case PhaseNozzleCleaningFailed::autoretract:
         return true;
-#endif
+    #endif
     default:
         return false;
     }
@@ -214,10 +214,10 @@ bool nozzle_cleaning_phase_has_progress_data(PhaseNozzleCleaningFailed phase) {
 #if HAS_COLDPULL()
 const char *cold_pull_status_label(PhasesColdPull phase) {
     switch (phase) {
-#if HAS_AUTO_RETRACT()
+    #if HAS_AUTO_RETRACT()
     case PhasesColdPull::deretract:
         return N_("Heating up");
-#endif
+    #endif
     case PhasesColdPull::cool_down:
         return N_("Cooling down");
     case PhasesColdPull::heat_up:
@@ -985,6 +985,9 @@ void screen_printing_serial_data_t::pauseAction() {
         marlin_client::print_resume();
         break;
     case marlin_server::State::Printing:
+        if (MsgBoxWarning(_("Pause this print?"), Responses_YesNo, 1) != Response::Yes) {
+            break;
+        }
         marlin_client::print_pause();
         break;
     default:

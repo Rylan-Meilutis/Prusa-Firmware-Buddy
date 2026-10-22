@@ -118,6 +118,9 @@ void screen_printing_data_t::pauseAction() {
     }
     switch (GetState()) {
     case printing_state_t::PRINTING:
+        if (MsgBoxWarning(_("Pause this print?"), Responses_YesNo, 1) != Response::Yes) {
+            break;
+        }
         marlin_client::print_pause();
         change_print_state();
         break;
@@ -703,7 +706,7 @@ void screen_printing_data_t::update_finished_summary() {
     w_time_label.SetText(_(EndResultBody::txt_printing_time));
     w_time_value.SetText(string_view_utf8::MakeRAM(finished_stat_buffer.data()));
 
-#if HAS_CHAMBER_FILTRATION_API()
+    #if HAS_CHAMBER_FILTRATION_API()
     const uint32_t remaining_s = buddy::chamber_filtration().post_print_remaining_s();
     const uint32_t now_s = ticks_s();
     if (ticks_diff(now_s, last_finished_stat_switch_s) >= 4) {
@@ -716,7 +719,7 @@ void screen_printing_data_t::update_finished_summary() {
         w_etime_label.SetText(_("Filtering left"));
         PrintTime::print_formatted_duration(remaining_s, finished_stat_buffer, true);
     } else
-#endif
+    #endif
     {
         w_etime_label.SetText(_("Print ended"));
         EndResultBody::format_timestamp(marlin_vars().print_end_time, finished_stat_buffer);
