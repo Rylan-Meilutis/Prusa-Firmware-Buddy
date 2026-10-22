@@ -156,6 +156,7 @@ private:
     bool post_print_hold_enabled;
 
     SideStripState state = SideStripState::unknown;
+    LightState resolved_light_state = LightState::deep_idle;
     uint32_t active_timestamp_ms = 0; // Timestamp of the last activity for idle dimming
     uint32_t screen_brightness_wake_until_ms = 0;
     uint8_t screen_brightness_wake_percent = 15;
