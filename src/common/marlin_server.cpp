@@ -3916,7 +3916,13 @@ static void park_head([[maybe_unused]] bool is_pause) {
 #if HAS_NOZZLE_CLEANER()
 bool unpark_prime() {
     if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+    #if HAS_INDX()
+        // A host/control job may pause before selecting its first tool. There
+        // is nothing to prime in that case. A missing saved tool still fails.
+        return server.print_is_serial && server.resume.active_tool == PrusaToolChanger::MARLIN_NO_TOOL_PICKED;
+    #else
         return false;
+    #endif
     }
 
     if (!all_axes_homed() || thermalManager.tooColdToExtrude(active_extruder)) {
@@ -3975,7 +3981,9 @@ void unpark_head_ZE(void) {
 
 #if HAS_PAUSE()
     // Undo E retract
-    mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
+    if (PhysicalToolIndex::currently_selected_opt().has_value()) {
+        mapi::extruder_move(server.resume.pos.e - current_position.e, buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
+    }
 #endif
 }
 
