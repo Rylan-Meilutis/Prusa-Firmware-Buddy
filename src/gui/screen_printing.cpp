@@ -123,6 +123,9 @@ void screen_printing_data_t::pauseAction() {
     }
     switch (GetState()) {
     case printing_state_t::PRINTING:
+        if (MsgBoxWarning(_("Pause this print?"), Responses_YesNo, 1) != Response::Yes) {
+            break;
+        }
         marlin_client::print_pause();
         change_print_state();
         break;
