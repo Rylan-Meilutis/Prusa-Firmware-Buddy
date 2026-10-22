@@ -141,7 +141,7 @@ int main() {
             "{ if(!replay_skip()) accept(p); return true; }")
         preamble = preamble.replace(
             "bool is_toolchange_event() { return false; } } crash_s;",
-            "bool is_toolchange_event() { return false; } int segments_finished=0; xyze_pos_t crash_machine_position{}; } crash_s;"
+            "bool is_toolchange_event() { return false; } int segments_finished=0; xyze_pos_t crash_machine_position{}; xyze_pos_t &crash_position=crash_machine_position; } crash_s;"
         )
         planner = (fixture.ROOT /
                    "lib/Marlin/Marlin/src/module/planner.cpp").read_text()
@@ -160,6 +160,7 @@ void firmware_loop() {}
 xyze_pos_t restart{};
 void set_machine_position_mm(xyze_pos_t p) { restart=p; }
 bool replay_skip() {
+ const PlannerHints *segment_hints=nullptr;
 ''' + replay + r'''
  return false;
 }

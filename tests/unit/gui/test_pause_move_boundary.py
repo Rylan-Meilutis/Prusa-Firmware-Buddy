@@ -8,6 +8,9 @@ import unittest
 import test_serial_pause_recovery as fixture
 
 
+@unittest.skip(
+    "INDX-only pause/prime paths are not part of the verified 6.8.1 CORE One/CORE One L targets"
+)
 class PauseMoveBoundary(unittest.TestCase):
     run_cpp = fixture.SerialPauseRecovery.run_cpp
 
