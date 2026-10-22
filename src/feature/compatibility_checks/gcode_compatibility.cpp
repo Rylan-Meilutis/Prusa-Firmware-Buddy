@@ -447,7 +447,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
             // Check filament type and hotend compatibility
             // Don't report errors if the gcode did not provide the filament type
             if (const auto &fn = extruder_info.filament_name; !fn.empty() && fn != "---") {
-                if (fn != filament_material_name(loaded_filament_params)) {
+                if (!buddy::filament_material::matches(std::string_view(fn.data()), std::string_view(filament_material_name(loaded_filament_params).data()))) {
                     virtual_tool_fails.set(VirtualToolCheck::filament_type);
                 }
 
