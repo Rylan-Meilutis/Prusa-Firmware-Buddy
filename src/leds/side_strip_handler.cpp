@@ -41,11 +41,21 @@ static bool print_active_for_leds() {
 }
 
 static bool guided_activity_active() {
-    return marlin_vars().peek_fsm_states([](const fsm::States &states) {
+    const auto print_state = marlin_vars().print_state.get();
+    const bool result_screen = print_state == marlin_server::State::Finished
+        || print_state == marlin_server::State::Aborted
+        || print_state == marlin_server::State::Idle
+        || print_state == marlin_server::State::Exit;
+    return marlin_vars().peek_fsm_states([result_screen](const fsm::States &states) {
         for (size_t index = 0; index < static_cast<size_t>(ClientFSM::_count); ++index) {
             const auto type = static_cast<ClientFSM>(index);
             const auto &data = states[type];
             if (!data) {
+                continue;
+            }
+            // A retained local/serial result page is not an ongoing operation.
+            // Real warnings and other workflows underneath it still own holds.
+            if (result_screen && (type == ClientFSM::Printing || type == ClientFSM::Serial_printing)) {
                 continue;
             }
             if (type == ClientFSM::Warning) {
@@ -266,7 +276,7 @@ void SideStripHandler::update() {
         }
         // A finished-print screen may remain open while post-print filtration runs.
         // It must not keep the chamber lights and LCD awake indefinitely.
-        const bool guided_activity = guided_activity_active() && !host_idle_override && !marlin_server::finishing_or_finished();
+        const bool guided_activity = guided_activity_active() && !host_idle_override;
         const bool terminal_print_state = printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Exit;
         // Long-running local operations do not all own an FSM dialog. Keep an
         // open setup/control screen readable while the head or bed is moving,

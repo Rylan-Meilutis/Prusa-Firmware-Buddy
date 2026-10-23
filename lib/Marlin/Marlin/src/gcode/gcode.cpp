@@ -128,38 +128,43 @@ GcodeSuite::VirtualToolFromCommand GcodeSuite::get_virtual_tool_from_command(uin
 }
 
 GcodeSuite::VirtualToolFromCommand GcodeSuite::get_target_virtual_from_optional(std::optional<uint8_t> extruder, const bool tool_map) {
-  auto maybe_virtual = extruder.transform([&](uint8_t e){
-    return get_virtual_tool_from_command(e, tool_map);
-  }).value_or(stdext::to_variant(VirtualToolIndex::currently_selected()));
+    auto maybe_virtual = extruder.transform([&](uint8_t e) {
+                                     return get_virtual_tool_from_command(e, tool_map);
+                                 })
+                             .value_or(stdext::to_variant(VirtualToolIndex::currently_selected()));
 
-  const auto report_error = [&]() {
-    SERIAL_ECHO_START();
-    SERIAL_ECHOLNPAIR(" " MSG_INVALID_EXTRUDER " ", static_cast<std::optional<int>>(extruder).value_or(-1));
-  };
+    const auto report_error = [&]() {
+        SERIAL_ECHO_START();
+        SERIAL_ECHOLNPAIR(" " MSG_INVALID_EXTRUDER " ", static_cast<std::optional<int>>(extruder).value_or(-1));
+    };
 
-  return match(maybe_virtual,
-    [&](VirtualToolIndex vt) -> VirtualToolFromCommand {
-      if (vt.is_enabled()) {
-        return vt;
-      } else {
-        report_error();
-        return ToolParsingError { .msg = "Tool is disabled" };
-      }
-    },
-    [&](NoTool) -> VirtualToolFromCommand {
-      report_error();
-      return NoTool{};
-    },
-    [&](ToolNotMapped tnm) -> VirtualToolFromCommand {
-      report_error();
-      return tnm;
-    },
-    [&](ToolParsingError err) -> VirtualToolFromCommand {
-      report_error();
-      SERIAL_ECHOLNPAIR(" ", err.msg);
-      return err;
-    }
-  );
+    return match(
+        maybe_virtual,
+        [&](VirtualToolIndex vt) -> VirtualToolFromCommand {
+            if (vt.is_enabled()) {
+                return vt;
+            } else {
+                report_error();
+                return ToolParsingError { .msg = "Tool is disabled" };
+            }
+        },
+        [&](NoTool) -> VirtualToolFromCommand {
+            // Parked tools are a valid implicit context, not an invalid host Tn.
+            // Do not make OctoPrint blacklist T0 because of "Invalid extruder -1".
+            if (extruder.has_value()) {
+                report_error();
+            }
+            return NoTool {};
+        },
+        [&](ToolNotMapped tnm) -> VirtualToolFromCommand {
+            report_error();
+            return tnm;
+        },
+        [&](ToolParsingError err) -> VirtualToolFromCommand {
+            report_error();
+            SERIAL_ECHOLNPAIR(" ", err.msg);
+            return err;
+        });
 }
 
 /**
