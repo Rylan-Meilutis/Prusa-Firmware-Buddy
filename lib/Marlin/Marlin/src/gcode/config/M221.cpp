@@ -45,30 +45,39 @@
  */
 void GcodeSuite::M221() {
 
-  // P1 addresses the physical/virtual slot, independently of logical remapping.
-  const std::optional<VirtualToolIndex> virtual_tool_opt = stdext::get_optional<VirtualToolIndex>(get_target_virtual_from_command_p());
-  if (!virtual_tool_opt.has_value()) return;
-
-  const auto virtual_tool = *virtual_tool_opt;
-
-  if (parser.seenval('S')) {
-    int16_t flow_percentage = parser.value_int();
-    #if HAS_GCODE_COMPATIBILITY()
-      if (gcode.compatibility.mk3_compatibility_mode) {
-        flow_percentage = static_cast<int16_t>(flow_percentage / 0.95f);
-      }
-    #endif
-    planner.flow_percentage[virtual_tool] = flow_percentage;
-    planner.refresh_e_factor(virtual_tool);
-  }
-  else {
-    SERIAL_ECHO_START();
-    SERIAL_CHAR('E');
-    SERIAL_CHAR('0' + virtual_tool.to_raw());
-    SERIAL_ECHOPAIR(" Flow: ", planner.flow_percentage[virtual_tool]);
-    SERIAL_CHAR('%');
-    SERIAL_EOL();
-  }
+    // P1 addresses the physical/virtual slot, independently of logical remapping.
+    const auto target = get_target_virtual_from_command_p();
+    const auto apply = [&](VirtualToolIndex virtual_tool) {
+        if (parser.seenval('S')) {
+            int16_t flow_percentage = parser.value_int();
+#if HAS_GCODE_COMPATIBILITY()
+            if (gcode.compatibility.mk3_compatibility_mode) {
+                flow_percentage = static_cast<int16_t>(flow_percentage / 0.95f);
+            }
+#endif
+            planner.flow_percentage[virtual_tool] = flow_percentage;
+            planner.refresh_e_factor(virtual_tool);
+        } else {
+            SERIAL_ECHO_START();
+            SERIAL_CHAR('E');
+            SERIAL_CHAR('0' + virtual_tool.to_raw());
+            SERIAL_ECHOPAIR(" Flow: ", planner.flow_percentage[virtual_tool]);
+            SERIAL_CHAR('%');
+            SERIAL_EOL();
+        }
+    };
+    if (const auto tool = stdext::get_optional<VirtualToolIndex>(target)) {
+        apply(*tool);
+    } else if (!parser.seenval('T') && std::holds_alternative<NoTool>(target)) {
+        // An unqualified flow reset before tool pickup applies to every enabled
+        // slot. Keep explicit T/P addressing and invalid-tool checks unchanged.
+        for (uint8_t i = 0; i < VirtualToolIndex::count; ++i) {
+            const auto tool = VirtualToolIndex::from_raw(i);
+            if (tool.is_enabled()) {
+                apply(tool);
+            }
+        }
+    }
 }
 
 /** @}*/
