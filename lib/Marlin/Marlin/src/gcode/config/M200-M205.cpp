@@ -87,37 +87,54 @@
  * - `T` - Tool. With multiple extruders use T to specify which one.
  */
 void GcodeSuite::M201() {
-  // FIXME: M201 conceptually operates on a virtual tool (per-filament-slot
-  // acceleration), but E_AXIS_N formally requires physical tool (and would
-  // be invalid on some configurations if out of range virtual tool would be
-  // used).
-  //
-  // Therefore, using the (wrong) physical tool as a workaround, until we have
-  // a proper fix.
-  //
-  // Note that the distinction is mostly moot on our printers now, since the
-  // E_AXIS_N resolves to the same number no matter what parameter it gets and
-  // it conflates the values for different tools/slots nevertheless (which
-  // should be solved as part of the aforementioned proper fix).
+    // FIXME: M201 conceptually operates on a virtual tool (per-filament-slot
+    // acceleration), but E_AXIS_N formally requires physical tool (and would
+    // be invalid on some configurations if out of range virtual tool would be
+    // used).
+    //
+    // Therefore, using the (wrong) physical tool as a workaround, until we have
+    // a proper fix.
+    //
+    // Note that the distinction is mostly moot on our printers now, since the
+    // E_AXIS_N resolves to the same number no matter what parameter it gets and
+    // it conflates the values for different tools/slots nevertheless (which
+    // should be solved as part of the aforementioned proper fix).
 
 #if HAS_INDX()
-  // INDX has passive tools (single E stepper), so apply even with no tool selected.
-  static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
-  LOOP_XYZE(i) {
-    if (parser.seen(axis_codes[i])) {
-      planner.set_max_acceleration(i, parser.value_axis_units((AxisEnum)i));
+    // INDX has passive tools (single E stepper), so apply even with no tool selected.
+    static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
+    LOOP_XYZE(i) {
+        if (parser.seen(axis_codes[i])) {
+            planner.set_max_acceleration(i, parser.value_axis_units((AxisEnum)i));
+        }
     }
-  }
 #else
-  const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
-  if (!tool.has_value()) return;
-
-  LOOP_XYZE(i) {
-    if (parser.seen(axis_codes[i])) {
-      const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(tool->to_raw())) : i);
-      planner.set_max_acceleration(a, parser.value_axis_units((AxisEnum)a));
+    const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
+    if (!tool.has_value()) {
+        if (parser.seenval('T')) {
+            return; // An explicit invalid tool must not mutate global limits.
+        }
+        LOOP_XYZ(i) {
+            if (parser.seen(axis_codes[i])) {
+                planner.set_max_acceleration(i, parser.value_axis_units((AxisEnum)i));
+            }
+        }
+        if (parser.seen('E')) {
+            const auto value = parser.value_axis_units(E_AXIS);
+            // With no picked tool, E limits are defaults for every shared/distinct E axis.
+            for (uint8_t e = 0; e < E_STEPPERS; ++e) {
+                planner.set_max_acceleration(E_AXIS_N(e), value);
+            }
+        }
+        return;
     }
-  }
+
+    LOOP_XYZE(i) {
+        if (parser.seen(axis_codes[i])) {
+            const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(tool->to_raw())) : i);
+            planner.set_max_acceleration(a, parser.value_axis_units((AxisEnum)a));
+        }
+    }
 #endif
 }
 
@@ -139,34 +156,50 @@ void GcodeSuite::M201() {
  * - `T` - Tool. With multiple extruders use T to specify which one.
  */
 void GcodeSuite::M203() {
-  // FIXME: M203 conceptually operates on a virtual tool (per-filament-slot
-  // acceleration), but E_AXIS_N formally requires physical tool (and would
-  // be invalid on some configurations if out of range virtual tool would be
-  // used).
-  //
-  // Therefore, using the (wrong) physical tool as a workaround, until we have
-  // a proper fix.
-  //
-  // Note that the distinction is mostly moot on our printers now, since the
-  // E_AXIS_N resolves to the same number no matter what parameter it gets and
-  // it conflates the values for different tools/slots nevertheless (which
-  // should be solved as part of the aforementioned proper fix).
+    // FIXME: M203 conceptually operates on a virtual tool (per-filament-slot
+    // acceleration), but E_AXIS_N formally requires physical tool (and would
+    // be invalid on some configurations if out of range virtual tool would be
+    // used).
+    //
+    // Therefore, using the (wrong) physical tool as a workaround, until we have
+    // a proper fix.
+    //
+    // Note that the distinction is mostly moot on our printers now, since the
+    // E_AXIS_N resolves to the same number no matter what parameter it gets and
+    // it conflates the values for different tools/slots nevertheless (which
+    // should be solved as part of the aforementioned proper fix).
 
 #if HAS_INDX()
-  // INDX has passive tools (single E stepper), so apply even with no tool selected.
-  static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
-  LOOP_XYZE(i)
+    // INDX has passive tools (single E stepper), so apply even with no tool selected.
+    static_assert(E_STEPPERS == 1, "INDX assumes a single E stepper");
+    LOOP_XYZE(i)
     if (parser.seen(axis_codes[i])) {
-      planner.set_max_feedrate(i, parser.value_axis_units((AxisEnum)i));
+        planner.set_max_feedrate(i, parser.value_axis_units((AxisEnum)i));
     }
 #else
-  const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
-  if (!tool.has_value()) return;
+    const std::optional<PhysicalToolIndex> tool = stdext::get_optional<PhysicalToolIndex>(get_target_physical_from_command());
+    if (!tool.has_value()) {
+        if (parser.seenval('T')) {
+            return;
+        }
+        LOOP_XYZ(i) {
+            if (parser.seen(axis_codes[i])) {
+                planner.set_max_feedrate(i, parser.value_axis_units((AxisEnum)i));
+            }
+        }
+        if (parser.seen('E')) {
+            const auto value = parser.value_axis_units(E_AXIS);
+            for (uint8_t e = 0; e < E_STEPPERS; ++e) {
+                planner.set_max_feedrate(E_AXIS_N(e), value);
+            }
+        }
+        return;
+    }
 
-  LOOP_XYZE(i)
+    LOOP_XYZE(i)
     if (parser.seen(axis_codes[i])) {
-      const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(tool->to_raw())) : i);
-      planner.set_max_feedrate(a, parser.value_axis_units((AxisEnum)a));
+        const uint8_t a = (i == E_AXIS ? uint8_t(E_AXIS_N(tool->to_raw())) : i);
+        planner.set_max_feedrate(a, parser.value_axis_units((AxisEnum)a));
     }
 #endif
 }

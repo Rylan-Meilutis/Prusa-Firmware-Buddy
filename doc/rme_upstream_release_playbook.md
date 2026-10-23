@@ -1,5 +1,27 @@
 # RME Upstream Release Playbook
 
+## October 23 terminal lights and implicit-tool host compatibility
+
+Retained Printing/Serial_printing result FSMs in Finished, Aborted, Idle or Exit
+must not hold the chamber/LCD activity timer. Genuine warnings, workflows,
+door holds and active/paused jobs retain their existing lighting policies.
+Post-print filtration remains a separate asynchronous activity, not an active
+print or a reason to wait for a cancelled result screen to close.
+
+Modern branches quietly accept an implicit NoTool context without poisoning
+OctoPrint's tool sanity state. M201/M203 apply unqualified global XYZ/E limits
+even with tools parked; M221 applies unqualified flow defaults to enabled slots.
+Explicit T/P addressing and invalid/disabled-tool diagnostics remain intact.
+This corrects firmware behavior instead of appending T0 to arbitrary commands.
+Legacy 6.5.7 retains its older tool resolver; backport only applicable lighting.
+
+Validate executable parked/picked/invalid-tool and retained-result-screen host
+regressions, then build the supported eight-image stable matrix with manifests.
+Physical fan/lighting/tool-remap and cancellation validation remains required.
+For plugin prereleases, GitHub release target metadata must be `main`/`beta`,
+not a SHA: OctoPrint filters prereleases by target_commitish. Tags still point
+at the exact built commit; do not move a plugin tag to repair this metadata.
+
 ## Verified machine support — October 17
 
 Build/release only combinations present in the corresponding

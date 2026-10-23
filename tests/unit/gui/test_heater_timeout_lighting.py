@@ -25,14 +25,14 @@ class HeaterTimeoutLighting(unittest.TestCase):
 #include <rme_light_mode.hpp>
 using std::size_t;
 enum class WarningType : uint8_t { NozzleTimeout, HeatersTimeout, HotendFanError };
-enum class ClientFSM { Printing, Workflow, Warning, _count };
+enum class ClientFSM { Printing, Workflow, Warning, Serial_printing, _count };
 namespace fsm {
 struct BaseData {
     std::array<uint8_t,4> data{};
     auto GetData() const { return data; }
 };
 struct States {
-    std::array<std::optional<BaseData>,3> data{};
+    std::array<std::optional<BaseData>,4> data{};
     const auto &operator[](ClientFSM type) const { return data[size_t(type)]; }
 };
 }
@@ -53,7 +53,7 @@ struct Vars {
 } vars;
 auto &marlin_vars() { return vars; }
 bool marlin_server::finishing_or_finished() {
-    return vars.print_state.value==State::Finished || vars.print_state.value==State::Aborted;
+    return vars.print_state.value==State::Finished;
 }
 uint32_t now=1000;
 uint32_t ticks_ms() { return now; }
@@ -140,6 +140,27 @@ int main() {
     assert(guided_activity_active());
     SideStripHandler fault;
     now+=60000; fault.update(); assert(fault.state==SideStripState::active);
+    // Retaining a local/serial result screen never owns an activity hold.
+    // This includes a result FSM outliving the terminal server state.
+    for (auto result : {marlin_server::State::Aborted, marlin_server::State::Finished,
+                        marlin_server::State::Idle, marlin_server::State::Exit}) {
+        for (auto screen : {ClientFSM::Printing, ClientFSM::Serial_printing}) {
+            vars.states.data={}; vars.print_state.value=marlin_server::State::Printing;
+            vars.states.data[size_t(screen)]=fsm::BaseData{};
+            SideStripHandler light;
+            light.post_print_hold_enabled=true;
+            now=1000; light.update(); assert(light.state==SideStripState::printing);
+            vars.print_state.value=result;
+            now=2000; light.update();
+            auto timestamp=light.active_timestamp_ms;
+            now=timestamp+10000; light.update(); assert(light.state==SideStripState::dimmed);
+            now=timestamp+30000; light.update(); assert(light.state==SideStripState::off);
+            assert(vars.states.data[size_t(screen)].has_value());
+            // A real warning above a result screen still holds the lights.
+            vars.states.data[size_t(ClientFSM::Warning)]=fsm::BaseData{{uint8_t(WarningType::HotendFanError)}};
+            light.update(); assert(light.state==SideStripState::active);
+        }
+    }
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
