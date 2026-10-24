@@ -57,6 +57,7 @@ GCodeQueue queue;
 #include <print_utils.hpp>
 #include <tool_index.hpp>
 #include <heap.h>
+#include <fanctl.hpp>
 #include <FreeRTOS.h>
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
@@ -1480,6 +1481,18 @@ static bool handle_remote_indx_service(const std::string_view command) {
 
 // Fixed-size streaming snapshot: no JSON, heap allocation, event history, or
 // queued GUI requests. Local Tune changes and serial overrides share this state.
+static void rme_report_fan_state() {
+  // Commanded PWM is authoritative; RPM is a different measurement and must
+  // not be used to reconstruct a requested fan percentage on the host.
+  SERIAL_ECHOPGM(" fan="); SERIAL_ECHO(thermalManager.print_fan_speed);
+  SERIAL_ECHOPGM(" dock_fan=");
+  #if RME_HAS_INDX()
+  SERIAL_ECHO(Fans::dock_fan().get_pwm());
+  #else
+  SERIAL_ECHO(-1);
+  #endif
+}
+
 static bool handle_remote_tune_service(const std::string_view command) {
   if (command.starts_with("@RME CHAMBER JOB ")) {
     #if HAS_XBUDDY_EXTENSION()
@@ -1533,6 +1546,16 @@ static bool handle_remote_tune_service(const std::string_view command) {
   }
   if (command != "@RME TUNE QUERY") return false;
   SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
+  rme_report_fan_state();
+  SERIAL_ECHOPGM(" progress_percent="); SERIAL_ECHO(marlin_vars().sd_percent_done.get());
+  SERIAL_ECHOPGM(" progress_remaining="); SERIAL_ECHO(marlin_vars().time_to_end.get());
+  SERIAL_ECHOPGM(" host_percent=");
+  #if HAS_SERIAL_PRINT()
+  uint8_t host_percent = 0;
+  SERIAL_ECHO(SerialPrinting::host_progress_percent(host_percent, ticks_ms()) ? int(host_percent) : -1);
+  #else
+  SERIAL_ECHO(-1);
+  #endif
   SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
   #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
   SERIAL_ECHOPGM(" auto_pa="); SERIAL_ECHO(config_store().auto_pa_mode.get());
@@ -1610,7 +1633,10 @@ static bool handle_remote_progress_service(const std::string_view command) {
     SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=progress code=invalid_argument");
   } else {
     SerialPrinting::set_rme_progress(*percent, unknown ? marlin_server::TIME_TO_END_INVALID : *remaining, *paused != 0);
-    SERIAL_ECHOLNPGM("RME_PROGRESS accepted=1");
+    SERIAL_ECHOPGM("RME_PROGRESS accepted=1 percent="); SERIAL_ECHO(*percent);
+    SERIAL_ECHOPGM(" remaining=");
+    if (unknown) { SERIAL_ECHOPGM("unknown"); } else { SERIAL_ECHO(*remaining); }
+    SERIAL_ECHOPGM(" paused="); SERIAL_ECHOLN(*paused);
   }
   return true;
   #endif

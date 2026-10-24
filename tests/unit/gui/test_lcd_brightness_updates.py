@@ -153,11 +153,14 @@ int main() {
         prelude = r"""
 #include <cstdint>
 #include <cassert>
+#include <array>
 int panel_writes = 0, clears = 0, strip_updates = 0;
 struct LEDManager { bool lcd_brightness_off; void set_lcd_brightness(uint8_t); };
-struct ColorRGBW { unsigned data; ColorRGBW(int,int,int): data(0) {} };
+struct ColorRGBW { unsigned data; ColorRGBW(int,int g,int): data(g) {} };
 struct Strip {
- void set_all(int) {} void force_refresh(int) {} void set(unsigned,int) {}
+ std::array<unsigned,4> pixels{0x123456,0x234567,0x345678,0};
+ void set_all(int value) { pixels.fill(value); } void force_refresh(int) {}
+ void set(unsigned color,int index) { pixels[index]=color; }
  void update() { ++strip_updates; }
 } strip;
 Strip &get_status_leds() { return strip; }
@@ -190,6 +193,12 @@ int main() {
   for (int i=0; i<100; ++i) manager.set_lcd_brightness(brightness);
   assert(writes == panel_writes && black_clears == clears);
   assert(manager.lcd_brightness_off == (brightness == 0));
+#if HAS_ILI9488_DISPLAY()
+  // Sleeping, waking, and changing the LCD must not touch status pixels.
+  assert(strip.pixels[0]==0x123456 && strip.pixels[1]==0x234567
+         && strip.pixels[2]==0x345678);
+  assert(strip.pixels[3]==unsigned(brightness*255/100));
+#endif
  }
  assert(clears == 1);
 #if HAS_ILI9488_DISPLAY()

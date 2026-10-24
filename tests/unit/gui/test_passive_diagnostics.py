@@ -28,11 +28,11 @@ void receive(const char *command) {
 int main() {
  for (const char *query : {"M976 I", "M976 I T1", "M976 I L0 S240", "N12 M976 I T2*33",
        "M105", "M114", "M115", "M119", "M122", "M503", "M865 Q", "@RME TUNE QUERY",
-       "@RME SESSION KEEPALIVE", "@RME FIRMWARE RUNNING", "", "; M976"}) {
+       "@RME SESSION KEEPALIVE", "@RME FIRMWARE RUNNING", "M979", "N13 M979 ; status", "", "; M976"}) {
   receive(query); assert(activity==0);
  }
  for (const char *change : {"G1 X20", "M104 S240", "M976", "M976 T1", "M976 W1",
-       "M976 A 0:0:HIPS:250", "M976 T0 ; I", "M9760 I", "M976.1 I", "M122 I1"}) {
+       "M976 A 0:0:HIPS:250", "M976 T0 ; I", "M9760 I", "M976.1 I", "M122 I1", "M979 S1 C180", "M979 S0"}) {
   const int previous=activity; receive(change); assert(activity==previous+1);
  }
  printing=true;

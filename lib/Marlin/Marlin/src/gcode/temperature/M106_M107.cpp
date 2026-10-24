@@ -24,6 +24,9 @@
 
 #include <option/has_dwarf.h>
 #include <option/has_indx.h>
+#if HAS_INDX()
+    #include <feature/dock_cooldown/controller.hpp>
+#endif
 #include <option/has_toolchanger.h>
 #include <option/has_bed_fan.h>
 #if HAS_BED_FAN()
@@ -127,7 +130,7 @@ static bool set_special_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> 
     case 6:
         // Dock fan on the xBuddy NEXTRUDER print-fan pin (same controller as
         // the C1 print fan).
-        Fans::dock_fan().set_pwm(speed);
+        buddy::dock_cooldown::request_pwm(speed);
         return true;
 #endif
 

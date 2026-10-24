@@ -1,5 +1,9 @@
 #include "marlin_server.hpp"
 #include "serial_print_finalize_policy.hpp"
+#include <option/has_indx.h>
+#if HAS_INDX()
+    #include <feature/dock_cooldown/controller.hpp>
+#endif
 #include <feature/chamber/material_cooling_policy.hpp>
 
 #include <option/has_crash_detection.h>
@@ -1154,6 +1158,7 @@ static void cycle() {
 
 #if HAS_INDX()
     IndxHotend::process_pending_thermal_runaway();
+    buddy::dock_cooldown::step();
 #endif
 
     FSensors_instance().step();
@@ -1351,9 +1356,8 @@ void static finalize_print(bool finished) {
     print_job_timer.stop();
 
 #if HAS_INDX()
-    // Stop the dock fan at the end of every print - the slicer is not
-    // guaranteed to emit M107 P6, so it could otherwise keep spinning.
-    Fans::dock_fan().set_pwm(0);
+    // A finishing/canceled print requests Off, but must not bypass cooling.
+    buddy::dock_cooldown::request_pwm(0);
 #endif
 
     server.print_elapsed_timer_active = false;

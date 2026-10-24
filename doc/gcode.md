@@ -1,5 +1,7 @@
 # GCode Grammar
 
+RME INDX dock-fan command: [M979 automatic dock cooldown](gcode/M979.md).
+
 ## Basic GCode
 Basic GCode parser does not handle options, only parses the command and decides what is body.
 

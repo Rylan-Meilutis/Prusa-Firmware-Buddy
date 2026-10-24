@@ -3,17 +3,23 @@
 
 #if HAS_TOOL_MAPPING()
 MI_LIVE_TOOL_MAPPING::MI_LIVE_TOOL_MAPPING(int logical)
-    : IWindowMenuItem({}, nullptr, is_enabled_t::no), logical_(logical) {
+    : IWindowMenuItem({}, nullptr, is_enabled_t::no)
+    , logical_(logical) {
     Loop();
 }
 
 void MI_LIVE_TOOL_MAPPING::Loop() {
     const auto tool = tool_mapper.to_virtual(GcodeToolIndex::from_raw(logical_));
     const int physical = std::holds_alternative<VirtualToolIndex>(tool) ? std::get<VirtualToolIndex>(tool).to_raw() : -1;
-    if (physical == previous_) return;
+    if (physical == previous_) {
+        return;
+    }
     previous_ = physical;
-    if (physical < 0) snprintf(label_, sizeof(label_), "G-code T%d -> Unmapped", logical_);
-    else snprintf(label_, sizeof(label_), "G-code T%d -> Tool %d", logical_, physical + 1);
+    if (physical < 0) {
+        snprintf(label_, sizeof(label_), "G-code T%d -> Unmapped", logical_);
+    } else {
+        snprintf(label_, sizeof(label_), "G-code T%d -> Tool %d", logical_, physical + 1);
+    }
     SetLabel(string_view_utf8::MakeRAM(label_));
     Invalidate();
 }
@@ -143,6 +149,13 @@ void MI_HEATBED::OnClick() {
     marlin_client::set_target_bed(static_cast<int16_t>(value()));
 }
 
+void MI_HEATBED::Loop() {
+    WiSpin::Loop();
+    if (!is_edited()) {
+        set_value(uint8_t(marlin_vars().target_bed));
+    }
+}
+
 /*****************************************************************************/
 // MI_PRINTFAN
 
@@ -160,6 +173,13 @@ void MI_PRINTFAN::OnClick() {
     marlin_client::set_fan_speed(val_mapping(true, static_cast<uint8_t>(value()), 100, 255));
 }
 
+void MI_PRINTFAN::Loop() {
+    WiSpin::Loop();
+    if (!is_edited()) {
+        set_value(val_mapping(false, marlin_vars().print_fan_speed, 255, 100));
+    }
+}
+
 /*****************************************************************************/
 // MI_DOCKFAN
 #if HAS_INDX()
@@ -173,6 +193,13 @@ void MI_DOCKFAN::OnClick() {
     // and never races with the 1 kHz Fans::tick() ISR.
     marlin_client::gcode_printf("M106 P6 S%u",
         val_mapping(true, static_cast<uint8_t>(value()), 100, 255));
+}
+
+void MI_DOCKFAN::Loop() {
+    WiSpin::Loop();
+    if (!is_edited()) {
+        set_value(val_mapping(false, Fans::dock_fan().get_pwm(), 255, 100));
+    }
 }
 #endif
 
@@ -195,7 +222,9 @@ void MI_SPEED::OnClick() {
 
 void MI_SPEED::Loop() {
     WiSpin::Loop();
-    if (!is_edited()) set_value(marlin_vars().print_speed.get());
+    if (!is_edited()) {
+        set_value(marlin_vars().print_speed.get());
+    }
 }
 
 /*****************************************************************************/
