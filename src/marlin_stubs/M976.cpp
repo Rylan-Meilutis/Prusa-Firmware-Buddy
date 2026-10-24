@@ -44,6 +44,7 @@
     #include <nozzle_cleaner.hpp>
     #include <pa_calibration_cache_storage.hpp>
     #include <fanctl/fanctl.hpp>
+    #include <feature/dock_cooldown/controller.hpp>
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
@@ -169,19 +170,19 @@ public:
 // Batch-owned cooling covers heating, measurement and cleanup, including
 // early returns. Single-tool calls must not override the batch's policy.
 class DockFanGuard {
-    const uint16_t previous_pwm = Fans::dock_fan().get_pwm();
+    const uint16_t previous_pwm = buddy::dock_cooldown::requested_pwm();
     const bool enabled;
 
 public:
     DockFanGuard(size_t uncached_tools, int hottest_temperature)
         : enabled(uncached_tools > 1) {
         if (enabled) {
-            Fans::dock_fan().set_pwm(buddy::m976_dock_fan_policy::pwm(uncached_tools, hottest_temperature, previous_pwm));
+            buddy::dock_cooldown::request_pwm(buddy::m976_dock_fan_policy::pwm(uncached_tools, hottest_temperature, previous_pwm));
         }
     }
     ~DockFanGuard() {
         if (enabled) {
-            Fans::dock_fan().set_pwm(previous_pwm);
+            buddy::dock_cooldown::request_pwm(previous_pwm);
         }
     }
 };

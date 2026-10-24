@@ -55,6 +55,8 @@ inline bool keeps_idle(std::string_view command) {
         return true;
     case 122:
         return command.empty(); // Driver diagnostic options can reset hardware.
+    case 979:
+        return command.empty(); // Only bare M979 is a passive cooldown query.
     case 976:
         return buddy::m976_diagnostics::inspection_requested(command);
     default:

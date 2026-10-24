@@ -35,6 +35,7 @@ if(HAS_INDX)
   add_subdirectory(indx_hotend_temp_model)
   add_subdirectory(indx_tool_lock_hack)
   add_subdirectory(indx_head_leds)
+  add_subdirectory(dock_cooldown)
 endif()
 
 if(HAS_CANCEL_OBJECT)

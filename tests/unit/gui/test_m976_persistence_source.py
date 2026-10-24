@@ -32,7 +32,9 @@ class CalibrationPersistence(unittest.TestCase):
         self.assertIn("if (!cached[i])", batch)
         guard = source.split("class DockFanGuard")[1].split("#endif")[0]
         self.assertIn("enabled(uncached_tools > 1)", guard)
-        self.assertIn("set_pwm(previous_pwm)", guard)
+        self.assertIn("dock_cooldown::requested_pwm()", guard)
+        self.assertIn("dock_cooldown::request_pwm(previous_pwm)", guard)
+        self.assertNotIn("Fans::dock_fan().set_pwm", guard)
 
 
 if __name__ == "__main__":
