@@ -82,17 +82,18 @@ namespace {
              'std::span<const ColorRGBW, 3> StatusLedsHandler::led_data()',
              'void StatusLedsHandler::set_idle_light_state(',
              'void StatusLedsHandler::reload_colors()',
-             'void StatusLedsHandler::set_print_status_brightness(')) + r'''
+             'void StatusLedsHandler::set_print_status_brightness(',
+             'void StatusLedsHandler::activity_ping()') if signature in status
+        ) + r'''
 enum class SideStripState {unknown,printing,active,custom_color,dimmed,idle,off};
 constexpr uint32_t screen_brightness_wake_ms=30000;
 bool print_active_for_leds() {return true;}
 uint8_t active_screen_brightness() {return 100;}
 ''' + '\n'.join(
-                 function(side, signature) for signature in
-                 ('static LightState light_state_for_strip_state(',
-                  'static LightState screen_light_state_for_strip_state(',
-                  'static uint8_t packed_screen_brightness(')
-             ) + r'''
+            function(side, signature) for signature in
+            ('static LightState light_state_for_strip_state(',
+             'static LightState screen_light_state_for_strip_state(',
+             'static uint8_t packed_screen_brightness(')) + r'''
 struct SideStripHandler {
  mutable std::mutex mutex;
  SideStripState state=SideStripState::printing;
@@ -196,6 +197,8 @@ int main() {
    if (settings_refresh) {status.reload_colors(); status.set_print_status_brightness(100);}
    status.set_idle_light_state(side.current_light_state());status.update();
    assert(std::equal(before.begin(),before.end(),status.led_data().begin()));
+   assert(side.print_screen_brightness_overridden);
+   assert(side.print_screen_brightness_override==brightness);
    assert(status.led_data()[1].b==255 && status.led_data()[1].g==150);
   }
  }
