@@ -278,6 +278,11 @@ bool GcodeSuite::process_parsed_command_custom(bool no_ok) {
             PrusaGcodeSuite::M976();
             break;
 #endif
+#if HAS_INDX()
+        case 979:
+            PrusaGcodeSuite::M979();
+            break;
+#endif
         case 999:
             if (parser.seen('R')) {
                 PrusaGcodeSuite::M999();

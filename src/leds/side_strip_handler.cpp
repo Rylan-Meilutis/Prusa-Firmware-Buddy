@@ -118,11 +118,6 @@ void SideStripHandler::activity_ping() {
     std::lock_guard lock(mutex);
     StatusLedsHandler::instance().activity_ping();
     screen_forced_off = false;
-    if (print_active_for_leds()) {
-        print_chamber_mode.set(1);
-        print_screen_brightness_overridden = false;
-        screen_brightness_wake_until_ms = 0;
-    }
     if (chamber_mode_state.resume_on_activity()) {
         state = SideStripState::unknown;
     }

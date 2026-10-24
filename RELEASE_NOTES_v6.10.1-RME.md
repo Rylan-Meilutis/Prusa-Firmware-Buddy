@@ -1,5 +1,27 @@
 # 6.10.1-RME Firmware
 
+## Release update — live fan sync, LCD status continuity and timed dock cooldown, 2026-10-23
+
+- Add INDX `M979 S1 C180`: service-loop dock cooling starts before a physical
+  park, restarts after each newer park, survives completion/cancellation/idle,
+  and shuts off at the configured elapsed-time deadline. M106/M107 P6,
+  calibration restoration and end-print Off cannot shorten that interval.
+  `M979 S0` restores manual control. This is timer-based, not a verified nozzle
+  temperature guarantee; see `doc/gcode/M979.md`.
+- Report commanded print/dock fan PWM and progress-source readback; keep LCD
+  bed/fan editors synchronized with remote changes except during active edits.
+  Companion RME Compatibility b150 supplies live controls, planned remaining
+  tool changes and completed-object cancellation guards.
+- LCD sleep/wake changes only its backlight channel, not the status pixels.
+  Unchanged theme/brightness refreshes do not restart the status animation.
+  Native input/render simulation passed 6,000 touch/encoder events; electrical
+  bus behavior and physical cooling performance still require hardware checks.
+- Serial fault simulation identifies inactivity finalization and expiring host
+  progress as distinct recovery gaps. No automatic power-loss/disconnect resume
+  is enabled, and the reported 88/93 percent mismatch is not claimed resolved.
+- Validation before release: 103 GUI/native regression tests; INDX and MK4
+  builds. Release-specific build and plugin results accompany published assets.
+
 ## Release update — SpoolJoin print preparation, 2026-10-04
 
 - Built all 15 variants from `a0bd232d7`. The companion plugin is b120

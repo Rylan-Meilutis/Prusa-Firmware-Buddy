@@ -161,6 +161,9 @@ void M961(); //< Manual Belt tuning
 void M997(); //< Update firmware. Prusa STM32 platform specific
 void M998(); //< Binary-safe serial BBF upload to USB
 void M976(); //< Pressure advance/flow calibration; INDX persists accepted results
+#if HAS_INDX()
+void M979(); //< Automatic dock-fan cooldown; S0 restores manual control
+#endif
 void M999();
 
 #if BUDDY_ENABLE_CONNECT()

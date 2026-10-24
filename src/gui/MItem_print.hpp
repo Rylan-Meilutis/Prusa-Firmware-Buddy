@@ -15,6 +15,7 @@ public:
     explicit MI_LIVE_TOOL_MAPPING(int logical);
     static constexpr int index(int logical) { return logical; }
     void Loop() override;
+
 private:
     int logical_;
     int previous_ = -2;
@@ -78,6 +79,7 @@ class MI_HEATBED : public WiSpin {
 public:
     MI_HEATBED();
     virtual void OnClick() override;
+    virtual void Loop() override;
 };
 
 class MI_PRINTFAN : public WiSpin {
@@ -91,6 +93,7 @@ class MI_PRINTFAN : public WiSpin {
 public:
     MI_PRINTFAN();
     virtual void OnClick() override;
+    virtual void Loop() override;
 };
 
 #if HAS_INDX()
@@ -100,6 +103,7 @@ class MI_DOCKFAN : public WiSpin {
 public:
     MI_DOCKFAN();
     virtual void OnClick() override;
+    virtual void Loop() override;
 };
 #endif
 
