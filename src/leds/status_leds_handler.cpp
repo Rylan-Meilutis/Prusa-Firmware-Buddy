@@ -330,8 +330,9 @@ ColorRGBW StatusLedsHandler::get_color() const {
 
 void StatusLedsHandler::reload_colors() {
     std::lock_guard lock(mutex);
-    old_color = {};
-    old_state = StateAnimation::_last;
+    // update() reads the configured color every tick and compares it with
+    // old_color. A GUI refresh with an unchanged palette must not restart the
+    // animation (FrameAnimation starts by fading in from black).
 }
 
 bool StatusLedsHandler::get_active() {
@@ -414,11 +415,13 @@ void StatusLedsHandler::set_print_status_enabled(bool val) {
     }
     print_status_disabled = !val;
     print_status_brightness = val ? 100 : 0;
-    old_state = StateAnimation::_last;
 }
 
 void StatusLedsHandler::activity_ping() {
     std::lock_guard lock(mutex);
+    if (print_active_for_status_override() || !awaiting_activity) {
+        return;
+    }
     awaiting_activity = false;
     print_status_overridden = false;
     print_status_disabled = false;
@@ -440,7 +443,8 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
     print_status_brightness = val;
     print_status_disabled = print_status_brightness == 0;
     awaiting_activity = print_status_disabled;
-    old_state = StateAnimation::_last;
+    // Brightness is applied in led_data(), independently of animation phase.
+    // update() handles a real enable/disable transition through its state.
 }
 
 void StatusLedsHandler::set_idle_light_state(LightState state) {

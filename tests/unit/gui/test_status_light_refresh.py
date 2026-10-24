@@ -14,6 +14,64 @@ ROOT = Path(__file__).resolve().parents[3]
 class StatusLightRefresh(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('c++'), 'C++ compiler required')
+    def test_settings_refresh_preserves_print_animation_phase(self):
+        source = (ROOT / 'src/leds/status_leds_handler.cpp').read_text()
+        code = r'''
+#include <cassert>
+#include <cstdint>
+#include <mutex>
+enum class StateAnimation { Printing, Idle, _last };
+struct StatusLedsHandler {
+ std::mutex mutex;
+ StateAnimation old_state=StateAnimation::Printing;
+ bool active=true, print_status_overridden=false, print_status_disabled=false;
+ bool awaiting_activity=false;
+ uint8_t print_status_brightness=100;
+ void reload_colors();
+ void set_print_status_enabled(bool);
+ void set_print_status_brightness(uint8_t);
+};
+''' + '\n'.join(
+            function(source, signature) for signature in
+            ('void StatusLedsHandler::reload_colors()',
+             'void StatusLedsHandler::set_print_status_enabled(',
+             'void StatusLedsHandler::set_print_status_brightness(')) + r'''
+int main() {
+ StatusLedsHandler leds;
+ for (int i=0; i<1000; ++i) {
+  leds.reload_colors();
+  leds.set_print_status_enabled(true);
+  leds.set_print_status_brightness(100);
+  assert(leds.old_state==StateAnimation::Printing);
+ }
+ // A real brightness change is applied without restarting the animation.
+ leds.set_print_status_brightness(35);
+ assert(leds.print_status_brightness==35 && !leds.print_status_disabled);
+ assert(leds.old_state==StateAnimation::Printing);
+ leds.set_print_status_brightness(0);
+ assert(leds.print_status_disabled);
+ leds.set_print_status_enabled(true);
+ assert(!leds.print_status_disabled && leds.print_status_brightness==100);
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            cpp, binary = Path(directory) / 'test.cpp', Path(
+                directory) / 'test'
+            cpp.write_text(code)
+            subprocess.run([
+                'c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                '-fsanitize=address,undefined', '-fno-pie', '-no-pie',
+                str(cpp), '-o',
+                str(binary)
+            ],
+                           check=True)
+            subprocess.run([str(binary)],
+                           check=True,
+                           env={
+                               **os.environ, 'ASAN_OPTIONS': 'detect_leaks=0'
+                           })
+
+    @unittest.skipUnless(shutil.which('c++'), 'C++ compiler required')
     def test_invalidated_state_preserves_last_resolved_status_brightness(self):
         source = (ROOT / 'src/leds/side_strip_handler.cpp').read_text()
         code = r'''
