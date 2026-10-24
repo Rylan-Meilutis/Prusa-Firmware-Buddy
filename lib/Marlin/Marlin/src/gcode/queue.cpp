@@ -1293,7 +1293,7 @@ static bool handle_remote_indx_service(const std::string_view command) {
 static void rme_report_fan_state() {
   // Commanded PWM is authoritative; RPM is a different measurement and must
   // not be used to reconstruct a requested fan percentage on the host.
-  SERIAL_ECHOPGM(" fan="); SERIAL_ECHO(thermalManager.print_fan_speed);
+  SERIAL_ECHOPGM(" fan="); SERIAL_ECHO(thermalManager.fan_speed[0]);
   SERIAL_ECHOPGM(" dock_fan=");
   #if RME_HAS_INDX()
   SERIAL_ECHO(Fans::dock_fan().get_pwm());
