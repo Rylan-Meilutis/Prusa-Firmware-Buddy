@@ -25,6 +25,7 @@ struct StatusLedsHandler {
  std::mutex mutex;
  StateAnimation old_state=StateAnimation::Printing;
  bool active=true, print_status_overridden=false, print_status_disabled=false;
+ bool awaiting_activity=false;
  uint8_t print_status_brightness=100;
  void reload_colors();
  void set_print_status_enabled(bool);
