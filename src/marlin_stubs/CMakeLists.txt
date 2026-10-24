@@ -61,6 +61,10 @@ if(HAS_LOADCELL)
   target_sources(firmware PRIVATE M976.cpp)
 endif()
 
+if(HAS_INDX)
+  target_sources(firmware PRIVATE M979.cpp)
+endif()
+
 if(HAS_HEATERS_SELFTEST_GCODE)
   target_sources(firmware PRIVATE M1987.cpp)
 endif()

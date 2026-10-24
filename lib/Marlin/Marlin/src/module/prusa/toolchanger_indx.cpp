@@ -30,6 +30,7 @@
 #include <raii/auto_restore.hpp>
 #include <mapi/parking.hpp>
 #include <feature/indx_tool_lock_hack/indx_tool_lock_hack.hpp>
+#include <feature/dock_cooldown/controller.hpp>
 #include <bsod/bsod.h>
 
 #if HAS_CRASH_DETECTION()
@@ -568,6 +569,7 @@ xy_pos_t PrusaToolChanger::tool_park_position(PhysicalToolIndex tool) {
 }
 
 bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
+    buddy::dock_cooldown::before_park(tool.to_raw());
     // Invalidate nozzle presence data during park — the physical state is changing,
     // so the last reported result is stale until a fresh modbus read arrives.
     buddy::puppies::indx.invalidate_nozzle_data();
@@ -612,6 +614,7 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
 }
 
 void PrusaToolChanger::commit_park(PhysicalToolIndex previous_tool) {
+    buddy::dock_cooldown::parked(previous_tool.to_raw());
     head_open = true;
     loadcell.Clear();
     log_info(PrusaToolChanger, "INDX Tool #%u parked successfully", previous_tool.to_raw());
@@ -850,6 +853,7 @@ bool PrusaToolChanger::pickup(PhysicalToolIndex tool) {
 }
 
 void PrusaToolChanger::commit_pickup(PhysicalToolIndex tool, bool count_in_odometer, bool force_persist) {
+    buddy::dock_cooldown::picked(tool.to_raw());
     head_open = false;
     loadcell.Clear();
 

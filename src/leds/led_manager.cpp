@@ -554,18 +554,10 @@ void LEDManager::set_lcd_brightness(uint8_t brightness) {
         ili9488_brightness_set((brightness * 255) / 100);
     }
     #endif
-    // Do not skip the strip update: status animations overwrite its channels
-    // every tick, so the screen channel/off mask must still be reapplied.
-    if (brightness == 0) {
-        // Some XLCD revisions keep the visible backlight/status illumination on
-        // a different front-strip channel than the documented index 3 green
-        // channel. When the screen is explicitly Off, force the whole front
-        // strip dark after the LCD has been written black.
-        status_leds.set_all(0);
-        status_leds.force_refresh(4);
-    } else {
-        status_leds.set(ColorRGBW(0, (brightness * 255) / 100, 0).data, 3);
-    }
+    // LCD sleep/wake owns only the backlight channel, never the three status
+    // pixels. Blanking the whole strip here couples LCD interaction to status
+    // illumination and interrupts the print animation on sleep/wake.
+    status_leds.set(ColorRGBW(0, (brightness * 255) / 100, 0).data, 3);
     status_leds.update();
 #endif
 }
