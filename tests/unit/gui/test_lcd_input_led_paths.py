@@ -116,8 +116,10 @@ struct SideStripHandler {
                   )) + r'''
 }
 enum class BtnState_t {Pressed,Released,Held,HeldAndRight,HeldAndLeft,HeldAndReleased};
-enum class GUI_event_t {TOUCH_CLICK,TOUCH_MOVE,BTN_DN,BTN_UP,CLICK,KNOB,HELD_RELEASED};
+enum class GUI_event_t {TOUCH_CLICK,TOUCH_MOVE,BTN_DN,BTN_UP,CLICK,KNOB,HELD_RELEASED,ENC_CHANGE,ENC_UP,ENC_DN};
 enum class SoundType {button_echo,blind_alert,standard_alert};
+enum class eSOUND_TYPE {ButtonEcho,StandardAlert};
+void Sound_Play(eSOUND_TYPE) {}
 namespace sound {void play(SoundType) {}}
 struct Point {int x,y;};
 union event_conversion_union {Point point; void *pvoid;};
