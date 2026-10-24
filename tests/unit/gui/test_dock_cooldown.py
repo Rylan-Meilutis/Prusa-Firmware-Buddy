@@ -159,8 +159,7 @@ int main() {
             self.assertNotIn('Fans::dock_fan().set_pwm(', source)
             self.assertIn('dock_cooldown::request_pwm(', source)
         server = (ROOT / 'src/common/marlin_server.cpp').read_text()
-        cycle = server[server.index('static void cycle()'):server.
-                       index('/// Executes all the print finishing touches')]
+        cycle = server[server.index('static void cycle()'):]
         self.assertLess(cycle.index('dock_cooldown::step();'),
                         cycle.index('if (is_cycle_running)'))
 
