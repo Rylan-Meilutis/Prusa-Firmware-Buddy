@@ -2,6 +2,7 @@
 #include "serial_print_finalize_policy.hpp"
 #include <serial_remote_control.hpp>
 #include <printer_lock.hpp>
+#include <option/has_serial_print.h>
 #include <feature/chamber/material_cooling_policy.hpp>
 
 #include <common/directory.hpp>
