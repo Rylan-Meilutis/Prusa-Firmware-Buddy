@@ -98,6 +98,10 @@ void settings_reset();
 #if HAS_SERIAL_PRINT()
 // Start serial print (issue when gcodes start comming via serial line)
 void serial_print_start();
+/// Job-scoped validation wait: serial screen, no timer or queued motion.
+bool serial_print_prepare(uint32_t id);
+bool serial_print_release_preparation(uint32_t id, bool cancel);
+bool serial_print_preparing();
 
 /// Finalize serial print (exit print state and clean up)
 /// this is meant to be gracefull print finish, called when print finishes sucessfully.

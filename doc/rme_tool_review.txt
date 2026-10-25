@@ -44,6 +44,28 @@ background Ok/none records from deleting it, and latches completion through
 the late asynchronous PrintStarted event. Browser popup identity is job-scoped,
 not dependent on a late filename. Confirmation from either UI closes both.
 
+Approved mapping -> nozzle/filament validation handoff
+---------------------------------------------------
+With serial_prepare=1 in RME_SESSION, the host may request a job-scoped wait:
+  @RME SESSION PREPARE id=123
+  RME_STARTUP id=123 action=PREPARE accepted=1
+
+After the matching review commit, the plugin dismisses the mapper immediately,
+but retains its execution hold. PREPARE enters SerialPrintInit and displays the
+serial Preparing screen. It does not start elapsed time, the serial inactivity
+completion timer, heaters, or motion. Settings and Pause are disabled; Stop
+cancels the held host job. Late helper M73/M117 messages cannot finish this wait.
+The active RME lease must continue; lease loss aborts rather than starts a job.
+
+After NFV succeeds, the host sends SESSION RELEASE id=123 and waits for its
+matching RME_STARTUP acknowledgement before M75 and releasing the execution
+hold. SESSION ABORT id=123 cancels the wait. Different IDs, an active print,
+locked/busy printers, and expired leases cannot acquire a preparation. Duplicate
+approval records cannot restart validation. A rejected or missing acknowledgement
+keeps job G-code blocked. Older firmware still validates before M75, but does not
+have a protected validation-wait screen: both plugin and firmware must be updated
+for the full handoff behavior.
+
 Older firmware and jobs without usable bounded material metadata retain the
 existing host-only review. Native review has no automatic acceptance timeout.
 No extra motion, automatic homing, sensor policy, or collision-detection enable
