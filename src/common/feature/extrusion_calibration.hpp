@@ -53,6 +53,8 @@ public:
     void resume();
     /// Exclude queue-start latency, then retain every sample once E moves.
     void resume_on_motion(float baseline_e_position_mm);
+    /// Bound a forward-only burst to executed motion, not planner wake-up time.
+    void resume_until_position(float baseline_e_position_mm, float end_e_position_mm);
     size_t stop();
     void release();
     void record(uint32_t time_us, float load_g, float e_position_mm);
@@ -68,6 +70,7 @@ private:
     // prevents a loadcell producer from using the buffer while it is released.
     bool waiting_for_motion_ = false;
     float motion_baseline_e_ = 0;
+    float motion_end_e_ = std::numeric_limits<float>::infinity();
 };
 
 Capture &capture();

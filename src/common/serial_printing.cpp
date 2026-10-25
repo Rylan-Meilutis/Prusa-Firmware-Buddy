@@ -792,6 +792,15 @@ bool SerialPrinting::serial_command_hook(const char *command) {
     }
 #endif
 
+    if (marlin_server::serial_print_preparing()) {
+        // Late helper-script M73/M117 traffic cannot complete the real job
+        // while the host is validating its approved mapping.
+        if (command_starts_with(command, 'M', 75) || command_starts_with(command, 'M', 77)) {
+            SERIAL_ECHOLNPGM("ok");
+            return false;
+        }
+        return true;
+    }
     if (marlin_server::serial_print_active()) {
         last_serial_indicator_ms = ticks_ms();
         parse_serial_host_progress(command);

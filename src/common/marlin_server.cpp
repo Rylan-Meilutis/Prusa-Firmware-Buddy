@@ -1,5 +1,7 @@
 #include "marlin_server.hpp"
 #include "serial_print_finalize_policy.hpp"
+#include <serial_remote_control.hpp>
+#include <printer_lock.hpp>
 #include <feature/chamber/material_cooling_policy.hpp>
 
 #include <common/directory.hpp>
@@ -1498,6 +1500,45 @@ bool printer_paused_extended() {
     return is_extended_paused_state(server.print_state);
 }
 
+static uint32_t serial_preparation_id = 0;
+
+bool serial_print_preparing() {
+    return serial_preparation_id && server.print_state == State::SerialPrintInit;
+}
+
+bool serial_print_prepare(uint32_t id) {
+    if (!id || !serial_remote_control::session_active() || printer_lock::locked() || is_processing()) {
+        return false;
+    }
+    if (serial_preparation_id) {
+        return serial_preparation_id == id && serial_print_preparing();
+    }
+    switch (server.print_state) {
+    case State::Idle:
+    case State::Finished:
+    case State::Aborted:
+        break;
+    default:
+        return false;
+    }
+    serial_preparation_id = id;
+    serial_print_start();
+    server.print_is_serial = true;
+    return true;
+}
+
+bool serial_print_release_preparation(uint32_t id, bool cancel) {
+    if (!serial_print_preparing() || serial_preparation_id != id) {
+        return false;
+    }
+    if (cancel) {
+        print_abort();
+    } else {
+        serial_preparation_id = 0;
+    }
+    return true;
+}
+
 void serial_print_start() {
     if (server.print_state != State::SerialPrintInit) {
         buddy::chamber_material::serial_job.reset();
@@ -1534,7 +1575,7 @@ bool serial_print_active() {
 }
 
 bool serial_print_fifo_held() {
-    return serial_print_fifo_held(server.print_is_serial, server.print_state);
+    return serial_print_preparing() || serial_print_fifo_held(server.print_is_serial, server.print_state);
 }
 
 void print_start(const char *filename, const GCodeReaderPosition &resume_pos, marlin_server::PreviewSkipIfAble skip_preview) {
@@ -1673,6 +1714,12 @@ void serial_print_finalize(void) {
 }
 
 void print_abort(void) {
+#if HAS_SERIAL_PRINT()
+    if (serial_print_preparing()) {
+        SerialPrinting::abort(); // Cancel the corresponding held host job too.
+    }
+    serial_preparation_id = 0;
+#endif
 
     switch (server.print_state) {
 
@@ -2415,6 +2462,16 @@ static void _server_print_loop(void) {
 
     case State::PrintInit:
     case State::SerialPrintInit:
+#if HAS_SERIAL_PRINT()
+        if (serial_print_preparing()) {
+            if (!serial_remote_control::session_active()) {
+                print_abort(); // Lost host: never turn a validation wait into a print.
+            } else if (!fsm_states.is_active(ClientFSM::Serial_printing)) {
+                fsm_create(PhasesSerialPrinting::active);
+            }
+            break;
+        }
+#endif
         server.print_is_serial = (server.print_state == State::SerialPrintInit);
         if (!server.print_is_serial) {
             server.serial_print_snapshot.valid = false;
