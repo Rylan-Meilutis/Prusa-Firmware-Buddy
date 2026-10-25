@@ -272,6 +272,7 @@ struct Capture {
  void pause() { capturing=false; }
  void resume() { capturing=true; }
  void resume_on_motion(float) { capturing=true; }
+ void resume_until_position(float, float) { capturing=true; }
  void stop() { capturing=false; }
  void release() { ++releases; }
  Score score(bool) { return {}; }

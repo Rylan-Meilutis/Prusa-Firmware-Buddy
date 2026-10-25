@@ -1066,6 +1066,9 @@ buddy::m976_extrusion_policy::Speeds measurement_speeds(const uint8_t slot) {
     // Also bound acceleration/deceleration time per plateau. Very soft saved
     // E acceleration settings must not stretch four cycles into a long capture.
     maximum = std::min(maximum, float(planner.settings.max_acceleration_mm_per_s2[E_AXIS_N(active_extruder)]) * 0.08f);
+    // E-only segments use retract_acceleration, independently of the E-axis
+    // ceiling above. Respect both saved limits rather than stretching capture.
+    maximum = std::min(maximum, planner.settings.retract_acceleration * 0.08f);
     if (const auto tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected())) {
         maximum = std::min(maximum, planner.max_volumetric_flow_mm3_s[*tool] / filament_area);
     }
@@ -1124,7 +1127,8 @@ buddy::extrusion_calibration::Score run_bursts(const float pa, buddy::m976_indx_
             return {};
         }
         position_ready = true;
-        capture.resume_on_motion(planner.get_axis_position_mm(E_AXIS));
+        const float baseline_e = planner.get_axis_position_mm(E_AXIS);
+        capture.resume_until_position(baseline_e, baseline_e + cycle_mm);
         pressure_advance::set_calibration_mode(true);
         extrude_flow(fast_flow, 0.25f);
         extrude_flow(slow_flow, 0.5f);

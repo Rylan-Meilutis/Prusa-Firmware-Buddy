@@ -321,7 +321,9 @@ void screen_printing_serial_data_t::windowEvent(window_t *sender, GUI_event_t ev
             last_finished_stat_switch_s = ticks_s();
             update_finished_summary();
             set_page(Page::result);
-        } else if (is_print_result(last_state)) {
+        } else if (state == marlin_server::State::SerialPrintInit) {
+            header.SetText(_("PREPARING"));
+        } else if (is_print_result(last_state) || last_state == marlin_server::State::SerialPrintInit) {
             header.SetText(_(caption));
         }
 
@@ -563,6 +565,10 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
         DisableButton(BtnSocket::Middle);
         DisableButton(BtnSocket::Right);
         break;
+    case marlin_server::State::SerialPrintInit:
+        DisableButton(BtnSocket::Left);
+        DisableButton(BtnSocket::Middle);
+        break;
     case marlin_server::State::Finished:
     case marlin_server::State::Aborted:
         // Filtration controls remain under Settings, leaving the result
@@ -746,6 +752,14 @@ void screen_printing_serial_data_t::update_status() {
     }
 #endif
 
+    if (marlin_vars().print_state == marlin_server::State::SerialPrintInit) {
+        strlcpy(status_text.data(), "Validating nozzle and filament", status_text.size());
+        w_status_label.SetText(_("Validating nozzle and filament"));
+        status_progress_available = false;
+        w_status_progress.Hide();
+        w_status_value.Hide();
+        return;
+    }
     const auto current = current_non_custom_status_message(status_message_baseline_id);
     if (!current) {
         if (!serial_data_seen) {
