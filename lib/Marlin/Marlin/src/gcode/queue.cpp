@@ -1144,27 +1144,40 @@ static bool handle_dialog_service_response(const char *command);
 static void report_remote_session() {
   // Avoid the generic word "active": host state parsers can otherwise mistake
   // this communications lease for printer activity.
-  SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
-  #if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
-    SERIAL_ECHOPGM(" tool_review=1");
-  #endif
-  SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
-  SERIAL_ECHOPGM(" pause_phase="); SERIAL_ECHO(marlin_server::serial_pause_phase(marlin_vars().print_state));
-  #if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
-    SERIAL_ECHOPGM(" collision_recovery=1 collision_monitoring=");
-    SERIAL_ECHO(buddy::serial_collision::monitoring_available() ? 1 : 0);
-  #endif
+  SERIAL_ECHOPGM("RME_SESSION lease=");
+  SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
+#if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
+  SERIAL_ECHOPGM(" tool_review=1");
+#endif
+  SERIAL_ECHOPGM(" printer_state=");
+  SERIAL_ECHO(serial_remote_control::printer_state_name());
+#if HAS_SERIAL_PRINT()
+  SERIAL_ECHOPGM(" serial_prepare=1 preparing=");
+  SERIAL_ECHO(marlin_server::serial_print_preparing() ? 1 : 0);
+#endif
+  SERIAL_ECHOPGM(" pause_phase=");
+  SERIAL_ECHO(marlin_server::serial_pause_phase(marlin_vars().print_state));
+#if HAS_CRASH_DETECTION() && HAS_SERIAL_PRINT()
+  SERIAL_ECHOPGM(" collision_recovery=1 collision_monitoring=");
+  SERIAL_ECHO(buddy::serial_collision::monitoring_available() ? 1 : 0);
+#endif
   const auto active_tool = rme_active_tool::snapshot(VirtualToolIndex::currently_selected());
   SERIAL_ECHOPGM(" active_tool=");
-  if (active_tool.selected) SERIAL_ECHO(active_tool.index);
-  else SERIAL_ECHOPGM("none");
-  SERIAL_ECHOPGM(" legacy="); SERIAL_ECHO(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
+  if (active_tool.selected) {
+    SERIAL_ECHO(active_tool.index);
+  } else {
+    SERIAL_ECHOPGM("none");
+  }
+  SERIAL_ECHOPGM(" legacy=");
+  SERIAL_ECHO(serial_remote_control::legacy_notifications_enabled() ? 1 : 0);
   SERIAL_ECHOLNPGM(" preferred_baud=1000000 fallback_baud=250000,230400,115200");
 }
 
 static bool handle_remote_session_service(const std::string_view command) {
   constexpr std::string_view prefix = "@RME SESSION ";
-  if (!command.starts_with(prefix)) return false;
+  if (!command.starts_with(prefix)) {
+    return false;
+  }
   const auto action = command.substr(prefix.size());
   if (action.starts_with("OPEN")) {
     const auto events = remote_number(command, "events").value_or(0x0f);
@@ -1175,6 +1188,24 @@ static bool handle_remote_session_service(const std::string_view command) {
     }
     serial_remote_control::open_session(static_cast<uint8_t>(events), legacy == 1);
     report_remote_session();
+#if HAS_SERIAL_PRINT()
+  } else if (rme_protocol::action_is(action, "PREPARE") || rme_protocol::action_is(action, "RELEASE") || rme_protocol::action_is(action, "ABORT")) {
+    const auto id = rme_protocol::unsigned_number(command, "id");
+    const bool accepted = id && serial_remote_control::session_active()
+      && (rme_protocol::action_is(action, "PREPARE") ? marlin_server::serial_print_prepare(*id)
+                             : marlin_server::serial_print_release_preparation(*id, rme_protocol::action_is(action, "ABORT")));
+    if (!accepted) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=startup code=stale_or_busy");
+    }
+    SERIAL_ECHOPGM("RME_STARTUP id=");
+    SERIAL_ECHO(id.value_or(0));
+    SERIAL_ECHOPGM(" action=");
+    SERIAL_ECHO(rme_protocol::action_is(action, "PREPARE") ? "PREPARE" : rme_protocol::action_is(action, "RELEASE") ? "RELEASE"
+                                                            : "ABORT");
+    SERIAL_ECHOPGM(" accepted=");
+    SERIAL_ECHOLN(accepted ? 1 : 0);
+    report_remote_session();
+#endif
   } else if (action.starts_with("KEEPALIVE")) {
     serial_remote_control::keepalive_session();
     report_remote_session();
@@ -1183,7 +1214,9 @@ static bool handle_remote_session_service(const std::string_view command) {
   } else if (action.starts_with("CLOSE")) {
     serial_remote_control::close_session();
     report_remote_session();
-  } else return false;
+  } else {
+    return false;
+  }
   return true;
 }
 
