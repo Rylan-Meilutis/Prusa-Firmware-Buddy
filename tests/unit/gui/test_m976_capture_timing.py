@@ -1,6 +1,6 @@
 """Run actual M976 bursts and capture with deterministic planner timing.
 
-The producer runs at 320 Hz; injected feed/flow limits and scheduling latency
+The producer runs at INDX's actual 366 Hz; injected feed/flow limits and scheduling latency
 are explicit scenarios, not a claim to reproduce the user's physical printer.
 """
 from pathlib import Path
@@ -62,15 +62,17 @@ struct ElapsedTime { explicit ElapsedTime(uint32_t &) {} };
 bool flexible = false;
 double now_us = 0, next_sample_us = 0;
 float e_position = 0, max_e_speed = 100, flow_cap = INFINITY;
-unsigned drain_delay_us = 0;
+unsigned drain_delay_us = 0, drain_tail_us = 0;
 void sample_for(double duration_us, float velocity = 0) {
     const double until = now_us + duration_us;
+    const float start_e = e_position;
     while (next_sample_us < until) {
-        e_position += velocity / 320.f;
+        e_position = start_e + velocity * (next_sample_us - now_us) / 1000000.0;
         buddy::extrusion_calibration::capture().record(
             uint32_t(next_sample_us), velocity * 10, e_position);
-        next_sample_us += 1000000.0 / 320.0;
+        next_sample_us += 1000000.0 / 366.0;
     }
+    e_position = start_e + velocity * duration_us / 1000000.0;
     now_us = until;
 }
 float actual_speed(float distance, float requested) {
@@ -91,7 +93,7 @@ bool extruder_move(float distance, float speed, bool) {
 }
 }
 struct {
-    struct { float max_feedrate_mm_s[1] {100}; unsigned max_acceleration_mm_per_s2[1] {10000}; } settings;
+    struct { float max_feedrate_mm_s[1] {100}; unsigned max_acceleration_mm_per_s2[1] {10000}; float retract_acceleration = 10000; } settings;
     std::array<float,8> max_volumetric_flow_mm3_s;
     float get_axis_position_mm(int) {return e_position;}
     bool draining() { return false; }
@@ -101,6 +103,7 @@ struct {
             float speed = actual_speed(move.distance, move.speed);
             sample_for(double(move.distance) / speed * 1000000.0, speed);
         }
+        if (!moves.empty()) sample_for(drain_tail_us);
         moves.clear();
     }
 } planner;
@@ -138,12 +141,12 @@ buddy::extrusion_calibration::Score measure(unsigned delay, float e_cap, float v
 }
 int main() {
     const auto nominal = measure(0, 100, INFINITY);
-    assert(nominal.sample_count >= 959 && nominal.sample_count <= 962);
+    assert(nominal.sample_count >= 1096 && nominal.sample_count <= 1102);
     assert(!nominal.capture_overflow);
     // Count is reset every attempt, even with many preceding measurements.
     for (int job = 0; job < 2; ++job) for (int candidate = 0; candidate < 5; ++candidate) {
         auto score = measure(0, 100, INFINITY);
-        assert(!score.capture_overflow && score.sample_count < 1000);
+        assert(!score.capture_overflow && score.sample_count < 1120);
     }
     // Retained second-job E/flow caps keep their limits but no longer stretch
     // the excitation duration beyond capture capacity.
@@ -152,6 +155,18 @@ int main() {
     // Conservative ASA flow cap plus 150 ms per queue drain also overruns.
     auto delayed = measure(150000, 100, 12);
     assert(!delayed.capture_overflow && delayed.valid);
+    // The real service loop may return long after E reaches the endpoint.
+    // Neither the production 366 Hz rate nor post-motion scheduling may turn
+    // an otherwise valid ASA measurement into capture_overflow.
+    drain_tail_us = 2000000;
+    auto tail = measure(150000, 100, 12);
+    assert(!tail.capture_overflow && tail.valid && tail.sample_count < 1120);
+    planner.settings.retract_acceleration = 10;
+    auto soft = measure(150000, 100, 12);
+    assert(!soft.capture_overflow);
+    planner.settings.retract_acceleration = 0;
+    assert(!measure(0, 100, INFINITY).valid);
+    planner.settings.retract_acceleration = 10000;
     // Scheduling alone can exceed the claimed 30% buffer margin.
     auto scheduled = measure(300000, 100, INFINITY);
     assert(!scheduled.capture_overflow && scheduled.valid);
@@ -164,11 +179,22 @@ int main() {
     planner.settings.max_acceleration_mm_per_s2[0]=10000;
     // A subsequent nominal capture recovers: no cross-job accumulation.
     auto recovered = measure(0, 100, INFINITY);
-    assert(!recovered.capture_overflow && recovered.sample_count < 1000);
+    assert(!recovered.capture_overflow && recovered.sample_count < 1120);
     // TPU's slower requested excitation fits even under a conservative cap.
     flexible = true;
     auto tpu = measure(0, 4, 2.4f);
-    assert(!tpu.capture_overflow);
+    assert(!tpu.capture_overflow && tpu.valid);
+    // Exercise material routing as well as both actual burst/scoring paths.
+    // These deterministic signals validate firmware logic, not polymer quality.
+    for (const auto material : {"PLA", "PETG", "ASA", "ABS", "HIPS", "PC", "PA", "PVA",
+                                "TPU", "TPE", "FLEX", "TPU-95A"}) {
+        flexible = buddy::m976_extrusion_policy::is_flexible("PROFILE-001", material, false);
+        for (const float cap : {6.f, 12.f, 24.f}) {
+            auto score = measure(300000, 4, flexible ? 2.4f : cap);
+            assert(!score.capture_overflow && score.valid);
+        }
+        std::printf("material path verified: %s (%s)\n", material, flexible ? "flexible" : "rigid");
+    }
     std::printf("production capture: nominal=%u E-cap=%u flow/delay=%u TPU=%u; overflow regression fixed\n",
         nominal.sample_count, capped.sample_count, delayed.sample_count, tpu.sample_count);
 }

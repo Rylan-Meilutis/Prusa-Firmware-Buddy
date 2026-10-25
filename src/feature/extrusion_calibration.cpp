@@ -55,6 +55,7 @@ bool Capture::start() {
     }
     buddy::InterruptDisabler guard;
     waiting_for_motion_ = false;
+    motion_end_e_ = INFINITY;
     count_.store(0, std::memory_order_relaxed);
     active_.store(true, std::memory_order_release);
     return true;
@@ -68,14 +69,20 @@ void Capture::pause() {
 void Capture::resume() {
     buddy::InterruptDisabler guard;
     waiting_for_motion_ = false;
+    motion_end_e_ = INFINITY;
     if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
         active_.store(true, std::memory_order_release);
     }
 }
 
 void Capture::resume_on_motion(float baseline_e_position_mm) {
+    resume_until_position(baseline_e_position_mm, INFINITY);
+}
+
+void Capture::resume_until_position(float baseline_e_position_mm, float end_e_position_mm) {
     buddy::InterruptDisabler guard;
     motion_baseline_e_ = baseline_e_position_mm;
+    motion_end_e_ = end_e_position_mm;
     waiting_for_motion_ = true;
     if (samples_ && count_.load(std::memory_order_acquire) < capacity) {
         active_.store(true, std::memory_order_release);
@@ -111,6 +118,12 @@ void Capture::record(const uint32_t time_us, const float load_g, const float e_p
     const size_t index = count_.fetch_add(1, std::memory_order_acq_rel);
     if (index < capacity) {
         samples_[index] = { time_us, load_g, e_position_mm };
+        // E is quantized to physical steps. A sub-step tolerance avoids
+        // retaining idle samples forever when the requested endpoint rounds
+        // down. This does not discard plateaus or sparse TPU step samples.
+        if (e_position_mm >= motion_end_e_ - 0.001f) {
+            active_.store(false, std::memory_order_release);
+        }
     } else {
         count_.store(capacity, std::memory_order_release);
         active_.store(false, std::memory_order_release);

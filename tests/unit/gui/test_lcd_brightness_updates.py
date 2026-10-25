@@ -42,7 +42,7 @@ struct window_header_t {
  void updateTime();
 };
 namespace marlin_server { enum class State {
- Finished, Aborted, Paused, Printing, Idle, Pausing_Begin, Pausing_WaitIdle,
+ Finished, Aborted, Paused, Printing, Idle, SerialPrintInit, Pausing_Begin, Pausing_WaitIdle,
  Pausing_ParkHead, Resuming_Begin, Resuming_BufferData, Resuming_ExecutingGCodeInterrupt,
  Resuming_UnparkHead_XY, Resuming_UnparkHead_ZE, Resuming_Reheating,
  Aborting_Begin, Aborting_WaitIdle, Aborting_UnloadFilament, Aborting_ParkHead, Aborting_Preview
