@@ -19,6 +19,7 @@ class DashboardSensorTelemetry(unittest.TestCase):
                               'static void rme_report_sensor_state('))
         code = r'''
 #include <cassert>
+#include <cstdint>
 #include <cmath>
 #include <optional>
 #include <sstream>
