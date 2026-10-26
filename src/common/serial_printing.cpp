@@ -11,9 +11,12 @@
 #include "../Marlin/src/core/serial.h"
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include <rme_host_progress.hpp>
+#include <rme_tool_change_progress.hpp>
+#include <interrupt_disabler.hpp>
 #include <rme_passive_command.hpp>
 
 static rme_host_progress::State rme_progress;
+static rme_tool_change_progress::State tool_change_progress;
 #include <option/has_side_leds.h>
 #if HAS_SIDE_LEDS()
     #include <leds/side_strip_handler.hpp>
@@ -286,6 +289,7 @@ uint32_t SerialPrinting::serial_printing_screen_timeout_ms() {
 }
 
 void SerialPrinting::reset_host_progress() {
+    clear_host_tool_changes();
     rme_progress = {};
     last_host_progress_ms = 0;
     last_host_progress_percent = 0;
@@ -347,6 +351,29 @@ void SerialPrinting::set_rme_progress(uint8_t percent, uint32_t seconds, bool pa
 
 bool SerialPrinting::rme_progress_active() {
     return rme_progress.valid(ticks_ms());
+}
+
+void SerialPrinting::set_host_tool_changes(uint32_t remaining, uint32_t total) {
+    buddy::InterruptDisabler guard;
+    tool_change_progress.set(remaining, total, ticks_ms());
+}
+
+void SerialPrinting::clear_host_tool_changes() {
+    buddy::InterruptDisabler guard;
+    tool_change_progress = {};
+}
+
+bool SerialPrinting::host_tool_changes(uint32_t &remaining, uint32_t &total, uint32_t now_ms) {
+    if (!serial_remote_control::session_active()) {
+        return false;
+    }
+    buddy::InterruptDisabler guard;
+    if (!tool_change_progress.valid(now_ms)) {
+        return false;
+    }
+    remaining = tool_change_progress.remaining;
+    total = tool_change_progress.total;
+    return true;
 }
 
 SerialPrintingUiMode SerialPrinting::ui_mode() {

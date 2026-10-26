@@ -40,6 +40,9 @@ public:
     static void set_host_time_to_end(uint32_t seconds);
     static void set_rme_progress(uint8_t percent, uint32_t seconds, bool paused);
     static bool rme_progress_active();
+    static void set_host_tool_changes(uint32_t remaining, uint32_t total);
+    static void clear_host_tool_changes();
+    static bool host_tool_changes(uint32_t &remaining, uint32_t &total, uint32_t now_ms);
 
     static SerialPrintingUiMode ui_mode();
 
