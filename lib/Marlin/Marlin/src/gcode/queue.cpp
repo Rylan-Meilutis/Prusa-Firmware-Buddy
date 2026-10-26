@@ -58,6 +58,8 @@ GCodeQueue queue;
 #include <tool_index.hpp>
 #include <heap.h>
 #include <fanctl.hpp>
+#include <adc.hpp>
+#include <cmath>
 #include <FreeRTOS.h>
 #include <option/has_side_leds.h>
 #include <option/has_chamber_api.h>
@@ -82,11 +84,15 @@ GCodeQueue queue;
   #define RME_HAS_INDX() 0
 #endif
 #if RME_HAS_INDX()
+  #include <puppies/INDX.hpp>
   #include <common/marlin_server_types/fsm/nozzle_mismatch_phases.hpp>
   #include <feature/tool_offset_wizard/has_tool_offset_nozzle_cleaning_wizard.hpp>
 #endif
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
+#if HAS_TOOLCHANGER() && !RME_HAS_INDX()
+  #include <puppies/Dwarf.hpp>
+#endif
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_xbuddy_extension.h>
 #include <feature/chamber/material_cooling_policy.hpp>
@@ -1056,11 +1062,13 @@ static bool handle_remote_machine_service(const std::string_view command) {
 #if HAS_CHAMBER_API()
   SERIAL_ECHOPGM(" live_chamber=1");
 #endif
+  SERIAL_ECHOPGM(" dashboard_sensors=1");
   #if HAS_LOADCELL()
     SERIAL_ECHOPGM(" pa_temperature_plan=1 pa_temperature_points=8");
   #endif
   #if !PRINTER_IS_PRUSA_MINI()
     SERIAL_ECHOPGM(" host_progress=1");
+    SERIAL_ECHOPGM(" host_tool_changes=1");
     SERIAL_ECHOPGM(" mesh_area=1");
   #endif
   SERIAL_ECHOPGM(" single_nozzle="); SERIAL_ECHOLN(RME_HAS_INDX() || HOTENDS == 1 ? 1 : 0);
@@ -1534,6 +1542,52 @@ static void rme_report_fan_state() {
   #endif
 }
 
+// Read cached hardware state only: no setters or synchronous bus transactions.
+static void rme_report_sensor_temperature(const char *key, float value) {
+  SERIAL_CHAR(' '); SERIAL_ECHO(key); SERIAL_CHAR('=');
+  // TempInfo uses -1 C as the uninitialized sentinel, not a measurement.
+  if (std::isfinite(value) && value != -1.0f && value > -100 && value < 500) SERIAL_ECHO(value);
+  else SERIAL_ECHOPGM("unknown");
+}
+
+static void rme_report_sensor_state() {
+  auto fan_tool = PhysicalToolIndex::currently_selected_opt();
+  #if RME_HAS_INDX()
+  // INDX's head fans are shared by all docks and exist while all nozzles park.
+  fan_tool = buddy::puppies::indx.get_temps_valid() ? std::optional(PhysicalToolIndex::from_raw(0)) : std::nullopt;
+  SERIAL_ECHOPGM(" dock_rpm="); SERIAL_ECHO(Fans::dock_fan().get_rpm_measured() ? int(Fans::dock_fan().get_actual_rpm()) : -1);
+  #endif
+  SERIAL_ECHOPGM(" heatbreak_pwm="); SERIAL_ECHO(fan_tool ? int(Fans::heat_break(*fan_tool).get_pwm()) : -1);
+  SERIAL_ECHOPGM(" heatbreak_rpm="); SERIAL_ECHO(fan_tool && Fans::heat_break(*fan_tool).get_rpm_measured() ? int(Fans::heat_break(*fan_tool).get_actual_rpm()) : -1);
+  SERIAL_ECHOPGM(" part_fan_rpm="); SERIAL_ECHO(fan_tool && Fans::print(*fan_tool).get_rpm_measured() ? int(Fans::print(*fan_tool).get_actual_rpm()) : -1);
+  rme_report_sensor_temperature("buddy_mcu", AdcGet::getMCUTemp());
+  #if HAS_TEMP_BOARD
+  rme_report_sensor_temperature("buddy_board", thermalManager.degBoard());
+  #endif
+  #if HAS_TEMP_HEATBREAK
+  const auto tool = PhysicalToolIndex::currently_selected_opt();
+  rme_report_sensor_temperature("heatbreak_temp", tool ? thermalManager.degHeatbreak(*tool) : NAN);
+  #endif
+  #if RME_HAS_INDX()
+  const bool head_valid = buddy::puppies::indx.get_temps_valid();
+  rme_report_sensor_temperature("head_mcu", head_valid ? buddy::puppies::indx.get_mcu_temperature() : NAN);
+  rme_report_sensor_temperature("head_board", head_valid ? buddy::puppies::indx.get_board_temperature() : NAN);
+  rme_report_sensor_temperature("head_ambient", head_valid ? buddy::puppies::indx.get_tpis_ambient_temperature() : NAN);
+  #elif HAS_TOOLCHANGER()
+  if (fan_tool && buddy::puppies::dwarfs[*fan_tool].is_enabled()) {
+    rme_report_sensor_temperature("head_mcu", buddy::puppies::dwarfs[*fan_tool].get_mcu_temperature());
+    rme_report_sensor_temperature("head_board", buddy::puppies::dwarfs[*fan_tool].get_board_temperature());
+  }
+  #endif
+  #if HAS_CHAMBER_API()
+  rme_report_sensor_temperature("chamber_temp", buddy::chamber().current_temperature().value_or(NAN));
+  #endif
+  #if HAS_CPU_FAN()
+  SERIAL_ECHOPGM(" controller_fan_pwm="); SERIAL_ECHO(Fans::cpu().get_pwm());
+  SERIAL_ECHOPGM(" controller_fan_rpm="); SERIAL_ECHO(Fans::cpu().get_rpm_measured() ? int(Fans::cpu().get_actual_rpm()) : -1);
+  #endif
+}
+
 static bool handle_remote_tune_service(const std::string_view command) {
   if (command.starts_with("@RME CHAMBER JOB ")) {
     #if HAS_XBUDDY_EXTENSION()
@@ -1588,6 +1642,7 @@ static bool handle_remote_tune_service(const std::string_view command) {
   if (command != "@RME TUNE QUERY") return false;
   SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
   rme_report_fan_state();
+  rme_report_sensor_state();
   SERIAL_ECHOPGM(" progress_percent="); SERIAL_ECHO(marlin_vars().sd_percent_done.get());
   SERIAL_ECHOPGM(" progress_remaining="); SERIAL_ECHO(marlin_vars().time_to_end.get());
   SERIAL_ECHOPGM(" host_percent=");
@@ -1668,12 +1723,24 @@ static bool handle_remote_progress_service(const std::string_view command) {
   const auto paused = rme_protocol::unsigned_number(command, "paused");
   const auto remaining = rme_protocol::unsigned_number(command, "remaining");
   const bool unknown = rme_protocol::value(command, "remaining") == std::optional<std::string_view>("unknown");
+  const auto tools_remaining = rme_protocol::unsigned_number(command, "tools_remaining");
+  const auto tools_total = rme_protocol::unsigned_number(command, "tools_total");
+  const auto tools_left_value = rme_protocol::value(command, "tools_remaining");
+  const auto tools_total_value = rme_protocol::value(command, "tools_total");
+  const bool has_tools = tools_left_value || tools_total_value;
+  const bool unknown_tools = tools_left_value == std::optional<std::string_view>("unknown")
+    && tools_total_value == std::optional<std::string_view>("unknown");
+  const bool valid_tools = !has_tools || unknown_tools || (tools_remaining && tools_total && *tools_remaining <= *tools_total && *tools_total <= 200000);
   if (!serial_remote_control::session_active() || !marlin_server::serial_print_active()) {
     SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=progress code=no_serial_job");
-  } else if (!percent || *percent > 100 || !paused || *paused > 1 || (!unknown && (!remaining || *remaining > 31536000))) {
+  } else if (!percent || *percent > 100 || !paused || *paused > 1 || (!unknown && (!remaining || *remaining > 31536000)) || !valid_tools) {
     SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=progress code=invalid_argument");
   } else {
     SerialPrinting::set_rme_progress(*percent, unknown ? marlin_server::TIME_TO_END_INVALID : *remaining, *paused != 0);
+    if (has_tools) {
+      if (unknown_tools) SerialPrinting::clear_host_tool_changes();
+      else SerialPrinting::set_host_tool_changes(*tools_remaining, *tools_total);
+    }
     SERIAL_ECHOPGM("RME_PROGRESS accepted=1 percent="); SERIAL_ECHO(*percent);
     SERIAL_ECHOPGM(" remaining=");
     if (unknown) { SERIAL_ECHOPGM("unknown"); } else { SERIAL_ECHO(*remaining); }
