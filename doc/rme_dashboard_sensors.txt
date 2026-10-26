@@ -1,0 +1,44 @@
+RME optional Dashboard sensors
+==============================
+
+MACHINE QUERY advertises dashboard_sensors=1. The existing read-only TUNE QUERY
+snapshot adds bounded numeric fields; unsupported fields are absent and invalid
+temperature readings (including TempInfo's -1 C sentinel) are emitted as unknown.
+No fan/heater configuration, motion, polling thread or hardware bus request is
+introduced. Cached getters use the same hardware interfaces as the firmware UI.
+
+Fields (all temperatures in degrees Celsius on the wire):
+  dock_fan / dock_rpm             INDX dock PWM 0..255 / measured RPM
+  heatbreak_pwm / heatbreak_rpm   current/shared head PWM / measured RPM
+  part_fan_rpm                   current/shared part-cooling fan measured RPM
+  controller_fan_pwm / _rpm      controller fan, where fitted
+  buddy_mcu / buddy_board        controller MCU / board thermistor
+  heatbreak_temp                 selected tool's heatbreak thermistor
+  head_mcu / head_board          INDX shared head or selected enabled XL head
+  head_ambient                   INDX TPiS ambient reading, not room temperature
+  chamber_temp                   chamber API's current temperature
+
+INDX head readings require valid head data. Shared INDX fans can be reported
+with every nozzle parked. XL head readings require an actual selected enabled
+tool; do not substitute the first dock's data. RPM is -1 when no measurement is
+available. A known fan PWM of zero means off; it does not establish measured RPM.
+Temperature values must be finite and within the reporting envelope -100..500 C,
+excluding the uninitialized sentinel. This envelope is not a thermal safety limit.
+
+The companion plugin retains one timestamped tune snapshot, replacing rather
+than merging fields across printers/firmware. Optional gauges become unavailable
+after 15 seconds without an updated snapshot and are removed on disconnect.
+Temperature displays follow Dashboard's C/F setting. Ring ranges are presentation
+scales, not control targets or alarm thresholds.
+
+Dashboard's widgetsSettings registry receives independently toggleable RME
+entries backed by the plugin's persisted settings. Existing RME workflow circle,
+workflow overlay on the OctoPrint progress bar, and planned tool-change gauge
+remain enabled by default; all optional fan/temperature gauges default off.
+RME's own settings provide the same toggles if Dashboard is absent. Visibility
+never changes printer state, and hiding the RME bar does not hide pause reasons
+or replace the normal OctoPrint progress bar.
+
+New sensor fields require companion firmware; older firmware can still provide
+its existing dock fan percentage. Unsupported readings are unavailable, never
+fabricated zeroes. Physical sensor/fan behavior still requires hardware testing.
