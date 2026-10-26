@@ -1758,6 +1758,7 @@ bool serial_print_release_preparation(uint32_t id, bool cancel) {
 void serial_print_start() {
     if (server.print_state != State::SerialPrintInit) {
         buddy::chamber_material::serial_job.reset();
+        SerialPrinting::clear_host_tool_changes();
     }
     capture_serial_print_snapshot();
     // Status history survives between jobs. Mark the boundary before the
