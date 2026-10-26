@@ -623,12 +623,22 @@ void screen_printing_serial_data_t::update_progress() {
         w_etime_label.SetText(_(EndResultBody::txt_printing_time));
         PrintTime::print_formatted_duration(marlin_vars().print_duration.get(), w_etime_value_buffer, true);
         break;
+    case TimeItem::remaining_tool_changes: {
+        uint32_t remaining = 0, total = 0;
+        w_etime_label.SetText(_("Tool changes left"));
+        if (SerialPrinting::host_tool_changes(remaining, total, ticks_ms())) {
+            snprintf(w_etime_value_buffer.data(), w_etime_value_buffer.size(), "%lu / %lu", static_cast<unsigned long>(remaining), static_cast<unsigned long>(total));
+        } else {
+            strlcpy(w_etime_value_buffer.data(), "--", w_etime_value_buffer.size());
+        }
+        break;
+    }
     case TimeItem::_count:
         current_time_item = TimeItem::time_since_start;
         break;
     }
 
-    if (marlin_vars().print_speed != 100 && current_time_item != TimeItem::time_since_start) {
+    if (marlin_vars().print_speed != 100 && current_time_item != TimeItem::time_since_start && current_time_item != TimeItem::remaining_tool_changes) {
         strlcat(w_etime_value_buffer.data(), "?", w_etime_value_buffer.size());
     }
 
@@ -649,6 +659,10 @@ bool screen_printing_serial_data_t::time_item_available(TimeItem item) const {
         return time_to_change != marlin_server::TIME_TO_END_INVALID;
     case TimeItem::time_since_start:
         return true;
+    case TimeItem::remaining_tool_changes: {
+        uint32_t remaining = 0, total = 0;
+        return SerialPrinting::host_tool_changes(remaining, total, ticks_ms()) && remaining > 0;
+    }
     case TimeItem::_count:
         return false;
     }

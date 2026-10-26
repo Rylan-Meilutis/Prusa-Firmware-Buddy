@@ -44,8 +44,9 @@ private:
     enum class TimeItem {
         remaining_time,
         end_time,
-        time_to_change,
         time_since_start,
+        remaining_tool_changes,
+        time_to_change,
         _count,
     };
     enum class FinishedStat {

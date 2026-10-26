@@ -1,0 +1,30 @@
+RME planned tool-change display
+==============================
+
+Firmware advertises host_tool_changes=1 beside host_progress=1 in MACHINE QUERY.
+Capable hosts may add a bounded pair to the existing leased progress service:
+  @RME PROGRESS SET percent=20 remaining=900 tools_remaining=3 tools_total=9 paused=0
+  @RME PROGRESS SET percent=20 remaining=900 tools_remaining=unknown tools_total=unknown paused=0
+
+Both fields are required if either is present. Counts must be unsigned, satisfy
+remaining <= total, and total <= 200000. Invalid pairs reject the progress frame
+without replacing prior accepted counts. Unknown clears the counter. A packet
+without these optional fields retains compatibility with older hosts. No active
+serial job or RME lease means no update. Counts expire after 60 seconds and reset
+when a new serial print/preparation starts. GUI reads use a bounded producer lock.
+
+The host indexes planned physical transitions from the actual streamed file,
+applies the confirmed map, excludes initial pickup and repeated selections, and
+uses file byte position, not percent completion. These are queued-file counts,
+not a claim to track executed motion, manual interventions or fallback changes.
+
+The serial progress carousel uses remaining time, end time, elapsed time, then
+Tool changes left (remaining / total). The fourth item is available only when
+fresh accepted counts have remaining > 0. Optional next-pause time remains
+available after it. Counts are not scaled or marked uncertain by print speed.
+
+The companion Dashboard uses a native-style three-quarter circular gauge. Its
+ring represents remaining/total; a known print with no transitions displays 0/0
+and a full ring. Unknown counts remain unknown. Firmware and companion plugin
+updates are both required for the new LCD item; older firmware still supports
+the plugin-only Dashboard gauge.
