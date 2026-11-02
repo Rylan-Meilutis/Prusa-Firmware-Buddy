@@ -30,6 +30,9 @@
 #include <metric_handlers.h>
 #include <feature/extrusion_calibration.hpp>
 #include <option/has_indx.h>
+#if HAS_INDX()
+    #include <nozzle_cleaner.hpp>
+#endif
 
 LOG_COMPONENT_DEF(Loadcell, logging::Severity::info);
 
