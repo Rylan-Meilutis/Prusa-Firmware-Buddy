@@ -10,6 +10,10 @@
 #include <option/has_indx.h>
 #include <feature/print_status_message/print_status_message_guard.hpp>
 
+#if HAS_INDX()
+    #include <feature/extrusion_calibration.hpp>
+#endif
+
 namespace nozzle_cleaner {
 
 constexpr ConstexprString directory { "nozzle_cleaner" };
@@ -261,6 +265,7 @@ void load_sequence(Sequence seq) {
 
 bool load_and_execute(Sequence seq) {
 #if HAS_INDX()
+    buddy::extrusion_calibration::PressureMonitorSuspension pressure_monitor_suspension;
     switch (seq) {
     case Sequence::enter_cleaner:
         if (is_inside_bin()) {
@@ -303,6 +308,11 @@ bool load_and_execute(Sequence seq) {
         idle(true);
     }
 
+#if HAS_INDX()
+    // Cleaner subcommands may have only buffered their last extrusion. Keep
+    // the maintenance hold until that motion is actually complete.
+    planner.synchronize();
+#endif
     return true;
 }
 

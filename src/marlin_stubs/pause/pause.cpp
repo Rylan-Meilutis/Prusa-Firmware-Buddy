@@ -1181,7 +1181,7 @@ void Pause::filament_stuck_ask_process(Response response) {
     if (entering) {
         switch (get_mode().value_or(LoadUnloadMode::FilamentStuck)) {
         case LoadUnloadMode::FilamentRunout:
-            SerialPrinting::notify_error("filament_runout", "runout", "Loadcell detected filament runout; confirm before reloading");
+            SerialPrinting::notify_error("filament_runout", "runout", "No extrusion pressure detected; confirm before reloading");
             break;
         case LoadUnloadMode::FilamentNotMoving:
             SerialPrinting::notify_error("filament_movement", "not_moving", "Loadcell detected filament not moving");

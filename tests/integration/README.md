@@ -56,3 +56,32 @@ physical USB failure or automatic recovery is implemented or validated by this
 lab. In particular, seeking the last-sent file position is not safe recovery.
 The pinned QEMU supports MK4 integration tests, not INDX; do not disable firmware
 BOM/safety checks to make another machine model boot.
+
+## TPU pressure-runout characterization lab
+
+Run `python utils/simulator/tpu_runout_lab.py --output-dir /tmp/rme-tpu-runout`.
+Use `--source-root /path/to/release/worktree` to compile another checked-out
+firmware's actual pressure monitor. The lab uses the host interrupt-exclusion
+stub, ASan/UBSan, synthetic load samples and quantized executed E. It writes
+`report.json` and `trace.jsonl`. It does not talk to a printer or change settings.
+
+November 2 pre-correction characterization on development and released 6.9.2 code:
+with the flexible policy enabled, steady 15 g pressure and 0.5 mm/s feed were
+classified as `no_pressure_rise` after 12.010 s / 6.005 mm when pressure was
+already present at monitor enable. The same classification occurred after a
+one-second travel retaining that pressure. Normal buildup from idle and travel
+with relaxed pressure produced no fault; a true zero-pressure trace did fault.
+The detector learns pressure already present as the idle baseline, discarding
+the steady-load evidence. This affects the pressure model, not the side sensor.
+
+Corrected code accepts the primed/retained-pressure cases and explicitly models
+an INDX G12 S90 bin purge followed by cleaner exit. The purge produces no pressure
+fault, a primed first object segment is accepted, and true empty extrusion after
+exit still raises runout. The separate native regression tests cover signed
+references, offsets, slow feed, steep reference slopes and subsequent collapse.
+These are characterization scenarios, not assertions that old behavior is
+desirable. Synthetic loads do not establish
+actual melt flow, TPU elasticity or this user's exact trigger. The production
+presence sensor and physical nozzle are not modeled, and the INDX QEMU hardware
+model is not available. No production detection threshold/policy is changed by
+this lab; the production changes are separate and require physical validation.

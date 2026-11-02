@@ -1338,6 +1338,9 @@ void static finalize_print(bool finished) {
 #endif
 
     server.print_elapsed_timer_active = false;
+#if HAS_LOADCELL()
+    buddy::extrusion_calibration::set_pressure_monitor_purge_context(false);
+#endif
     GCodeQueue::pause_serial_commands = false;
     if (is_ignored_serial_macro_print(finished)) {
         fsm_destroy(ClientFSM::Serial_printing);
@@ -2900,10 +2903,16 @@ static void _server_print_loop(void) {
 
 #if HAS_LOADCELL()
         if (const auto fault = buddy::extrusion_calibration::consume_extrusion_fault(); fault != buddy::extrusion_calibration::ExtrusionFault::none) {
+            const auto diagnostic = buddy::extrusion_calibration::extrusion_fault_diagnostic();
+            SERIAL_ECHOLNPAIR("EXTRUSION_FAULT source=loadcell code=", int(fault),
+                " flexible=", int(diagnostic.flexible), " pressure=", diagnostic.pressure,
+                " baseline=", diagnostic.baseline, " expected=", diagnostic.expected,
+                " velocity=", diagnostic.velocity, " forward_mm=", diagnostic.forward_mm,
+                " forward_seconds=", diagnostic.forward_seconds);
             switch (fault) {
             case buddy::extrusion_calibration::ExtrusionFault::no_pressure_rise:
                 SERIAL_ECHOLNPGM("Extrusion fault: E moving without nozzle-pressure rise");
-                SerialPrinting::notify_error("filament_runout", "runout", "Loadcell detected filament runout");
+                SerialPrinting::notify_error("filament_runout", "runout", "No extrusion pressure detected; filament may still be present");
                 queue.inject_P(PSTR("M1601 R1"));
                 break;
             case buddy::extrusion_calibration::ExtrusionFault::pressure_collapse:

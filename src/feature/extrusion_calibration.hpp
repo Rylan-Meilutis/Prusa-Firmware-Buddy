@@ -118,6 +118,13 @@ enum class ExtrusionFault : uint8_t {
     flow_breakout,
 };
 
+struct ExtrusionFaultDiagnostic {
+    float pressure = 0, baseline = 0, expected = 0, velocity = 0;
+    float forward_mm = 0, forward_seconds = 0;
+    bool flexible = false;
+};
+ExtrusionFaultDiagnostic extrusion_fault_diagnostic();
+
 /// Arms runtime extrusion-health monitoring from a known-good PA response.
 /// All force values are tared loadcell grams; velocities are filament mm/s.
 void configure_pressure_monitor(const Score &reference, float low_velocity_mm_s, float high_velocity_mm_s, bool flexible = false);
@@ -129,6 +136,10 @@ bool pressure_monitor_presence_enabled();
 bool pressure_monitor_movement_enabled();
 void reset_pressure_monitor();
 void suspend_pressure_monitor(bool suspend);
+/// Explicit free-air INDX cleaner/purge scope. Does not disable side sensors
+/// or change the user's detection policies; reset on a new job.
+void set_pressure_monitor_purge_context(bool active);
+bool pressure_monitor_purge_context();
 /// Nestable exclusion for maintenance extrusion. Resume only this scope's
 /// hold, on every exit path, without changing the user's detection settings.
 class PressureMonitorSuspension {
