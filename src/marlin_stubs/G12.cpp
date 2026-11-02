@@ -16,6 +16,10 @@
 #endif
 
 #include <option/has_indx.h>
+#if HAS_INDX()
+    #include <feature/extrusion_calibration.hpp>
+    #include <module/planner.h>
+#endif
 #include <option/has_wastebin_fill_tracking.h>
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
@@ -122,6 +126,12 @@ void PrusaGcodeSuite::G12() {
         }
 
         [[maybe_unused]] const bool executed = nozzle_cleaner::load_and_execute(it->second);
+    #if HAS_INDX()
+        if (s_param == 90 || (s_param == 91 && executed)) {
+            planner.synchronize();
+            buddy::extrusion_calibration::set_pressure_monitor_purge_context(s_param == 90 && executed);
+        }
+    #endif
     #if HAS_WASTEBIN_FILL_TRACKING()
         if (executed && it->second == nozzle_cleaner::Sequence::eject_blob) {
             // One ejected blob == one pellet; WastebinWatcher handles the mid-print full detection.

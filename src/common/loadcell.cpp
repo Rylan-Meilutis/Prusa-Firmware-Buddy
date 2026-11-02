@@ -29,6 +29,7 @@
 #include "feature/prusa/e-stall_detector.h"
 #include <metric_handlers.h>
 #include <feature/extrusion_calibration.hpp>
+#include <option/has_indx.h>
 
 LOG_COMPONENT_DEF(Loadcell, logging::Severity::info);
 
@@ -253,6 +254,16 @@ void Loadcell::ProcessSample(int32_t loadcellRaw, uint32_t time_us, uint32_t sou
     if (loadcellRaw != undefined_value) {
         this->loadcellRaw = loadcellRaw;
         this->undefinedCnt = 0;
+#if HAS_INDX()
+        // S90 is acknowledged only after reaching the bin. A slicer may leave
+        // it with an ordinary move instead of S91: rearm from EXECUTED XY,
+        // not current_position (which may already be the next queued move).
+        if (buddy::extrusion_calibration::pressure_monitor_purge_context()
+            && !(planner.get_axis_position_mm(X_AXIS) > X_WASTEBIN_SAFE_POINT
+                && planner.get_axis_position_mm(Y_AXIS) > Y_WASTEBIN_SAFE_POINT)) {
+            buddy::extrusion_calibration::set_pressure_monitor_purge_context(false);
+        }
+#endif
         buddy::extrusion_calibration::record_loadcell_sample(time_us,
             get_tared_z_load(loadcellRaw, scale, offset),
             planner.get_axis_position_mm(E_AXIS));
