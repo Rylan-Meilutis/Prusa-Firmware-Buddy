@@ -83,9 +83,16 @@ int main() {
         self.assertIn('set_pressure_monitor_purge_context(false)', final)
         self.assertNotIn('set_pressure_monitor_detection(false',
                          final.split('static void', 1)[0])
-        sensor = (ROOT /
-                  'src/feature/filament_sensor/filament_sensors_handler.cpp'
-                  ).read_text()
+        sensor_path = ROOT / 'src/feature/filament_sensor/filament_sensors_handler.cpp'
+        # Release worktrees may materialize only the files under test. Inspect
+        # the exact branch's tracked sensor source rather than skip its guard.
+        sensor = sensor_path.read_text() if sensor_path.exists(
+        ) else subprocess.check_output([
+            'git', 'show',
+            'HEAD:src/feature/filament_sensor/filament_sensors_handler.cpp'
+        ],
+                                       cwd=ROOT,
+                                       text=True)
         self.assertNotIn('pressure_monitor_purge_context', sensor)
 
     def test_fault_logs_distinguish_pressure_from_presence_sensor(self):
