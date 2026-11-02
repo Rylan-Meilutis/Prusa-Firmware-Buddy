@@ -489,6 +489,114 @@ TEST_CASE("flexible pressure buildup does not trigger the rigid runout window") 
     }
 }
 
+TEST_CASE("primed pressure and retained travel pressure cannot become idle zero") {
+    using namespace buddy::extrusion_calibration;
+    for (const bool flexible : { false, true }) {
+        for (const float sign : { -1.f, 1.f }) {
+            for (const float zero : { -40.f, 0.f, 40.f }) {
+                for (const bool travel : { false, true }) {
+                    reset_job_results();
+                    const float low_speed = flexible ? .2f : .8f;
+                    const float high_speed = flexible ? 1.f : 8.f;
+                    Score reference { .noise = .2f, .low_load = zero + sign * 5, .high_load = zero + sign * 30, .valid = true };
+                    configure_pressure_monitor(reference, low_speed, high_speed, flexible);
+                    set_pressure_monitor_detection(true, true);
+                    uint32_t time = 1000;
+                    float e = 0;
+                    const float healthy = zero + sign * 15;
+                    // Already primed at the FIRST runtime sample, before any
+                    // object move. This previously became the idle baseline.
+                    record_loadcell_sample(time, healthy, e);
+                    for (int segment = 0; segment < (travel ? 2 : 1); ++segment) {
+                        for (unsigned i = 0; i < 3600; ++i) {
+                            e += flexible ? .0025f : .005f;
+                            record_loadcell_sample(time += 5000, healthy, e);
+                            REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+                        }
+                        if (travel && !segment) {
+                            for (unsigned i = 0; i < 200; ++i) {
+                                record_loadcell_sample(time += 5000, healthy, e);
+                            }
+                        }
+                    }
+                    // Existing pressure is evidence, not permission to ignore
+                    // a subsequent real loss. Both material policies still
+                    // detect sustained collapse after continuous feeding.
+                    ExtrusionFault fault = ExtrusionFault::none;
+                    for (unsigned i = 0; i < 7200 && fault == ExtrusionFault::none; ++i) {
+                        e += flexible ? .0025f : .005f;
+                        record_loadcell_sample(time += 5000, zero, e);
+                        fault = consume_extrusion_fault();
+                    }
+                    REQUIRE(fault == ExtrusionFault::pressure_collapse);
+                }
+            }
+        }
+    }
+    reset_job_results();
+}
+
+TEST_CASE("pre-print INDX bin purge is excluded but first object extrusion rearms") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    Score reference { .noise = .2f, .low_load = 5, .high_load = 30, .valid = true };
+    set_job_result(4, { .08f, 4.f, .9f, true, reference, true });
+    select_job_result(4);
+    set_pressure_monitor_detection(true, true);
+    uint32_t time = 1000;
+    float e = 0;
+    set_pressure_monitor_purge_context(true); // Successful G12 S90
+    set_pressure_monitor_purge_context(true); // Idempotent, not a counted hold
+    select_job_result(4); // Repeated T4 must not release the cleaner scope.
+    for (unsigned i = 0; i < 10000; ++i) {
+        e += .0025f;
+        record_loadcell_sample(time += 5000, 0, e);
+        REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+    }
+    REQUIRE(pressure_monitor_purge_context());
+    set_pressure_monitor_purge_context(false); // S91 or executed XY leaves bin
+    REQUIRE_FALSE(pressure_monitor_purge_context());
+    for (unsigned i = 0; i < 3600; ++i) {
+        e += .0025f;
+        record_loadcell_sample(time += 5000, 15, e);
+        REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+    }
+    // A genuinely empty first object segment still raises runout after a
+    // fresh selection; no lingering purge hold or weakened policy.
+    select_job_result(4);
+    ExtrusionFault fault = ExtrusionFault::none;
+    for (unsigned i = 0; i < 7200 && fault == ExtrusionFault::none; ++i) {
+        e += .0025f;
+        record_loadcell_sample(time += 5000, 0, e);
+        fault = consume_extrusion_fault();
+    }
+    REQUIRE(fault == ExtrusionFault::no_pressure_rise);
+    set_pressure_monitor_purge_context(true); // Cancel before S91
+    reset_job_results();
+    REQUIRE_FALSE(pressure_monitor_purge_context());
+}
+
+TEST_CASE("flexible true empty feed remains detectable across reference slopes and feed rates") {
+    using namespace buddy::extrusion_calibration;
+    for (const float high : { 15.f, 30.f, 55.f }) {
+        for (const float velocity : { .2f, .3f, .5f, 1.f }) {
+            reset_job_results();
+            Score reference { .noise = .2f, .low_load = 5, .high_load = high, .valid = true };
+            configure_pressure_monitor(reference, .2f, 1.f, true);
+            set_pressure_monitor_detection(true, true);
+            record_loadcell_sample(1000, 0, 0);
+            ExtrusionFault fault = ExtrusionFault::none;
+            for (unsigned i = 1; i <= 18000 && fault == ExtrusionFault::none; ++i) {
+                record_loadcell_sample(1000 + i * 5000, 0, i * velocity * .005f);
+                fault = consume_extrusion_fault();
+            }
+            INFO("high=" << high << " velocity=" << velocity);
+            REQUIRE(fault == ExtrusionFault::no_pressure_rise);
+        }
+    }
+    reset_job_results();
+}
+
 TEST_CASE("flexible calibration scores quantized slow E steps without false edges") {
     for (const bool pulsed : { false, true }) {
         Capture capture;

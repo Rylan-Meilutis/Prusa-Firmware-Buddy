@@ -126,6 +126,7 @@ void GcodeSuite::M600() {
 
 #if !PRINTER_IS_PRUSA_MINI()
     if (is_auto_m600) {
+        SERIAL_ECHOLNPGM("EXTRUSION_FAULT source=automatic_filament_change command=M600_A");
         SerialPrinting::notify_error("filament_runout", "filament_runout", "Filament runout detected");
         SerialPrinting::notify_workflow("filament_runout", "open", "Filament change required");
     }

@@ -1,0 +1,44 @@
+TPU startup purge and pressure-monitor correction — November 2, 2026
+
+The November 2 report placed the warning during the initial purge, before the
+first object-print move. Its serial excerpt does not include the actual trigger.
+The native lab reproduced an independent ambiguity in the released detector:
+an already-pressurized first sample, or residual pressure across travel, was
+learned as idle zero and could produce no_pressure_rise after about 12 seconds
+at 0.5 mm/s. This is a reproducible failure class, not proof of this print's
+physical cause. INDX's side sensors and the RME pressure model are separate.
+
+Production correction:
+- Bound a startup zero estimate using the accepted slow/fast pressure reference
+  only when the first reading is already at the calibrated loaded plateau.
+  A lower-force initial reading remains its own local idle baseline.
+- Do not overwrite that baseline with the first forward step after travel or
+  absorb retained TPU pressure as an unloaded baseline. An extrapolated startup
+  estimate is superseded by a later observation below the loaded plateau, so
+  steep reference slopes cannot invent residual pressure and hide empty feed.
+- Allow 5 percent measurement tolerance at the low executed-velocity boundary;
+  retain the existing time AND filament-distance confirmation windows.
+- INDX G12 S90 establishes an explicit bin-purge scope after entering the bin.
+  Streamed E-only purge moves within that scope are not compared with the
+  print-pressure model. S91, executed XY leaving the bin (even without S91),
+  print finalization and new-job reset rearm it. Merely queued/planned XY does
+  not end a purge. Repeated S90 or tool selection cannot leak a counted hold.
+- Internal nozzle-cleaner sequences use a nestable maintenance guard through
+  the completion of buffered motion. Physical filament sensors are unaffected.
+- Fault logging now identifies the loadcell path with pressure, baseline,
+  expected pressure, velocity, forward distance/time and flexible policy. An
+  automatic M600 change has a separate source tag; M600 A may also be explicitly
+  requested, so that tag alone is not proof of a hardware sensor transition.
+
+The S90/S91 bin scope is INDX-only; the baseline and quantized-feed corrections
+apply to maintained firmware lines that actually contain RME pressure monitoring.
+No slicer edit is required for the existing S90/purge/S91 start sequence. Custom
+scripts that do not enter the bin with S90 do not get this explicit exclusion.
+Do not disable side sensors or lower PA reference-quality gates to test it.
+
+Software gates cover the production monitor (not a reimplementation), both load
+orientations and offsets, primed startup, retained pressure, bin purge before
+any object motion, first object extrusion, true empty feed at several rates
+and reference slopes, later collapse, nested maintenance, cancellation and new
+jobs. Physical TPU flow and loadcell/thermal behavior still require supervised
+testing. Release notes/validation assets identify the exact built revisions.

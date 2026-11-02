@@ -23,11 +23,15 @@ namespace {
     std::atomic_uint8_t monitor_suspend_count { 0 };
     std::atomic<ExtrusionFault> monitor_fault { ExtrusionFault::none };
     std::atomic_bool monitor_fault_suspended { false };
+    std::atomic_bool monitor_purge_context { false };
     float monitor_sign = 1;
     float monitor_low_pressure = 0;
     float monitor_pressure_per_velocity = 0;
     float monitor_noise = 1;
     float monitor_low_velocity = 0.8f;
+    float monitor_reference_idle = 0;
+    float monitor_reference_low_load = 0;
+    bool monitor_baseline_estimated = false;
     bool monitor_flexible = false;
     uint32_t monitor_last_time = 0;
     float monitor_last_e = 0;
@@ -42,6 +46,7 @@ namespace {
     float monitor_breakout_time = 0;
     bool monitor_breakout_seen = false;
     bool monitor_collapse_seen = false;
+    ExtrusionFaultDiagnostic monitor_fault_diagnostic {};
 } // namespace
 
 bool Capture::start() {
@@ -272,13 +277,20 @@ Score nominal_pressure_reference(const Score &measured, float low_mm_s, float hi
 void record_loadcell_sample(const uint32_t time_us, const float load_g, const float e_position_mm) {
     instance.record(time_us, load_g, e_position_mm);
 
-    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0) {
+    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0 || monitor_purge_context.load(std::memory_order_relaxed)) {
         return;
     }
     if (!monitor_last_time) {
         monitor_last_time = time_us;
         monitor_last_e = e_position_mm;
-        monitor_filtered_load = monitor_idle_baseline = load_g;
+        monitor_filtered_load = load_g;
+        // A primed nozzle may already be under load at the first sample.
+        // Bound the learned zero by the accepted slow/fast reference's
+        // zero-feed intercept; never call an existing extrusion load idle.
+        monitor_baseline_estimated = monitor_sign * load_g >= monitor_sign * monitor_reference_low_load;
+        monitor_idle_baseline = monitor_baseline_estimated
+            ? monitor_sign * std::min(monitor_sign * load_g, monitor_sign * monitor_reference_idle)
+            : load_g;
         return;
     }
     const float dt = float(time_us - monitor_last_time) * 1e-6f;
@@ -302,7 +314,12 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         // Follow the settled non-extruding baseline quickly enough that the
         // next long perimeter is not compared with the preceding layer.
         const float baseline_alpha = monitor_idle_time > 0.15f ? 0.04f : 0.004f;
-        monitor_idle_baseline += baseline_alpha * (monitor_filtered_load - monitor_idle_baseline);
+        // Travel is not proof that TPU has relaxed. Only follow the unloaded
+        // side of the calibrated zero, not pressure retained in the melt zone.
+        const float idle_sample = monitor_sign * monitor_filtered_load >= monitor_sign * monitor_reference_low_load
+            ? monitor_sign * std::min(monitor_sign * monitor_filtered_load, monitor_sign * monitor_reference_idle)
+            : monitor_filtered_load;
+        monitor_idle_baseline += baseline_alpha * (idle_sample - monitor_idle_baseline);
         monitor_forward_time = monitor_forward_e = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
         monitor_breakout_seen = false;
         monitor_collapse_seen = false;
@@ -310,9 +327,8 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         return;
     }
 
-    if (monitor_forward_time == 0 && monitor_idle_time > 0.15f) {
-        monitor_idle_baseline = monitor_filtered_load;
-    }
+    // Keep the settled idle reference across the first forward step. Replacing
+    // it with that step's load erases pressure evidence after every travel.
     // Average executed velocity over the short step gap as well, rather
     // than interpreting a discrete step as a high-speed pressure demand.
     const float forward_dt = dt + (monitor_idle_time <= 0.15f ? monitor_idle_time : 0.0f);
@@ -320,6 +336,14 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     monitor_idle_time = 0;
     monitor_forward_time += forward_dt;
     monitor_forward_e += std::max(0.0f, de);
+    if (monitor_baseline_estimated
+        && monitor_sign * monitor_filtered_load < monitor_sign * monitor_reference_low_load - monitor_noise * 5.0f) {
+        // The extrapolated zero was only a startup estimate. A later low-force
+        // observation supersedes it, so a steep reference slope cannot leave
+        // invented residual pressure that masks an actual empty-feed event.
+        monitor_idle_baseline = monitor_filtered_load;
+        monitor_baseline_estimated = false;
+    }
     const float pressure = monitor_sign * (monitor_filtered_load - monitor_idle_baseline);
     const float expected = std::max(monitor_noise * 5.0f,
         monitor_low_pressure + monitor_pressure_per_velocity * std::max(0.0f, velocity - monitor_low_velocity));
@@ -334,8 +358,11 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     // Flexible feed stores motion elastically before nozzle pressure rises.
     // Re-arm this grace period after travel, retraction and recovery too.
     const float presence_grace = monitor_flexible ? 3.0f : 0.75f;
+    // Executed E is quantized and stored as float. Exact equality at the
+    // low-speed reference otherwise alternates above/below the cutoff and
+    // continually erases confirmation, even during a genuinely empty feed.
     const bool presence_qualified = monitor_forward_time > presence_grace && monitor_forward_e > presence_grace
-        && velocity >= monitor_low_velocity;
+        && velocity >= monitor_low_velocity * 0.95f;
     const bool pressure_missing = pressure < std::max(monitor_noise * 5.0f, expected * 0.15f);
     const bool pressure_collapsed = monitor_peak_pressure > expected * 0.65f && pressure < monitor_peak_pressure * 0.20f;
     const bool missing_from_start = presence_qualified && pressure_missing && monitor_peak_pressure <= expected * 0.65f;
@@ -376,9 +403,18 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
         }
     }
     if (wanted != ExtrusionFault::none) {
+        if (monitor_fault.load(std::memory_order_acquire) == ExtrusionFault::none) {
+            monitor_fault_diagnostic = { pressure, monitor_idle_baseline, expected, velocity,
+                monitor_forward_e, monitor_forward_time, monitor_flexible };
+        }
         ExtrusionFault expected_none = ExtrusionFault::none;
         monitor_fault.compare_exchange_strong(expected_none, wanted, std::memory_order_acq_rel);
     }
+}
+
+ExtrusionFaultDiagnostic extrusion_fault_diagnostic() {
+    buddy::InterruptDisabler guard;
+    return monitor_fault_diagnostic;
 }
 
 void reset_job_results() {
@@ -414,6 +450,8 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_pressure_per_velocity = std::max(0.0f, (std::abs(delta)) / std::max(0.1f, high_velocity_mm_s - low_velocity_mm_s));
     monitor_noise = std::max(0.25f, reference.noise);
     monitor_low_velocity = low_velocity_mm_s;
+    monitor_reference_low_load = reference.low_load;
+    monitor_reference_idle = reference.low_load - (reference.high_load - reference.low_load) * low_velocity_mm_s / std::max(0.1f, high_velocity_mm_s - low_velocity_mm_s);
     monitor_last_time = 0;
     monitor_forward_time = 0;
     monitor_forward_e = 0;
@@ -425,7 +463,9 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_collapse_seen = false;
     monitor_peak_pressure = 0;
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
-    monitor_enabled.store(reference.valid, std::memory_order_release);
+    monitor_enabled.store(reference.valid && std::isfinite(monitor_reference_idle)
+            && std::isfinite(reference.noise) && reference.noise >= 0,
+        std::memory_order_release);
 }
 
 void set_pressure_monitor_detection(const bool presence, const bool movement) {
@@ -441,7 +481,25 @@ void reset_pressure_monitor() {
     monitor_suspend_count.store(0, std::memory_order_relaxed);
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
     monitor_fault_suspended.store(false, std::memory_order_release);
+    monitor_purge_context.store(false, std::memory_order_release);
     monitor_last_time = 0;
+}
+
+void set_pressure_monitor_purge_context(const bool active) {
+    // This is an explicit INDX G12 S90/S91 scope, not a guess based on the
+    // print percentage or whether an object label has appeared yet.
+    buddy::InterruptDisabler guard;
+    if (monitor_purge_context.exchange(active, std::memory_order_acq_rel) == active) {
+        return;
+    }
+    monitor_last_time = 0;
+    monitor_forward_time = monitor_forward_e = monitor_idle_time = monitor_bad_time = monitor_bad_e = monitor_breakout_time = 0;
+    monitor_breakout_seen = monitor_collapse_seen = false;
+    monitor_peak_pressure = 0;
+}
+
+bool pressure_monitor_purge_context() {
+    return monitor_purge_context.load(std::memory_order_acquire);
 }
 
 void suspend_pressure_monitor(const bool suspend) {
