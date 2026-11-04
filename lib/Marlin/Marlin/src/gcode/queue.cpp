@@ -820,6 +820,13 @@ static bool handle_remote_filament_service(const std::string_view command) {
     }
 
     FilamentType type = config_store().get_filament_type(static_cast<uint8_t>(*tool));
+    if (const auto expected = remote_value(command, "if_profile")) {
+      if (!marlin_server::printer_idle() || marlin_server::printer_paused_extended() || marlin_server::serial_print_active()
+          || std::string_view(type.parameters().name.data()) != *expected || remote_value(command, "profile")) {
+        SERIAL_ECHOLNPGM("echo:RME_ERROR code=stale_filament_material_repair");
+        return true;
+      }
+    }
     if (const auto profile = remote_value(command, "profile")) {
       type = FilamentType::from_name(*profile);
       if (type == FilamentType::none) {
@@ -1112,6 +1119,9 @@ static void report_remote_session() {
   // Avoid the generic word "active": host state parsers can otherwise mistake
   // this communications lease for printer activity.
   SERIAL_ECHOPGM("RME_SESSION lease="); SERIAL_ECHO(serial_remote_control::session_active() ? 1 : 0);
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+  SERIAL_ECHOPGM(" material_repair=1");
+#endif
   SERIAL_ECHOPGM(" printer_state="); SERIAL_ECHO(serial_remote_control::printer_state_name());
   #if HAS_SERIAL_PRINT()
     SERIAL_ECHOPGM(" serial_prepare=1 preparing="); SERIAL_ECHO(marlin_server::serial_print_preparing() ? 1 : 0);

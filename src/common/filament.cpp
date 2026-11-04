@@ -259,7 +259,7 @@ std::optional<FilamentType> FilamentType::from_gcode_param(const std::string_vie
 
 bool FilamentType::matches(const std::string_view &name) const {
     const auto params = parameters();
-    return std::string_view(params.name.data()) == name || buddy::filament_material::matches(name, std::string_view(filament_material_name(params).data()));
+    return buddy::filament_material::matches(name, std::string_view(filament_material_name(params).data()));
 }
 
 void FilamentType::build_name_with_info(StringBuilder &builder) const {
@@ -301,12 +301,15 @@ void FilamentType::build_name_with_info(StringBuilder &builder) const {
 }
 
 FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
-    auto result = params.name;
+    std::string_view base;
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     if (params.base_preset) {
-        result = preset_filament_parameters[*params.base_preset].name;
+        base = preset_filament_parameters[*params.base_preset].name.data();
     }
 #endif
+    const auto material = buddy::filament_material::authoritative_name(params.name.data(), base);
+    FilamentTypeParameters::Name result {};
+    std::copy(material.begin(), material.end(), result.begin());
     return result;
 }
 

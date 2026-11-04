@@ -32,7 +32,7 @@ struct FilamentType {
 int main() {
  FilamentType loaded;
  current={"TPU-00L","FLEX"};
- assert(loaded.matches("TPU-00L")); assert(loaded.matches("TPU"));
+ assert(!loaded.matches("TPU-00L")); assert(loaded.matches("TPU"));
  assert(loaded.matches("TPE")); assert(loaded.matches("FLEX"));
  assert(!loaded.matches("PLA")); assert(!loaded.matches("TPU-95A"));
  current={"ASA-00A","ASA"}; assert(loaded.matches("ASA"));
