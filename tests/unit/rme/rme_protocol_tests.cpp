@@ -472,12 +472,14 @@ TEST_CASE("M976 validates material family independently of custom profile name",
     CHECK(matches("PETG"sv, "PET-00L"sv, "PETG"sv));
     CHECK_FALSE(matches("PLA"sv, "PET-00L"sv, "PETG"sv));
     CHECK(matches("PETG"sv, "PETG"sv, "PETG"sv));
-    CHECK(matches("PET-00L"sv, "PET-00L"sv, "PETG"sv));
+    CHECK_FALSE(matches("PET-00L"sv, "PET-00L"sv, "PETG"sv));
     CHECK(fallback("PET-00L"sv, "PETG"sv) == 0.045f);
     CHECK(matches("PETG-CF"sv, "PETG-CF"sv, {}));
     CHECK_FALSE(matches("PETG"sv, "PETG-CF"sv, {}));
     CHECK(fallback("PETG-CF"sv, {}) == 0.045f);
-    for (const auto requested : { "TPU"sv, "TPE"sv, "FLEX"sv, "TPU-95A"sv }) {
+    CHECK(matches("TPU-95A"sv, "TPU-95A"sv, {}));
+    CHECK_FALSE(matches("TPU-95A"sv, "TPU-00L"sv, "FLEX"sv));
+    for (const auto requested : { "TPU"sv, "TPE"sv, "FLEX"sv }) {
         for (const auto base : { "TPU"sv, "TPE"sv, "FLEX"sv }) {
             CHECK(matches(requested, "TPU-00L"sv, base));
             CHECK(fallback("custom"sv, base) == 0.08f);
@@ -485,8 +487,8 @@ TEST_CASE("M976 validates material family independently of custom profile name",
         CHECK_FALSE(matches(requested, "PLA-001"sv, "PLA"sv));
         CHECK_FALSE(matches(requested, "TPU-00L"sv, "PETG"sv));
     }
-    CHECK(matches("FLEX"sv, "TPE-001"sv, {}));
-    CHECK(matches("TPU-00L"sv, "TPU-00L"sv, "FLEX"sv));
+    CHECK_FALSE(matches("FLEX"sv, "TPE-001"sv, {})); // Missing family must be repaired from metadata.
+    CHECK_FALSE(matches("TPU-00L"sv, "TPU-00L"sv, "FLEX"sv)); // Profile IDs never validate a polymer.
     CHECK_FALSE(matches("PLA"sv, "TPU-00L"sv, "FLEX"sv));
 }
 
@@ -1045,7 +1047,8 @@ TEST_CASE("Auto PA uses gentle flexible filament feeds", "[rme][pa]") {
     using namespace buddy::m976_extrusion_policy;
     CHECK(is_flexible("FLEX-001", "FLEX", false));
     CHECK(is_flexible("custom spool", "TPU", false));
-    CHECK(is_flexible("TPE-001", "", false));
+    CHECK_FALSE(is_flexible("TPE-001", "", false));
+    CHECK(is_flexible("TPE-001", "FLEX", false));
     CHECK(is_flexible("custom spool", "", true));
     CHECK_FALSE(is_flexible("PLA-001", "PLA", false));
     CHECK_FALSE(is_flexible("FLEX-named spool", "PETG", false));

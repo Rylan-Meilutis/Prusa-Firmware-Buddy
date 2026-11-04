@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import test_serial_pause_recovery as fixture
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -18,11 +19,14 @@ class MmuTemperaturePlan(unittest.TestCase):
         validator = "bool validate_batch(" + source.split(
             "bool validate_batch(", 1)[1].split(
                 "// Resolve the live printer-side chain", 1)[0]
+        parser = (fixture.function(source, "bool parse_uint(") + "\n" +
+                  fixture.function(source, "size_t parse_batch_manifest("))
         stubs = r'''
 #include <pa_temperature_model.hpp>
 #include <m976_material.hpp>
 #include <m976_indx_policy.hpp>
 #include <array>
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #define ENABLED(x) (x)
@@ -46,10 +50,12 @@ struct VirtualToolIndex {
  PhysicalToolIndex to_physical() const { return {uint8_t(PRUSA_MMU2 ? 0 : raw)}; }
 };
 struct Params { std::array<char,16> name{'P','L','A'}; };
-struct Filament { Params parameters() const { return {}; } };
+Params loaded_params;
+std::string_view loaded_base = "PLA";
+struct Filament { Params parameters() const { return loaded_params; } };
 struct Config { Filament get_filament_type(uint8_t) const { return {}; } };
 Config &config_store() { static Config config; return config; }
-std::string_view base_material_name(const Params &) { return "PLA"; }
+std::string_view base_material_name(const Params &) { return loaded_base; }
 '''
         main = r'''
 int main() {
@@ -66,11 +72,29 @@ int main() {
  entries[0]=entry(0,0); entries[0].temperatures[1]=120; assert(!validate_batch(entries,1));
  entries[0]=entry(0,0); strcpy(entries[0].material.data(),"HIPS"); assert(!validate_batch(entries,1));
  if (!PRUSA_MMU2) { entries[0]=entry(0,0); entries[1]=entry(0,1); assert(!validate_batch(entries,2)); }
+ // Exact reported startup failure: old profile has no explicit family and
+ // Orca emits the polymer rather than the provider's spool identity.
+ if (!PRUSA_MMU2) {
+   entries={}; strcpy(loaded_params.name.data(),"PLA-00C"); loaded_base="";
+   auto count=parse_batch_manifest("M976 A 7:7:PLA:220",entries);
+   assert(count==1 && entries[0].physical_tool==7 && entries[0].logical_filament==7);
+   assert(entries[0].temperature==220 && !validate_batch(entries,count));
+   loaded_base="PLA"; assert(validate_batch(entries,count)); // Explicit family repair, not prefix guessing.
+   loaded_base="PETG"; assert(!validate_batch(entries,count)); // Real mismatch still rejected.
+   loaded_base=""; strcpy(loaded_params.name.data(),"PLA-CF"); assert(!validate_batch(entries,count));
+   strcpy(loaded_params.name.data(),"PLA-ESD"); assert(!validate_batch(entries,count));
+   strcpy(loaded_params.name.data(),"PLA-00C"); entries[0].physical_tool=6;
+   assert(!validate_batch(entries,count)); // Stale tool manifest remains unsafe.
+   entries={}; strcpy(loaded_params.name.data(),"TPU-00L"); loaded_base="FLEX";
+   count=parse_batch_manifest("M976 A 4:4:TPU:220",entries);
+   assert(count==1 && validate_batch(entries,count));
+ }
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
-            (path / "test.cpp").write_text(stubs + entry + validator + main)
+            (path / "test.cpp").write_text(stubs + entry + parser + validator +
+                                           main)
             for mmu in (0, 1):
                 subprocess.run([
                     "c++", "-std=c++20",

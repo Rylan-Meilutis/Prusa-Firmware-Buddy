@@ -102,6 +102,9 @@ void settings_reset();
 #if HAS_SERIAL_PRINT()
 // Start serial print (issue when gcodes start comming via serial line)
 void serial_print_start();
+/// Dismiss only a completed/aborted job's result FSMs before a new review.
+/// Active jobs and unrelated dialogs are never dismissed.
+bool dismiss_print_result();
 /// Job-scoped validation wait: serial screen, no timer or queued motion.
 bool serial_print_prepare(uint32_t id);
 bool serial_print_release_preparation(uint32_t id, bool cancel);

@@ -32,7 +32,7 @@ struct FilamentType {
 int main() {
  FilamentType loaded;
  current={"TPU-00L","FLEX"};
- assert(loaded.matches("TPU-00L")); assert(loaded.matches("TPU"));
+ assert(!loaded.matches("TPU-00L")); assert(loaded.matches("TPU"));
  assert(loaded.matches("TPE")); assert(loaded.matches("FLEX"));
  assert(!loaded.matches("PLA")); assert(!loaded.matches("TPU-95A"));
  current={"ASA-00A","ASA"}; assert(loaded.matches("ASA"));
@@ -78,6 +78,11 @@ int main() {
  assert(!matches("", "")); assert(!matches("---", "---"));
  assert(matches("TPU", authoritative_name("TPU-00L", "FLEX")));
  assert(!matches("TPU", authoritative_name("TPU-00L", "")));
+ assert(authoritative_name("PLA-00C", "").empty());
+ assert(authoritative_name("PLA-00C", "PETG") == "PETG");
+ assert(authoritative_name("PLA-CF", "") == "PLA-CF");
+ assert(authoritative_name("PLA-ESD", "") == "PLA-ESD");
+ assert(authoritative_name("TPU-95A", "") == "TPU-95A");
 }
 ''')
         checks = ROOT / "src/feature/compatibility_checks/gcode_compatibility.cpp"

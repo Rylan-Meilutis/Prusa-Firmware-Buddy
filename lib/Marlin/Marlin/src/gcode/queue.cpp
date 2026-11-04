@@ -863,6 +863,15 @@ static bool handle_remote_filament_service(const std::string_view command) {
     }
 
     FilamentType type = config_store().get_filament_type(VirtualToolIndex::from_raw(static_cast<uint8_t>(*tool)));
+    if (const auto expected = remote_value(command, "if_profile")) {
+      // Metadata repair is conditional on the exact profile observed by the
+      // host. Never relabel a newly selected spool or an active print.
+      if (!marlin_server::printer_idle() || marlin_server::printer_paused_extended() || marlin_server::serial_print_active()
+          || type.parameters().name != *expected || remote_value(command, "profile")) {
+        SERIAL_ECHOLNPGM("echo:RME_ERROR code=stale_filament_material_repair");
+        return true;
+      }
+    }
     if (const auto profile = remote_value(command, "profile")) {
       type = FilamentType::from_name(*profile);
       if (type == FilamentType::none) {
@@ -1157,6 +1166,9 @@ static void report_remote_session() {
 #if HAS_TOOL_MAPPING() && HAS_SPOOL_JOIN()
   SERIAL_ECHOPGM(" tool_review=1");
 #endif
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
+  SERIAL_ECHOPGM(" material_repair=1");
+#endif
   SERIAL_ECHOPGM(" printer_state=");
   SERIAL_ECHO(serial_remote_control::printer_state_name());
 #if HAS_SERIAL_PRINT()
@@ -1327,6 +1339,9 @@ static bool handle_remote_review_service(const std::string_view command) {
         return true;
       }
     }
+    // A previous result screen must not block every subsequent print review.
+    // This only dismisses terminal print FSMs; safety dialogs remain blocking.
+    marlin_server::dismiss_print_result();
     const bool has_fsm = marlin_vars().peek_fsm_states([](const fsm::States &states) { return bool(states.get_top()); });
     if (printer_lock::locked() || !marlin_server::printer_idle() || marlin_server::serial_print_active() || has_fsm || !remote_review.begin(*id)) {
       SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tool_review code=printer_busy");
