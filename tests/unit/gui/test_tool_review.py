@@ -48,6 +48,7 @@ Vars &marlin_vars() {return vars;}
 namespace printer_lock { bool locked() {return ::locked;} }
 namespace serial_remote_control { bool session_active() {return session;} }
 namespace marlin_server {
+bool dismiss_print_result() {return false;} // Production policy is exercised in test_serial_preparation.
 bool printer_idle() {return idle;}
 bool serial_print_active() {return printing;}
 void fsm_create(PhasesPrintPreview,std::array<uint8_t,4>) {assert(!top); ++creates; top=Top{};}
