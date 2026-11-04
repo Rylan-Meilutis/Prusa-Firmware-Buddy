@@ -1735,6 +1735,32 @@ bool printer_paused_extended() {
 #if HAS_SERIAL_PRINT()
 static uint32_t serial_preparation_id = 0;
 
+bool dismiss_print_result() {
+    if (!buddy::serial_print_finalize_policy::is_result(server.print_state) || printer_lock::locked()) {
+        return false;
+    }
+    // A result can be underneath a warning, fault, or filament dialog. Do
+    // not tear down any part of that stack until the other dialog is resolved.
+    for (size_t i = 0; i < static_cast<size_t>(ClientFSM::_count); ++i) {
+        const auto type = static_cast<ClientFSM>(i);
+        if (fsm_states.is_active(type) && type != ClientFSM::Printing && type != ClientFSM::Serial_printing) {
+            return false;
+        }
+    }
+    if (fsm_states.is_active(ClientFSM::Printing)) {
+        fsm_destroy(ClientFSM::Printing);
+    }
+    if (fsm_states.is_active(ClientFSM::Serial_printing)) {
+        fsm_destroy(ClientFSM::Serial_printing);
+    }
+    // Finalization already stopped the job. Do not run cleanup_print here:
+    // background cooldown/filtration and the next review's mapping must survive.
+    server.print_state = State::Idle;
+    server.print_is_serial = false;
+    _server_update_vars();
+    return true;
+}
+
 bool serial_print_preparing() {
     return serial_preparation_id && server.print_state == State::SerialPrintInit;
 }

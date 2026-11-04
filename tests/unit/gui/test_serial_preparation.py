@@ -6,6 +6,59 @@ import test_serial_pause_recovery as fixture
 class SerialPreparation(unittest.TestCase):
     run_cpp = fixture.SerialPauseRecovery.run_cpp
 
+    def test_new_review_replaces_only_terminal_print_results(self):
+        source = (fixture.ROOT / "src/common/marlin_server.cpp").read_text()
+        method = fixture.function(source, "bool dismiss_print_result()")
+        self.run_cpp(r'''
+#include <cassert>
+#include <cstddef>
+#include <initializer_list>
+#include <serial_print_finalize_policy.hpp>
+using marlin_server::State;
+enum class ClientFSM { Printing, Serial_printing, Warning, LoadUnload, _count };
+struct { State print_state = State::Finished; bool print_is_serial = true; } server;
+bool locked = false;
+namespace printer_lock { bool locked() { return ::locked; } }
+struct {
+    bool active[4] = {};
+    bool is_active(ClientFSM type) { return active[static_cast<size_t>(type)]; }
+} fsm_states;
+int destroyed = 0, published = 0;
+void fsm_destroy(ClientFSM type) { fsm_states.active[static_cast<size_t>(type)]=false; ++destroyed; }
+void _server_update_vars() { ++published; }
+''' + method + r'''
+int main() {
+    for (auto state : { State::Printing, State::Paused, State::SerialPrintInit,
+                       State::Aborting_WaitIdle, State::Finishing_WaitIdle, State::Idle }) {
+        server.print_state=state; fsm_states.active[1]=true;
+        assert(!dismiss_print_result());
+        assert(fsm_states.active[1] && destroyed==0);
+    }
+    for (auto state : { State::Finished, State::Aborted }) {
+        server.print_state=state; server.print_is_serial=true;
+        fsm_states.active[0]=fsm_states.active[1]=true;
+        for (int dialog : {2,3}) {
+            fsm_states.active[dialog]=true;
+            assert(!dismiss_print_result());
+            assert(fsm_states.active[0] && fsm_states.active[1]);
+            fsm_states.active[dialog]=false;
+        }
+        locked=true; assert(!dismiss_print_result()); locked=false;
+        assert(dismiss_print_result());
+        assert(server.print_state==State::Idle && !server.print_is_serial);
+        assert(!fsm_states.active[0] && !fsm_states.active[1]);
+        assert(!dismiss_print_result());
+    }
+    assert(destroyed==4 && published==2);
+}
+''')
+        queue = (fixture.ROOT /
+                 "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()
+        begin = queue.split('if (rme_protocol::action_is(action, "BEGIN")) {',
+                            1)[1]
+        self.assertLess(begin.index("dismiss_print_result()"),
+                        begin.index("const bool has_fsm"))
+
     def test_validation_is_job_scoped_and_cannot_timeout_into_printing(self):
         source = (fixture.ROOT / "src/common/marlin_server.cpp").read_text()
         methods = "\n".join(
