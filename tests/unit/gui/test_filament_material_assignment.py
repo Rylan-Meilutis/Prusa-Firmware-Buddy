@@ -24,13 +24,20 @@ class FilamentMaterialAssignment(unittest.TestCase):
 #include <sstream>
 #include <string>
 #include <variant>
+#include <type_traits>
 #include <filament_material.hpp>
 #include <m976_material.hpp>
 #include <rme_protocol_parser.hpp>
 #define HAS_FILAMENT_MATERIAL_FAMILY_PARAM() 1
-enum class PresetFilamentType { PLA, PETG, ASA, ABS, FLEX, PC, PA, PVB, HIPS, PP, PVA, _count };
+namespace std { template<class E> constexpr auto to_underlying(E v) {return static_cast<std::underlying_type_t<E>>(v);} }
+enum class PresetFilamentType { PLA, PETG, ASA, ABS, FLEX, PC, PA, PVB, HIPS, PP, PVA, _count, _count_sparse=_count };
 constexpr std::array<std::string_view,11> names={"PLA","PETG","ASA","ABS","FLEX","PC","PA","PVB","HIPS","PP","PVA"};
 struct FilamentTypeParameters { using BasePreset=std::optional<PresetFilamentType>; };
+struct EncodedFilamentType {
+    static std::optional<PresetFilamentType> preset_filament_type_from_enum_value(uint8_t n) {
+        return n<names.size() ? std::optional{static_cast<PresetFilamentType>(n)} : std::nullopt;
+    }
+};
 ''' + storage + r'''
 struct Params { std::string name="S00ABCD"; std::optional<PresetFilamentType> base_preset;
     int nozzle=220, bed=60; };
