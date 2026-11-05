@@ -40,6 +40,15 @@ Behavior
   fifteen-second cooling dwell, two native cleaning sweeps and final ejection.
   An additional twelve-millimetre pending filament budget prevents a future
   excitation speed change from overfilling the existing pellet allowance.
+- Window executed E velocity for rigid as well as flexible filament. Adjacent
+  physical steps are not reliable speed estimates: quantization previously
+  turned clean rigid/PLA plateaus into many false, low-signal transitions.
+  Transition analysis windows cannot overlap or span a paused cleaner/cooling
+  gap. Real sample loss still fails closed rather than joining disjoint loads.
+- Pool repeated measurements at the selected PA, including between-capture
+  variance and the worst noise floor. A retry need not beat the previous cost
+  to contribute evidence; disagreement is retained, not averaged away. The
+  configured confidence/SNR floors, capture limits and pellet policy remain.
 
 Diagnostics
 -----------
@@ -58,6 +67,8 @@ Do not add measurement_ms and pellet_cleanup_ms: they overlap. Feed accounting
 is commanded excitation, not a filament sensor measurement, and excludes native
 cleaner/loading motion. These RAM diagnostics retain only the latest attempt per
 slot until another attempt or reboot, not the sum of a multi-temperature plan.
+Selection evidence belongs to the selected (possibly pooled) score, not the
+last neighbour measured. A signal-guard failure retains its failing evidence.
 
 Bounds
 ------
