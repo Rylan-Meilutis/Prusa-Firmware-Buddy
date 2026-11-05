@@ -73,7 +73,6 @@ public:
     void set_active(bool val);
     bool get_print_status_enabled();
     void set_print_status_enabled(bool val);
-    void activity_ping();
     uint8_t get_brightness(LightState state);
     void set_brightness(LightState state, uint8_t val);
     uint16_t get_finished_hold_s();
@@ -82,6 +81,8 @@ public:
     void set_print_status_brightness(uint8_t val);
     void set_idle_light_state(LightState state);
     void acknowledge_finished();
+    void activity_ping();
+    void acknowledge_finished_on_door_open();
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     void acknowledge_aborted();
 #endif
@@ -93,7 +94,6 @@ private:
     freertos::Mutex mutex;
     bool active { config_store().run_leds.get() };
     bool print_status_disabled { false };
-    bool awaiting_activity { false };
     bool print_status_overridden { false };
     bool print_override_session_active { false };
     uint32_t brightness_by_state { config_store().status_led_brightness_by_state.get() };
@@ -104,6 +104,8 @@ private:
     bool custom_animation_active { false };
     bool is_error_state { false };
     bool finished_acknowledged { false };
+    // Survives the hold timeout and serial PRINTING -> IDLE transition.
+    bool finished_pending { false };
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool aborted_acknowledged { false };
 #endif
