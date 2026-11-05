@@ -1,6 +1,9 @@
 #include "partial_file.hpp"
 #include "partial_file_usb.hpp"
-#include "partial_file_posix.hpp"
+#include <option/has_internal_storage_flash.h>
+#if HAS_INTERNAL_STORAGE_FLASH()
+    #include "partial_file_posix.hpp"
+#endif
 
 #include <mutex>
 #include <algorithm>
@@ -15,8 +18,12 @@ LOG_COMPONENT_REF(transfers);
 namespace transfers {
 
 struct PartialFile::Pool {
+#if HAS_INTERNAL_STORAGE_FLASH()
     alignas(UsbPartialFile) alignas(PosixPartialFile)
         std::byte storage[std::max(sizeof(UsbPartialFile), sizeof(PosixPartialFile))];
+#else
+    alignas(UsbPartialFile) std::byte storage[sizeof(UsbPartialFile)];
+#endif
     std::atomic<bool> occupied = false;
 };
 
@@ -53,30 +60,45 @@ namespace {
 } // namespace
 
 PartialFile::Result PartialFile::create(const char *path, size_t size) {
+    const auto medium = storage::type(path);
+    if (!medium) {
+        return "Unknown transfer storage";
+    }
     unique_file_ptr file = open_partial_file(path, "wb+");
     if (!file) {
         return "Failed to create file";
     }
-    if (storage::type(path) == storage::Type::usb) {
-        return UsbPartialFile::create(path, std::move(file), size);
+#if HAS_INTERNAL_STORAGE_FLASH()
+    if (*medium == storage::Type::internal) {
+        return PosixPartialFile::create(path, std::move(file), size);
     }
-    return PosixPartialFile::create(path, std::move(file), size);
+#endif
+    return UsbPartialFile::create(path, std::move(file), size);
 }
 
 PartialFile::Result PartialFile::open(const char *path, State state) {
-    // File modes are explained at the declaration.
-    if (storage::type(path) == storage::Type::usb) {
-        unique_file_ptr file = open_partial_file(path, "rb");
-        if (!file) {
-            return "Failed to open file";
-        }
-        return UsbPartialFile::open(path, std::move(file), state);
+    const auto medium = storage::type(path);
+    if (!medium) {
+        return "Unknown transfer storage";
     }
-    unique_file_ptr file = open_partial_file(path, "rb+");
+    // File modes are explained at the declaration. USB is the only supported
+    // user storage on boards without internal flash (storage::type enforces it).
+    const char *mode = "rb";
+#if HAS_INTERNAL_STORAGE_FLASH()
+    if (*medium == storage::Type::internal) {
+        mode = "rb+";
+    }
+#endif
+    unique_file_ptr file = open_partial_file(path, mode);
     if (!file) {
         return "Failed to open file";
     }
-    return PosixPartialFile::open(path, std::move(file), state);
+#if HAS_INTERNAL_STORAGE_FLASH()
+    if (*medium == storage::Type::internal) {
+        return PosixPartialFile::open(path, std::move(file), state);
+    }
+#endif
+    return UsbPartialFile::open(path, std::move(file), state);
 }
 
 PartialFile::State PartialFile::get_state() const {

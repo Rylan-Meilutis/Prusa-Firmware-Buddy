@@ -1547,8 +1547,15 @@ static bool handle_remote_indx_service(const std::string_view command) {
 // Fixed-size streaming snapshot: no JSON, heap allocation, event history, or
 // queued GUI requests. Local Tune changes and serial overrides share this state.
 template<class T> static void rme_tune_field(const char *key, T value) {
-  if (!tune_delta.changed(key, static_cast<int64_t>(value))) return;
-  SERIAL_CHAR(' '); SERIAL_ECHO(key); SERIAL_CHAR('='); SERIAL_ECHO(value);
+  // Small integer fields share the int serializer instead of instantiating
+  // identical output routines for every PWM/settings integer width. Wider
+  // values retain their type so unsigned progress sentinels are not narrowed.
+  if constexpr (sizeof(T) < sizeof(int)) {
+    rme_tune_field(key, static_cast<int>(value));
+  } else {
+    if (!tune_delta.changed(key, static_cast<int64_t>(value))) return;
+    SERIAL_CHAR(' '); SERIAL_ECHO(key); SERIAL_CHAR('='); SERIAL_ECHO(value);
+  }
 }
 
 static void rme_report_fan_state() {
