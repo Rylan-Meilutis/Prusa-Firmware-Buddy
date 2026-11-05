@@ -1,7 +1,8 @@
 #include "MItem_print.hpp"
-#include <module/prusa/tool_mapper.hpp>
+#include <option/has_tool_mapping.h>
 
 #if HAS_TOOL_MAPPING()
+    #include <module/prusa/tool_mapper.hpp>
 MI_LIVE_TOOL_MAPPING::MI_LIVE_TOOL_MAPPING(int logical)
     : IWindowMenuItem({}, nullptr, is_enabled_t::no)
     , logical_(logical) {
