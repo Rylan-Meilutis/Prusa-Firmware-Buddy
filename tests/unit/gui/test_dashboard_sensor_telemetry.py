@@ -15,7 +15,8 @@ class DashboardSensorTelemetry(unittest.TestCase):
         source = (ROOT / 'lib/Marlin/Marlin/src/gcode/queue.cpp').read_text()
         methods = '\n'.join(
             function(source, signature)
-            for signature in ('static void rme_report_sensor_temperature(',
+            for signature in ('template<class T> static void rme_tune_field(',
+                              'static void rme_report_sensor_temperature(',
                               'static void rme_report_sensor_state('))
         code = r'''
 #include <cassert>
@@ -24,6 +25,8 @@ class DashboardSensorTelemetry(unittest.TestCase):
 #include <sstream>
 #include <array>
 #include <string>
+#include <rme_tune_delta.hpp>
+rme_tune::Delta tune_delta;
 #define RME_HAS_INDX() (MODEL==1)
 #define HAS_TOOLCHANGER() (MODEL==2)
 #define HAS_TEMP_BOARD (MODEL!=3)
@@ -75,7 +78,7 @@ Chamber chamber_instance;
 auto &chamber() {return chamber_instance;}
 }
 ''' + methods + r'''
-std::string snapshot() {serial.str(""); serial.clear(); rme_report_sensor_state(); return serial.str();}
+std::string snapshot() {serial.str(""); serial.clear(); tune_delta.begin(std::nullopt); rme_report_sensor_state(); return serial.str();}
 int main() {
     auto value = snapshot();
     assert(value.find("buddy_mcu=42") != std::string::npos);
@@ -104,7 +107,11 @@ int main() {
     assert(value.find("heatbreak_pwm=-1") != std::string::npos);
 #else
     assert(value.find("heatbreak_pwm=-1") != std::string::npos);
-    assert(value.find("head_mcu=") == std::string::npos); // Do not guess first XL head.
+ #if MODEL==2
+    assert(value.find("head_mcu=unknown") != std::string::npos); // Clear previous XL head.
+ #else
+    assert(value.find("head_mcu=") == std::string::npos);
+ #endif
 #endif
     serial.str(""); rme_report_sensor_temperature("sentinel", -1);
     rme_report_sensor_temperature("bad", NAN);
@@ -121,7 +128,8 @@ int main() {
                 subprocess.run([
                     'c++', '-std=c++20', '-fsanitize=address,undefined',
                     '-fno-pie', '-no-pie',
-                    '-DMODEL=%d' % model,
+                    '-DMODEL=%d' % model, '-I',
+                    str(ROOT / 'src/common'),
                     str(path / 'snapshot.cpp'), '-o',
                     str(path / 'snapshot')
                 ],

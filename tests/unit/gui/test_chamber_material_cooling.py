@@ -68,7 +68,7 @@ int main() {
     def test_production_command_validation(self):
         source = (ROOT / "lib/Marlin/Marlin/src/gcode/queue.cpp").read_text()
         start = source.index('  if (command.starts_with("@RME CHAMBER SET "))')
-        end = source.index('  if (command != "@RME TUNE QUERY")', start)
+        end = source.index('  if (command != "@RME TUNE QUERY"', start)
         body = source[start:end]
         for xbe, filtration in ((0, 0), (0, 1), (1, 1)):
             self.compile_run(r'''
