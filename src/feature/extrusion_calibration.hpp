@@ -116,6 +116,7 @@ enum class ExtrusionFault : uint8_t {
     no_pressure_rise,
     pressure_collapse,
     flow_breakout,
+    reference_unavailable,
 };
 
 struct ExtrusionFaultDiagnostic {
@@ -132,6 +133,7 @@ void configure_pressure_monitor(const Score &reference, float low_velocity_mm_s,
 /// Presence covers forward E motion with no pressure rise; movement covers a
 /// pressure collapse or melt-flow breakout after pressure was established.
 void set_pressure_monitor_detection(bool presence, bool movement);
+bool pressure_monitor_has_reference();
 void reset_pressure_monitor();
 void suspend_pressure_monitor(bool suspend);
 /// Explicit free-air INDX cleaner/purge scope. Does not disable side sensors

@@ -617,7 +617,7 @@ TEST_CASE("flexible calibration scores quantized slow E steps without false edge
     }
 }
 
-TEST_CASE("fallback PA without a trusted reference cannot trigger pressure recovery") {
+TEST_CASE("fallback PA without a trusted reference reports unavailable protection, not runout") {
     using namespace buddy::extrusion_calibration;
     reset_job_results();
     reset_pressure_monitor();
@@ -627,8 +627,46 @@ TEST_CASE("fallback PA without a trusted reference cannot trigger pressure recov
     for (uint32_t i = 0; i < 2000; ++i) {
         record_loadcell_sample(1000 + i * 5000, 0, i * 0.005f);
     }
+    REQUIRE_FALSE(pressure_monitor_has_reference());
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::reference_unavailable);
+    acknowledge_extrusion_fault();
+    set_pressure_monitor_detection(false, false);
+    for (uint32_t i = 0; i < 2000; ++i) {
+        record_loadcell_sample(20'000'000 + i * 5000, 0, 10 + i * 0.005f);
+    }
     REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
     reset_job_results();
+}
+
+TEST_CASE("unavailable pressure reference respects purge and maintenance guards on tool eight") {
+    using namespace buddy::extrusion_calibration;
+    reset_job_results();
+    set_job_result(7, { .04f, 2.4f, .2f, true });
+    select_job_result(7);
+    set_pressure_monitor_detection(true, true);
+    uint32_t time = 1000;
+    float e = 0;
+    const auto feed = [&] {
+        for (unsigned i = 0; i < 2000; ++i) {
+            time += 5000;
+            e += .005f;
+            record_loadcell_sample(time, 0, e);
+        }
+    };
+    set_pressure_monitor_purge_context(true);
+    feed();
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+    set_pressure_monitor_purge_context(false);
+    {
+        PressureMonitorSuspension maintenance;
+        feed();
+        REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
+    }
+    feed();
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::reference_unavailable);
+    reset_job_results();
+    feed();
+    REQUIRE(consume_extrusion_fault() == ExtrusionFault::none);
 }
 
 TEST_CASE("runtime monitor detects missing pressure during executed E motion") {

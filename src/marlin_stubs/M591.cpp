@@ -79,6 +79,7 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
     SERIAL_ECHOLNPAIR_F("Loadcell filament runout detection ", opt_enable_stuck.value_or(config_store().stuck_filament_detection.get()) ? "on" : "off");
     SERIAL_ECHOLNPAIR_F("Loadcell filament movement detection ", opt_enable_movement.value_or(config_store().filament_movement_detection.get()) ? "on" : "off");
     SERIAL_ECHOLNPGM("Max-flow breakout detection on");
+    SERIAL_ECHOLNPAIR_F("Loadcell pressure reference ", buddy::extrusion_calibration::pressure_monitor_has_reference() ? "ready" : "unavailable");
     #else
     SERIAL_ECHOLNPAIR_F("Filament stuck detection ", opt_enable_stuck.value_or(config_store().stuck_filament_detection.get()) ? "on" : "off");
     SERIAL_ECHOLNPAIR_F("Filament movement detection ", opt_enable_movement.value_or(config_store().filament_movement_detection.get()) ? "on" : "off");

@@ -18,6 +18,7 @@ namespace {
     float profile_pressure_advance = NAN;
     float calibrated_pressure_advance = NAN;
     std::atomic_bool monitor_enabled { false };
+    std::atomic_bool monitor_configured { false };
     std::atomic_bool monitor_presence_detection { false };
     std::atomic_bool monitor_movement_detection { false };
     std::atomic_uint8_t monitor_suspend_count { 0 };
@@ -277,7 +278,7 @@ Score nominal_pressure_reference(const Score &measured, float low_mm_s, float hi
 void record_loadcell_sample(const uint32_t time_us, const float load_g, const float e_position_mm) {
     instance.record(time_us, load_g, e_position_mm);
 
-    if (!monitor_enabled.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0 || monitor_purge_context.load(std::memory_order_relaxed)) {
+    if (!monitor_configured.load(std::memory_order_acquire) || monitor_suspend_count.load(std::memory_order_relaxed) != 0 || monitor_purge_context.load(std::memory_order_relaxed)) {
         return;
     }
     if (!monitor_last_time) {
@@ -298,6 +299,27 @@ void record_loadcell_sample(const uint32_t time_us, const float load_g, const fl
     monitor_last_time = time_us;
     monitor_last_e = e_position_mm;
     if (!(dt > 0 && dt < 0.1f)) {
+        return;
+    }
+
+    if (!monitor_enabled.load(std::memory_order_acquire)) {
+        // No fabricated pressure curve after a failed PA measurement. If the
+        // user requested protection, sustained executed feed must report an
+        // unavailable monitor, not silently continue as though it were armed.
+        if (de <= 0) {
+            monitor_idle_time += dt;
+            if (de < 0 || monitor_idle_time > 0.15f) {
+                monitor_forward_time = monitor_forward_e = 0;
+            }
+            return;
+        }
+        monitor_forward_time += dt + (monitor_idle_time <= 0.15f ? monitor_idle_time : 0);
+        monitor_idle_time = 0;
+        monitor_forward_e += de;
+        if (monitor_forward_time > 3 && monitor_forward_e > 3
+            && (monitor_presence_detection.load(std::memory_order_relaxed) || monitor_movement_detection.load(std::memory_order_relaxed))) {
+            monitor_fault.store(ExtrusionFault::reference_unavailable, std::memory_order_release);
+        }
         return;
     }
 
@@ -438,6 +460,7 @@ float profile_pressure_advance_or(const float fallback) {
 }
 
 void configure_pressure_monitor(const Score &reference, const float low_velocity_mm_s, const float high_velocity_mm_s, const bool flexible) {
+    monitor_configured.store(false, std::memory_order_release);
     monitor_enabled.store(false, std::memory_order_release);
     monitor_flexible = flexible;
     const float delta = reference.high_load - reference.low_load;
@@ -466,6 +489,12 @@ void configure_pressure_monitor(const Score &reference, const float low_velocity
     monitor_enabled.store(reference.valid && std::isfinite(monitor_reference_idle)
             && std::isfinite(reference.noise) && reference.noise >= 0,
         std::memory_order_release);
+    monitor_fault_diagnostic = {};
+    monitor_configured.store(true, std::memory_order_release);
+}
+
+bool pressure_monitor_has_reference() {
+    return monitor_enabled.load(std::memory_order_acquire);
 }
 
 void set_pressure_monitor_detection(const bool presence, const bool movement) {
@@ -477,6 +506,7 @@ void set_pressure_monitor_detection(const bool presence, const bool movement) {
 }
 
 void reset_pressure_monitor() {
+    monitor_configured.store(false, std::memory_order_release);
     monitor_enabled.store(false, std::memory_order_release);
     monitor_suspend_count.store(0, std::memory_order_relaxed);
     monitor_fault.store(ExtrusionFault::none, std::memory_order_release);
