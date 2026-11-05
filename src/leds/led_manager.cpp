@@ -238,6 +238,9 @@ void LEDManager::update() {
 #if HAS_SIDE_LEDS()
     auto &side_strip_handler = SideStripHandler::instance();
     side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
+    if (chamber_door_state.open) {
+        status_leds_handler.acknowledge_finished_on_door_open();
+    }
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     acknowledge_aborted_after_door_cycle(chamber_door_state.open);
     acknowledge_filtering_after_door_cycle(chamber_door_state.open);

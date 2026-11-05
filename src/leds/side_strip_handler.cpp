@@ -1,4 +1,5 @@
 #include "leds/side_strip_handler.hpp"
+#include <leds/status_leds_handler.hpp>
 #include <led_animation_controller/simple_transition_controller.hpp>
 #include "marlin_server.hpp"
 #include <marlin_vars.hpp>
@@ -114,6 +115,8 @@ void SideStripHandler::startup_activity_ping() {
 }
 
 void SideStripHandler::activity_ping() {
+    // Do not hold the side-strip mutex while taking the status handler's mutex.
+    StatusLedsHandler::instance().activity_ping();
     std::lock_guard lock(mutex);
     screen_forced_off = false;
     if (chamber_mode_state.resume_on_activity()) {

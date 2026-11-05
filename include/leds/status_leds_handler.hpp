@@ -81,6 +81,8 @@ public:
     void set_print_status_brightness(uint8_t val);
     void set_idle_light_state(LightState state);
     void acknowledge_finished();
+    void activity_ping();
+    void acknowledge_finished_on_door_open();
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     void acknowledge_aborted();
 #endif
@@ -102,6 +104,8 @@ private:
     bool custom_animation_active { false };
     bool is_error_state { false };
     bool finished_acknowledged { false };
+    // Survives the hold timeout and serial PRINTING -> IDLE transition.
+    bool finished_pending { false };
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool aborted_acknowledged { false };
 #endif

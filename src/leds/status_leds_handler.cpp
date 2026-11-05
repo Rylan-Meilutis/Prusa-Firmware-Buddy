@@ -453,7 +453,27 @@ void StatusLedsHandler::set_idle_light_state(LightState state) {
 void StatusLedsHandler::acknowledge_finished() {
     std::lock_guard lock(mutex);
     finished_acknowledged = true;
+    finished_pending = false;
     finished_hold_until_ms = 0;
+}
+
+void StatusLedsHandler::activity_ping() {
+    std::lock_guard lock(mutex);
+    if (!finished_pending || finished_acknowledged || print_active_for_status_override()) {
+        return;
+    }
+    const uint32_t hold_s = config_store().status_led_finished_hold_s.get();
+    finished_hold_until_ms = hold_s > 0 ? ticks_ms() + hold_s * 1000 : 0;
+}
+
+void StatusLedsHandler::acknowledge_finished_on_door_open() {
+    std::lock_guard lock(mutex);
+    if (!print_active_for_status_override()
+        && (finished_pending || marlin_vars().print_state.get() == State::Finished || post_filter_active())) {
+        finished_acknowledged = true;
+        finished_pending = false;
+        finished_hold_until_ms = 0;
+    }
 }
 
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -492,7 +512,11 @@ void StatusLedsHandler::update() {
     if (print_active) {
         finished_hold_until_ms = 0;
         finished_acknowledged = false;
+        finished_pending = false;
+    } else if (!finished_acknowledged && filtering) {
+        finished_pending = true;
     } else if (!finished_acknowledged && ((filtering_prev && !filtering) || (finished && !finished_prev && !filtering))) {
+        finished_pending = true;
         start_finished_hold();
     }
     filtering_prev = filtering;
