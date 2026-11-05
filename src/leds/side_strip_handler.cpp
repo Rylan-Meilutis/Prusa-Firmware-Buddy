@@ -285,9 +285,8 @@ void SideStripHandler::update() {
             screen_brightness_wake_from_print_override = false;
             print_override_session_active = true;
         } else if (!print_active && terminal_print_state && print_override_session_active) {
-            screen_forced_off = false;
             restart_idle_countdown(time_ms);
-            print_chamber_mode.reset();
+            chamber_mode_state.finish_print(print_chamber_mode, time_ms);
             print_brightness_overridden = false;
             print_screen_brightness_overridden = false;
             screen_brightness_wake_until_ms = 0;
