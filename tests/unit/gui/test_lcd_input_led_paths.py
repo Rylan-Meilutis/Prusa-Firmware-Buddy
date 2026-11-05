@@ -222,10 +222,13 @@ int main() {
  // printers which report IDLE while their finished screen remains visible.
  marlin_server::serial_printing=false;
  vars.print_state.value=marlin_server::State::Finished;
- status.set_idle_light_state(leds::LightState::deep_idle);
+ // The completion timeout must turn green off even before deep idle begins.
+ status.set_idle_light_state(leds::LightState::active);
  status.update();
  clock_ms+=31000; status.update();
+ clock_ms+=1000; status.update(); // Allow the native fade to Idle to complete.
  assert(status.led_data()[1].g==0);
+ status.set_idle_light_state(leds::LightState::deep_idle);
  vars.print_state.value=marlin_server::State::Idle;
  status.update();
  for(int wake=0;wake<2;++wake) {

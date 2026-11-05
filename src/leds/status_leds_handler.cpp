@@ -546,6 +546,10 @@ void StatusLedsHandler::update() {
         state = StateAnimation::Filtering;
     } else if (timed_finished_hold_active && !finished_acknowledged) {
         state = StateAnimation::Finishing;
+    } else if (finished) {
+        // Expiring the indication does not acknowledge the finished print.
+        // Activity can renew the hold until the door/result screen clears it.
+        state = StateAnimation::Idle;
     } else {
         state = marlin_to_anim_state();
     }
@@ -556,7 +560,7 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         current_light_state = LightState::printing;
-    } else if (state == StateAnimation::Idle || (state == StateAnimation::Finishing && finished && !timed_finished_hold_active)) {
+    } else if (state == StateAnimation::Idle) {
         current_light_state = idle_light_state;
     } else {
         current_light_state = LightState::active;
