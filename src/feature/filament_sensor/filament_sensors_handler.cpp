@@ -12,6 +12,7 @@
 #include <option/has_crash_detection.h>
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
+#include <option/has_indx.h>
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
@@ -215,13 +216,24 @@ void FilamentSensors::process_events() {
             return false;
         }
 
-        const auto event = sen->last_event();
-        if (m600_sent || event != IFSensor::Event::filament_removed) {
+        const bool missing =
+#if HAS_INDX()
+            // Removal can happen while docking/loading or while replay is
+            // disarmed. Recheck the known state once those guards clear.
+            sen->get_state() == FilamentSensorState::NoFilament;
+#else
+            sen->last_event() == IFSensor::Event::filament_removed;
+#endif
+        if (m600_sent || !missing) {
             return false;
         }
 
 #if HAS_CRASH_DETECTION()
-        if (crash_s.get_state() != Crash_s::PRINTING) {
+        if (crash_s.get_state() != Crash_s::PRINTING
+    #if HAS_SERIAL_PRINT()
+            && !(marlin_server::serial_print_active() && crash_s.get_state() == Crash_s::IDLE)
+    #endif
+        ) {
             // Only allow runouts in print and outside of crash recovery
             return false;
         }
@@ -274,6 +286,14 @@ void FilamentSensors::process_events() {
     };
 
     if (marlin_server::is_printing() && !marlin_server::printer_paused_extended()) {
+#if HAS_INDX()
+        // is_printing() includes initialization, cleanup and crash states.
+        // Empty docks during a toolchange are not a print-time runout.
+        if (marlin_vars().print_state != marlin_server::State::Printing
+            || prusa_toolchanger.phase() != PrusaToolChanger::ToolchangePhase::none) {
+            return;
+        }
+#endif
         if (check_runout(LogicalFilamentSensor::primary_runout)) {
             return;
         }

@@ -1,0 +1,34 @@
+INDX serial runout and LCD E jogging — November 4, 2026
+
+Physical side-sensor runout no longer depends on serial collision replay being
+armed. Serial Printing with crash state IDLE is valid; actual crash/recovery
+states remain excluded. INDX rechecks a confirmed NoFilament level after event
+locks/toolchanges clear, rather than losing removal edges while guarded. It
+checks only the selected tool, only in stable Printing, outside toolchanges,
+and retains the one-M600 latch. Disabled/disconnected/unknown are not reported
+as confirmed empty. The latch is reset at new-print initialization.
+
+Pressure-based runout still requires an accepted loadcell reference. A fallback
+PA value is not a measurement and cannot establish a safe pressure threshold.
+When protection was requested but the selected tool lacks that reference,
+sustained executed feed (>3 seconds AND >3 mm) raises reference_unavailable and
+pauses with an explicit calibration message instead of silently running without
+protection or inventing a runout. Purge/maintenance exclusions remain effective.
+The user may recalibrate or explicitly disable the loadcell policy; independent
+side-sensor protection is unchanged. M591 now also reports reference readiness.
+
+LCD G123 jogging previously exited before its first segment when another
+command was queued. It now plans its first segment, ignores a narrow set of
+queued read-only display/temperature/position/progress commands, and yields to
+other controls or a replacement jog. This avoids stopping an E jog after a
+single tiny segment due to M117 traffic. No-tool, cold-extrusion, homing,
+travel-limit and dock keep-out protections remain in effect.
+
+Native tests execute the production pressure monitor, sensor dispatcher and
+jog loop. They cover empty tool eight with replay disabled, missed removal
+edges, locks/toolchange/recovery suppression, one-shot injection, disconnected
+and disabled sensors, fallback-reference reporting and opt-out, maintenance and
+purge exclusions, E-only jogging with queued M117, and replacement-jog yielding.
+These tests do not validate the physical loadcell/sensor wiring or establish why
+a particular real PLA pressure measurement failed. A terminal PA diagnostic is
+required to diagnose that separate report; the supplied excerpt ended mid-run.
