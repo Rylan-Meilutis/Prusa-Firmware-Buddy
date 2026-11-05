@@ -25,7 +25,9 @@
  */
 
 #include "queue.h"
+#include <rme_tune_delta.hpp>
 GCodeQueue queue;
+static rme_tune::Delta tune_delta;
 
 #include "gcode.h"
 
@@ -1066,7 +1068,7 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM("RME_MACHINE hotends="); SERIAL_ECHO(PhysicalToolIndex::count);
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
-  SERIAL_ECHOPGM(" tune=1");
+  SERIAL_ECHOPGM(" tune=1 tune_delta=1");
   SERIAL_ECHOPGM(" live_controls=1");
 #if HAS_CHAMBER_API()
   SERIAL_ECHOPGM(" live_chamber=1");
@@ -1208,6 +1210,7 @@ static bool handle_remote_session_service(const std::string_view command) {
       return true;
     }
     serial_remote_control::open_session(static_cast<uint8_t>(events), legacy == 1);
+    tune_delta.reset();
     report_remote_session();
 #if HAS_SERIAL_PRINT()
   } else if (rme_protocol::action_is(action, "PREPARE") || rme_protocol::action_is(action, "RELEASE") || rme_protocol::action_is(action, "ABORT")) {
@@ -1545,23 +1548,29 @@ static bool handle_remote_indx_service(const std::string_view command) {
 
 // Fixed-size streaming snapshot: no JSON, heap allocation, event history, or
 // queued GUI requests. Local Tune changes and serial overrides share this state.
+template<class T> static void rme_tune_field(const char *key, T value) {
+  if (!tune_delta.changed(key, static_cast<int64_t>(value))) return;
+  SERIAL_CHAR(' '); SERIAL_ECHO(key); SERIAL_CHAR('='); SERIAL_ECHO(value);
+}
+
 static void rme_report_fan_state() {
   // Commanded PWM is authoritative; RPM is a different measurement and must
   // not be used to reconstruct a requested fan percentage on the host.
-  SERIAL_ECHOPGM(" fan="); SERIAL_ECHO(thermalManager.print_fan_speed);
-  SERIAL_ECHOPGM(" dock_fan=");
+  rme_tune_field("fan", thermalManager.print_fan_speed);
   #if RME_HAS_INDX()
-  SERIAL_ECHO(Fans::dock_fan().get_pwm());
+  rme_tune_field("dock_fan", Fans::dock_fan().get_pwm());
   #else
-  SERIAL_ECHO(-1);
+  rme_tune_field("dock_fan", -1);
   #endif
 }
 
 // Read cached hardware state only: no setters or synchronous bus transactions.
 static void rme_report_sensor_temperature(const char *key, float value) {
+  const bool known = std::isfinite(value) && value != -1.0f && value > -100 && value < 500;
+  if (!tune_delta.changed(key, known ? int64_t(std::lround(value * 100)) : INT64_MIN)) return;
   SERIAL_CHAR(' '); SERIAL_ECHO(key); SERIAL_CHAR('=');
   // TempInfo uses -1 C as the uninitialized sentinel, not a measurement.
-  if (std::isfinite(value) && value != -1.0f && value > -100 && value < 500) SERIAL_ECHO(value);
+  if (known) SERIAL_ECHO(value);
   else SERIAL_ECHOPGM("unknown");
 }
 
@@ -1570,11 +1579,11 @@ static void rme_report_sensor_state() {
   #if RME_HAS_INDX()
   // INDX's head fans are shared by all docks and exist while all nozzles park.
   fan_tool = buddy::puppies::indx.get_temps_valid() ? std::optional(PhysicalToolIndex::from_raw(0)) : std::nullopt;
-  SERIAL_ECHOPGM(" dock_rpm="); SERIAL_ECHO(Fans::dock_fan().get_rpm_measured() ? int(Fans::dock_fan().get_actual_rpm()) : -1);
+  rme_tune_field("dock_rpm", Fans::dock_fan().get_rpm_measured() ? int(Fans::dock_fan().get_actual_rpm()) : -1);
   #endif
-  SERIAL_ECHOPGM(" heatbreak_pwm="); SERIAL_ECHO(fan_tool ? int(Fans::heat_break(*fan_tool).get_pwm()) : -1);
-  SERIAL_ECHOPGM(" heatbreak_rpm="); SERIAL_ECHO(fan_tool && Fans::heat_break(*fan_tool).get_rpm_measured() ? int(Fans::heat_break(*fan_tool).get_actual_rpm()) : -1);
-  SERIAL_ECHOPGM(" part_fan_rpm="); SERIAL_ECHO(fan_tool && Fans::print(*fan_tool).get_rpm_measured() ? int(Fans::print(*fan_tool).get_actual_rpm()) : -1);
+  rme_tune_field("heatbreak_pwm", fan_tool ? int(Fans::heat_break(*fan_tool).get_pwm()) : -1);
+  rme_tune_field("heatbreak_rpm", fan_tool && Fans::heat_break(*fan_tool).get_rpm_measured() ? int(Fans::heat_break(*fan_tool).get_actual_rpm()) : -1);
+  rme_tune_field("part_fan_rpm", fan_tool && Fans::print(*fan_tool).get_rpm_measured() ? int(Fans::print(*fan_tool).get_actual_rpm()) : -1);
   rme_report_sensor_temperature("buddy_mcu", AdcGet::getMCUTemp());
   #if HAS_TEMP_BOARD
   rme_report_sensor_temperature("buddy_board", thermalManager.degBoard());
@@ -1592,14 +1601,17 @@ static void rme_report_sensor_state() {
   if (fan_tool && buddy::puppies::dwarfs[*fan_tool].is_enabled()) {
     rme_report_sensor_temperature("head_mcu", buddy::puppies::dwarfs[*fan_tool].get_mcu_temperature());
     rme_report_sensor_temperature("head_board", buddy::puppies::dwarfs[*fan_tool].get_board_temperature());
+  } else {
+    rme_report_sensor_temperature("head_mcu", NAN);
+    rme_report_sensor_temperature("head_board", NAN);
   }
   #endif
   #if HAS_CHAMBER_API()
   rme_report_sensor_temperature("chamber_temp", buddy::chamber().current_temperature().value_or(NAN));
   #endif
   #if HAS_CPU_FAN()
-  SERIAL_ECHOPGM(" controller_fan_pwm="); SERIAL_ECHO(Fans::cpu().get_pwm());
-  SERIAL_ECHOPGM(" controller_fan_rpm="); SERIAL_ECHO(Fans::cpu().get_rpm_measured() ? int(Fans::cpu().get_actual_rpm()) : -1);
+  rme_tune_field("controller_fan_pwm", Fans::cpu().get_pwm());
+  rme_tune_field("controller_fan_rpm", Fans::cpu().get_rpm_measured() ? int(Fans::cpu().get_actual_rpm()) : -1);
   #endif
 }
 
@@ -1654,54 +1666,62 @@ static bool handle_remote_tune_service(const std::string_view command) {
     SERIAL_ECHOLNPGM("RME_CHAMBER accepted=1");
     return true;
   }
-  if (command != "@RME TUNE QUERY") return false;
-  SERIAL_ECHOPGM("RME_TUNE speed="); SERIAL_ECHO(marlin_vars().print_speed.get());
+  if (command != "@RME TUNE QUERY" && !command.starts_with("@RME TUNE QUERY since=")) return false;
+  const auto since = rme_protocol::unsigned_number(command, "since");
+  if (command != "@RME TUNE QUERY" && !since) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=tune code=invalid_since");
+    return true;
+  }
+  SERIAL_ECHOPGM("RME_TUNE delta="); SERIAL_ECHO(tune_delta.begin(since) ? 1 : 0);
+  SERIAL_ECHOPGM(" seq="); SERIAL_ECHO(tune_delta.sequence());
+  rme_tune_field("speed", marlin_vars().print_speed.get());
   rme_report_fan_state();
   rme_report_sensor_state();
-  SERIAL_ECHOPGM(" progress_percent="); SERIAL_ECHO(marlin_vars().sd_percent_done.get());
-  SERIAL_ECHOPGM(" progress_remaining="); SERIAL_ECHO(marlin_vars().time_to_end.get());
-  SERIAL_ECHOPGM(" host_percent=");
+  rme_tune_field("progress_percent", marlin_vars().sd_percent_done.get());
+  rme_tune_field("progress_remaining", marlin_vars().time_to_end.get());
   #if HAS_SERIAL_PRINT()
   uint8_t host_percent = 0;
-  SERIAL_ECHO(SerialPrinting::host_progress_percent(host_percent, ticks_ms()) ? int(host_percent) : -1);
+  rme_tune_field("host_percent", SerialPrinting::host_progress_percent(host_percent, ticks_ms()) ? int(host_percent) : -1);
   #else
-  SERIAL_ECHO(-1);
+  rme_tune_field("host_percent", -1);
   #endif
-  SERIAL_ECHOPGM(" stealth="); SERIAL_ECHO(config_store().stealth_mode.get() ? 1 : 0);
+  rme_tune_field("stealth", config_store().stealth_mode.get() ? 1 : 0);
   #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
-  SERIAL_ECHOPGM(" auto_pa="); SERIAL_ECHO(config_store().auto_pa_mode.get());
+  rme_tune_field("auto_pa", config_store().auto_pa_mode.get());
   #endif
-  SERIAL_ECHOPGM(" printing=");
 #if HAS_SIDE_LEDS()
-  SERIAL_ECHO(leds::SideStripHandler::instance().chamber_print_active() ? 1 : 0);
+  rme_tune_field("printing", leds::SideStripHandler::instance().chamber_print_active() ? 1 : 0);
 #else
-  SERIAL_ECHO(marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::is_extended_paused_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active() ? 1 : 0);
+  rme_tune_field("printing", marlin_server::is_printing_state(marlin_vars().print_state.get()) || marlin_server::is_extended_paused_state(marlin_vars().print_state.get()) || marlin_server::serial_print_active() ? 1 : 0);
 #endif
-  SERIAL_ECHOPGM(" light=");
 #if HAS_SIDE_LEDS()
-  SERIAL_ECHO(leds::SideStripHandler::instance().chamber_mode());
+  rme_tune_field("light", leds::SideStripHandler::instance().chamber_mode());
 #else
-  SERIAL_ECHO(-1);
+  rme_tune_field("light", -1);
 #endif
   const auto lights = serial_remote_control::light_status();
-  SERIAL_ECHOPGM(" lcd="); SERIAL_ECHO(lights.current_screen < 0 ? -1 : lights.current_screen > 0 ? 1 : 0);
-  SERIAL_ECHOPGM(" screen_print="); SERIAL_ECHO(lights.print_screen);
-  SERIAL_ECHOPGM(" chamber_print="); SERIAL_ECHO(lights.print_chamber);
-  SERIAL_ECHOPGM(" status_print="); SERIAL_ECHO(lights.print_status);
+  rme_tune_field("lcd", lights.current_screen < 0 ? -1 : lights.current_screen > 0 ? 1 : 0);
+  rme_tune_field("screen_print", lights.print_screen);
+  rme_tune_field("chamber_print", lights.print_chamber);
+  rme_tune_field("status_print", lights.print_status);
   #if HAS_XBUDDY_EXTENSION()
-  SERIAL_ECHOPGM(" material_cooling="); SERIAL_ECHO(config_store().xbe_material_chamber_cooling.get() ? 1 : 0);
+  rme_tune_field("material_cooling", config_store().xbe_material_chamber_cooling.get() ? 1 : 0);
   #endif
   #if HAS_CHAMBER_FILTRATION_API()
-  SERIAL_ECHOPGM(" print_filter="); SERIAL_ECHO(config_store().chamber_print_filtration_enable.get() ? 1 : 0);
-  SERIAL_ECHOPGM(" post_filter="); SERIAL_ECHO(config_store().chamber_post_print_filtration_enable.get() ? 1 : 0);
+  rme_tune_field("print_filter", config_store().chamber_print_filtration_enable.get() ? 1 : 0);
+  rme_tune_field("post_filter", config_store().chamber_post_print_filtration_enable.get() ? 1 : 0);
   #endif
   for (const auto tool : VirtualToolIndex::all()) {
-    SERIAL_ECHOPGM(" F"); SERIAL_ECHO(tool.to_raw()); SERIAL_CHAR('=');
-    SERIAL_ECHO(marlin_vars().virtual_tools[tool].flow_factor.get());
+    const char key[] { 'F', char('0' + tool.to_raw()), '\0' };
+    rme_tune_field(key, marlin_vars().virtual_tools[tool].flow_factor.get());
   }
   SERIAL_EOL();
 #if HAS_TOOL_MAPPING()
-  rme_report_tool_mapping();
+  uint64_t mapping_snapshot = tool_mapper.is_enabled() ? 1 : 0;
+  for (uint8_t i = 0; i < GcodeToolIndex::count; ++i) {
+    mapping_snapshot |= uint64_t(tool_mapper.to_virtual(i, true) & 0xf) << (1 + 4 * i);
+  }
+  if (tune_delta.changed("toolmap", mapping_snapshot)) rme_report_tool_mapping();
 #endif
   return true;
 }

@@ -66,7 +66,10 @@ int main() {
 
     def test_snapshot_reports_commanded_pwm_without_mutating_fans(self):
         source = (ROOT / 'lib/Marlin/Marlin/src/gcode/queue.cpp').read_text()
-        report = function(source, 'static void rme_report_fan_state()')
+        report = function(
+            source,
+            'template<class T> static void rme_tune_field(') + '\n' + function(
+                source, 'static void rme_report_fan_state()')
         self.assertIn(
             'rme_report_fan_state();',
             function(source, 'static bool handle_remote_tune_service('))
@@ -74,9 +77,14 @@ int main() {
 #include <sstream>
 #include <cassert>
 #include <string>
+#include <rme_tune_delta.hpp>
+rme_tune::Delta tune_delta;
 std::ostringstream output;
 #define SERIAL_ECHOPGM(x) (output << x)
-#define SERIAL_ECHO(x) (output << int(x))
+void emit(const char *s) {output<<s;}
+template<class T> void emit(T value) {output<<int(value);}
+#define SERIAL_ECHO(x) emit(x)
+#define SERIAL_CHAR(x) (output << x)
 struct Thermal { unsigned char print_fan_speed=0; } thermalManager;
 namespace Fans {
 struct Fan { unsigned char pwm=0; unsigned get_pwm() const {return pwm;} } dock;
@@ -86,7 +94,7 @@ const Fan &dock_fan() {return dock;}
 int main() {
  for (int duty : {0,64,128,255}) {
   thermalManager.print_fan_speed=duty; Fans::dock.pwm=255-duty;
-  output.str(""); output.clear(); rme_report_fan_state();
+  output.str(""); output.clear(); tune_delta.begin(std::nullopt); rme_report_fan_state();
   auto expected=" fan="+std::to_string(duty)+" dock_fan=";
   #if RME_HAS_INDX()
   expected+=std::to_string(255-duty);
@@ -104,7 +112,8 @@ int main() {
             for indx in (0, 1):
                 subprocess.run([
                     'c++', '-std=c++23', '-fsanitize=address,undefined',
-                    '-fno-pie', '-no-pie', f'-DRME_HAS_INDX()={indx}',
+                    '-fno-pie', '-no-pie', f'-DRME_HAS_INDX()={indx}', '-I',
+                    str(ROOT / 'src/common'),
                     str(path / 'test.cpp'), '-o',
                     str(path / 'test')
                 ],

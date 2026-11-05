@@ -1083,3 +1083,26 @@ active print.
   G-code, but it is not a telemetry streaming channel.
 - Use normal emergency and recovery commands for safety actions. The remote UI
   channel does not bypass firmware safety checks or screen ownership.
+
+### Tune delta queries
+
+`RME_MACHINE tune_delta=1` advertises sequenced tune deltas. Plain
+`@RME TUNE QUERY` remains a full snapshot, including tool mapping. Replies add
+`delta=0 seq=<uint32>` without removing existing fields. Older hosts may ignore
+the extra metadata and continue using full queries.
+
+After receiving a full snapshot, a capable host may request
+`@RME TUNE QUERY since=<last-seq>`. A matching baseline produces
+`RME_TUNE delta=1 seq=<next-seq>` with only changed fields. An unchanged result
+still sends the metadata heartbeat and normal acknowledgement. Tool mapping is
+sent only when changed, or on a full snapshot. Sensor loss explicitly changes
+its value to `unknown`/`-1`, never silently retains the previous head reading.
+Temperature comparisons use the two-decimal wire precision; RPM is not rounded
+or reconstructed from PWM.
+
+A missing baseline, stale sequence, session OPEN, or plain query forces a full
+snapshot. Hosts must merge partial replies only with a contiguous valid
+baseline, reset on reconnect, and request full state after a gap. The companion
+plugin also obtains full state at least every 30 seconds. Sequence numbers wrap
+at uint32. The firmware cache is bounded and allocation-free; the protocol does
+not change print control, sensor acquisition, runout handling, or safety policy.
