@@ -7,13 +7,14 @@
 struct ConfigStoreStub {
     template <typename T>
     struct Item {
-        T get() { return T(); }
-        T get(auto) { return T(); }
+        std::array<T, 8> values {};
+        T get() { return values[0]; }
+        T get(auto index) { return values[static_cast<size_t>(index)]; }
 
-        void set(auto) {}
-        void set(auto, auto) {}
+        void set(T value) { values[0] = value; }
+        void set(auto index, T value) { values[static_cast<size_t>(index)] = value; }
 
-        void apply(auto) {}
+        void apply(auto callback) { callback(values[0]); }
     };
 
     Item<std::bitset<max_preset_filament_type_count>> visible_preset_filament_types;
