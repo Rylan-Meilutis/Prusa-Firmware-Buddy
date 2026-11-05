@@ -401,10 +401,14 @@ Score run_bursts(float candidate, buddy::m976_indx_pellet_policy::Budget &, bool
  case 6: score.transient = .1f; break; // flat/unidentifiable curve
  case 7: score.valid = false; score.rejected_timing = 4; break;
  case 8: score.transient += index % 2 ? .09f : 0.f; break;
+ case 9:
+   if(index==0) score.transient_stddev=10;
+   else score.transient+=.0001f; // Better-quality repeats need not be cheaper.
+   break;
  }
  return score;
 }
-struct Outcome { float pa; bool quick, aborted, failed; int calls; const char *path; };
+struct Outcome { float pa; bool quick, aborted, failed; int calls; const char *path; float confidence; unsigned transitions; };
 Outcome run(float hint, bool warm_start, bool force, int retries=6, float noise=1.f) {
  calls=0;
  float search_default=hint;
@@ -414,7 +418,8 @@ Outcome run(float hint, bool warm_start, bool force, int retries=6, float noise=
  buddy::m976_diagnostics::Record diagnostic;
 '''
         tail = r'''
- return {best_pa, quick_verified, aborted, signal_guard.failure != nullptr, calls, diagnostic.search};
+ return {best_pa, quick_verified, aborted, signal_guard.failure != nullptr, calls, diagnostic.search,
+         result_confidence(best_score,idle_noise,selection_separation()),best_score.transitions_used};
 }
 int main() {
  optimum=.04f; stop_at=-1; fault=0; fault_at=0;
@@ -452,6 +457,10 @@ int main() {
    if(at<4) assert(r.aborted && !r.quick);
  }
  stop_at=-1;
+ fault=9; fault_at=0; optimum=.04f;
+ r=run(.04f,false,false,10);
+ assert(!r.failed && r.transitions>4 && r.confidence>=.75f);
+ fault=0;
  r=run(.04f,true,false,10,NAN);
  assert(r.failed && r.calls==0);
  for(float edge : {0.f,.001f,.499f,.5f}) {
