@@ -406,7 +406,6 @@ void StatusLedsHandler::set_finished_hold_s(uint16_t val) {
 
 void StatusLedsHandler::set_print_status_enabled(bool val) {
     std::lock_guard lock(mutex);
-    awaiting_activity = !val;
     print_status_overridden = false;
     if (!active) {
         print_status_disabled = false;
@@ -415,18 +414,6 @@ void StatusLedsHandler::set_print_status_enabled(bool val) {
     }
     print_status_disabled = !val;
     print_status_brightness = val ? 100 : 0;
-}
-
-void StatusLedsHandler::activity_ping() {
-    std::lock_guard lock(mutex);
-    if (print_active_for_status_override() || !awaiting_activity) {
-        return;
-    }
-    awaiting_activity = false;
-    print_status_overridden = false;
-    print_status_disabled = false;
-    print_status_brightness = 100;
-    old_state = StateAnimation::_last;
 }
 
 uint8_t StatusLedsHandler::get_print_status_brightness() {
@@ -442,7 +429,6 @@ void StatusLedsHandler::set_print_status_brightness(uint8_t val) {
     print_status_overridden = true;
     print_status_brightness = val;
     print_status_disabled = print_status_brightness == 0;
-    awaiting_activity = print_status_disabled;
     // Brightness is applied in led_data(), independently of animation phase.
     // update() handles a real enable/disable transition through its state.
 }
@@ -455,7 +441,27 @@ void StatusLedsHandler::set_idle_light_state(LightState state) {
 void StatusLedsHandler::acknowledge_finished() {
     std::lock_guard lock(mutex);
     finished_acknowledged = true;
+    finished_pending = false;
     finished_hold_until_ms = 0;
+}
+
+void StatusLedsHandler::activity_ping() {
+    std::lock_guard lock(mutex);
+    if (!finished_pending || finished_acknowledged || print_active_for_status_override()) {
+        return;
+    }
+    const uint32_t hold_s = config_store().status_led_finished_hold_s.get();
+    finished_hold_until_ms = hold_s > 0 ? ticks_ms() + hold_s * 1000 : 0;
+}
+
+void StatusLedsHandler::acknowledge_finished_on_door_open() {
+    std::lock_guard lock(mutex);
+    if (!print_active_for_status_override()
+        && (finished_pending || marlin_vars().print_state.get() == State::Finished || post_filter_active())) {
+        finished_acknowledged = true;
+        finished_pending = false;
+        finished_hold_until_ms = 0;
+    }
 }
 
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
@@ -480,12 +486,11 @@ void StatusLedsHandler::update() {
     };
 
     if (print_active && !print_override_session_active) {
-        awaiting_activity = false;
         print_status_overridden = false;
         print_status_disabled = false;
         print_status_brightness = 100;
         print_override_session_active = true;
-    } else if (!print_active && terminal_print_state && print_override_session_active) {
+    } else if (!print_active && terminal_print_state) {
         print_status_overridden = false;
         print_status_disabled = false;
         print_status_brightness = 100;
@@ -495,7 +500,11 @@ void StatusLedsHandler::update() {
     if (print_active) {
         finished_hold_until_ms = 0;
         finished_acknowledged = false;
+        finished_pending = false;
+    } else if (!finished_acknowledged && filtering) {
+        finished_pending = true;
     } else if (!finished_acknowledged && ((filtering_prev && !filtering) || (finished && !finished_prev && !filtering))) {
+        finished_pending = true;
         start_finished_hold();
     }
     filtering_prev = filtering;
@@ -511,7 +520,7 @@ void StatusLedsHandler::update() {
     StateAnimation state;
     if (!active) {
         state = StateAnimation::Idle; // assuming LEDs are off in Idle
-    } else if (awaiting_activity || ((print_status_disabled || print_status_brightness == 0) && print_active)) {
+    } else if ((print_status_disabled || print_status_brightness == 0) && print_active) {
         state = StateAnimation::Idle;
     } else if (is_error_state) {
         state = StateAnimation::Error;
@@ -525,11 +534,6 @@ void StatusLedsHandler::update() {
         state = StateAnimation::Filtering;
     } else if (timed_finished_hold_active && !finished_acknowledged) {
         state = StateAnimation::Finishing;
-    } else if (finished) {
-        // Finished remains the printer state while its result page is open.
-        // Do not reselect the permanent Finishing animation after the hold
-        // expires: Idle is off and resumes the normal idle brightness policy.
-        state = StateAnimation::Idle;
     } else {
         state = marlin_to_anim_state();
     }
@@ -540,7 +544,7 @@ void StatusLedsHandler::update() {
 
     if (state == StateAnimation::Printing) {
         current_light_state = LightState::printing;
-    } else if (state == StateAnimation::Idle) {
+    } else if (state == StateAnimation::Idle || (state == StateAnimation::Finishing && finished && !timed_finished_hold_active)) {
         current_light_state = idle_light_state;
     } else {
         current_light_state = LightState::active;

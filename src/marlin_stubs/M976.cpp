@@ -1779,7 +1779,10 @@ void PrusaGcodeSuite::M976() {
         diagnostic.capture_overflow = score.capture_overflow;
         report_measurement_debug(bounded_candidate, score, idle_noise);
         record_observation(bounded_candidate, score);
-        if (score.valid && score.transient < best_cost) {
+        if (score.valid && best_score.valid && bounded_candidate == best_pa) {
+            best_score = buddy::m976_search::combine_repeated_scores(best_score, score);
+            best_cost = best_score.transient;
+        } else if (score.valid && score.transient < best_cost) {
             best_cost = score.transient;
             best_pa = bounded_candidate;
             best_score = score;
@@ -1931,6 +1934,15 @@ void PrusaGcodeSuite::M976() {
     const float separation_quality = selection_separation();
     const float confidence = result_confidence(best_score, idle_noise, separation_quality);
     diagnostic.candidate_pa = best_pa;
+    // Report the evidence actually used for acceptance, not the last probe
+    // (which may have been a neighbour or a rejected retry).
+    if (best_score.valid && !signal_guard.failure) {
+        diagnostic.samples = best_score.sample_count;
+        diagnostic.transitions = best_score.transitions_used;
+        diagnostic.rejected_low_signal = best_score.rejected_low_signal;
+        diagnostic.rejected_timing = best_score.rejected_timing;
+        diagnostic.capture_overflow = best_score.capture_overflow;
+    }
     diagnostic.confidence = confidence;
     diagnostic.snr = result_snr(best_score, idle_noise);
     diagnostic.separation = separation_quality;

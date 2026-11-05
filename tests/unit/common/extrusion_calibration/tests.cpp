@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <m976_extrusion_policy.hpp>
+#include <m976_search_policy.hpp>
 #include <thread>
 #include <atomic>
 
@@ -425,6 +426,125 @@ TEST_CASE("calibration scores repeated extrusion transitions") {
     REQUIRE(score.valid);
     REQUIRE(score.transient > 0);
     REQUIRE(score.mean_load > 0);
+}
+
+TEST_CASE("rigid PA scoring does not mistake quantized E steps for pressure transitions") {
+    // Four native 250 ms high / 500 ms low cycles sampled at 320 Hz.
+    // A sharp, clean PLA pressure response must not acquire dozens of fake
+    // transitions merely because executed E is reported in physical steps.
+    for (const float step_mm : { .0025f, .005f, .01f }) {
+        Capture buffer;
+        REQUIRE(buffer.start());
+        float e = 0;
+        for (unsigned i = 0; i < 960; ++i) {
+            const bool fast = i % 240 < 80;
+            e += (fast ? 8.f : .8f) / 320.f;
+            buffer.record(i * 3125, fast ? 500.f : 50.f, std::round(e / step_mm) * step_mm);
+        }
+        buffer.stop();
+        const auto score = buffer.score();
+        CAPTURE(step_mm, score.transitions_detected, score.transitions_used, score.rejected_low_signal);
+        REQUIRE(score.valid);
+        REQUIRE(score.transitions_detected <= 8);
+        REQUIRE(score.rejected_low_signal == 0);
+        REQUIRE(score.transient_stddev < .1f);
+    }
+}
+
+TEST_CASE("PA repeat evidence pools costs and preserves between-capture disagreement") {
+    using buddy::extrusion_calibration::Score;
+    using buddy::m976_search::combine_repeated_scores;
+    Score a { .transient = .1f, .mean_load = 100, .noise = 1, .low_load = 20, .high_load = 120, .valid = true, .sample_count = 900, .transitions_detected = 8, .transitions_used = 8, .transient_stddev = .02f };
+    auto b = a;
+    b.transient = .3f;
+    b.noise = 2;
+    const auto pooled = combine_repeated_scores(a, b);
+    REQUIRE(pooled.valid);
+    REQUIRE(std::abs(pooled.transient - .2f) < .00001f);
+    REQUIRE(std::abs(pooled.transient_stddev - std::sqrt(.0104f)) < .00001f);
+    REQUIRE(pooled.transitions_used == 16);
+    REQUIRE(pooled.sample_count == 1800);
+    REQUIRE(pooled.noise == 2);
+    b.valid = false;
+    REQUIRE_FALSE(combine_repeated_scores(a, b).valid);
+    b = a;
+    b.capture_overflow = true;
+    REQUIRE_FALSE(combine_repeated_scores(a, b).valid);
+    auto consistent = a;
+    for (unsigned repeat = 0; repeat < 10000; ++repeat) {
+        consistent = combine_repeated_scores(consistent, a);
+    }
+    REQUIRE(consistent.sample_count == 65535);
+    REQUIRE(consistent.transitions_used == 65535);
+    REQUIRE(std::abs(consistent.transient_stddev - .02f) < .0001f);
+}
+
+TEST_CASE("PA scorer never joins pressure plateaus across a paused pellet cleanup") {
+    buddy::extrusion_calibration::Capture buffer;
+    REQUIRE(buffer.start());
+    float e = 0;
+    for (unsigned i = 0; i < 960; ++i) {
+        const bool fast = i % 240 < 80;
+        e += (fast ? 8.f : .8f) / 320.f;
+        // Cooling samples are excluded from capture, leaving real time gaps.
+        buffer.record(i * 3125 + (i / 240) * 15000000, fast ? 500.f : 50.f, std::round(e / .005f) * .005f);
+    }
+    buffer.stop();
+    const auto score = buffer.score();
+    CAPTURE(score.transitions_detected, score.transitions_used, score.rejected_low_signal);
+    REQUIRE(score.valid);
+    REQUIRE(score.transitions_used == 4); // Only the four uninterrupted fast->slow edges.
+}
+
+TEST_CASE("windowed PA scoring preserves transient ordering for rigid and flexible materials") {
+    for (const bool flexible : { false, true }) {
+        for (const float amplitude : { 25.f, 450.f }) {
+            for (const float sign : { -1.f, 1.f }) {
+                const auto measure = [&](float overshoot) {
+                    buddy::extrusion_calibration::Capture buffer;
+                    REQUIRE(buffer.start());
+                    float e = 0;
+                    const auto speeds = buddy::m976_extrusion_policy::speeds(flexible);
+                    for (unsigned i = 0; i < 960; ++i) {
+                        const unsigned phase = i % 240;
+                        const bool fast = phase < 80;
+                        e += (fast ? speeds.high_mm_s : speeds.low_mm_s) / 320.f;
+                        const float transient = phase < 12 ? overshoot : phase >= 80 && phase < 92 ? -overshoot
+                                                                                                   : 0;
+                        const float noise = i % 2 ? .1f : -.1f;
+                        buffer.record(i * 3125, sign * (10 + amplitude * (float(fast) + transient)) + noise,
+                            std::round(e / .005f) * .005f);
+                    }
+                    buffer.stop();
+                    return buffer.score(flexible);
+                };
+                const auto settled = measure(0), oscillating = measure(.5f);
+                CAPTURE(flexible, amplitude, sign);
+                REQUIRE(settled.valid);
+                REQUIRE(oscillating.valid);
+                REQUIRE(settled.transitions_used <= 8);
+                REQUIRE(oscillating.transient > settled.transient);
+            }
+        }
+    }
+}
+
+TEST_CASE("windowed PA scoring still rejects missing pressure and steady quantized feed") {
+    for (const bool pressure_changes : { false, true }) {
+        buddy::extrusion_calibration::Capture buffer;
+        REQUIRE(buffer.start());
+        float e = 0;
+        for (unsigned i = 0; i < 960; ++i) {
+            const bool fast = i % 240 < 80;
+            e += (pressure_changes ? .8f : fast ? 8.f
+                                                : .8f)
+                / 320.f;
+            const float load = pressure_changes ? (fast ? 500.f : 50.f) : 10.f;
+            buffer.record(i * 3125, load, std::round(e / .005f) * .005f);
+        }
+        buffer.stop();
+        REQUIRE_FALSE(buffer.score().valid);
+    }
 }
 
 TEST_CASE("job results and anchor occupancy reset for a new print job") {

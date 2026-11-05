@@ -147,11 +147,28 @@ Score Capture::score(const bool flexible) const {
     size_t noise_observations = 0;
     size_t used = 0;
     size_t last_transition = 0;
-    // Flexible filament moves too slowly for adjacent, quantized E steps to
-    // reliably represent velocity. Average over short windows on either side
-    // of the edge. Do not change the rigid-material scoring path.
-    const size_t window = flexible ? 8 : 1;
+    size_t continuity_checked = 0, continuous_from = 0;
+    // Executed E is quantized for rigid materials too: a single-sample
+    // derivative turns steady 0.8 mm/s feed into alternating zero/step speeds.
+    // That creates false edges and penalizes sharp pressure responses (PLA in
+    // particular). Average velocity on both sides for every material. Keep
+    // the flexible threshold and require non-overlapping settling windows.
+    constexpr size_t window = 8;
     for (size_t i = 16; i + 40 < n; ++i) {
+        // Captures omit cleaner/cooling motion. Never compare a pre-cleanup
+        // plateau with a post-cleanup one as though the pressure step were
+        // continuous. Scan each timestamp once, including the settled window.
+        while (continuity_checked < i + 35) {
+            ++continuity_checked;
+            const uint32_t dt = samples_[continuity_checked].time_us - samples_[continuity_checked - 1].time_us;
+            if (dt == 0 || dt > 50000) {
+                continuous_from = continuity_checked;
+            }
+        }
+        if (continuous_from > i - 16) {
+            ++result.rejected_timing;
+            continue;
+        }
         const float dt0 = static_cast<float>(samples_[i + window - 1].time_us - samples_[i - 1].time_us) * 1e-6f;
         const float dt1 = static_cast<float>(samples_[i - 1].time_us - samples_[i - 1 - window].time_us) * 1e-6f;
         if (dt0 <= 0 || dt1 <= 0) {
@@ -160,7 +177,7 @@ Score Capture::score(const bool flexible) const {
         }
         const float v0 = (samples_[i + window - 1].e_position_mm - samples_[i - 1].e_position_mm) / dt0;
         const float v1 = (samples_[i - 1].e_position_mm - samples_[i - 1 - window].e_position_mm) / dt1;
-        if (std::abs(v0 - v1) < (flexible ? 0.5f : 1.0f) || i - last_transition < (flexible ? 35u : 12u)) {
+        if (std::abs(v0 - v1) < (flexible ? 0.5f : 1.0f) || i - last_transition < 35u) {
             noise_sum += std::abs(samples_[i].load_g - samples_[i - 1].load_g);
             ++noise_observations;
             continue;

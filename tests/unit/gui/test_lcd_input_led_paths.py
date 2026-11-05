@@ -57,9 +57,13 @@ namespace marlin_server {
 enum class State {Idle,PrintInit,SerialPrintInit,Printing,Paused,Finished,Aborted,Exit};
 bool is_printing_state(State s) {return s==State::Printing;}
 bool is_extended_paused_state(State s) {return s==State::Paused;}
-bool serial_print_active() {return true;}
+bool serial_printing=true;
+bool serial_print_active() {return serial_printing;}
 }
-struct PrintState {marlin_server::State get() const {return marlin_server::State::Printing;}};
+struct PrintState {
+ marlin_server::State value=marlin_server::State::Printing;
+ marlin_server::State get() const {return value;}
+};
 struct Vars {PrintState print_state;} vars;
 Vars &marlin_vars() {return vars;}
 namespace leds {
@@ -72,7 +76,13 @@ using namespace marlin_server;
                               'static ColorRGBW raw_to_color(')
         ) + r'''
 // The LCD input handlers cannot mutate the mocked steady Printing FSM.
-StateAnimation marlin_to_anim_state() {return StateAnimation::Printing;}
+StateAnimation marlin_to_anim_state() {
+ switch(marlin_vars().print_state.get()) {
+ case State::Printing: return StateAnimation::Printing;
+ case State::Finished: return StateAnimation::Finishing;
+ default: return StateAnimation::Idle;
+ }
+}
 namespace {
 ''' + status[animation_start:animation_end] + '\n}\n' + '\n'.join(
             function(status, signature) for signature in
@@ -83,6 +93,8 @@ namespace {
              'void StatusLedsHandler::set_idle_light_state(',
              'void StatusLedsHandler::reload_colors()',
              'void StatusLedsHandler::set_print_status_brightness(',
+             'void StatusLedsHandler::acknowledge_finished()',
+             'void StatusLedsHandler::acknowledge_finished_on_door_open()',
              'void StatusLedsHandler::activity_ping()') if signature in status
         ) + r'''
 enum class SideStripState {unknown,printing,active,custom_color,dimmed,idle,off};
@@ -207,6 +219,60 @@ int main() {
  }
  assert(marlin_client::clicks>500 && marlin_client::moves>500);
  assert(Screens::Access()->Get()->window.events>1500);
+ // An expired completion indication is not an acknowledged print. Exercise
+ // the actual input -> side activity -> status timer path, including serial
+ // printers which report IDLE while their finished screen remains visible.
+ marlin_server::serial_printing=false;
+ vars.print_state.value=marlin_server::State::Finished;
+ status.set_idle_light_state(leds::LightState::deep_idle);
+ status.update();
+ clock_ms+=31000; status.update();
+ assert(status.led_data()[1].g==0);
+ vars.print_state.value=marlin_server::State::Idle;
+ status.update();
+ for(int wake=0;wake<2;++wake) {
+  side.activity_ping(); status.update();
+  clock_ms+=1000; status.update();
+  assert(status.led_data()[1].g==255 && status.led_data()[1].b==0);
+  clock_ms+=31000; status.update();
+  assert(status.led_data()[1].g==0);
+ }
+ status.acknowledge_finished_on_door_open();
+ side.activity_ping(); status.update();
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==0);
+ // A new print resets the acknowledgement, but activity never turns it green.
+ vars.print_state.value=marlin_server::State::Printing;
+ status.set_idle_light_state(leds::LightState::active);
+ status.update(); side.activity_ping(); status.update();
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].b==255 && status.led_data()[1].g==150);
+ vars.print_state.value=marlin_server::State::Finished;
+ status.update();
+ status.acknowledge_finished();
+ side.activity_ping(); status.update();
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==0);
+ // A door already open when completion is first observed also acknowledges it.
+ vars.print_state.value=marlin_server::State::Printing; status.update();
+ vars.print_state.value=marlin_server::State::Finished;
+ status.acknowledge_finished_on_door_open(); status.update();
+ side.activity_ping(); status.update();
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==0);
+ // The timer remains wrap-safe; configuring zero disables timed reactivation.
+ vars.print_state.value=marlin_server::State::Printing; status.update();
+ clock_ms=0xfffff000;
+ vars.print_state.value=marlin_server::State::Finished; status.update();
+ vars.print_state.value=marlin_server::State::Idle;
+ clock_ms+=31000; status.update();
+ side.activity_ping(); status.update();
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==255);
+ config.status_led_finished_hold_s.value=0;
+ side.activity_ping(); status.update();
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==0);
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
