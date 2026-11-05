@@ -6,6 +6,7 @@
 #include <filament.hpp>
 #include <filament_color.hpp>
 #include <filament_manufacturer.hpp>
+#include <m865_material.hpp>
 #include <temperature.hpp>
 #include <tool_index.hpp>
 
@@ -165,19 +166,8 @@ void PrusaGcodeSuite::M865() {
 #endif
 
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
-    FilamentTypeParameters::Name base_preset_name;
-    if (auto str = p.option<std::string_view>('J', base_preset_name)) {
-        const auto base_filament_type = FilamentType::from_name(*str);
-
-        if (str->empty()) {
-            params.base_preset = std::nullopt;
-
-        } else if (const auto preset = std::get_if<PresetFilamentType>(&base_filament_type)) {
-            params.base_preset = *preset;
-
-        } else {
-            p.report_option_error('J', "Needs to be a preset filament type");
-        }
+    if (!buddy::m865_material::apply_base_option(p, params)) {
+        return;
     }
 #endif
 
