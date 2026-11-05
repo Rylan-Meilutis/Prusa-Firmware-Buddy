@@ -26,7 +26,10 @@ class AutoPaDiagnostics(unittest.TestCase):
     @unittest.skipUnless(shutil.which("c++"), "C++ compiler required")
     def test_history_reporting_filtering_and_early_return(self):
         source = (ROOT / "src/marlin_stubs/M976.cpp").read_text()
-        report = "void report_pa_diagnostics()" + source.split(
+        buffer = "static auto &pa_report_buffer()" + source.split(
+            "static auto &pa_report_buffer()", 1)[1].split(
+                "void report_pa_diagnostics()", 1)[0]
+        report = buffer + "void report_pa_diagnostics()" + source.split(
             "void report_pa_diagnostics()", 1)[1].split(
                 "constexpr float filament_area", 1)[0]
         code = r"""

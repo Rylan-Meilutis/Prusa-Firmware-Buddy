@@ -83,6 +83,13 @@ public:
 void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot);
 #endif
 
+static auto &pa_report_buffer() {
+    // Both reports run synchronously on the Marlin task, never concurrently.
+    // Reuse their scratch storage without moving a large buffer onto its stack.
+    static char buffer[640];
+    return buffer;
+}
+
 void report_pa_diagnostics() {
     SERIAL_ECHOLNPAIR("PA_CAL_STATUS request_error=", pa_diagnostics.request_error, " retention=until_next_attempt_or_reboot");
     const bool filter_tool = parser.seenval('T');
@@ -94,7 +101,7 @@ void report_pa_diagnostics() {
     }
     bool found = false;
     // The Marlin task stack is small; never put the report buffer on it.
-    static char report[640];
+    auto &report = pa_report_buffer();
     for (size_t i = 0; i < pa_diagnostics.records.size(); ++i) {
         const auto &r = pa_diagnostics.records[i];
         if ((filter_tool && (r.outcome == std::string_view("never_run") || r.tool != tool)) || (filter_slot && int(i) != slot)) {
@@ -663,7 +670,7 @@ void report_pa_cache(bool filter_tool, int tool, bool filter_slot, int slot) {
         return;
     }
     SERIAL_ECHOLNPAIR("PA_CAL_CACHE_POLICY mode=", config_store().auto_pa_mode.get(), " manual_or_F1_bypasses_cache=1");
-    static char report[448];
+    auto &report = pa_report_buffer();
     for (const auto logical : VirtualToolIndex::all().skip_all_disabled()) {
         const auto i = logical.to_raw();
         const auto physical = logical.to_physical().to_raw();

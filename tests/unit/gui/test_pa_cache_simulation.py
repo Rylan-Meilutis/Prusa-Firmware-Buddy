@@ -17,6 +17,9 @@ class CacheSimulation(unittest.TestCase):
         report = "void report_pa_cache(bool filter_tool" + source.split(
             "void report_pa_cache(bool filter_tool", 2)[2].split(
                 "bool restore_cache(", 1)[0]
+        report = ("static auto &pa_report_buffer()" +
+                  source.split("static auto &pa_report_buffer()", 1)[1].split(
+                      "void report_pa_diagnostics()", 1)[0] + report)
         stubs = r'''
 #define path_for firmware_path_for
 #include <pa_calibration_cache_storage.hpp>
