@@ -2792,6 +2792,8 @@ static void _server_print_loop(void) {
         }
 #endif
 
+        FSensors_instance().ClrM600Sent(); // A cancelled recovery cannot mask the next job.
+
 #if HAS_CEILING_CLEARANCE()
         buddy::reenable_ceiling_clearance_warning();
 #endif
@@ -2936,6 +2938,12 @@ static void _server_print_loop(void) {
                 " velocity=", diagnostic.velocity, " forward_mm=", diagnostic.forward_mm,
                 " forward_seconds=", diagnostic.forward_seconds);
             switch (fault) {
+            case buddy::extrusion_calibration::ExtrusionFault::reference_unavailable:
+                SERIAL_ECHOLNPGM("Loadcell monitoring unavailable: recalibrate PA or explicitly disable loadcell detection");
+                SerialPrinting::notify_error("filament_monitor", "reference_unavailable", "Loadcell monitoring unavailable; recalibrate PA");
+                print_pause();
+                buddy::extrusion_calibration::acknowledge_extrusion_fault();
+                break;
             case buddy::extrusion_calibration::ExtrusionFault::no_pressure_rise:
                 SERIAL_ECHOLNPGM("Extrusion fault: E moving without nozzle-pressure rise");
                 SerialPrinting::notify_error("filament_runout", "runout", "No extrusion pressure detected; filament may still be present");
