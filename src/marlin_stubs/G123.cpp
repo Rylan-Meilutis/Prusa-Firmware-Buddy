@@ -4,6 +4,8 @@
 #include <gcode/gcode_parser.hpp>
 #include <module/motion.h>
 #include <module/planner.h>
+#include <module/temperature.h>
+#include <tool_index.hpp>
 #include <gcode/queue.h>
 #include <raii/scope_guard.hpp>
 #include <marlin_vars.hpp>
@@ -44,6 +46,12 @@ void PrusaGcodeSuite::G123() {
     p.store_option_if_present('Y', target_pos.y);
     p.store_option_if_present('Z', target_pos.z);
     p.store_option_if_present('E', target_pos.e);
+
+    if (target_pos.e != current_position.e
+        && (!PhysicalToolIndex::currently_selected_opt().has_value() || thermalManager.tooColdToExtrude(active_extruder))) {
+        SERIAL_ECHO_MSG("Manual extrusion blocked: select and heat a tool");
+        return;
+    }
 
     const bool xy_move = target_pos.x != current_position.x || target_pos.y != current_position.y;
     uint8_t required_axes = xy_move ? (_BV(X_AXIS) | _BV(Y_AXIS)) : 0;
@@ -102,11 +110,18 @@ void PrusaGcodeSuite::G123() {
     }
 #endif
 
+    bool segment_planned = false;
     while (true) {
-        // Check this at the end - we want to plan at least one segment
-        // The first gcode in the queue should be the currently running G123 (if the gcode was not injected, then everything is a bit different, hehe)
-        if (queue.length > 1) {
-            return;
+        // Plan one bounded segment before yielding to a replacement control.
+        // The front entry is the running G123. Telemetry behind it must not
+        // cancel a jog; a later motion/control still does, even behind telemetry.
+        if (segment_planned) {
+            for (uint8_t offset = 1; offset < queue.length; ++offset) {
+                const auto index = (queue.index_r + offset) % GCodeQueue::recovery_capacity;
+                if (!jog_telemetry(queue.command_buffer[index])) {
+                    return;
+                }
+            }
         }
 
         // Only keep a minimum amount of blocks planned so that we can stop the motion fast
@@ -143,6 +158,7 @@ void PrusaGcodeSuite::G123() {
 
         // Use dir_feedrate - excludes axes that we're not moving
         line_to_current_position(std::max(segment_feedrate, dir_feedrate.magnitude()));
+        segment_planned = true;
     }
 }
 
