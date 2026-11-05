@@ -59,6 +59,11 @@
     #include <config_store/store_instance.hpp>
 #endif
 
+#include <option/has_cyphal.h>
+#if HAS_CYPHAL()
+    #include <puppies/cyphal_node_table_host.hpp>
+#endif
+
 #if HAS_TOOL_OFFSET_SENSOR()
     #include <puppies/cyphal_bridge_host.hpp>
 #endif
@@ -265,7 +270,7 @@ static void puppy_task_loop(PuppyModbus &bus) {
             }
 
             if (slow_stage / 2 < std::size(dwarfs)) { // Two actions per dwarf
-                auto &dwarf = dwarfs[slow_stage / 2];
+                auto &dwarf = dwarfs[PhysicalToolIndex::from_raw(slow_stage / 2)];
                 if (!dwarf.is_enabled()) {
                     continue; // skip if this dwarf is not enabled
                 }
@@ -391,10 +396,15 @@ static void puppy_task_loop(PuppyModbus &bus) {
             }
 #endif
 #if HAS_ANFC()
-            if (AnfcModbusClient client { bus }; buddy::openprinttag::manager().step(client)) {
-                worked = true;
-            } else {
-                return;
+            {
+                AnfcModbusClient client { bus };
+                const CommunicationStatus status = buddy::openprinttag::manager().step(client);
+                if (status == CommunicationStatus::ERROR) {
+                    // ANFC communication failure is not an issue on this level
+                    // Retries are handled inside the manager
+                }
+
+                worked |= status == CommunicationStatus::OK;
             }
 #endif
 
@@ -450,23 +460,13 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
     }
 #endif
 
-#if HAS_AC_CONTROLLER()
-    if (ac_controller.initial_scan(bus) == CommunicationStatus::ERROR) {
-        return false;
-    }
-#endif
-
-#if HAS_TOOL_OFFSET_SENSOR()
-    if (is_tool_offset_sensor_required() && tool_offset_sensor.initial_scan(bus) == CommunicationStatus::ERROR) {
-        return false;
-    }
-#endif
-
     return true;
 }
 
 #if HAS_AC_CONTROLLER()
 [[nodiscard]] static bool wait_for_ac_controller(PuppyModbus &bus) {
+    const CyphalNodeTableHost &node_table = cyphal_node_table();
+
     // AC controller is vital part of the printer, there is no upper limit
     // on how long we are willing to wait for the bootstrap.
     for (;;) {
@@ -479,11 +479,8 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
         if (xbuddy_extension.refresh(bus) == CommunicationStatus::ERROR) {
             return false;
         }
-        if (ac_controller.refresh(bus) == CommunicationStatus::ERROR) {
-            return false;
-        }
         using xbuddy_extension::NodeState;
-        switch (ac_controller.get_node_state()) {
+        switch (node_table.get_node_state(xbuddy_extension::NodeName::cz_prusa3d_honeybee_ac_controller)) {
         case NodeState::unknown:
             bootstrap_state_set(0, BootstrapStage::ac_controller_unknown);
             break;
@@ -491,7 +488,12 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
             bootstrap_state_set(0, BootstrapStage::ac_controller_verify);
             break;
         case NodeState::flash:
-            bootstrap_state_set(xbuddy_extension.get_flash_progress_percent(), BootstrapStage::ac_controller_flash);
+            // is ac_controller actually flashing? another CAN puppy can flash at that time (see BFW-9369)
+            if (xbuddy_extension.get_flash_file_id() == xbuddy_extension::FileId::firmware_ac_controller) {
+                bootstrap_state_set(xbuddy_extension.get_flash_progress_percent(), BootstrapStage::ac_controller_flash);
+            } else {
+                bootstrap_state_set(0, BootstrapStage::ac_controller_flash);
+            }
             break;
         case NodeState::ready:
             bootstrap_state_set(0, BootstrapStage::ac_controller_ready);
@@ -504,9 +506,11 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
 #if HAS_TOOL_OFFSET_SENSOR()
 // The sensor sits behind whichever puppy hosts the Cyphal bridge (xBE on INDX,
 // the XL-CAN bridge on XLS); both drive bridge-led firmware flashing. The
-// function pumps the bridge host's refresh + sensor refresh and reports flash
-// progress until the sensor reaches ready.
+// function pumps the bridge host's refresh and reports flash progress until
+// the sensor reaches ready.
 [[nodiscard]] static bool wait_for_tool_offset_sensor(PuppyModbus &bus) {
+    const CyphalNodeTableHost &node_table = cyphal_node_table();
+
     constexpr int32_t absent_timeout_ms = 2000;
     uint32_t timeout_start_ms = ticks_ms();
     ToolSensorBootstrapDeadline deadline(timeout_start_ms);
@@ -540,12 +544,8 @@ static bool puppy_initial_scan(PuppyModbus &bus) {
         if (cyphal_bridge_host().refresh(bus) == CommunicationStatus::ERROR) {
             return recover();
         }
-        if (tool_offset_sensor.refresh(bus) == CommunicationStatus::ERROR) {
-            return recover();
-        }
-
         using xbuddy_extension::NodeState;
-        const auto node_state = tool_offset_sensor.get_node_state();
+        const auto node_state = node_table.get_node_state(xbuddy_extension::NodeName::cz_prusa3d_honeybee_tool_offset_sensor);
         const auto progress = node_state == NodeState::flash ? cyphal_bridge_host().get_flash_progress_percent() : 0;
         if (node_state != NodeState::ready && deadline.stalled(ticks_ms(), node_state == NodeState::flash, progress)) {
             log_error(Puppies, "Tool offset sensor bootstrap stalled: state=%u progress=%u attempt=%u", unsigned(node_state), unsigned(progress), stalled_attempts + 1);
@@ -716,8 +716,6 @@ void run() {
             auto dwarf_index = to_dwarf_index(dwarf_dock);
             if (dwarf_index < PhysicalToolIndex::count) {
                 dwarfs[PhysicalToolIndex::from_raw(dwarf_index)].set_enabled(bootstrap_result.is_dock_occupied(dwarf_dock));
-            } else {
-                dwarfs[dwarf_index].set_enabled(false);
             }
         }
     #endif
@@ -747,11 +745,19 @@ void run() {
             if (!wait_for_ac_controller(bus)) {
                 break; // go to puppy recovery
             }
+            if (ac_controller.initial_scan(bus) == CommunicationStatus::ERROR) {
+                break; // go to puppy recovery
+            }
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
-            if (is_tool_offset_sensor_required() && !wait_for_tool_offset_sensor(bus)) {
-                break; // go to puppy recovery
+            if (is_tool_offset_sensor_required()) {
+                if (!wait_for_tool_offset_sensor(bus)) {
+                    break; // go to puppy recovery
+                }
+                if (tool_offset_sensor.initial_scan(bus) == CommunicationStatus::ERROR) {
+                    break; // go to puppy recovery
+                }
             }
 #endif
 
@@ -759,10 +765,9 @@ void run() {
             first_run = false;
             log_info(Puppies, "Puppies are ready");
 
-            TaskDeps::wait(TaskDeps::Tasks::puppy_run);
-
 #if HAS_DWARF()
             // write current Marlin's state of the E TMC
+            TaskDeps::wait(TaskDeps::make(TaskDeps::Dependency::default_task_ready));
             stepperE0.push();
 #endif
 

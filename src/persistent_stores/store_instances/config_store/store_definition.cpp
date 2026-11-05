@@ -149,7 +149,7 @@ void CurrentStore::perform_config_migrations() {
         // [[ BFW-5785 ]]
 
         auto sr = selftest_result.get();
-        sr.set_gearbox(0, sr.get_deprecated_gears());
+        sr.set_gearbox(PhysicalToolIndex::from_raw(0), sr.get_deprecated_gears());
         selftest_result.set(sr);
     }
 #endif
@@ -243,9 +243,9 @@ FilamentType CurrentStore::get_filament_type([[maybe_unused]] uint8_t index) {
     return loaded_filament_type.get(index);
 }
 
-void CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType value) {
+FilamentType CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType value) {
     if (value == PendingAdHocFilamentType {}) {
-        const FilamentType new_value = AdHocFilamentType { .tool = virtual_tool.to_raw() };
+        const FilamentType new_value = AdHocFilamentType { virtual_tool };
         new_value.set_parameters(value.parameters());
 
 #if HAS_ANFC()
@@ -278,6 +278,8 @@ void CurrentStore::set_filament_type(VirtualToolIndex virtual_tool, FilamentType
             item.set(virtual_tool.to_raw(), false);
         });
     }
+
+    return value;
 }
 
 FilamentType CurrentStore::get_previous_filament_type(VirtualToolIndex tool) {
@@ -294,35 +296,35 @@ void CurrentStore::clear_previous_filament_type(uint8_t index) {
     }
 }
 
-float CurrentStore::get_nozzle_diameter([[maybe_unused]] uint8_t index) {
-    return nozzle_diameters.get(index);
+float CurrentStore::get_nozzle_diameter(PhysicalToolIndex tool) {
+    return nozzle_diameters.get(tool.to_raw());
 }
 
-void CurrentStore::set_nozzle_diameter([[maybe_unused]] uint8_t index, float value) {
-    nozzle_diameters.set(index, value);
-    clear_previous_filament_type(index);
+void CurrentStore::set_nozzle_diameter(PhysicalToolIndex tool, float value) {
+    nozzle_diameters.set(tool.to_raw(), value);
+    clear_previous_filament_type(tool.to_raw());
 }
 
-bool CurrentStore::get_nozzle_is_hardened([[maybe_unused]] uint8_t index) {
-    return nozzle_is_hardened.get()[index];
+bool CurrentStore::get_nozzle_is_hardened(PhysicalToolIndex tool) {
+    return nozzle_is_hardened.get()[tool.to_raw()];
 }
 
-void CurrentStore::set_nozzle_is_hardened([[maybe_unused]] uint8_t index, bool value) {
+void CurrentStore::set_nozzle_is_hardened(PhysicalToolIndex tool, bool value) {
     nozzle_is_hardened.apply([&](auto &item) {
-        item.set(index, value);
+        item.set(tool.to_raw(), value);
     });
-    clear_previous_filament_type(index);
+    clear_previous_filament_type(tool.to_raw());
 }
 
 bool CurrentStore::get_nozzle_is_high_flow([[maybe_unused]] uint8_t index) {
     return nozzle_is_high_flow.get()[index];
 }
 
-void CurrentStore::set_nozzle_is_high_flow([[maybe_unused]] uint8_t index, bool value) {
+void CurrentStore::set_nozzle_is_high_flow(PhysicalToolIndex tool, bool value) {
     nozzle_is_high_flow.apply([&](auto &item) {
-        item.set(index, value);
+        item.set(tool.to_raw(), value);
     });
-    clear_previous_filament_type(index);
+    clear_previous_filament_type(tool.to_raw());
 }
 
 float CurrentStore::get_odometer_axis(uint8_t index) {
@@ -464,6 +466,10 @@ bool CurrentStore::set_belts_15gt(bool installed) {
     #endif
     #if HAS_MANUAL_BELT_TUNING()
     manual_belt_tuning_completed.set_to_default();
+    #endif
+    #if HAS_GANTRY_SQUARENESS_CHECK()
+    // Moving the belts on the pulleys changes the gantry squareness.
+    selftest_result_gantry_squareness.set_to_default();
     #endif
     #if HAS_SELFTEST()
     selftest_result.apply([](SelftestResult &r) {
@@ -658,5 +664,25 @@ void CurrentStore::set_indx_last_picked_tool(std::variant<PhysicalToolIndex, NoT
 }
 
 #endif
+
+bool CurrentStore::should_load_ask_for_filament_color() {
+    switch (load_ask_for_filament_color.get().value) {
+
+    case Tristate::yes:
+        return true;
+
+    case Tristate::no:
+        return false;
+
+    case Tristate::other:
+        break;
+    }
+
+    // Tristate::other or invalid value - can happen in config store
+
+    // By default, ask for colors only if multiple virtual tools are enabled
+    // Colors are handy for toolmapping distinction and such
+    return !VirtualToolIndex::single_enabled_tool().has_value();
+}
 
 } // namespace config_store_ns

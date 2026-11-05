@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "changes.hpp"
 #include "printer.hpp"
 #include "planner.hpp"
@@ -89,6 +91,22 @@ struct RenderState {
 
     const Printer &printer;
     const Action &action;
+    /// Physical tools enabled when the response started.
+    /// The printer state is re-read for every chunk, but the tool set can change at runtime
+    /// (MMU switched, INDX dock calibrated); the renderer reads this instead of each chunk's snapshot.
+    decltype(Printer::Params::physical_tool_mask) physical_tool_mask = 0;
+    decltype(Printer::Params::virtual_tool_mask) virtual_tool_mask = 0;
+    /// Physical tool picked when the response started, kept for the same reason as physical_tool_mask.
+    decltype(Printer::Params::active_physical_tool) active_physical_tool = NoTool {};
+    /// Virtual tools loaded when the response started, kept for the same reason as physical_tool_mask.
+    decltype(Printer::Params::active_virtual_tool_mask) active_virtual_tool_mask = 0;
+    /// MMU state when the response started, kept for the same reason as physical_tool_mask - it also decides the
+    /// tool ids.
+    ToConnectToolArgs tool_args = {};
+    /// Material of the INFO tool being rendered, sampled once per tool so that its fields come from one material
+    std::optional<FilamentTypeParameters> material;
+    /// Spool data of the INFO tool being rendered, sampled with its material
+    Printer::VirtualToolInfo virtual_tool_info;
     bool has_stat = false;
     bool read_only = false;
     struct stat st;
@@ -105,6 +123,39 @@ struct RenderState {
     const Response *buttons = nullptr;
 
     RenderState(const Printer &printer, const Action &action, std::optional<CommandId> background_command_id);
+
+#if PRINTER_IS_PRUSA_iX()
+    /// The physical tool whose values fill the single-tool telemetry fields (heatbreak and filament sensors): the
+    /// picked one, if any, or the first enabled one. The choice is sampled once per response, the values come from
+    /// each chunk's snapshot - zero defaults for a tool it does not fill (error printer, or disabled mid-response).
+    PhysicalToolIndex preferred_physical_tool() const;
+#endif
+
+    bool is_enabled(PhysicalToolIndex tool) const {
+        return physical_tool_mask & (1 << tool.to_raw());
+    }
+
+    bool is_enabled(VirtualToolIndex tool) const {
+        return virtual_tool_mask & (1 << tool.to_raw());
+    }
+
+    /// Whether the physical tool is picked.
+    bool is_active(PhysicalToolIndex tool) const {
+        return stdext::get_optional<PhysicalToolIndex>(active_physical_tool) == tool;
+    }
+
+    /// Whether the virtual tool is loaded into its physical tool, picked or not.
+    bool is_active(VirtualToolIndex tool) const {
+        return active_virtual_tool_mask & (1 << tool.to_raw());
+    }
+
+    [[nodiscard]] size_t iter_tool_count() const;
+
+    /// @returns iter to a physical tool index
+    [[nodiscard]] std::optional<PhysicalToolIndex> iter_physical_tool() const;
+
+    /// @returns iter to a virtual tool index
+    [[nodiscard]] std::optional<VirtualToolIndex> iter_virtual_tool() const;
 };
 
 class Renderer : public json::JsonRenderer<RenderState> {

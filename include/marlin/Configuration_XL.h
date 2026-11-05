@@ -167,8 +167,6 @@
 
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
-#define HEATER_XL_HOTEND_MINTEMP 5
-#define HEATER_0_MINTEMP HEATER_XL_HOTEND_MINTEMP
 #define BED_MINTEMP 5
 #define HEATBREAK_MINTEMP 5
 #define BOARD_MINTEMP 5
@@ -176,8 +174,6 @@
 // Above this temperature the heater will be switched off.
 // This can protect components from overheating, but NOT from shorts and failures.
 // (Use MINTEMP for thermistor short/failure protection.)
-#define HEATER_XL_HOTEND_MAXTEMP 305
-#define HEATER_0_MAXTEMP HEATER_XL_HOTEND_MAXTEMP
 #define HEATER_MAXTEMP_SAFETY_MARGIN 15
 #define BED_MAXTEMP 120
 #define BED_MAXTEMP_SAFETY_MARGIN 5
@@ -449,6 +445,10 @@
 #define AXIS_STEPS_PER_UNIT_2GT_XY 80.0f
 #define AXIS_STEPS_PER_UNIT_15GT_XY (80.f * 40.f / 40.5f)
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Z 800
+// Steps/mm at which the extruder feeds exactly the commanded length. The default is deliberately
+// lower ("normalised flow", formerly M221 S95 in the slicer start G-code); filament usage tracking
+// and the Move E menu compensate for it. Re-measure both when the extruder changes.
+#define CALIBRATED_AXIS_STEPS_PER_UNIT_E0 400
 #define DEFAULT_AXIS_STEPS_PER_UNIT_E0 380
 
 /**
@@ -495,10 +495,17 @@
  *   M204 P    Acceleration
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
+ *   M204 F    Max filament acceleration
  */
 #define DEFAULT_ACCELERATION 1800 // X, Y, Z and E acceleration for printing moves
 #define DEFAULT_RETRACT_ACCELERATION 1200 // E acceleration for retracts
 #define DEFAULT_TRAVEL_ACCELERATION 5000 // X, Y, Z acceleration for travel (non printing) moves
+// Max filament acceleration on print moves (mm/s^2 of filament), M204 F.
+// 0 disables the limit.
+// Pressure advance turns filament acceleration into a jump in extruder speed.
+// Found experimentally as the largest jump this printer's extruder motor
+// follows, rounded to a round number. Re-measure it for a different extruder.
+#define DEFAULT_MAX_FILAMENT_ACCELERATION 120
 
 //
 // Use Junction Deviation instead of traditional Jerk Limiting
@@ -1033,9 +1040,9 @@
     #define Y_NOZZLE_PARK_POINT (Y_MAX_POS - 110.0f)
     #define Z_NOZZLE_PARK_POINT (20.0f)
 
-    /// Always park the bed at least this low, so the user can reach the print
-    /// and the purge left after auto_retract
-    #define Z_NOZZLE_PARK_POINT_MIN (Z_MAX_POS - 50.0f)
+    /// Always raise the nozzle by this amount when parking on print end
+    /// Give the user some space to remove the purge after auto_retract
+    #define Z_NOZZLE_PARK_POINT_MIN 40.0f
 
     #define Z_NOZZLE_PARK_RISE 20.0f // Relative Z rise
 

@@ -571,9 +571,18 @@ err_t Server::received_wrap(void *raw_slot, struct altcp_pcb *conn, pbuf *data, 
     debug_assert(is_active_slot(base_slot));
     Slot *slot = static_cast<Slot *>(base_slot);
 
-    slot->server->activity(conn, slot);
-
     if (slot->take_pbuf(data)) {
+        /*
+         * Track activity only if we actually take the pbuf.
+         *
+         * On pbuf refusal (the ERR_MEM below), lwip re-submits often and would
+         * keep us "active" even though nothing more really happens on the TCP
+         * connection and we just have a yet unprocessed segment - and if the
+         * send side gets stuck, then unprocessable segment. We want to timeout
+         * a connection where recv side has some waiting data and send side
+         * can't make progress instead of keeping it forever.
+         */
+        slot->server->activity(conn, slot);
         /*
          * Will send data, consume data, free pbufs, release buffers and close
          * connections as needed.
@@ -709,12 +718,14 @@ void Server::stop() {
 void Server::TransferSlot::release() {
     if (transfer != nullptr) {
         // Just make sure each file gets closed and transfer gets done.
-        transfer->result = splice::Result::Timeout;
-        transfer->file()->set_written_callback(nullptr, nullptr);
-        if (expected_data != 0 && transfer->result == splice::Result::Ok) {
-            transfer->result = splice::Result::ClosedByClient;
+        // It should be done during happy path. Check if it is the case and clean up if it wasn't.
+        if (transfer->file()) {
+            transfer->file()->set_written_callback(nullptr, nullptr);
+            // Timeout is set here as NOK for done() functionality
+            // It gets reset to OK in release()
+            transfer->result = splice::Result::Timeout;
+            transfer->done();
         }
-        transfer->done();
         transfer->release();
     }
     expected_data = 0;
@@ -942,8 +953,6 @@ void Server::TransferSlot::make_response(ConnectionSlot *slot) {
         server->activity(conn, active_slot);
         altcp_setprio(conn, ACTIVE_PRIO);
         conn = nullptr;
-        // Do this before release, we've already called done.
-        transfer->file()->set_written_callback(nullptr, nullptr);
         transfer->release();
         transfer = nullptr;
         release();

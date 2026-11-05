@@ -2,6 +2,7 @@
 #include "screen_opt_filament_detail_private.hpp"
 
 #include <feature/openprinttag/requests_read_multi.hpp>
+#include <feature/openprinttag/request_manager.hpp>
 #include <feature/openprinttag/data_utils.hpp>
 #include <gui/screen/openprinttag/opt_request_wizard.hpp>
 
@@ -29,9 +30,6 @@ ScreenOPTFilamentDetail::ScreenOPTFilamentDetail(InfoParams params)
 
     // First scan needs to be delayed (cannot be in the constructor)
     scan_pending_ = true;
-
-    // Hide the "openprinttag linked" item, it would always be true and disabled, pointless/confusing
-    Item<screen_filament_detail::MI_FILAMENT_ASSIGNED_OPENPRINTTAG>().set_is_hidden(true);
 }
 
 ScreenOPTFilamentDetail::ScreenOPTFilamentDetail(PreheatModeParams params)
@@ -53,16 +51,17 @@ bool ScreenOPTFilamentDetail::scan() {
     using MultiRequest = MultiReadFieldRequest<FilamentParametersInfo::Requirements {}>;
 
     MultiRequest req { tag_ };
+    const auto tag_uid = manager().get_tag_uid(tag_);
 
-    if (!multirequest_with_troubleshooting(req)) {
+    if (!tag_uid.has_value() || !multirequest_with_troubleshooting(req)) {
         close_screen();
         return false;
     }
 
-    FilamentParametersInfo params { req };
+    FilamentParametersInfo params { req, *tag_uid };
 
     FilamentType filament_type = preheat_mode_ ? FilamentType { FilamentType::pending_adhoc } : FilamentType { FilamentType::none };
-    setup(filament_type, params.parameters);
+    setup(filament_type, params.parameters, SetupArgs {});
 
     static constexpr IWindowMenuItem::ColorScheme missing_item_color_scheme {
         .text = {
@@ -73,9 +72,7 @@ bool ScreenOPTFilamentDetail::scan() {
 
     // Indicate what parameters were missing on the NFC tag
     stdext::visit_tuple(container.menu_items, [&]<typename T>(T &item) {
-        static constexpr bool is_utility_button = std::is_same_v<T, MI_RETURN> || std::is_same_v<T, screen_filament_detail::MI_CONFIRM>;
-
-        if constexpr (is_utility_button || std::is_same_v<T, screen_filament_detail::MI_FILAMENT_VISIBLE>) {
+        if constexpr (screen_filament_detail::is_utility_button<T> || std::is_same_v<T, screen_filament_detail::MI_FILAMENT_VISIBLE>) {
             // pass
         } else {
             item.set_color_scheme(params.is_missing<T::parameter_ptr>() ? &missing_item_color_scheme : nullptr);
@@ -86,7 +83,7 @@ bool ScreenOPTFilamentDetail::scan() {
         MsgBoxWarning(_("Some of the parameters on the OpenPrintTag were missing or invalid. Please revise the highlighted fields."), Responses_Ok);
 
     } else if (preheat_mode_) {
-        menu.menu.move_focus_to_index(menu.menu.GetIndex(Item<screen_filament_detail::MI_CONFIRM>()));
+        menu.menu.move_focus_to_index(menu.menu.GetIndex(Item<screen_filament_detail::MI_CALLBACK>()));
     }
 
     return true;

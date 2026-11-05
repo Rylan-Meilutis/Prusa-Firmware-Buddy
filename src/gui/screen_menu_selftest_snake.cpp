@@ -2,12 +2,14 @@
 #include <config_store/store_instance.hpp>
 #include <img_resources.hpp>
 #include <marlin_client.hpp>
+#include <common/marlin_vars.hpp>
 #include <ScreenHandler.hpp>
 #include <selftest_types.hpp>
 #include <option/has_phase_stepping_selftest.h>
 #include <option/has_side_fsensor_remap.h>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_door_sensor_calibration.h>
+#include <option/has_gantry_squareness_check.h>
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_selftest_dependencies.h>
 #include <printers.h>
@@ -165,6 +167,11 @@ void do_snake(Action action, PhysicalToolIndex tool) {
             marlin_client::gcode("M961");
             break;
 #endif
+#if HAS_GANTRY_SQUARENESS_CHECK()
+        case Action::GantrySquareness:
+            marlin_client::gcode("M1988");
+            break;
+#endif
 #if HAS_INDX()
         case Action::DockCalibration:
             marlin_client::gcode("M1982");
@@ -311,8 +318,9 @@ constexpr IWindowMenuItem::ColorScheme not_yet_ready_scheme {
     .text { .focused = GuiDefaults::MenuColorBack, .unfocused = GuiDefaults::MenuColorDisabled },
     .back { .focused = GuiDefaults::MenuColorDisabled, .unfocused = GuiDefaults::MenuColorBack },
     .rop {
-        .focused { is_inverted::no, has_swapped_bw::no, is_shadowed::no, is_desaturated::no },
-        .unfocused { is_inverted::no, has_swapped_bw::no, is_shadowed::no, is_desaturated::no } }
+        .focused = ropfn {},
+        .unfocused = ropfn {},
+    },
 };
 
 } // namespace
@@ -428,7 +436,7 @@ void do_menu_event(window_t *receiver, [[maybe_unused]] window_t *sender, GUI_ev
 
     if (is_submenu) {
         if (snake_config.last_action == action && snake_config.last_tool == get_last_enabled_tool()) { // finished testing this submenu
-            Screens::Access()->Close();
+            Screens::Access()->close_screen();
         }
     }
 }
@@ -488,7 +496,7 @@ void ScreenMenuSTSWizard::windowEvent(window_t *sender, GUI_event_t event, void 
         ever_shown_wizard_box = true;
 
         if (MsgBoxPepaCentered(_("Run selftests and calibrations now?"), { Response::Yes, Response::No }) != Response::Yes) {
-            Screens::Access()->Close();
+            close_screen();
             return;
         }
 
@@ -513,6 +521,6 @@ void ScreenMenuSTSWizard::windowEvent(window_t *sender, GUI_event_t event, void 
 #else
     if (is_completed(get_test_result(get_last_action(), AllTools {})) && are_previous_completed(get_last_action())) {
 #endif
-        Screens::Access()->Close();
+        close_screen();
     }
 }

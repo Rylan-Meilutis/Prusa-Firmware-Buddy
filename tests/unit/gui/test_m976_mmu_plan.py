@@ -31,7 +31,6 @@ class MmuTemperaturePlan(unittest.TestCase):
 #include <cstring>
 #define ENABLED(x) (x)
 #define EXTRUDERS 9
-#define HEATER_0_MAXTEMP 330
 #define HEATER_MAXTEMP_SAFETY_MARGIN 15
 namespace buddy::extrusion_calibration { constexpr size_t max_logical_filaments=8; }
 struct { int extrude_min_temp=170; } thermalManager;
@@ -41,6 +40,15 @@ struct PhysicalToolIndex {
  static PhysicalToolIndex from_raw(uint8_t n) { assert(n<count); return {n}; }
  bool is_enabled() const { return raw<count; }
  uint8_t to_raw() const { return raw; }
+};
+struct Hotend {
+ struct Config { int max_nozzle_temp=330; };
+ Config limits;
+ static Hotend &for_tool(PhysicalToolIndex tool) {
+  assert(tool.raw<PhysicalToolIndex::count);
+  static Hotend hotend; return hotend;
+ }
+ const Config &config() const {return limits;}
 };
 struct VirtualToolIndex {
  static constexpr uint8_t count=PRUSA_MMU2 ? 5 : 8;
@@ -65,6 +73,13 @@ int main() {
    strcpy(e.material.data(),"PLA"); e.temperatures[0]=250; e.temperatures[1]=240;
    e.temperature_count=2; return e; };
  entries[0]=entry(0,0); assert(validate_batch(entries,1));
+ auto &hotend=Hotend::for_tool(PhysicalToolIndex::from_raw(0));
+ hotend.limits.max_nozzle_temp=264; assert(!validate_batch(entries,1));
+ hotend.limits.max_nozzle_temp=265; assert(validate_batch(entries,1));
+ hotend.limits.max_nozzle_temp=330;
+ entries[0].temperature=316; assert(!validate_batch(entries,1));
+ entries[0]=entry(0,0); entries[0].temperatures[1]=316; assert(!validate_batch(entries,1));
+ entries[0]=entry(0,0);
  entries[1]=entry(PRUSA_MMU2 ? 0 : 1,1); assert(validate_batch(entries,2));
  entries[1]=entry(0,0); assert(!validate_batch(entries,2));
  entries[0]=entry(0,VirtualToolIndex::count); assert(!validate_batch(entries,1));

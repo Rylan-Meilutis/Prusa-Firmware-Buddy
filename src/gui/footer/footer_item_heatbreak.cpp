@@ -5,6 +5,7 @@
 #include "footer_item_heatbreak.hpp"
 #include "img_resources.hpp"
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 #include "i18n.h"
 #include <algorithm>
 
@@ -25,7 +26,7 @@ FooterItemHeatBreak::FooterItemHeatBreak(window_t *parent)
  */
 int FooterItemHeatBreak::static_readValue() {
     #if HAS_TOOLCHANGER()
-    if (std::holds_alternative<NoTool>(marlin_vars().active_extruder.get())) {
+    if (std::holds_alternative<NoTool>(VirtualToolIndex::currently_selected())) {
         return no_tool_value;
     }
     #endif

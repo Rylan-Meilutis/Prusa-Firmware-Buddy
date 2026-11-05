@@ -367,12 +367,12 @@ TEST_CASE("OPTReader::writing") {
 
     // Try writing a field that already wasn't there
     {
-        CHECK(reader.read_field_float(field(MainField::min_nozzle_diameter)) == std::unexpected(OPTReader::Error::field_not_present));
-        CHECK(reader.write_field_float(field(MainField::min_nozzle_diameter), 12.5f) == OPTReader::WriteReport { .field_existed = false, .changed = true });
+        CHECK(reader.read_field_float(field(MainField::density)) == std::unexpected(OPTReader::Error::field_not_present));
+        CHECK(reader.write_field_float(field(MainField::density), 1.25f) == OPTReader::WriteReport { .field_existed = false, .changed = true });
         CHECK(mock.tag_data[0] == tag_data::write_sample_3::data);
         // save_tag_data("write_sample_3.bin", mock.tag_data[0]);
 
-        CHECK(reader.read_field_float(field(MainField::min_nozzle_diameter)) == 12.5f);
+        CHECK(reader.read_field_float(field(MainField::density)) == 1.25f);
 
         CHECK(mock.log.writes.size() == 1);
         CHECK(mock.log.reads.size() == 0);
@@ -776,4 +776,15 @@ TEST_CASE("OPTReader::not_first_ndef_record") {
         CHECK(meta.region[Region::main].span == td::main_span);
         CHECK(meta.region[Region::auxiliary].span == td::aux_span);
     }
+}
+
+TEST_CASE("OPTReader::regression_1") {
+    OPTBackend_Mock mock;
+    OPTReader reader(mock);
+
+    namespace td = tag_data::regression_1;
+    mock.tag_data[0] = td::data;
+
+    // Regression test for a bug traced to a nanocbor implementation (BFW-936)
+    CHECK(reader.read_field_float(TagField { .tag = 0, .section = Section::main, .field = 999 }) == std::unexpected(OPTReader::Error::field_not_present));
 }

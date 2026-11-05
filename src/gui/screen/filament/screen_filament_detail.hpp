@@ -9,6 +9,8 @@
 #include <screen_menu.hpp>
 #include <numeric_input_config.hpp>
 #include <tool_index.hpp>
+#include <gui/menu_item/menu_item_color.hpp>
+#include <window_menu_callback_item.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
@@ -17,6 +19,7 @@
 #include <option/has_anfc.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
+    #include <gui/menu_item/menu_item_uuid.hpp>
 #endif
 
 namespace screen_filament_detail {
@@ -27,10 +30,10 @@ public:
 
     MI_FILAMENT_NAME();
 
-    void set_filament_type(FilamentType set);
+    void set_params(const BuildFilamentNameWithInfoParams &set);
 
     const auto &value() const {
-        return value_;
+        return data_.name;
     }
 
     void set_value(const FilamentTypeParameters::Name &set);
@@ -40,11 +43,18 @@ public:
     void update_text();
 
 protected:
-    FilamentTypeParameters::Name value_;
-    FilamentType filament_type_;
+    BuildFilamentNameWithInfoParams data_;
 };
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
+class MI_FILAMENT_COLOR final : public MenuItemColor {
+public:
+    static constexpr auto parameter_ptr = &FilamentTypeParameters::color;
+    static constexpr bool is_adhoc_only = true;
+
+    MI_FILAMENT_COLOR();
+};
+
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM() && !HAS_MINI_DISPLAY()
 class MI_FILAMENT_BASE_PRESET final : public MenuItemSelectMenu {
 public:
     using T = FilamentTypeParameters::BasePreset;
@@ -56,7 +66,7 @@ public:
     void set_value(T set);
 
     int item_count() const final;
-    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
+    string_view_utf8 build_item_text(int index, StringViewUtf8ParamBase &params) const final;
 };
 #endif
 
@@ -133,6 +143,7 @@ public:
 class MI_FILAMENT_ASSIGNED_OPENPRINTTAG final : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     static constexpr auto parameter_ptr = &FilamentTypeParameters::openprinttag_uid_hash;
+    static constexpr bool is_adhoc_only = true;
 
     MI_FILAMENT_ASSIGNED_OPENPRINTTAG();
 
@@ -150,6 +161,33 @@ protected:
 
 private:
     Value original_uid_hash_ = no_tag_hash;
+};
+
+class MI_FILAMENT_MATERIAL_UUID final : public MenuItemUUID {
+public:
+    static constexpr auto parameter_ptr = &FilamentTypeParameters::material_uuid;
+    static constexpr bool is_adhoc_only = true;
+
+    MI_FILAMENT_MATERIAL_UUID()
+        : MenuItemUUID(_("Material UUID")) {}
+};
+
+class MI_FILAMENT_PACKAGE_UUID final : public MenuItemUUID {
+public:
+    static constexpr auto parameter_ptr = &FilamentTypeParameters::package_uuid;
+    static constexpr bool is_adhoc_only = true;
+
+    MI_FILAMENT_PACKAGE_UUID()
+        : MenuItemUUID(_("Package UUID")) {}
+};
+
+class MI_FILAMENT_INSTANCE_UUID final : public MenuItemUUID {
+public:
+    static constexpr auto parameter_ptr = &FilamentTypeParameters::instance_uuid;
+    static constexpr bool is_adhoc_only = true;
+
+    MI_FILAMENT_INSTANCE_UUID()
+        : MenuItemUUID(_("Instance UUID")) {}
 };
 #endif
 
@@ -172,18 +210,15 @@ public:
     MI_FILAMENT_VISIBLE();
 };
 
-class MI_CONFIRM final : public IWindowMenuItem {
-public:
-    MI_CONFIRM();
-    void click(IWindowMenu &) override;
-    stdext::inplace_function<void()> callback;
-};
+/// Utility button, hidden by default, used for various purposes
+using MI_CALLBACK = WithConstructorArgs<WindowMenuCallbackItem, nullptr, nullptr>;
 
 using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
     MI_RETURN,
     MI_FILAMENT_NAME,
     MI_FILAMENT_VISIBLE,
-#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
+    MI_FILAMENT_COLOR,
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM() && !HAS_MINI_DISPLAY()
     MI_FILAMENT_BASE_PRESET,
 #endif
     MI_FILAMENT_NOZZLE_TEMPERATURE,
@@ -204,22 +239,28 @@ using ScreenFilamentDetail_ = ScreenMenu<EFooter::Off,
 #endif
 #if HAS_ANFC()
     MI_FILAMENT_ASSIGNED_OPENPRINTTAG,
+    MI_FILAMENT_MATERIAL_UUID,
+    MI_FILAMENT_PACKAGE_UUID,
+    MI_FILAMENT_INSTANCE_UUID,
 #endif
-    MI_CONFIRM //
+    MI_CALLBACK //
     >;
 
 static_assert(
     aggregate_arity<FilamentTypeParameters>()
-        == 6
+        == 7
             + HAS_FILAMENT_HEATBREAK_PARAM() * 1
             + HAS_CHAMBER_API() * 4
             + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1
-            + HAS_ANFC() * 1
+            + HAS_ANFC() * 4
             // requires_ht_idler_door - preset-only hack
             + HAS_HT_HOTEND() * 1
     //
     ,
     "Revise ScreenFilamentDetail");
+
+template <typename T>
+inline constexpr bool is_utility_button = std::is_same_v<T, MI_RETURN> || std::is_same_v<T, MI_CALLBACK>;
 
 /// Management of a specified filament type
 class ScreenFilamentDetail : public ScreenFilamentDetail_ {
@@ -233,6 +274,10 @@ public:
         PreheatMode mode;
     };
 
+    struct LoadedFilamentMode {
+        VirtualToolIndex tool;
+    };
+
 public:
     ScreenFilamentDetail(FilamentType filament_type);
 
@@ -240,12 +285,19 @@ public:
     /// The added "Confirm" button sends the response to the Preheat FSM
     ScreenFilamentDetail(PreheatModeParams preheat_mode);
 
+    /// Shows details for the filament loaded to the specified tool
+    ScreenFilamentDetail(LoadedFilamentMode loaded_filament_mode);
+
     ~ScreenFilamentDetail();
 
 public:
+    struct SetupArgs {
+        bool force_disable_customizable : 1 = false;
+    };
+
     /// Fills the screen with the provided data
-    void setup(FilamentType filament_type, const FilamentTypeParameters &params);
-    void setup(FilamentType filament_type);
+    void setup(FilamentType filament_type, const FilamentTypeParameters &params, SetupArgs args);
+    void setup(FilamentType filament_type, SetupArgs args);
 
     void save_changes();
 
@@ -256,6 +308,7 @@ protected:
 
 protected:
     FilamentType filament_type_;
+    StringViewUtf8Parameters<4> title_params_;
 };
 
 }; // namespace screen_filament_detail

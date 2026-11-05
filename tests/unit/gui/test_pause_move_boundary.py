@@ -185,7 +185,7 @@ float fast_sqrt(float x) { return std::sqrt(x); }
 void idle(bool) { nested_idle(); }
 struct { void manage_heater() {} bool tooColdToExtrude(int) { return cold; } void set_print_fan_speed(int) {} } thermalManager;
 struct { void G0_G1() { assert(false); } } gcode;
-struct Crash_s { enum { IDLE,PRINTING,RECOVERY,REPEAT_WAIT,REPLAY }; int state=IDLE;
+struct Crash_s { enum { IDLE,PRINTING,RECOVERY,REPEAT_WAIT,REPLAY }; int state=IDLE; int segments_finished=0;
  int get_state() { return state; } void set_state(int s) { state=s; } bool is_toolchange_event() { return false; } } crash_s;
 struct { void enable_globally(bool) {} } endstops;
 struct { bool isPaused() { return true; } void start() {} } print_job_timer;

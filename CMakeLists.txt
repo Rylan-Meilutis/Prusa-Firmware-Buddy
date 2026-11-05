@@ -11,7 +11,6 @@ include(cmake/Tar.cmake)
 
 # Needded for nunavut
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-set_property(GLOBAL PROPERTY EXCLUDE_FROM_ALL ON)
 
 project(
   Buddy
@@ -139,9 +138,7 @@ target_include_directories(
   )
 
 if(MCU MATCHES "STM32G0")
-  target_include_directories(
-    BuddyHeaders BEFORE INTERFACE include/stm32g0_hal include/device/stm32g0
-    )
+  # G0 boards carry their HAL/FreeRTOS config and device headers in src/puppy/<board>
   target_link_libraries(BuddyHeaders INTERFACE STM32G0::HAL STM32G0xx::CMSIS)
 elseif(MCU MATCHES "STM32F4")
   target_include_directories(
@@ -367,6 +364,7 @@ add_subdirectory(lib)
 
 # Polite boards are not polluting global cmake state. Keep the list sorted!
 list(APPEND POLITE_BOARDS "ANFC")
+list(APPEND POLITE_BOARDS "HTCONTROLLER")
 list(APPEND POLITE_BOARDS "INDX_HEAD")
 list(APPEND POLITE_BOARDS "TOOL_OFFSET_SENSOR")
 list(APPEND POLITE_BOARDS "XBUDDY_EXTENSION")
@@ -403,6 +401,10 @@ if(BOARD IN_LIST BUDDY_BOARDS AND HAS_PUPPIES_BOOTLOADER)
   if(NOT TOOL_OFFSET_SENSOR_BINARY_PATH AND HAS_TOOL_OFFSET_SENSOR)
     add_puppy_firmware(PUPPY_NAME tool_offset_sensor OUT_BINARY_PATH TOOL_OFFSET_SENSOR_BINARY_PATH)
   endif()
+
+  if(NOT HTCONTROLLER_BINARY_PATH AND HAS_HTCONTROLLER)
+    add_puppy_firmware(PUPPY_NAME htcontroller OUT_BINARY_PATH HTCONTROLLER_BINARY_PATH)
+  endif()
 endif()
 
 # Unittests
@@ -436,7 +438,7 @@ if(RESOURCES)
     )
 endif()
 
-add_subdirectory(src)
+add_subdirectory(src EXCLUDE_FROM_ALL)
 
 target_compile_options(
   firmware
@@ -629,6 +631,8 @@ if(DSDL_TRANSPILE)
   transpile_dsdl()
 endif()
 
-if(NOT DEFINED UNITTESTS_ENABLE OR NOT UNITTESTS_ENABLE)
+if(DEFINED UNITTESTS_ENABLE AND UNITTESTS_ENABLE)
+  set_target_properties(firmware PROPERTIES EXCLUDE_FROM_ALL ON)
+else()
   set_target_properties(firmware PROPERTIES EXCLUDE_FROM_ALL OFF)
 endif()

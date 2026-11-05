@@ -15,7 +15,8 @@ class FirmwareBootRequestTests(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[3]
         source = (root / "src/common/data_exchange.cpp").read_text()
         functions = source[source.index("void set_reflash_bbf_sfn("):source.
-                           index("bool has_apendix(")]
+                           index("#if HAS_HT_HOTEND()",
+                                 source.index("void set_reflash_bbf_sfn("))]
         runtime_flag = "static bool reflash_requested_this_boot = false;"
         self.assertIn(runtime_flag, source)
         harness = r'''

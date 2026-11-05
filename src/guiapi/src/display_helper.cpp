@@ -224,40 +224,40 @@ void render_text_align(Rect16 rc, StringReaderUtf8 &reader, const Font f, Color 
     }
 }
 
-static void render_icon_align_impl(Rect16 rc, const img::Resource *res, Color clr_back, icon_flags flags, bool tinted) {
+static void render_icon_align_impl(Rect16 rc, const img::Resource *res, Color clr_back, Align_t align, ropfn raster_flags, bool tinted) {
 
     if (res) {
         point_ui16_t wh_ico = { res->w, res->h };
         Rect16 rc_ico = Rect16(0, 0, wh_ico.x, wh_ico.y);
-        rc_ico.Align(rc, flags.align);
+        rc_ico.Align(rc, align);
         rc_ico = rc_ico.Intersection(rc);
         if (tinted) {
-            display::draw_img_tinted(point_ui16(rc_ico.Left(), rc_ico.Top()), *res, clr_back, flags.raster_flags, ui_theme::image());
+            display::draw_img_tinted(point_ui16(rc_ico.Left(), rc_ico.Top()), *res, clr_back, raster_flags, ui_theme::image());
         } else {
-            display::draw_img(point_ui16(rc_ico.Left(), rc_ico.Top()), *res, clr_back, flags.raster_flags);
+            display::draw_img(point_ui16(rc_ico.Left(), rc_ico.Top()), *res, clr_back, raster_flags);
         }
     } else {
         display::fill_rect(rc, clr_back);
     }
 }
 
-void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, icon_flags flags) {
-    render_icon_align_impl(rc, res, clr_back, flags, true);
+void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, Align_t align, ropfn raster_flags) {
+    render_icon_align_impl(rc, res, clr_back, align, raster_flags, true);
 }
 
-void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, Color clr_tint, icon_flags flags) {
+void render_icon_align(Rect16 rc, const img::Resource *res, Color clr_back, Color clr_tint, Align_t align, ropfn raster_flags) {
     if (!res) {
         display::fill_rect(rc, clr_back);
         return;
     }
     Rect16 icon_rect(0, 0, res->w, res->h);
-    icon_rect.Align(rc, flags.align);
+    icon_rect.Align(rc, align);
     icon_rect = icon_rect.Intersection(rc);
-    display::draw_img_tinted(point_ui16(icon_rect.Left(), icon_rect.Top()), *res, clr_back, flags.raster_flags, clr_tint);
+    display::draw_img_tinted(point_ui16(icon_rect.Left(), icon_rect.Top()), *res, clr_back, raster_flags, clr_tint);
 }
 
-void render_icon_align_original(Rect16 rc, const img::Resource *res, Color clr_back, icon_flags flags) {
-    render_icon_align_impl(rc, res, clr_back, flags, false);
+void render_icon_align_original(Rect16 rc, const img::Resource *res, Color clr_back, Align_t align, ropfn raster_flags) {
+    render_icon_align_impl(rc, res, clr_back, align, raster_flags, false);
 }
 
 void render_rect(Rect16 rc, Color clr) {

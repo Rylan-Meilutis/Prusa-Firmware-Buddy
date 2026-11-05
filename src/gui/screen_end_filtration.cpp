@@ -32,7 +32,7 @@ ScreenEndFiltration::ScreenEndFiltration()
 
 void ScreenEndFiltration::windowEvent([[maybe_unused]] window_t *sender, GUI_event_t event, void *param) {
     if (buddy::chamber_filtration().post_print_remaining_s() == 0) {
-        Screens::Access()->Close();
+        Screens::Access()->close_screen_or_dialog();
         return;
     }
 
@@ -43,5 +43,5 @@ void ScreenEndFiltration::windowEvent([[maybe_unused]] window_t *sender, GUI_eve
     if (event_conversion_union { .pvoid = param }.response == Response::Yes) {
         buddy::chamber_filtration().stop_post_print_filtration();
     }
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }

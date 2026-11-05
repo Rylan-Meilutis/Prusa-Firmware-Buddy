@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <ranges>
 #include <optional>
+#include <cstddef>
 #include <bsod.h>
 #include <type_traits>
 #include <config_store/store_instance.hpp>
@@ -36,7 +37,7 @@ PrusaPackGcodeReader::PrusaPackGcodeReader(unique_file_ptr &&f, const struct sta
     e2ee::IdentityCheckLevel identity_check_lvl
 #endif
     )
-    : GcodeReaderCommon(std::move(f))
+    : GcodeReaderCommon(std::move(f), stat_info.st_size)
     , allow_decryption(allow_decryption)
 #if HAS_E2EE_SUPPORT()
     , identity_check_lvl(identity_check_lvl)
@@ -73,7 +74,7 @@ IGcodeReader::Result_t PrusaPackGcodeReader::read_block_header(BlockHeader &bloc
     // How large can we afford? Bigger is better, but we need to fit to the current stack
     // (and no, we don't want to have a static buffer allocated all the time).
     constexpr size_t crc_buffer_size = 128;
-    uint8_t crc_buffer[crc_buffer_size];
+    std::byte crc_buffer[crc_buffer_size];
     auto res = read_next_block_header(*file, file_header, block_header, check_crc ? crc_buffer : nullptr, check_crc ? crc_buffer_size : 0);
     if (res == bgcode::core::EResult::ReadError && feof(file)) {
         // END of file reached, end
@@ -265,7 +266,7 @@ void PrusaPackGcodeReader::generate_index(Index &out, bool ignore_crc) {
                 return IterateResult_t::Continue;
             }
             for (auto &thumb : out.thumbnails) {
-                if (thumb.w == details->width && thumb.h == details->height && thumb.type == details->type) {
+                if (details->matches(thumb.w, thumb.h, thumb.type, false)) {
                     thumb.position = header.get_position();
                     break;
                 }
@@ -561,8 +562,8 @@ GcodeReaderCommon::Result_t PrusaPackGcodeReader::init_encrypted_block_streaming
     }
 
     // Note: This is the size of the EncryptedBlock, so it is the size of encrypted data + HMACs
-    stream.decryptor->setup_block(stream.current_encrypted_block_header.get_position(), block_header.uncompressed_size);
-    if (!read_encrypted_block_header(file.get(), stream.current_plain_block_header, *stream.decryptor.get())) {
+    if (!stream.decryptor->setup_block(stream.current_encrypted_block_header.get_position(), block_header.uncompressed_size)
+        || !read_encrypted_block_header(file.get(), stream.current_plain_block_header, *stream.decryptor)) {
         return Result_t::RESULT_ERROR;
     }
     if (!stream.decryptor->decrypt(file.get(), reinterpret_cast<uint8_t *>(&stream.encoding), sizeof(stream.encoding))) {
@@ -692,7 +693,7 @@ WritableBytes PrusaPackGcodeReader::ThumbnailReader::read(WritableBytes buffer) 
 }
 
 std::optional<PrusaPackGcodeReader::ThumbnailDetails> PrusaPackGcodeReader::thumbnail_details(const BlockHeader &block_header) {
-    if ((ECompressionType)block_header.compressed_size != bgcode::core::ECompressionType::None) {
+    if ((ECompressionType)block_header.compression != bgcode::core::ECompressionType::None) {
         // no compression supported on images, they are already compressed enough
         return std::nullopt;
     }
@@ -711,7 +712,7 @@ std::optional<PrusaPackGcodeReader::ThumbnailDetails> PrusaPackGcodeReader::thum
 }
 
 bool PrusaPackGcodeReader::is_readable_metadata(const BlockHeader &header) {
-    if ((ECompressionType)header.compressed_size != bgcode::core::ECompressionType::None) {
+    if ((ECompressionType)header.compression != bgcode::core::ECompressionType::None) {
         // We don't support compressed metadata (at least not now). Ignore this
         // particular metadata block.
         return false;
@@ -765,14 +766,7 @@ AbstractByteReader *PrusaPackGcodeReader::stream_thumbnail_start(uint16_t expect
         if (!details.has_value()) {
             return IterateResult_t::Continue;
         }
-        if (details->type != params.expected_type) {
-            // Other format than what we want
-            return IterateResult_t::Continue;
-        }
-
-        if (params.expected_height == details->height && params.expected_width == details->width) {
-            return IterateResult_t::Return;
-        } else if (params.allow_larger && params.expected_height <= details->height && params.expected_width <= details->width) {
+        if (details->matches(params.expected_width, params.expected_height, params.expected_type, params.allow_larger)) {
             return IterateResult_t::Return;
         } else {
             return IterateResult_t::Continue;
@@ -839,9 +833,12 @@ uint32_t PrusaPackGcodeReader::get_gcode_stream_size_estimate() {
         else if ((bgcode::core::EBlockType)block_header.type == bgcode::core::EBlockType::EncryptedBlock) {
             // seek over encrypted block params
             fseek(file, 3, SEEK_CUR);
-            estimate_context.decryptor.setup_block(block_header.get_position(), block_header.uncompressed_size);
             BlockHeader decrypted_gcode_header {};
-            read_encrypted_block_header(file, decrypted_gcode_header, estimate_context.decryptor);
+            if (!estimate_context.decryptor.setup_block(block_header.get_position(), block_header.uncompressed_size)
+                || !read_encrypted_block_header(file, decrypted_gcode_header, estimate_context.decryptor)) {
+                log_info(PRUSA_PACK_READER, "Malformed encrypted block, estimating from what we have!");
+                return IterateResult_t::End;
+            }
             estimate_context.stats.gcode_stream_size_uncompressed += decrypted_gcode_header.uncompressed_size;
             estimate_context.stats.gcode_stream_size_compressed += ((bgcode::core::ECompressionType)decrypted_gcode_header.compression == bgcode::core::ECompressionType::None) ? decrypted_gcode_header.uncompressed_size : decrypted_gcode_header.compressed_size;
             ++estimate_context.stats.blocks_read;
@@ -890,11 +887,11 @@ uint32_t PrusaPackGcodeReader::get_gcode_stream_size() {
         else if ((bgcode::core::EBlockType)block_header.type == bgcode::core::EBlockType::EncryptedBlock) {
             // seek over encrypted block params
             fseek(file, 3, SEEK_CUR);
-            size_context.decryptor.setup_block(block_header.get_position(), block_header.uncompressed_size);
             BlockHeader decrypted_gcode_header;
-            if (!read_encrypted_block_header(file, decrypted_gcode_header, size_context.decryptor)) {
-                // This should never happen in practise
-                debug_assert(false);
+            if (!size_context.decryptor.setup_block(block_header.get_position(), block_header.uncompressed_size)
+                || !read_encrypted_block_header(file, decrypted_gcode_header, size_context.decryptor)) {
+                log_info(PRUSA_PACK_READER, "Malformed encrypted block, reported size will be incomplete!");
+                return IterateResult_t::End;
             }
             size_context.gcode_stream_size_uncompressed += decrypted_gcode_header.uncompressed_size;
         }

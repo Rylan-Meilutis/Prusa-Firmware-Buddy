@@ -3,13 +3,18 @@
 #include <search_json.h>
 #include <json_encode.h>
 
+#include <buddy/filename_defs.hpp>
 #include <general_response.hpp>
-#include <module/prusa/tool_mapper.hpp>
 #include <option/has_toolchanger.h>
+#include <option/websocket.h>
 #include <netif_settings.h>
 #include <str_utils.hpp>
-
 #include <logging/log.hpp>
+
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
+    #include <module/prusa/tool_mapper.hpp>
+#endif
 
 #include <cstdlib>
 #include <charconv>
@@ -53,6 +58,7 @@ namespace {
         }
     }
 
+#if !WEBSOCKET()
     template <size_t S>
     bool decode_hex(const Event &event, array<uint8_t, S> &dest) {
         if (event.value->size() != 2 * S) {
@@ -66,6 +72,7 @@ namespace {
         }
         return true;
     }
+#endif
 
     enum HasArg : uint32_t {
         ArgJobId = 1 << 0,
@@ -83,8 +90,10 @@ namespace {
     };
 
     constexpr uint32_t NO_ARGS = 0;
+#if !WEBSOCKET()
     // Encrypted download can also process a port, but that one is optional, so not listed here.
     constexpr uint32_t ARGS_ENC_DOWN = ArgPath | ArgKey | ArgIv | ArgOrigSize;
+#endif
     constexpr uint32_t ARGS_DIALOG_ACTION = ArgDialogId | ArgResponse;
     constexpr uint32_t ARGS_INLINE_DOWN = ArgPath | ArgOrigSize | ArgTeamId | ArgHash;
 } // namespace
@@ -191,7 +200,10 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
             // which command will be coming from which Connect instance ->
             // accept both, handle the same way.
             T("START_CONNECT_DOWNLOAD", StartInlineDownload, ARGS_INLINE_DOWN)
-            T("START_ENCRYPTED_DOWNLOAD", StartEncryptedDownload, ARGS_ENC_DOWN) { // else is part of the previous T
+#if !WEBSOCKET()
+            T("START_ENCRYPTED_DOWNLOAD", StartEncryptedDownload, ARGS_ENC_DOWN)
+#endif
+            { // else is part of the previous T
                 return;
             }
         }
@@ -208,20 +220,26 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
             seen_args |= MARK;                                                              \
         }                                                                                   \
     }
-#define PATH_ARG(TYPE)                                                            \
-    if (auto *cmd = get_if<TYPE>(&data); cmd != nullptr && buffer_available) {    \
-        const size_t len = min(event.value->size() + 1, buff.size());             \
-        strlcpy(reinterpret_cast<char *>(buff.data()), event.value->data(), len); \
-        cmd->path = SharedPath(move(buff));                                       \
-        buffer_available = false;                                                 \
-        seen_args |= ArgPath;                                                     \
+#define PATH_ARG(TYPE)                                                                \
+    if (auto *cmd = get_if<TYPE>(&data); cmd != nullptr && buffer_available) {        \
+        const size_t len = min(event.value->size() + 1, buff.size());                 \
+        if (len - 1 <= filename_defs::max_hybrid_path_length) {                       \
+            strlcpy(reinterpret_cast<char *>(buff.data()), event.value->data(), len); \
+            cmd->path = SharedPath(move(buff));                                       \
+            buffer_available = false;                                                 \
+            seen_args |= ArgPath;                                                     \
+        } else {                                                                      \
+            data = BrokenCommand { "Path too long" };                                 \
+        }                                                                             \
     }
-#define HEX_ARG(FIELD, MARK)                                                 \
-    if (auto *cmd = get_if<StartEncryptedDownload>(&data); cmd != nullptr) { \
-        if (decode_hex(event, cmd->FIELD)) {                                 \
-            seen_args |= MARK;                                               \
-        }                                                                    \
-    }
+#if !WEBSOCKET()
+    #define HEX_ARG(FIELD, MARK)                                                 \
+        if (auto *cmd = get_if<StartEncryptedDownload>(&data); cmd != nullptr) { \
+            if (decode_hex(event, cmd->FIELD)) {                                 \
+                seen_args |= MARK;                                               \
+            }                                                                    \
+        }
+#endif
 
 #define SET_VALUE_ARG(name_, type)                              \
     if (auto *cmd = get_if<SetValue>(&data); cmd != nullptr) {  \
@@ -276,7 +294,9 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
             PATH_ARG(DeleteFile)
             PATH_ARG(DeleteFolder)
             PATH_ARG(CreateFolder)
+#if !WEBSOCKET()
             PATH_ARG(StartEncryptedDownload)
+#endif
             PATH_ARG(StartInlineDownload)
 #if HAS_TOOL_MAPPING()
         } else if (is_arg("tool_mapping", Type::Object)) {
@@ -366,29 +386,36 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
 #define NOZZLE_PARAMS(num)                                                \
     }                                                                     \
     else if (is_arg("tools." #num ".high_flow", Type::Primitive)) {       \
-        set_value_bool_arg(PropertyName::NozzleHighFlow, num - 1);        \
+        set_value_bool_arg(PropertyName::NozzleHighFlow, num);            \
     }                                                                     \
     else if (is_arg("tools." #num ".hardened", Type::Primitive)) {        \
-        set_value_bool_arg(PropertyName::NozzleHardened, num - 1);        \
+        set_value_bool_arg(PropertyName::NozzleHardened, num);            \
     }                                                                     \
     else if (is_arg("tools." #num ".nozzle_diameter", Type::Primitive)) { \
-        set_value_float_arg(PropertyName::NozzleDiameter, num - 1);
+        set_value_float_arg(PropertyName::NozzleDiameter, num);
 
-            NOZZLE_PARAMS(1)
+            NOZZLE_PARAMS(0)
 #if HAS_TOOLCHANGER() || UNITTESTS
+            static_assert(PhysicalToolIndex::count <= 8);
+            NOZZLE_PARAMS(1)
             NOZZLE_PARAMS(2)
             NOZZLE_PARAMS(3)
             NOZZLE_PARAMS(4)
             NOZZLE_PARAMS(5)
             NOZZLE_PARAMS(6)
             NOZZLE_PARAMS(7)
-            NOZZLE_PARAMS(8)
+#else
+            static_assert(PhysicalToolIndex::count == 1);
 #endif
 #undef NOZZLE_PARAMS
+#if !WEBSOCKET()
         } else if (is_arg("port", Type::Primitive)) {
             INT_ARG(StartEncryptedDownload, uint16_t, port, 0)
+#endif
         } else if (is_arg("orig_size", Type::Primitive)) {
+#if !WEBSOCKET()
             INT_ARG(StartEncryptedDownload, uint32_t, orig_size, ArgOrigSize)
+#endif
             INT_ARG(StartInlineDownload, uint32_t, orig_size, ArgOrigSize)
         } else if (is_arg("team_id", Type::Primitive)) {
             INT_ARG(StartInlineDownload, uint64_t, team_id, ArgTeamId)
@@ -398,10 +425,12 @@ Command Command::parse_json_command(CommandId id, char *body, size_t body_size, 
                 strlcpy(cmd->hash, event.value->data(), len);
                 seen_args |= ArgHash;
             }
+#if !WEBSOCKET()
         } else if (is_arg("key", Type::String)) {
             HEX_ARG(key, ArgKey)
         } else if (is_arg("iv", Type::String)) {
             HEX_ARG(iv, ArgIv)
+#endif
         } else if (is_arg("dialog_id", Type::Primitive)) {
             INT_ARG(DialogAction, uint32_t, dialog_id, ArgDialogId)
         } else if (is_arg("id", Type::Primitive)) {

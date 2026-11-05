@@ -19,22 +19,6 @@ bool window_t::ClosedOnTimeout() const { return flags.timeout_close == is_closed
 bool window_t::ClosedOnPrint() const { return flags.print_close == is_closed_on_printing_t::yes; }
 bool window_t::HasEnforcedCapture() const { return flags.enforce_capture_when_not_visible; }
 bool window_t::IsCapturable() const { return IsVisible() || HasEnforcedCapture(); }
-bool window_t::HasIcon() const { return flags.has_icon; }
-
-void window_t::SetHasIcon() {
-    if (flags.has_icon) {
-        return;
-    }
-    flags.has_icon = true;
-    Invalidate();
-}
-void window_t::ClrHasIcon() {
-    if (!flags.has_icon) {
-        return;
-    }
-    flags.has_icon = false;
-    Invalidate();
-}
 
 void window_t::SetRedLayout() {
     set_layout(ColorLayout::red);
@@ -441,7 +425,7 @@ void window_t::screenEvent(window_t *sender, GUI_event_t event, void *const para
 void window_t::windowEvent([[maybe_unused]] window_t *sender, GUI_event_t event, void *const param) {
     if (event == GUI_event_t::CLICK && parent) {
         if (flags.close_on_click == is_closed_on_click_t::yes) {
-            Screens::Access()->Close();
+            Screens::Access()->close_screen_or_dialog();
         } else {
             parent->WindowEvent(this, event, param);
         }

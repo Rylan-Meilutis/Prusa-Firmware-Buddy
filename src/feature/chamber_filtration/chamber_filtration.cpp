@@ -1,6 +1,6 @@
 #include "chamber_filtration.hpp"
 
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <marlin_server.hpp>
 #include <serial_printing.hpp>
 #include <gcode_info.hpp>
@@ -48,7 +48,7 @@ void ChamberFiltration::set_backend(ChamberFiltrationBackend backend) {
     }
 
 #if XL_ENCLOSURE_SUPPORT()
-    xl_enclosure.setEnabled(backend == ChamberFiltrationBackend::xl_enclosure);
+    xl_enclosure.set_enabled(backend == ChamberFiltrationBackend::xl_enclosure);
 #endif
 }
 

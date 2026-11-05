@@ -168,8 +168,6 @@
 
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
-#define HEATER_XL_HOTEND_MINTEMP 5
-#define HEATER_0_MINTEMP HEATER_XL_HOTEND_MINTEMP
 #define BED_MINTEMP 5
 #define HEATBREAK_MINTEMP 5
 #define BOARD_MINTEMP 5
@@ -177,8 +175,6 @@
 // Above this temperature the heater will be switched off.
 // This can protect components from overheating, but NOT from shorts and failures.
 // (Use MINTEMP for thermistor short/failure protection.)
-#define HEATER_XL_HOTEND_MAXTEMP 305
-#define HEATER_0_MAXTEMP HEATER_XL_HOTEND_MAXTEMP
 #define HEATER_MAXTEMP_SAFETY_MARGIN 15
 #define BED_MAXTEMP 120
 #define BED_MAXTEMP_SAFETY_MARGIN 5
@@ -447,6 +443,10 @@
 #define DEFAULT_AXIS_STEPS_PER_UNIT_X 80
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Y 80
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Z 800
+// Steps/mm at which the extruder feeds exactly the commanded length. The default is deliberately
+// lower ("normalised flow", formerly M221 S95 in the slicer start G-code); filament usage tracking
+// and the Move E menu compensate for it. Re-measure both when the extruder changes.
+#define CALIBRATED_AXIS_STEPS_PER_UNIT_E0 400
 #define DEFAULT_AXIS_STEPS_PER_UNIT_E0 380
 
 /**

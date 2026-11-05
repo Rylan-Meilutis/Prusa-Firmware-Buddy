@@ -33,6 +33,7 @@ target_sources(
             nhttp/status_page.cpp
             nhttp/status_renderer.cpp
             nhttp/transfer_renderer.cpp
+            ooseq_limit.cpp
             pbuf_rx.cpp
             sntp/sntp.c
             sntp/sntp_client.c
@@ -48,7 +49,6 @@ if(NETWORKING_BENCHMARK_ENABLED)
   target_sources(
     WUI INTERFACE nhttp/networking_benchmark.cpp nhttp/networking_benchmark_selector.cpp
     )
-  target_compile_definitions(WUI INTERFACE NETWORKING_BENCHMARK_ENABLED)
 endif()
 
 if(HAS_ESP)

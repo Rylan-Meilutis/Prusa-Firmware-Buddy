@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <bitset>
 #include <cmath>
+#include <expected>
 #include <optional>
 
 #include <Marlin/src/gcode/gcode.h>
@@ -18,7 +19,8 @@
 #include <Marlin/src/module/prusa/toolchanger.h>
 #include <marlin_server.hpp>
 #include <common/printer_model.hpp>
-#include <warning_type.hpp>
+#include <common/fsm_base_types.hpp>
+#include <client_response.hpp>
 #include <tool_index.hpp>
 #include <tools_mapping.hpp>
 #include <gcode/gcode_info.hpp>
@@ -197,19 +199,18 @@ float probe_z_at(const xy_pos_t &pos, uint8_t probe_count) {
 /// Park at nozzle cleaner and run the cleaning sequence.
 /// In `Calibration` context the nozzle cleaner is not yet calibrated (chicken-and-egg) so the
 /// auto-clean sequence is skipped; the caller has already prompted the user to clean manually.
-/// @return true if cleaning succeeded, false on failure or abort
-bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibration::Context context) {
+std::expected<void, tool_offset::FailureReason> prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibration::Context context) {
     // Guard against a silently failed toolchange — do not drive to a parked tool's brush
     const std::optional<PhysicalToolIndex> selected = PhysicalToolIndex::currently_selected_opt();
     if (!selected.has_value() || selected.value() != tool) {
         log_error(ToolOffsetCalib, "Tool %u is not the selected tool, cannot clean", tool.to_raw());
-        return false;
+        return std::unexpected(tool_offset::FailureReason::tool_not_picked);
     }
 #if !HAS_INDX()
     // Physical pick detection is only available on the dwarf toolchanger
     if (!prusa_toolchanger.getTool(tool).is_picked()) {
         log_error(ToolOffsetCalib, "Tool %u is not physically picked, cannot clean", tool.to_raw());
-        return false;
+        return std::unexpected(tool_offset::FailureReason::tool_not_picked);
     }
 #endif
 
@@ -220,19 +221,19 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
         mapi::park(mapi::get_parking_position(mapi::ParkPosition::nozzle_cleaner_approach));
 
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
-            return false;
+            return std::unexpected(tool_offset::FailureReason::cleaning_failed);
         }
 
         // Purge and clean at cleaning temperature
         set_temp_and_wait_reached(tool, temps.cleaning);
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
-            return false;
+            return std::unexpected(tool_offset::FailureReason::cleaning_failed);
         }
         // purge_clean starts by removing any previous blob, then creates a new
         // cleaning pellet. Detach that newly-created final pellet immediately;
         // otherwise the last calibrated tool can leave it hanging indefinitely.
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::eject_blob)) {
-            return false;
+            return std::unexpected(tool_offset::FailureReason::cleaning_failed);
         }
 
         // Cool down to probing temperature with print fan on to speed it up
@@ -246,7 +247,7 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
         // Deep clean at probing temperature
         thermalManager.wait_for_hotend(tool, { .no_wait_for_cooling = false });
         if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::deep_clean)) {
-            return false;
+            return std::unexpected(tool_offset::FailureReason::cleaning_failed);
         }
 
         // park out of cleaner area
@@ -261,7 +262,7 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
     // cleaner it needs no separate Calibration-context handling.
     if (nozzle_cleaner_lite::is_available()) {
         if (!nozzle_cleaner_lite::clean({ .cleaning_temp = temps.cleaning, .probe_temp = temps.z_probing, .cooldown = true, .keep_target = true })) {
-            return false;
+            return std::unexpected(tool_offset::FailureReason::cleaning_failed);
         }
     } else {
         set_temp_and_wait_reached(tool, temps.z_probing);
@@ -269,13 +270,13 @@ bool prepare_tool(PhysicalToolIndex tool, [[maybe_unused]] tool_offset_calibrati
 #else
     #error "Not defined behavior for this printer configuration"
 #endif
-    return true;
+    return {};
 }
 
 /// Park the head with low Z at the front so the user can inspect/clean the nozzle
-/// and prompt with Retry/Abort.
+/// and prompt with Retry/Abort. `tool` is the tool the failure is attributed to, if any.
 /// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
-Response prompt_retry(WarningType warning, tool_offset_calibration::Context context) {
+Response prompt_retry(PhaseToolOffsetsCalibration phase, std::optional<PhysicalToolIndex> tool, tool_offset_calibration::Context context) {
     // If the user already aborted, skip the dialog and the parking move. This covers a stopped
     // print as well as a calibration-wizard Abort, which quick-stops the planner (-> draining()).
     if (marlin_server::aborting_or_aborted() || planner.draining()) {
@@ -286,7 +287,10 @@ Response prompt_retry(WarningType warning, tool_offset_calibration::Context cont
     const mapi::ParkingPosition park_cleaning_position = mapi::ParkingPosition::from_xyz_pos({ { { (X_MIN_POS + X_MAX_POS) / 2.0f, 10.0f, park_clean_z } } });
     mapi::park(park_cleaning_position);
 
-    if (marlin_server::prompt_warning(warning) != Response::Retry) {
+    // From a print this opens the calibration FSM just for the prompt; in the wizard the FSM is
+    // already open and the holder only changes its phase.
+    marlin_server::FSM_Holder holder(phase, fsm::serialize_data(tool));
+    if (marlin_server::wait_for_response(phase) != Response::Retry) {
         if (context == tool_offset_calibration::Context::Print) {
             marlin_server::print_abort();
         }
@@ -296,18 +300,30 @@ Response prompt_retry(WarningType warning, tool_offset_calibration::Context cont
     return Response::Retry;
 }
 
-/// Park the head with low Z at the front so the user can inspect/clean the nozzle
-/// and prompt with Retry/Abort.
-/// On retry performs nozzle cleaning
-/// Returns: Response::Retry on a successful retry path, Response::Abort otherwise.
-Response prompt_retry_with_cleaning(PhysicalToolIndex tool, WarningType warning, tool_offset_calibration::Context context) {
-    auto response = prompt_retry(warning, context);
+/// The screen a failed attempt is reported on. Presentation is decided here and
+/// nowhere else: the measurement code only says what went wrong.
+/// Reasons without a screen of their own share the generic one; the log keeps
+/// the distinction either way.
+PhaseToolOffsetsCalibration phase_for(tool_offset::FailureReason reason) {
+    switch (reason) {
+    case tool_offset::FailureReason::tool_not_picked:
+        return PhaseToolOffsetsCalibration::tool_not_picked;
 
-    while (response == Response::Retry && !prepare_tool(tool, context)) {
-        log_error(ToolOffsetCalib, "Nozzle cleaning failed");
-        response = prompt_retry(warning, context);
+    case tool_offset::FailureReason::sensor_not_found:
+        return PhaseToolOffsetsCalibration::sensor_not_found;
+    case tool_offset::FailureReason::sensor_failure:
+        return PhaseToolOffsetsCalibration::sensor_failure;
+
+    // Homing failure is Marlin's to report: it red-screens outside a print and
+    // arms crash recovery inside one, so it never needs a screen of its own.
+    case tool_offset::FailureReason::homing_failed:
+    case tool_offset::FailureReason::cleaning_failed:
+    case tool_offset::FailureReason::bed_probe_failed:
+    case tool_offset::FailureReason::nozzle_too_hot:
+    case tool_offset::FailureReason::not_measured:
+        break;
     }
-    return response;
+    return PhaseToolOffsetsCalibration::tool_failed;
 }
 
 using PhysicalToolSet = std::bitset<PhysicalToolIndex::count>;
@@ -358,22 +374,194 @@ void reset_z_tool_offsets() {
     prusa_toolchanger.save_tool_offsets();
 }
 
+/// Constant for the whole run
+struct RunParams {
+    uint8_t r_param;
+    uint8_t probe_count;
+    uint8_t num_tools;
+    bool measure_z;
+    tool_offset_calibration::Context context;
+};
+
+struct ProbeResult {
+    float z;
+    xy_pos_t pos;
+};
+
+/// Bounding box of the offsets of `tools`, optionally leaving one tool out
+AxisAlignedBoundingBox offsets_bounding_box(const PhysicalToolSet &tools, std::optional<PhysicalToolIndex> without = std::nullopt) {
+    AxisAlignedBoundingBox aabb;
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (tools.test(tool.to_raw()) && tool != without) {
+            aabb.add(hotend_offset[tool]);
+        }
+    }
+    return aabb;
+}
+
+/// Average offset of `tools` (must not be empty)
+xyz_pos_t offsets_average(const PhysicalToolSet &tools) {
+    xyz_pos_t sum {};
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (tools.test(tool.to_raw())) {
+            sum += hotend_offset[tool];
+        }
+    }
+    return sum / static_cast<float>(tools.count());
+}
+
+/// The tool whose removal shrinks the offset spread of `tools` on `axis` the most.
+/// With fewer than three tools there is no majority to be an outlier from, so nothing is returned.
+std::optional<PhysicalToolIndex> biggest_outlier(const PhysicalToolSet &tools, AxisEnum axis) {
+    if (tools.count() < 3) {
+        return std::nullopt;
+    }
+    std::optional<PhysicalToolIndex> outlier;
+    float smallest_spread = std::numeric_limits<float>::max();
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (!tools.test(tool.to_raw())) {
+            continue;
+        }
+        const float spread = offsets_bounding_box(tools, tool).size()[axis];
+        if (spread < smallest_spread) {
+            smallest_spread = spread;
+            outlier = tool;
+        }
+    }
+    return outlier;
+}
+
+void log_biggest_outlier(std::optional<PhysicalToolIndex> outlier, AxisEnum axis) {
+    if (outlier) {
+        const char axis_letter = "XYZ"[axis];
+        log_error(ToolOffsetCalib, "Biggest outlier on %c: tool %u", axis_letter, outlier->to_raw());
+    }
+}
+
+/// One calibration pass over the used tools. Keeps the Z reference line shared by the tools.
+class Pass {
+public:
+    Pass(const RunParams &params, const tool_offset::ProbingConfig &probing_config)
+        : params_(params)
+        , probing_config_(probing_config) {}
+
+    /// One measurement attempt for the picked tool. On failure the caller prompts and retries this tool.
+    std::expected<void, tool_offset::FailureReason> measure_tool(PhysicalToolIndex tool, uint8_t step);
+
+    /// Tools whose offsets have been measured in this pass
+    const PhysicalToolSet &measured() const { return measured_; }
+
+private:
+    /// Probe Z at the given mapped index position (with jitter)
+    std::optional<ProbeResult> probe_at(PhysicalToolIndex tool, uint8_t probe_index) const;
+
+    const RunParams &params_;
+    const tool_offset::ProbingConfig &probing_config_;
+    ProbeResult ref_first_ {};
+    ProbeResult ref_last_ {};
+    PhysicalToolSet measured_;
+};
+
+std::optional<ProbeResult> Pass::probe_at(PhysicalToolIndex tool, uint8_t probe_index) const {
+    // total without -1 is intentional - the last spot (probe_index == num_tools) is reserved for second reference measurement
+    const float t = static_cast<float>(probe_index) / static_cast<float>(params_.num_tools);
+    const xy_pos_t pos {
+        std::clamp(POS_TOOL_0.x + (POS_TOOL_LAST.x - POS_TOOL_0.x) * t + random_jitter(params_.r_param), static_cast<float>(X_MIN_POS), static_cast<float>(X_MAX_POS)),
+        std::clamp(POS_TOOL_0.y + (POS_TOOL_LAST.y - POS_TOOL_0.y) * t + random_jitter(params_.r_param), static_cast<float>(Y_MIN_POS), static_cast<float>(Y_MAX_POS)),
+    };
+
+    log_info(ToolOffsetCalib, "Probe count: %d", params_.probe_count);
+    const float z = probe_z_at(pos, params_.probe_count);
+    if (std::isnan(z)) {
+        return std::nullopt;
+    }
+    log_info(ToolOffsetCalib, "Tool %u Z=%.3f at (%.1f, %.1f)", tool.to_raw(), static_cast<double>(z), static_cast<double>(pos.x), static_cast<double>(pos.y));
+    do_blocking_move_to_z(SAFE_Z_HEIGHT);
+    return ProbeResult { z, pos };
+}
+
+std::expected<void, tool_offset::FailureReason> Pass::measure_tool(PhysicalToolIndex tool, uint8_t step) {
+    if (const auto prepared = prepare_tool(tool, params_.context); !prepared) {
+        log_error(ToolOffsetCalib, "Tool %u could not be prepared (step %u)", tool.to_raw(), step);
+        return std::unexpected(prepared.error());
+    }
+
+    // The Abort button quick-stops the planner (sets draining()), which is what broke the
+    // heat-up wait above. The probe/scan below can't run while draining anyway.
+    // The reason is never shown: the caller's prompt short-circuits while draining.
+    if (gcode_exceptions().is_unwinding()) {
+        return std::unexpected(tool_offset::FailureReason::not_measured);
+    }
+
+    if (params_.num_tools == 1 && params_.measure_z) {
+        // With one-tool print, we still need to do prepare_tool which runs the nozzle cleaner
+        // But we don't need to do any offset calibrations, so we can just quit now
+        // We don't need to be that precise for the nozzle cleaner
+        return {};
+    }
+
+    if (params_.measure_z) {
+        const auto result_opt = probe_at(tool, step);
+        if (!result_opt) {
+            log_error(ToolOffsetCalib, "Z probe failed for tool %u (step %u)", tool.to_raw(), step);
+            return std::unexpected(tool_offset::FailureReason::bed_probe_failed);
+        }
+        const auto result = *result_opt;
+
+        if (step == 0) {
+            // If we're measuring more than one tool, we will be measuring all tools on a single X line.
+            // Use the first tool to probe both start and end of the line to interpolate from
+            // This is basically a ghetto MBL
+            ref_first_ = result;
+
+            // Probe at last position (with the same first tool)
+            const auto ref_last_opt = probe_at(tool, params_.num_tools);
+            if (!ref_last_opt) {
+                log_error(ToolOffsetCalib, "Z probe failed at reference-line end for tool %u", tool.to_raw());
+                return std::unexpected(tool_offset::FailureReason::bed_probe_failed);
+            }
+            ref_last_ = *ref_last_opt;
+
+            log_info(ToolOffsetCalib, "Reference line: Z_first=%.3f at (%.1f,%.1f) Z_last=%.3f at (%.1f,%.1f)",
+                static_cast<double>(ref_first_.z), static_cast<double>(ref_first_.pos.x), static_cast<double>(ref_first_.pos.y),
+                static_cast<double>(ref_last_.z), static_cast<double>(ref_last_.pos.x), static_cast<double>(ref_last_.pos.y));
+
+        } else {
+            // Interpolate expected Z on the reference line at the actual probed X
+            const float t = result.pos.x - ref_first_.pos.x;
+            const float z_expected = ref_first_.z + (ref_last_.z - ref_first_.z) * (t / (ref_last_.pos.x - ref_first_.pos.x));
+            const float z_offset = z_expected - result.z; // Inverted, because +Z is down
+            hotend_offset[tool].z = z_offset;
+            log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", tool.to_raw(), static_cast<double>(z_offset), static_cast<double>(result.z), static_cast<double>(z_expected));
+        }
+    }
+
+    // Note: If we would first calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
+    // but there is a trade off with filament oozing during calibration
+    if (const auto measured = tool_offset_calibration::calibrate_xy_offset(tool, probing_config_); !measured) {
+        return std::unexpected(measured.error());
+    }
+
+    measured_.set(tool.to_raw());
+    return {};
+}
+
 } // namespace
 
 namespace tool_offset_calibration {
 
-bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config, Context context) {
+std::expected<void, tool_offset::FailureReason> calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfig &config) {
     if (!is_hardware_available()) {
         bsod("Tool offset sensor requested, but not available on this printer");
     }
     const auto selected_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
     if (!selected_tool.has_value()) {
         log_error(ToolOffsetCalib, "failed: no tool selected");
-        return false;
+        return std::unexpected(tool_offset::FailureReason::tool_not_picked);
     }
     if (tool != selected_tool.value()) {
         log_error(ToolOffsetCalib, "Selected tool must be picked");
-        return false;
+        return std::unexpected(tool_offset::FailureReason::tool_not_picked);
     }
 
     // Reset planner state
@@ -396,50 +584,34 @@ bool calibrate_xy_offset(PhysicalToolIndex tool, const tool_offset::ProbingConfi
     offset_for_measurement.x = std::clamp(offset_for_measurement.x, static_cast<float>(X_MIN_OFFSET), static_cast<float>(X_MAX_OFFSET));
     offset_for_measurement.y = std::clamp(offset_for_measurement.y, static_cast<float>(Y_MIN_OFFSET), static_cast<float>(Y_MAX_OFFSET));
     // Zero hotend offset and currently applied offset
+    const xyz_pos_t applied_before = hotend_currently_applied_offset;
     reset_hotend_offset(tool);
     hotend_currently_applied_offset = xyz_pos_t {};
 
-    while (true) {
-        // wait for calibration temperature (if probing is higher than upper limit)
-        // Restore temp is one level above in run()
-        const ToolTemperatures temps = get_tool_temperatures(tool);
-        set_temp_and_wait_reached(tool, temps.xy_probing, /*fan_cooling=*/true);
+    // wait for calibration temperature (if probing is higher than upper limit)
+    // Restore temp is one level above in run()
+    const ToolTemperatures temps = get_tool_temperatures(tool);
+    set_temp_and_wait_reached(tool, temps.xy_probing, /*fan_cooling=*/true);
 
-        log_info(ToolOffsetCalib, "XY offset measurement");
-        auto result = tool_offset::measure_current_tool_offset(config, offset_for_measurement);
-        if (result.has_value()) {
-            log_info(ToolOffsetCalib, "Measured XY offset: X=%.3f Y=%.3f", static_cast<double>(result->x), static_cast<double>(result->y));
-            // Store newly measured offsets only for XY, keep actual for Z
-            hotend_offset[tool].x = result->x;
-            hotend_offset[tool].y = result->y;
-            hotend_offset[tool].z = current_ho.z;
-            prusa_toolchanger.save_tool_offset(tool);
-            hotend_currently_applied_offset = hotend_offset[tool];
-            return true;
-        } else {
-            log_error(ToolOffsetCalib, "Measurement failed: %s", result.error());
-        }
-
-        if (prompt_retry_with_cleaning(tool, WarningType::ToolOffsetCalibrationFailed, context) != Response::Retry) {
-            // Restore the original offsets
-            hotend_offset[tool].x = current_ho.x;
-            hotend_offset[tool].y = current_ho.y;
-            hotend_offset[tool].z = current_ho.z;
-            prusa_toolchanger.save_tool_offset(tool);
-            hotend_currently_applied_offset = xyz_pos_t { current_ho.x, current_ho.y, current_ho.z };
-            log_error(ToolOffsetCalib, "User aborted XY offset calibration for tool %u", tool.to_raw());
-            return false;
-        }
-        log_info(ToolOffsetCalib, "User requested XY offset retry for tool %u", tool.to_raw());
-
-#if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
-        // Re-park over the sensor before re-entering the loop. Single-coil only:
-        // the dual-coil flow has a coil per axis and repositions itself per coil
-        // at measurement entry.
-        do_blocking_move_to_z(config.coil_x.position.z + config.safe_z_height);
-        do_blocking_move_to_xy(config.coil_x.position.x, config.coil_x.position.y);
-#endif
+    log_info(ToolOffsetCalib, "XY offset measurement");
+    const auto result = tool_offset::measure_current_tool_offset(config, offset_for_measurement);
+    if (!result.has_value()) {
+        // The measurement logs what went wrong; here we only care that it did.
+        log_error(ToolOffsetCalib, "XY offset measurement failed for tool %u", tool.to_raw());
+        // Leave the offsets as they were, so a retry measures under the same conditions
+        hotend_offset[tool] = xyz_pos_t { current_ho.x, current_ho.y, current_ho.z };
+        hotend_currently_applied_offset = applied_before;
+        return std::unexpected(result.error());
     }
+
+    log_info(ToolOffsetCalib, "Measured XY offset: X=%.3f Y=%.3f", static_cast<double>(result->x), static_cast<double>(result->y));
+    // Store newly measured offsets only for XY, keep actual for Z
+    hotend_offset[tool].x = result->x;
+    hotend_offset[tool].y = result->y;
+    hotend_offset[tool].z = current_ho.z;
+    prusa_toolchanger.save_tool_offset(tool);
+    hotend_currently_applied_offset = hotend_offset[tool];
+    return {};
 }
 
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
@@ -646,15 +818,18 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
     });
 #endif
 
-    struct ProbeResult {
-        float z;
-        xy_pos_t pos;
+    const RunParams params {
+        .r_param = r_param,
+        .probe_count = probe_count,
+        .num_tools = num_tools,
+        .measure_z = measure_z,
+        .context = context,
     };
 
-    // Each pass runs the per-tool measurement loop followed by the deviation
-    // sanity checks. If any deviation check fails and the user chooses Retry,
-    // prompt_retry allows to re-clean the nozzle and we restart the whole
-    // pass with offsets reset.
+    // Each pass runs the per-tool measurement loop followed by the sensor-position
+    // check. Per-tool failures are retried inside the loop for that tool only; if
+    // the sensor-position check fails and the user chooses Retry, the whole pass
+    // restarts with offsets reset.
     while (true) {
         // Re-derive the probing config from defaults each pass: a previous pass's
         // drift correction may have updated the stored values, and the dual-coil
@@ -670,49 +845,7 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
         reset_hotend_offsets();
         hotend_currently_applied_offset = xyz_pos_t {};
 
-        // Helper: probe Z at the given mapped index position (with jitter)
-        auto probe_at = [&](PhysicalToolIndex tool, uint8_t probe_index) -> std::optional<ProbeResult> {
-            // total without -1 is intentional - the last spot (probe_index == num_tools) is reserved for second reference measurement
-            const float t = static_cast<float>(probe_index) / static_cast<float>(num_tools);
-            const xy_pos_t pos {
-                std::clamp(POS_TOOL_0.x + (POS_TOOL_LAST.x - POS_TOOL_0.x) * t + random_jitter(r_param), static_cast<float>(X_MIN_POS), static_cast<float>(X_MAX_POS)),
-                std::clamp(POS_TOOL_0.y + (POS_TOOL_LAST.y - POS_TOOL_0.y) * t + random_jitter(r_param), static_cast<float>(Y_MIN_POS), static_cast<float>(Y_MAX_POS)),
-            };
-
-            log_info(ToolOffsetCalib, "Probe count: %d", probe_count);
-            const float z = probe_z_at(pos, probe_count);
-            if (std::isnan(z)) {
-                return std::nullopt;
-            }
-            log_info(ToolOffsetCalib, "Tool %u Z=%.3f at (%.1f, %.1f)", tool.to_raw(), static_cast<double>(z), static_cast<double>(pos.x), static_cast<double>(pos.y));
-            do_blocking_move_to_z(SAFE_Z_HEIGHT);
-            return ProbeResult { z, pos };
-        };
-
-        bool need_pass_retry = false;
-        // Helper: Prompt the user to Retry/Abort if any check fails. Returns true if the caller should retry the whole pass, false to continue.
-        auto handle_tool_failure = [&]() -> bool {
-            if (prompt_retry(WarningType::ToolOffsetCalibrationFailed, context) == Response::Retry) {
-                need_pass_retry = true;
-                return true;
-            }
-            return false;
-        };
-
-        // Issue print_abort only if running from a print. In a calibration wizard the
-        // caller handles wizard teardown itself.
-        auto abort_print_if_needed = [&] {
-            if (context == Context::Print) {
-                marlin_server::print_abort();
-            }
-        };
-
-        ProbeResult ref_first;
-        ProbeResult ref_last;
-
-        AxisAlignedBoundingBox aabb;
-        xyz_pos_t sum_offsets {};
-        uint8_t no_summed_offsets = 0;
+        Pass pass(params, probing_config);
 
         uint8_t step = 0;
         for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
@@ -720,21 +853,22 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 continue;
             }
 
-            if (status_guard) {
-                status_guard->update<PrintStatusMessage::Type::tool_offset_calibrating>({
-                    .progress = { .current = static_cast<float>(step + 1), .target = static_cast<float>(num_tools) },
-                    .tool = tool.to_raw(),
-                });
-            }
-            if (progress_cb) {
-                if (!progress_cb({
-                        .step = static_cast<uint8_t>(step + 1),
-                        .total_steps = num_tools,
-                        .tool = tool,
-                    })) {
+            // Sent before every attempt: a failure prompt leaves the wizard FSM in the failure phase
+            const auto report_progress = [&]() -> bool {
+                if (status_guard) {
+                    status_guard->update<PrintStatusMessage::Type::tool_offset_calibrating>({
+                        .progress = { .current = static_cast<float>(step + 1), .target = static_cast<float>(num_tools) },
+                        .tool = tool.to_raw(),
+                    });
+                }
+                if (progress_cb && !progress_cb({ .step = static_cast<uint8_t>(step + 1), .total_steps = num_tools, .tool = tool })) {
                     log_info(ToolOffsetCalib, "Tool offset calibration aborted by progress callback");
                     return false;
                 }
+                return true;
+            };
+            if (!report_progress()) {
+                return false;
             }
 
             if (!tool_change(stdext::to_variant(tool), tool_return_t::no_return)) {
@@ -754,102 +888,42 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
                 thermalManager.setTargetHotend(saved_temp, tool);
             });
 
-            if (!prepare_tool(tool, context)) {
-                log_error(ToolOffsetCalib, "Tool %u cleaning failed (step %u)", tool.to_raw(), step);
-                if (handle_tool_failure()) {
+            while (true) {
+                const auto attempt = pass.measure_tool(tool, step);
+                if (attempt) {
                     break;
                 }
-                abort_print_if_needed();
-                return false;
-            }
-
-            // The Abort button quick-stops the planner (sets draining()), which is what broke the
-            // heat-up wait above. Exit now - the probe/scan below can't run while draining anyway.
-            if (gcode_exceptions().is_unwinding()) {
-                return false;
-            }
-
-            if (num_tools == 1 && measure_z) {
-                // With one-tool print, we still need to do prepare_tool which runs the nozzle cleaner
-                // But we don't need to do any offset calibrations, so we can just quit now
-                // We don't need to be that precise for the nozzle cleaner
-                break;
-            }
-
-            if (measure_z) {
-                const auto result_opt = probe_at(tool, step);
-                if (!result_opt) {
-                    log_error(ToolOffsetCalib, "Z probe failed for tool %u (step %u)", tool.to_raw(), step);
-                    if (handle_tool_failure()) {
-                        break;
-                    }
-                    abort_print_if_needed();
+                if (prompt_retry(phase_for(attempt.error()), tool, context) != Response::Retry) {
                     return false;
                 }
-                const auto result = *result_opt;
-
-                if (step == 0) {
-                    // Keep offset at zero as set by the reset at the beginning of the function
-
-                    // If we're measuring more than one tool, we will be measuring all tools on a single X line.
-                    // Use the first tool to probe both start and end of the line to interpolate from
-                    // This is basically a ghetto MBL
-                    ref_first = result;
-
-                    // Probe at last position (with the same first tool)
-                    const auto ref_last_opt = probe_at(tool, num_tools);
-                    if (!ref_last_opt) {
-                        log_error(ToolOffsetCalib, "Z probe failed at reference-line end for tool %u", tool.to_raw());
-                        if (handle_tool_failure()) {
-                            break;
-                        }
-                        abort_print_if_needed();
-                        return false;
-                    }
-                    ref_last = *ref_last_opt;
-
-                    log_info(ToolOffsetCalib, "Reference line: Z_first=%.3f at (%.1f,%.1f) Z_last=%.3f at (%.1f,%.1f)",
-                        static_cast<double>(ref_first.z), static_cast<double>(ref_first.pos.x), static_cast<double>(ref_first.pos.y),
-                        static_cast<double>(ref_last.z), static_cast<double>(ref_last.pos.x), static_cast<double>(ref_last.pos.y));
-
-                } else {
-                    // Interpolate expected Z on the reference line at the actual probed X
-                    const float t = result.pos.x - ref_first.pos.x;
-                    const float z_expected = ref_first.z + (ref_last.z - ref_first.z) * (t / (ref_last.pos.x - ref_first.pos.x));
-                    const float z_offset = z_expected - result.z; // Inverted, because +Z is down
-                    hotend_offset[tool].z = z_offset;
-                    log_info(ToolOffsetCalib, "Tool %u Z offset=%.3f (measured=%.3f expected=%.3f)", tool.to_raw(), static_cast<double>(z_offset), static_cast<double>(result.z), static_cast<double>(z_expected));
+                log_info(ToolOffsetCalib, "Retrying tool %u (step %u)", tool.to_raw(), step);
+                if (!report_progress()) {
+                    return false;
+                }
+                // The failure may be a lost pick, which only a re-pick fixes. Zero the tool's
+                // partial offset first: a same-tool change marks the stored offset as applied
+                // without moving, and the retry re-measures it anyway.
+                reset_hotend_offset(tool);
+                if (!tool_change(stdext::to_variant(tool), tool_return_t::no_return)) {
+                    log_error(ToolOffsetCalib, "Tool change to tool %u failed", tool.to_raw());
+                    return false;
                 }
             }
-
-            // Note: If we would first calibrate XY offset, it should then give us more precise interpolation on the ghetto MBL line
-            // but there is a trade off with filament oozing during calibration
-            if (!calibrate_xy_offset(tool, probing_config, context)) {
-                // calibrate_xy_offset has already prompted the user and aborted the print on its own
-                // path; just return false here. Its inner retry loop handles successful retries.
-                return false;
-            }
-
-            aabb.add(hotend_offset[tool]);
-            sum_offsets += hotend_offset[tool];
-            no_summed_offsets++;
 
             step++;
         }
 
-        if (need_pass_retry) {
-            log_info(ToolOffsetCalib, "Restarting tool offset calibration pass (user requested retry)");
-            continue;
-        }
-
         // Normalize XY offsets so the average offset is zero.
         // The ScopeGuard at function exit persists hotend_offset to EEPROM.
-        const xyz_pos_t spread = aabb.size();
+        const xyz_pos_t spread = offsets_bounding_box(pass.measured()).size();
         if (num_tools > 1) {
             if (spread.x > MAX_XY_OFFSET_DIFFERENCE || spread.y > MAX_XY_OFFSET_DIFFERENCE) {
+                const AxisEnum axis = spread.x > spread.y ? X_AXIS : Y_AXIS;
+                const auto outlier = biggest_outlier(pass.measured(), axis);
                 log_error(ToolOffsetCalib, "XY offset spread too large: X=%.3f Y=%.3f (limit %.3f)",
                     static_cast<double>(spread.x), static_cast<double>(spread.y), static_cast<double>(MAX_XY_OFFSET_DIFFERENCE));
-                if (prompt_retry(WarningType::HotendOffsetUnsafeXyDeviation, context) == Response::Retry) {
+                log_biggest_outlier(outlier, axis);
+                if (prompt_retry(PhaseToolOffsetsCalibration::unsafe_xy_offset, outlier, context) == Response::Retry) {
                     continue;
                 }
                 return false;
@@ -861,9 +935,9 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
             // (XLS) measures X and Y over two separate coils, so a single correction is
             // geometrically wrong; dual-coil offsets are stored as measured.
             // TODO WP5.4: per-coil stored positions + the config-store migration.
-            const xyz_pos_t average_offset = sum_offsets / no_summed_offsets;
+            const xyz_pos_t average_offset = offsets_average(pass.measured());
             if (std::abs(average_offset.x) > probing_config.sensor_position_error_threshold || std::abs(average_offset.y) > probing_config.sensor_position_error_threshold) {
-                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY, context) == Response::Retry) {
+                if (prompt_retry(PhaseToolOffsetsCalibration::unsafe_sensor_position, std::nullopt, context) == Response::Retry) {
                     continue;
                 }
                 return false;
@@ -904,11 +978,11 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
             // geometry on subsequent passes, so the hunt normally runs at most
             // once per machine. The update threshold is shared with the
             // single-coil path.
-            const xyz_pos_t average_offset = sum_offsets / no_summed_offsets;
+            const xyz_pos_t average_offset = offsets_average(pass.measured());
             if (std::abs(average_offset.x) > probing_config.sensor_displacement_error_threshold || std::abs(average_offset.y) > probing_config.sensor_displacement_error_threshold) {
                 // in actual configuration this code is dead
                 // TODO: reanalyze the need for this once calibration sequence is finalized for BFW-8420
-                if (prompt_retry(WarningType::HotendOffsetUnsafeSensorXY, context) == Response::Retry) {
+                if (prompt_retry(PhaseToolOffsetsCalibration::unsafe_sensor_position, std::nullopt, context) == Response::Retry) {
                     continue;
                 }
                 return false;
@@ -943,7 +1017,11 @@ bool run(uint8_t r_param, uint8_t probe_count, Context context, const ProgressCa
         }
 
         if (measure_z && spread.z > MAX_Z_OFFSET_DIFFERENCE) {
-            if (prompt_retry(WarningType::HotendOffsetUnsafeZDeviation, context) == Response::Retry) {
+            const auto outlier = biggest_outlier(pass.measured(), Z_AXIS);
+            log_error(ToolOffsetCalib, "Z offset spread too large: %.3f (limit %.3f)",
+                static_cast<double>(spread.z), static_cast<double>(MAX_Z_OFFSET_DIFFERENCE));
+            log_biggest_outlier(outlier, Z_AXIS);
+            if (prompt_retry(PhaseToolOffsetsCalibration::unsafe_z_offset, outlier, context) == Response::Retry) {
                 continue;
             }
             return false;

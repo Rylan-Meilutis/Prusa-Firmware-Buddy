@@ -35,7 +35,7 @@ MsgBoxBase::MsgBoxBase(Rect16 rect, const PhaseResponses &resp, size_t def_btn, 
         result = r;
 
         if (flags.close_on_click == is_closed_on_click_t::yes) {
-            Screens::Access()->Close();
+            close_dialog();
         } else if (GetParent()) {
             GetParent()->WindowEvent(this, GUI_event_t::CHILD_CLICK, event_conversion_union { .response = r }.pvoid);
         }
@@ -66,7 +66,7 @@ void MsgBoxBase::windowEvent(window_t *sender, GUI_event_t event, void *param) {
     case GUI_event_t::TOUCH_SWIPE_LEFT:
     case GUI_event_t::TOUCH_SWIPE_RIGHT:
         if (flags.close_on_click == is_closed_on_click_t::yes && radio_.GetBtnCount() == 0) {
-            Screens::Access()->Close();
+            close_dialog();
             return;
         }
         break;
@@ -156,6 +156,8 @@ MsgBoxIconned::MsgBoxIconned(Rect16 rect, const PhaseResponses &resp, size_t def
         icon -= Rect16::Width_t(GuiDefaults::Padding.left + GuiDefaults::Padding.right);
         icon += Rect16::Left_t((Width() / 2) - (icon.Width() / 2)); // center icon
     }
+
+    text.auto_select_font(text.get_font());
 }
 
 MsgBoxIconned::MsgBoxIconned(Rect16 rect, const point_ui16_t icon_point, const PhaseResponses &resp, size_t def_btn,
@@ -181,6 +183,8 @@ MsgBoxIconned::MsgBoxIconned(Rect16 rect, const point_ui16_t icon_point, const P
         }
     }
     text.SetRect(text_rect);
+
+    text.auto_select_font(text.get_font());
 }
 
 Rect16 MsgBoxIconned::getIconRect() {

@@ -186,7 +186,6 @@
 
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
-#define HEATER_0_MINTEMP 5
 #define BED_MINTEMP 5
 #define HEATBREAK_MINTEMP 5
 #define BOARD_MINTEMP 5
@@ -194,7 +193,6 @@
 // Above this temperature the heater will be switched off.
 // This can protect components from overheating, but NOT from shorts and failures.
 // (Use MINTEMP for thermistor short/failure protection.)
-#define HEATER_0_MAXTEMP 305
 #define HEATER_MAXTEMP_SAFETY_MARGIN 15
 #define BED_MAXTEMP 125
 #define BED_MAXTEMP_SAFETY_MARGIN 5
@@ -472,12 +470,16 @@
 #define AXIS_STEPS_PER_UNIT_15GT_XY 101.587f
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Z 800
 
+// Steps/mm at which the extruder feeds exactly the commanded length. The default is deliberately
+// lower ("normalised flow", formerly M221 S95 in the slicer start G-code); filament usage tracking
+// and the Move E menu compensate for it. Re-measure both when the extruder changes.
 #if HAS_INDX()
-// INDX_HEAD extruder is calibrated for 567 steps/mm, but we have changed it to 550 steps/mm.
-// This compensates for shorter length of the extruder service moves.
-static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
-#define DEFAULT_AXIS_STEPS_PER_UNIT_E0 550 // Adjust EXTRUDER_SERVICE_MOVE_E_FACTOR if changed
+#define CALIBRATED_AXIS_STEPS_PER_UNIT_E0 576
+#define DEFAULT_AXIS_STEPS_PER_UNIT_E0 550
+// Extruder service moves feed exactly their commanded length
+static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = static_cast<float>(CALIBRATED_AXIS_STEPS_PER_UNIT_E0) / DEFAULT_AXIS_STEPS_PER_UNIT_E0;
 #else
+#define CALIBRATED_AXIS_STEPS_PER_UNIT_E0 400
 #define DEFAULT_AXIS_STEPS_PER_UNIT_E0 380
 #endif
 
@@ -529,10 +531,17 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
  *   M204 P    Acceleration
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
+ *   M204 F    Max filament acceleration
  */
 #define DEFAULT_ACCELERATION 1250 // X, Y, Z and E acceleration for printing moves
 #define DEFAULT_RETRACT_ACCELERATION 1250 // E acceleration for retracts
 #define DEFAULT_TRAVEL_ACCELERATION 1500 // X, Y, Z acceleration for travel (non printing) moves
+// Max filament acceleration on print moves (mm/s^2 of filament), M204 F.
+// 0 disables the limit.
+// Pressure advance turns filament acceleration into a jump in extruder speed.
+// Found experimentally as the largest jump this printer's extruder motor
+// follows, rounded to a round number. Re-measure it for a different extruder.
+#define DEFAULT_MAX_FILAMENT_ACCELERATION 120
 
 //
 // Use Junction Deviation instead of traditional Jerk Limiting
@@ -827,7 +836,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 // The size of the print bed
 #if HAS_INDX()
 #define X_BED_SIZE 301
-#define Y_BED_SIZE 270
+#define Y_BED_SIZE 275
 #else
 #define X_BED_SIZE 300
 #define Y_BED_SIZE 300
@@ -837,13 +846,13 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 #if HAS_INDX()
 // Travel limits (mm) after homing, corresponding to endstop positions. default x -2.5 y -7.3
 #define X_MIN_POS (0 - X_MAX_OFFSET)
-#define Y_MIN_POS (-40 - Y_MAX_OFFSET)
+#define Y_MIN_POS (-35 - Y_MAX_OFFSET)
 #define Z_MIN_POS (0 - Z_MAX_OFFSET)
 #define X_MAX_POS (X_BED_SIZE - X_MIN_OFFSET + 10)
 #define X_MIN_PRINT_POS X_MIN_POS
 #define X_MAX_PRINT_POS X_WASTEBIN_SAFE_POINT // maximal print area X position (excluding nozzle cleaner area); X_WASTEBIN_SAFE_POINT is defined in nozzle_cleaner.hpp
-#define Y_MAX_PRINT_POS (Y_BED_SIZE - Y_MIN_OFFSET) // maximal print area Y position (excluding toolchanger area)
-#define Y_MAX_POS (Y_MAX_PRINT_POS) // extra distance in Y to reach toolchanger
+#define Y_MAX_PRINT_POS Y_BED_SIZE // maximal print area Y position (excluding toolchanger area)
+#define Y_MAX_POS (Y_BED_SIZE - Y_MIN_OFFSET) // extra travel so a tool with negative Y offset reaches the print area edge
 #define PROBE_MAX_Y Y_BED_SIZE // limit maximal Y probe position (so that tool doesn't hit toolchanger with high tool offsets)
 #define Y_DOCK_SAFE_OFFSET 28.6f // distance from the side, which could be occupied by INDX (linked to DOCK_SAFE_Y_OFFSET in toolchangers_utils.h)
 #define Y_DOCK_PARKING_MIN_SAFE_POS (Y_MIN_POS + Y_DOCK_SAFE_OFFSET + 5.f) // position for save index head (bellow this position the motion on X could damage the nozzles or hit ventilation lever)
@@ -1033,7 +1042,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
 #if HAS_INDX()
     // homing point is close to print sheet detection point to minimize Z differences
     #define Z_SAFE_HOMING_X_POINT (25) // X point for Z homing when homing all axes (G28).
-    #define Z_SAFE_HOMING_Y_POINT (15) // Y point for Z homing when homing all axes (G28).
+    #define Z_SAFE_HOMING_Y_POINT (20) // Y point for Z homing when homing all axes (G28).
 #else
     #define Z_SAFE_HOMING_X_POINT (270) // X point for Z homing when homing all axes (G28).
     #define Z_SAFE_HOMING_Y_POINT (10) // Y point for Z homing when homing all axes (G28).
@@ -1042,7 +1051,7 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
         #if HAS_INDX()
             // Lower Y would crash into dock.
             #define DETECT_PRINT_SHEET_X_POINT (25)
-            #define DETECT_PRINT_SHEET_Y_POINT (-27)
+            #define DETECT_PRINT_SHEET_Y_POINT (-22)
         #else
             #define DETECT_PRINT_SHEET_X_POINT (220)
             #define DETECT_PRINT_SHEET_Y_POINT (-7)
@@ -1114,8 +1123,8 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
  */
     // Specify a park position as { X, Y, Z }
 #if HAS_INDX()
-    #define X_NOZZLE_CLEANER_ORIGIN 312.16f
-    #define Y_NOZZLE_CLEANER_ORIGIN 81.4f // master Y reference
+    #define X_NOZZLE_CLEANER_ORIGIN 310.325f // reference value from CAD
+    #define Y_NOZZLE_CLEANER_ORIGIN (Y_MAX_POS - 189.441f) // reference value from CAD
 
     // Cleaner geometry (wastebin, purge tray, wall, calibration points) is in nozzle_cleaner.hpp,
     // anchored to the origins above. The park point must stay here: Marlin's SanityCheck.h expands
@@ -1127,9 +1136,11 @@ static constexpr float EXTRUDER_SERVICE_MOVE_E_FACTOR = 576.f / 550.f;
     #define Y_NOZZLE_PARK_POINT (Y_MIN_POS + 3.0f)
 #endif
     #define Z_NOZZLE_PARK_POINT (20.0f)
+    /// Bed low enough for the user to reach into the printer
+    #define Z_HAND_ACCESS_POS (Z_MAX_POS - 50.0f)
     /// Always park the bed at least this low, so the user can reach the print.
     /// On INDX this also has to clear the door with the fixed front plate.
-    #define Z_NOZZLE_PARK_POINT_MIN (Z_MAX_POS - 50.0f)
+    #define Z_NOZZLE_PARK_POINT_MIN Z_HAND_ACCESS_POS
     #define Z_NOZZLE_PARK_RISE 50.0f // Relative Z rise
 
     #define XYZ_NOZZLE_PARK_POINT \

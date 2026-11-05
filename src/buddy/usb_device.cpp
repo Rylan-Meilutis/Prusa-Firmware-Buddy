@@ -1,13 +1,12 @@
-#include "cmsis_os.h"
+/// @file
+#include <buddy/usb_device.hpp>
+
 #include "stm32f4xx_hal.h"
 #include "tusb.h"
 #include <device/peripherals.hpp>
-#include <buddy/usb_device.hpp>
 #include <logging/log.hpp>
 #include "otp.hpp"
 #include "buddy/priorities_config.h"
-#include <buddy/ccm_thread.hpp>
-#include <config_store/store_instance.hpp>
 #include <tasks.hpp>
 #include <timing.h>
 #include <atomic>
@@ -15,21 +14,10 @@
 
 LOG_COMPONENT_DEF(USBDevice, logging::Severity::info);
 
-#define stringify(a)  _stringify(a)
-#define _stringify(a) #a
-
 #define USBD_VID 0x2C99 /// Prusa Research Vendor ID
 
-#define USBD_LANGID_STRING          1033
 #define USBD_MANUFACTURER_STRING    "Prusa Research (prusa3d.com)"
-#define USBD_SERIALNUMBER_STRING_FS "00000000001A"
 #define USBD_VBUS_CHECK_INTERVAL_MS 1000
-
-#define USB_SIZ_BOS_DESC 0x0C
-
-#define USBD_STACK_SIZE (128 * 5)
-
-static void usb_device_task_run(const void *);
 
 static serial_nr_t serial_nr;
 
@@ -78,7 +66,7 @@ static void check_usb_connection() {
 
         bool vbus_status = buddy::hw::FUSB302B::ReadVBUSState();
         usb_vbus_state.store(vbus_status);
-        usb_device_log("FUSB302B VBUS state change: %d\n", (int)vbus_status);
+        log_info(USBDevice, "FUSB302B VBUS state change: %d", (int)vbus_status);
 
         if (!vbus_status) {
             if (dcd_connected(TUD_OPT_RHPORT)) {
@@ -96,13 +84,6 @@ static void check_usb_connection() {
 #else
     usb_device_seen_v.store(usb_device_seen_v.load() || usb_device_attached());
 #endif
-}
-
-osThreadCCMDef(usb_device_task, usb_device_task_run, TASK_PRIORITY_USB_DEVICE, 0, USBD_STACK_SIZE);
-static osThreadId usb_device_task;
-
-void usb_device_init() {
-    usb_device_task = osThreadCreate(osThread(usb_device_task), NULL);
 }
 
 // The descriptor of this USB device
@@ -130,7 +111,7 @@ static tusb_desc_device_t desc_device = {
     .bNumConfigurations = 0x01
 };
 
-static void usb_device_task_run(const void *) {
+void usb_device_task_run() {
 #ifdef FUSB302B_INTERPOSER
     buddy::hw::FUSB302B::InitChip();
 #endif
@@ -192,19 +173,9 @@ int __attribute__((format(__printf__, 1, 2)))
 usb_device_log(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    static char buffer[128];
-    int length = vsnprintf(buffer, sizeof(buffer), fmt, args);
+    logging::_log_event_valist(logging::Severity::info, &LOG_COMPONENT(USBDevice), fmt, &args);
     va_end(args);
-
-    length = std::min<int>(length, sizeof(buffer) - 1);
-    if (length < 0) {
-        log_error(USBDevice, "log encoding issue");
-    } else if (length >= 1) {
-        buffer[length - 1] = 0; // remove newline (or last character if the print was clipped, but that's acceptable)
-        log_info(USBDevice, "%s", buffer);
-    }
-
-    return length;
+    return 0; // tinyusb ignores the result
 }
 
 // Invoked when received GET DEVICE DESCRIPTOR

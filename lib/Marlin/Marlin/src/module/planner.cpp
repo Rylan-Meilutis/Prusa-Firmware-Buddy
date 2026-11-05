@@ -135,7 +135,6 @@
 #include <freertos/critical_section.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
 
-#include <marlin_vars.hpp>
 #include "configuration_store.h"
 #include <raii/auto_restore.hpp>
 #include <utils/variant_utils.hpp>
@@ -232,6 +231,7 @@ void Planner::set_stealth_mode(bool set) {
 }
 
 uint32_t Planner::max_acceleration_msteps_per_s2[XYZE_N]; // (mini-steps/s^2) Derived from mm_per_s2
+float Planner::max_filament_acceleration_msteps_per_s2;       // (mini-steps/s^2) Derived from settings.max_filament_acceleration_mm_per_s2, 0 = disabled
 
 float Planner::mm_per_step[XYZE_N];           // (mm) Millimeters per step
 float Planner::mm_per_half_step[XYZE_N];      // (mm) Millimeters per half step
@@ -1148,16 +1148,24 @@ bool Planner::busy() {
   return !draining() && processing();
 }
 
+void Planner::wait_while(bool (*pending)()) {
+  AutoRestore eb(emptying_buffer, true);
+  start_moving();
+  while (pending()) idle(true);
+#if HAS_PHASE_STEPPING()
+  phase_stepping::check_state();
+#endif // HAS_PHASE_STEPPING()
+}
+
 /**
  * Block until all buffered steps are executed / cleaned
  */
 void Planner::synchronize() {
-  AutoRestore eb(emptying_buffer, true);
-  start_moving();
-  while (busy()) idle(true);
-#if HAS_PHASE_STEPPING()
-  phase_stepping::check_state();
-#endif // HAS_PHASE_STEPPING()
+  wait_while([] { return busy(); });
+}
+
+void Planner::wait_for_motion_finish() {
+  wait_while([] { return processing(); });
 }
 
 /**
@@ -1563,6 +1571,11 @@ bool Planner::_populate_block(block_t * const block,
       block->nominal_speed *= speed_factor;
     }
 
+    // A print move: E advancing forward together with XY, which is where pressure
+    // advance is active and thus where the filament acceleration limit applies.
+    // de > 0 excludes retracts, wipe-while-retract included.
+    const bool is_print_e_move = e_msteps && de > 0 && (block->msteps.a || block->msteps.b);
+
     // Compute and limit the acceleration rate for the trapezoid generator.
     const float msteps_per_mm = block->mstep_event_count * inverse_millimeters;
     float accel;
@@ -1607,6 +1620,15 @@ bool Planner::_populate_block(block_t * const block,
         LIMIT_ACCEL_FLOAT(B_AXIS, 0);
         LIMIT_ACCEL_FLOAT(C_AXIS, 0);
         LIMIT_ACCEL_FLOAT(E_AXIS, ACCEL_IDX);
+      }
+
+      // Bounds the filament acceleration dq/dt, which is what keeps the pressure
+      // advance lead pulses executable while XY dynamics stay high.
+      if (is_print_e_move && max_filament_acceleration_msteps_per_s2 > 0.0f) {
+        const float comp = max_filament_acceleration_msteps_per_s2 * block->mstep_event_count;
+        if (accel * block->msteps.e > comp) {
+          accel = comp / static_cast<float>(block->msteps.e);
+        }
       }
     }
     #if ENABLED(S_CURVE_ACCELERATION)
@@ -1653,6 +1675,7 @@ bool Planner::_populate_block(block_t * const block,
 
       // Unit vector of previous path line segment
       static MachinePosXYZE prev_unit_vec;
+      static bool prev_is_print_e_move;
       MachinePosXYZE unit_vec = target_float - position_float;
 
       /**
@@ -1689,7 +1712,14 @@ bool Planner::_populate_block(block_t * const block,
           MachinePosXYZE junction_unit_vec = unit_vec - prev_unit_vec;
           normalize_junction_vector(junction_unit_vec);
 
-          const float junction_acceleration = limit_value_by_axis_maximum(block->acceleration, junction_unit_vec),
+          // Cap the E term of the cornering acceleration as well. A junction belongs
+          // to both blocks, so extrusion on either side of it bounds dq/dt here -
+          // notably a print move ending into a travel or a retract, where the flow
+          // drops to zero and pressure advance has to dump the accumulated pressure.
+          // In mm/s^2, since the junction math works in mm-domain unit vectors.
+          const float e_filament_accel_limit =
+              (is_print_e_move || prev_is_print_e_move) ? settings.max_filament_acceleration_mm_per_s2 : 0.0f;
+          const float junction_acceleration = limit_value_by_axis_maximum(block->acceleration, junction_unit_vec, e_filament_accel_limit),
                       sin_theta_d2 = SQRT(0.5f * (1.0f - junction_cos_theta)); // Trig half angle identity. Always positive.
 
           vmax_junction_sqr = (junction_acceleration * junction_deviation_mm * sin_theta_d2) / (1.0f - sin_theta_d2);
@@ -1729,6 +1759,7 @@ bool Planner::_populate_block(block_t * const block,
         vmax_junction_sqr = 0;
 
       prev_unit_vec = unit_vec;
+      prev_is_print_e_move = is_print_e_move;
 
     #endif
 
@@ -2201,7 +2232,14 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
       // Note: This is not >>ideal<<, because although the moves get planned, they might get discarded through (gcode_exceptions/quick_stop)
       // Most notably, this will track some extra filament usage if user intterupts purging
       // Tying this directly to the immediate motor positions might be better, but one would also need to also handle the origin resets
-      buddy::filament_tracker().track_extruder_move(*tools.virtual_tool, delta_e_mm);
+      // Live steps/mm against the stock extruder's calibration, so G-codes changing steps (M92) or flow are tracked right.
+      // A custom extruder with user-set steps/mm would need its own calibrated value (e.g. an experimental
+      // menu item stored in EEPROM next to the steps/mm); not supported.
+      static constexpr float inv_calibrated_steps_per_mm = 1.0f / CALIBRATED_AXIS_STEPS_PER_UNIT_E0;
+      buddy::filament_tracker().track_extruder_move(*tools.virtual_tool, {
+        .commanded_mm = delta_e_mm,
+        .feed_ratio = settings.axis_steps_per_mm[E_AXIS_N(tools.extruder)] * inv_calibrated_steps_per_mm,
+      });
     }
 #endif
   }
@@ -2225,39 +2263,6 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
     buddy::auto_retract().set_retracted_distance(*tools.physical_tool, std::nullopt);
   }
 #endif
-
-  #if HAS_CRASH_DETECTION()
-  {
-    auto &move_start = crash_s.move_start;
-    auto &gcode_state = crash_s.gcode_state;
-    if (gcode_state.sdpos == move_start.sdpos) {
-      ++gcode_state.segment_idx;
-    } else {
-      // we are processing the beginning of a new logical move: update the constant
-      // values which are repeated in all subsequent segments
-      move_start.start_current_position = current_position;
-
-      // reset segment state
-      move_start.sdpos = gcode_state.sdpos;
-      gcode_state.segment_idx = 0;
-    }
-
-    if (crash_s.get_state() == Crash_s::REPLAY) {
-      // replay mode: drop initial segments
-      if (crash_s.segments_finished > 0) {
-        --crash_s.segments_finished;
-        return true;
-      }
-
-      // first real segment after recovering, manipulate the current state in order
-      // to resume the segment from the crashing position
-      set_machine_position_mm(crash_s.crash_machine_position);
-
-      // continue normally
-      crash_s.set_state(Crash_s::PRINTING);
-    }
-  }
-  #endif
 
   if (hints.move.is_printing_move
       && xyze.e > position_float.e
@@ -2305,6 +2310,12 @@ bool Planner::buffer_segment(const MachinePosXYZE &xyze, const feedRate_t fr_mm_
     }
   #endif // PREVENT_COLD_EXTRUSION || PREVENT_LENGTHY_EXTRUDE
 
+  #if HAS_CRASH_DETECTION()
+    if(!crash_s.register_planner_segment()) {
+      return true;
+    }
+  #endif
+
   /* <-- add a slash to enable
     SERIAL_ECHOPAIR("  buffer_segment FR:", fr_mm_s);
     SERIAL_ECHOPAIR(" X:", a);
@@ -2339,39 +2350,6 @@ bool Planner::buffer_raw_segment(const MachinePosXYZE &xyze, const float acceler
         return false;
     }
 
-    #if HAS_CRASH_DETECTION()
-    {
-        auto &move_start = crash_s.move_start;
-        auto &gcode_state = crash_s.gcode_state;
-        if (gcode_state.sdpos == move_start.sdpos) {
-            ++gcode_state.segment_idx;
-        } else {
-            // we are processing the beginning of a new logical move: update the constant
-            // values which are repeated in all subsequent segments
-            move_start.start_current_position = current_position;
-
-            // reset segment state
-            move_start.sdpos = gcode_state.sdpos;
-            gcode_state.segment_idx = 0;
-        }
-
-        if (crash_s.get_state() == Crash_s::REPLAY) {
-            // replay mode: drop initial segments
-            if (crash_s.segments_finished > 0) {
-                --crash_s.segments_finished;
-                return true;
-            }
-
-            // first real segment after recovering, manipulate the current state in order
-            // to resume the segment from the crashing position
-            set_machine_position_mm(crash_s.crash_machine_position);
-
-            // continue normally
-            crash_s.set_state(Crash_s::PRINTING);
-        }
-    }
-    #endif
-
     // The target position of the tool in absolute mini-steps
     // Calculate target position in absolute mini-steps
     const xyze_msteps_t target = {
@@ -2386,6 +2364,12 @@ bool Planner::buffer_raw_segment(const MachinePosXYZE &xyze, const float acceler
         position.e = target.e;
         position_float.e = xyze.e;
     }
+
+    #if HAS_CRASH_DETECTION()
+      if(!crash_s.register_planner_segment()) {
+        return true;
+      }
+    #endif
 
     // Queue the movement. Return 'false' if the move was not queued.
     if (!buffer_raw_block(target, xyze, acceleration, nominal_speed, entry_speed, exit_speed, tools)) {
@@ -2513,6 +2497,10 @@ void Planner::refresh_acceleration_rates() {
     if (AXIS_CONDITION) NOLESS(highest_rate, static_cast<uint32_t>(max_acceleration_msteps_per_s2[i]));
   }
   cutoff_long = std::numeric_limits<uint32_t>::max() / highest_rate;
+  // In mini-steps/s^2 (0 stays 0 = disabled). Deliberately left out of the
+  // cutoff_long/highest_rate computation, since it is applied in float once per
+  // block.
+  max_filament_acceleration_msteps_per_s2 = settings.max_filament_acceleration_mm_per_s2 * settings.axis_msteps_per_mm[E_AXIS];
   #if HAS_LINEAR_E_JERK
     // #error dead code found by automatic analyses (see BFW-5461)
     recalculate_max_e_jerk();
@@ -2637,6 +2625,7 @@ void Motion_Parameters::save() {
   mp.acceleration = src.acceleration;
   mp.retract_acceleration = src.retract_acceleration;
   mp.travel_acceleration = src.travel_acceleration;
+  mp.max_filament_acceleration_mm_per_s2 = src.max_filament_acceleration_mm_per_s2;
   mp.min_feedrate_mm_s = src.min_feedrate_mm_s;
   mp.min_travel_feedrate_mm_s = src.min_travel_feedrate_mm_s;
 
@@ -2660,6 +2649,7 @@ void Motion_Parameters::load() const {
   s.acceleration = mp.acceleration;
   s.retract_acceleration = mp.retract_acceleration;
   s.travel_acceleration = mp.travel_acceleration;
+  s.max_filament_acceleration_mm_per_s2 = mp.max_filament_acceleration_mm_per_s2;
   s.min_feedrate_mm_s = mp.min_feedrate_mm_s;
   s.min_travel_feedrate_mm_s = mp.min_travel_feedrate_mm_s;
 

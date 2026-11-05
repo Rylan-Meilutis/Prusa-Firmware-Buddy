@@ -6,6 +6,7 @@
 
 #include <common/shared_buffer.hpp>
 #include <common/utils/exponential_backoff.hpp>
+#include <option/websocket.h>
 #include <transfers/monitor.hpp>
 #include <transfers/download.hpp>
 #include <transfers/changed_path.hpp>
@@ -179,7 +180,9 @@ private:
     void command(const Command &, const CancelPrinterReady &);
     void command(const Command &, const SetPrinterReady &);
     void command(const Command &, const SetPrinterIdle &);
+#if !WEBSOCKET()
     void command(const Command &, const StartEncryptedDownload &);
+#endif
     void command(const Command &, const StartInlineDownload &);
     void command(const Command &, const DeleteFile &);
     void command(const Command &, const DeleteFolder &);
@@ -213,7 +216,7 @@ private:
 
     // Tracks recovery of a transfer after startup.
     // We should not start any other transfer until the recovery is Finished.
-    TransferRecoveryState transfer_recovery;
+    TransferRecoveryState transfer_recovery = TransferRecoveryState::WaitingForUSB;
 
     // Set to true every time a transfer is observed. Also on startup (there
     // might be a leftover from before boot).

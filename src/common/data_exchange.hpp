@@ -4,6 +4,7 @@
 #include <option/has_xlcd.h>
 #include <option/has_love_board.h>
 #include <option/has_indx.h>
+#include <option/has_ht_hotend.h>
 #include <otp/types.hpp>
 
 /**
@@ -48,7 +49,14 @@ void clear_reflash_bbf_sfn();
 /// is not a pending handoff. Directory contents are intentionally not consulted.
 bool is_reflash_bbf_sfn(const char *sfn);
 
-bool has_apendix();
+#if HAS_HT_HOTEND()
+/// Boot-loop guard of the hotend-detection heat pulse.
+///
+/// Kept in the RAM shared with the bootloader, which nothing initialises: it survives a warm reset,
+/// bootloader included, but not a power cycle.
+bool is_heat_pulse_guard_set();
+void set_heat_pulse_guard();
+void clear_heat_pulse_guard();
+#endif
 
-bool has_fw_signature();
 } // namespace data_exchange

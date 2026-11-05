@@ -9,6 +9,7 @@
 #include <option/has_manual_belt_tuning.h>
 #include <option/has_indx.h>
 #include <option/has_heaters_selftest_gcode.h>
+#include <option/has_wastebin_fill_tracking.h>
 #include <logging/log.hpp>
 
 LOG_COMPONENT_DEF(Fsm, logging::Severity::debug);
@@ -45,9 +46,6 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
     case ClientFSM::DockCalibration:
     case ClientFSM::NozzleCleanerCalibration:
 #endif
-#if HAS_TOOL_OFFSET_SENSOR()
-    case ClientFSM::ToolOffsetsCalibration:
-#endif
         return 1;
 
     case ClientFSM::Load_unload:
@@ -76,9 +74,22 @@ static constexpr uint32_t score(ClientFSM fsm_type) {
     case ClientFSM::NozzleCleaningFailed:
     case ClientFSM::PressureAdvanceCalibration:
 #endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    case ClientFSM::ToolOffsetsCalibration:
+#endif
         return 2;
 #if HAS_INDX()
     case ClientFSM::NozzleMismatch:
+    #if HAS_WASTEBIN_FILL_TRACKING()
+    case ClientFSM::WastebinEmptying:
+    #endif
+        // Show over Printing and PrintPreview - these interrupt both
+        return 3;
+#endif
+
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    case ClientFSM::GantrySquareness:
+        // Also runs nested over ManualBeltTuning (score 2).
         return 3;
 #endif
 
@@ -117,7 +128,7 @@ std::optional<States::Top> States::get_top() const {
 }
 
 void States::log() const {
-#if _DEBUG
+#if _DEBUG && 0
     log_debug(Fsm, "New generation %" PRIu32, state_id.to_uint32_t());
     for (size_t i = 0; i < states.size(); i++) {
         if (states[i].has_value()) {

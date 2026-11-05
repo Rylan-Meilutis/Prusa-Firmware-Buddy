@@ -14,7 +14,7 @@ class ScreenFactory {
 #if PRINTER_IS_PRUSA_XL()
     using Storage = std::array<uint8_t, 4280>;
 #elif PRINTER_IS_PRUSA_MINI()
-    using Storage = std::array<uint8_t, 3344>;
+    using Storage = std::array<uint8_t, 3368>;
 #elif HAS_INDX()
     using Storage = std::array<uint8_t, 4400>;
 #else
@@ -54,16 +54,16 @@ public:
     template <class T, auto... args>
     static UniquePtr Screen(const Creator::Arg & = {}) {
         // Note: the Arg must be in the function so that the function prototype matches Creator::Func
-        static_assert(sizeof(T) <= storage.size(), "Screen memory space is too small");
         return make_static_unique_ptr<T>(storage, args...);
     }
 
     template <class T, typename Arg>
+    constexpr static inline Creator::Func screen_with_arg_creator_f = +[](const Creator::Arg &arg_variant) -> UniquePtr {
+        return make_static_unique_ptr<T>(storage, arg_variant.value<Arg>());
+    };
+
+    template <class T, typename Arg>
     constexpr static inline Creator ScreenWithArg(Arg arg) {
-        static_assert(sizeof(T) <= storage.size(), "Screen memory space is too small");
-        static constexpr auto ctor = +[](const Creator::Arg &arg_variant) -> UniquePtr {
-            return make_static_unique_ptr<T>(storage, arg_variant.value<Arg>());
-        };
-        return Creator(ctor, Creator::Arg::make(arg));
+        return Creator(screen_with_arg_creator_f<T, Arg>, Creator::Arg::make(arg));
     }
 };

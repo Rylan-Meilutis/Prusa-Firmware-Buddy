@@ -32,6 +32,7 @@ set(BOARD_VALID_OPTS
     "ANFC"
     "TOOL_OFFSET_SENSOR"
     "INDX_HEAD"
+    "HTCONTROLLER"
     )
 set(MCU_VALID_OPTS
     "<default>"
@@ -193,6 +194,8 @@ if(${MCU} STREQUAL "<default>")
     set(MCU "STM32C092KCUX")
   elseif(${BOARD} STREQUAL "INDX_HEAD")
     set(MCU "STM32C092KCUX")
+  elseif(${BOARD} STREQUAL "HTCONTROLLER")
+    set(MCU "STM32G070RBT6")
   else()
     message(FATAL_ERROR "Don't know what MCU to set as default for this board/version")
   endif()
@@ -209,6 +212,7 @@ if(${BOARD} STREQUAL "DWARF"
    OR ${BOARD} STREQUAL "INDX_HEAD"
    OR ${BOARD} STREQUAL "XL_DEV_KIT_XLB"
    OR ${BOARD} STREQUAL "TOOL_OFFSET_SENSOR"
+   OR ${BOARD} STREQUAL "HTCONTROLLER"
    )
   set(CONNECT
       "NO"
@@ -627,12 +631,7 @@ set_feature_for_printers_master_board(
   )
 set_feature_for_printers(HAS_EMERGENCY_STOP "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
 set_feature_for_printers(HAS_15GT_BELTS "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX" "XL")
-# The NTC and PT1000 ADC ranges overlap, so boot detection cannot tell them apart on a warm restart
-if(DEVELOPMENT_ITEMS_ENABLED)
-  set_feature_for_printers(HAS_HT_HOTEND "COREONE" "COREONEL")
-else()
-  set_feature_for_printers(HAS_HT_HOTEND)
-endif()
+set_feature_for_printers(HAS_HT_HOTEND "COREONE" "COREONEL")
 set_feature_for_printers(HAS_EXPANSION_JOINTS_GEN_2 "COREONE" "COREONE_INDX")
 set_feature_for_printers(HAS_CEILING_CLEARANCE "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
 set_feature_for_printers(
@@ -668,18 +667,23 @@ set_feature_for_printers(
   "iX"
   "XL"
   ) # TODO: When INDX gets fixed, also try enabling HAS_ANFC
-set_feature_for_printers_master_board(
-  HAS_E2EE_SUPPORT
-  "MK4"
-  "MK3.5"
-  "iX"
-  "COREONE"
-  "COREONE_INDX"
-  "COREONEL"
-  "COREONEL_INDX"
-  "XL"
-  "UNITTESTS"
-  )
+if(DEVELOPMENT_ITEMS_ENABLED)
+  set_feature_for_printers_master_board(
+    HAS_E2EE_SUPPORT
+    "MINI"
+    "MK4"
+    "MK3.5"
+    "iX"
+    "COREONE"
+    "COREONE_INDX"
+    "COREONEL"
+    "COREONEL_INDX"
+    "XL"
+    "UNITTESTS"
+    )
+else()
+  set_feature_for_printers_master_board(HAS_E2EE_SUPPORT "UNITTESTS")
+endif()
 
 # Printers that support any form of backwards gcode compatibility modes XL: needed for XL-on-XLS
 # compat mode (xl_compatibility_mode in M106 fan scaling)
@@ -687,7 +691,9 @@ set_feature_for_printers(HAS_GCODE_COMPATIBILITY "MK3.5" "MK4" "COREONE" "COREON
 
 # Checks for bed evenness during G29 and if it's too uneven, offers Z alignment calibration.
 # Requires SELFTEST to work
-set_feature_for_printers(HAS_UNEVEN_BED_PROMPT "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX")
+set_feature_for_printers(
+  HAS_UNEVEN_BED_DETECTION "COREONE" "COREONE_INDX" "COREONEL" "COREONEL_INDX"
+  )
 
 set_feature_for_printers_master_board(HAS_TOOL_OFFSET_PIN_CALIBRATION "XL" "XL_DEV_KIT")
 
@@ -817,12 +823,26 @@ define_enum_option(
 # bridge, so missing-bridge on XLS is a hardware fault rather than a normal config.
 set_feature_for_printers_master_board(HAS_XL_CAN "XL")
 
-if(DEVELOPMENT_ITEMS_ENABLED)
-  set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL")
+# Talks to cyphal nodes through a bridge board (xBuddyExtension or XL-CAN).
+if(HAS_XBUDDY_EXTENSION OR HAS_XL_CAN)
+  set(HAS_CYPHAL YES)
 else()
-  set_feature_for_printers(HAS_ANFC)
+  set(HAS_CYPHAL NO)
 endif()
+define_boolean_option(HAS_CYPHAL ${HAS_CYPHAL})
+
+set_feature_for_printers(HAS_ANFC "COREONE" "COREONEL")
+
+set_feature_for_printers(HAS_ANFC_FOR_MULTIPLE_TOOLS)
+
+# Sanity check
+if(HAS_ANFC_FOR_MULTIPLE_TOOLS AND NOT HAS_ANFC)
+  message(FATAL_ERROR "HAS_ANFC_FOR_MULTIPLE_TOOLS requires HAS_ANFC")
+endif()
+
 set_feature_for_printers(HAS_HEATBED_SCREWS_DURING_TRANSPORT "COREONEL" "COREONEL_INDX")
+
+set_feature_for_printers(HAS_HTCONTROLLER "XL")
 
 # Use websocket to talk to Connect instead of many http requests.
 #
@@ -855,6 +875,10 @@ if(HAS_WASTEBIN AND HAS_INDX)
 else()
   define_boolean_option(HAS_WASTEBIN_FILL_TRACKING no)
 endif()
+
+# Gantry squareness check measured by bumping the empty head into the outermost INDX docks. Not on
+# COREONEL_INDX yet - untested there.
+set_feature_for_printers(HAS_GANTRY_SQUARENESS_CHECK "COREONE_INDX")
 
 if(HAS_TOOLCHANGER OR HAS_MMU2)
   define_boolean_option(HAS_TOOL_MAPPING yes)
@@ -1046,6 +1070,7 @@ if(HAS_DWARF
    OR HAS_TOOL_OFFSET_SENSOR
    OR HAS_INDX_HEAD
    OR HAS_XL_CAN
+   OR HAS_HTCONTROLLER
    )
   set(HAS_PUPPIES YES)
 else()
@@ -1136,6 +1161,12 @@ if(ENABLE_PUPPY_BOOTLOAD)
       CACHE
         PATH
         "Where to get the XLS XL-CAN's binary from. If set, the project won't try to build anything."
+      )
+  set(HTCONTROLLER_BINARY_PATH
+      ""
+      CACHE
+        PATH
+        "Where to get the HT controller's binary from. If set, the project won't try to build anything."
       )
 endif()
 
@@ -1242,6 +1273,12 @@ set(DEVELOPER_MODE
     CACHE BOOL "Disable wizards, prompts and user-friendliness. Developers like it rough!"
     )
 define_boolean_option(DEVELOPER_MODE ${DEVELOPER_MODE})
+
+set(ALLOW_MISSING_OTP
+    "OFF"
+    CACHE BOOL "Run on boards with blank OTP (no serial number) instead of failing with a BSOD."
+    )
+define_boolean_option(ALLOW_MISSING_OTP ${ALLOW_MISSING_OTP})
 
 set(CYPHAL_CAN_STATS
     "OFF"

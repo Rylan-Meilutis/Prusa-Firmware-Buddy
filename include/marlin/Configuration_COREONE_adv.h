@@ -976,7 +976,7 @@
         #if HAS_PRECISE_HOMING_COREXY()
             #define PRECISE_HOMING_COREXY_RETRIES 6     // count: maximum number of refinement attempts
             #define XY_HOMING_HOLDING_CURRENT 900       // mA: holding current for fixed motor
-            #define XY_HOMING_MEASURE_CURRENT 650       // mA: holding current for the measured motor
+            #define XY_HOMING_MEASURE_CURRENT 550       // mA: holding current for the measured motor
             #define XY_HOMING_MEASURE_SENS_MIN -6       // minimum sensitivity threshold for measured motor
             #define XY_HOMING_MEASURE_SENS_MAX -4       // maximum sensitivity threshold for measured motor
             #define XY_HOMING_MEASURE_FR 70.f           // mm/s: bumping feedrate
@@ -1056,15 +1056,6 @@
  * Spend 28 bytes of SRAM to optimize the GCode parser
  */
 #define FASTER_GCODE_PARSER
-
-/**
- * CNC G-code options
- * Support CNC-style G-code dialects used by laser cutters, drawing machine cams, etc.
- * Note that G0 feedrates should be used with care for 3D printing (if used at all).
- * High feedrates may cause ringing and harm print quality.
- */
-//#define PAREN_COMMENTS      // Support for parentheses-delimited comments
-//#define GCODE_MOTION_MODES  // Remember the motion mode (G0 G1 G2 G3 G5 G38.X) and apply for X Y Z E F, etc.
 
 // Enable and set a (default) feedrate for all G0 moves
 //#define G0_FEEDRATE 3000 // (mm/m)

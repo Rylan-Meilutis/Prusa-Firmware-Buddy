@@ -24,7 +24,7 @@ public:
     virtual StreamRestoreInfo get_restore_info() override { return {}; }
     virtual void set_restore_info(const StreamRestoreInfo &) override {}
 
-    // Tries to parse the given comment (already stripped of the ; at the front) as a thumbnail start.
+    // Tries to parse the given comment (including the leading "; ") as a thumbnail start.
     //
     // If successful, provides the details.
     static std::optional<ThumbnailDetails> thumbnail_details(GcodeBuffer::String comment);
@@ -47,17 +47,6 @@ private:
     uint32_t first_gcode_pos;
 
     Result_t stream_getc_impl(char &out);
-
-    /**
-     * @brief Check if the line is thumbnail begin.
-     * @param expected_width expected image width
-     * @param expected_height expected image height
-     * @param expected_type expected image format
-     * @param allow_larger allow larger images
-     * @param num_bytes number of bytes of thumbnail
-     * @return true if the line is thumbnail begin
-     */
-    bool IsBeginThumbnail(GcodeBuffer &buffer, uint16_t expected_width, uint16_t expected_height, ImgType expected_type, bool allow_larger, unsigned long &num_bytes) const;
 
     struct ThumbnailReader final : public AbstractByteReader {
         PlainGcodeReader *gcode_reader = nullptr;

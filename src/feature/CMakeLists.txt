@@ -25,6 +25,10 @@ if(HAS_TOOL_OFFSET_SENSOR)
   add_subdirectory(tool_offset_wizard)
 endif()
 
+if(HAS_GANTRY_SQUARENESS_CHECK)
+  add_subdirectory(indx_gantry_squareness)
+endif()
+
 if(HAS_INDX)
   add_subdirectory(indx_dock_calibration)
   add_subdirectory(indx_nozzle_cleaner_calibration)
@@ -103,6 +107,10 @@ endif()
 
 if(HAS_FILAMENT_TRACKER)
   add_subdirectory(filament_tracker)
+endif()
+
+if(HAS_TOOL_MAPPING)
+  add_subdirectory(tool_mapping)
 endif()
 
 add_subdirectory(compatibility_checks)

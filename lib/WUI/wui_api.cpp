@@ -14,6 +14,7 @@
 #include "stm32f4xx_hal.h"
 #include "print_utils.hpp"
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 
 #include <lfn.h>
 #include <buddy/filename_defs.hpp>
@@ -24,6 +25,7 @@
 #include <cstring>
 #include <cstdio>
 #include <atomic>
+#include <span>
 
 #include <lwip/netif.h>
 #include <config_store/store_instance.hpp>
@@ -38,8 +40,6 @@ static bool sntp_time_init = false;
 
 void wui_marlin_client_init(void) {
     marlin_client::init(); // init the client
-    // force update variables when starts
-    marlin_client::set_event_notify(marlin_server::EVENT_MSK_DEF);
 }
 
 struct ini_load_def {
@@ -279,7 +279,7 @@ void add_time_to_timestamp(int32_t secs_to_add, struct tm *timestamp) {
     localtime_r(&current_time, timestamp);
 }
 
-StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
+StartPrintResult wui_start_print(std::span<char> filename, bool autostart_if_able) {
 
     // Link, slicer, local web UI, Connect, and RME all share this latch. A
     // preview may inspect a partial, but an actual print must never overtake
@@ -296,7 +296,7 @@ StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
 
     if (autostart_if_able) {
         if (printer_can_print) {
-            marlin_client::print_start(filename, marlin_server::PreviewSkipIfAble::all);
+            marlin_client::print_start(filename.data(), marlin_server::PreviewSkipIfAble::all);
             return marlin_client::is_print_started() ? StartPrintResult::PrintStarted : StartPrintResult::Failed;
         } else {
             return StartPrintResult::Failed;
@@ -306,7 +306,7 @@ StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
         // marlin. If it couldn't print/initialte the preview, it would just do
         // nothing anyway.
         if (printer_can_print) {
-            marlin_client::print_start(filename);
+            marlin_client::print_start(filename.data());
         }
         // We were not asked to print. Showing the preview is "best effort",
         // but not reported to the user.
@@ -314,7 +314,7 @@ StartPrintResult wui_start_print(char *filename, bool autostart_if_able) {
     }
 }
 
-bool wui_uploaded_gcode(char *filename, bool start_print) {
+bool wui_uploaded_gcode(std::span<char> filename, bool start_print) {
     StartPrintResult res = wui_start_print(filename, start_print);
 
     return (res != StartPrintResult::Failed);

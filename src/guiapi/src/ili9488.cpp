@@ -14,10 +14,8 @@
 #include <stdint.h>
 #include "printers.h"
 #include <common/spi_baud_rate_prescaler_guard.hpp>
-#include "raster_opfn_c.h"
 #include "hwio_pindef.h"
 #include "cmsis_os.h"
-#include "display_math_helper.h"
 
 #include "hw_configuration.hpp"
 
@@ -210,8 +208,9 @@ void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size) {
 }
 
 void ili9488_spi_rd_bytes(uint8_t *pb, uint16_t size) {
-    // reading is more reliable at 20MHz
-    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_4 };
+    // The ILI9488 read cycle is specified at 150 ns (~6.7 MHz).
+    // At faster clocks the data arrives late and gets sampled shifted.
+    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_16 };
 
     HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
 }
@@ -553,16 +552,6 @@ uint8_t *ili9488_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, u
     return ili9488_buff;
 }
 
-uint32_t ili9488_get_pixel_colorFormat666(uint16_t point_x, uint16_t point_y) {
-    enum { buff_sz = 5 };
-    uint8_t buff[buff_sz];
-    ili9488_cmd_caset(point_x, point_x + 1);
-    ili9488_cmd_raset(point_y, point_y + 1);
-    ili9488_cmd_ramrd(buff, buff_sz);
-    uint32_t ret = ((buff[0] << 16) & 0xFC0000) + ((buff[1] << 8) & 0x00FC00) + (buff[2] & 0xFC);
-    return ret; // directColor;
-}
-
 static void ili9488_fill_rect_color_fast(uint16_t rect_x, uint16_t rect_y, uint16_t rect_w, uint16_t rect_h, uint8_t clr33) {
     // prepare buffer; we are writing two pixels per byte
     const uint32_t pixel_count = (uint32_t)rect_w * rect_h;
@@ -634,14 +623,14 @@ void ili9488_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
     ili9488_set_cs();
 }
 
-static void ili9488_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color, bool tinted) {
+static void ili9488_draw_qoi_ex_impl(Rect16 subrect, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color, bool tinted) {
     debug_assert(!ili9488_buff_borrowed && "Buffer lent to someone");
 
     // BFW-6328 Some displays possibly problematic with higher baudrate, reduce 40 -> 20 MHz
     SPIBaudRatePrescalerGuard _g(spi_handle_lcd, SPI_BAUDRATEPRESCALER_4, reduce_display_baudrate);
 
     // Current pixel position starts top-left where the image is placed
-    point_i16_t pos = { static_cast<int16_t>(pt.x), static_cast<int16_t>(pt.y) };
+    point_i16_t pos = subrect.TopLeft();
 
     // Prepare input buffer
     WritableBytes i_buf { reinterpret_cast<std::byte *>(ili9488_buff), 512 }; ///< Input file buffer
@@ -662,13 +651,11 @@ static void ili9488_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader
     } image_timing;
 #endif /*0*/
 
-    // Read header and image size to tweak drawn subrect
-    auto header = reader.read(i_buf.subspan(0, qoi::Decoder::HEADER_SIZE));
-    if (header.size() != qoi::Decoder::HEADER_SIZE) {
-        return; // Header couldn't be read
+    const int16_t image_right = subrect.Right(); // Decoder emits full image rows regardless of clipping
+    subrect = subrect.Intersection(Rect16(0, 0, ILI9488_COLS, ILI9488_ROWS)); // Clip drawn subrect to display size
+    if (subrect.IsEmpty()) {
+        return; // Image is completely off-screen
     }
-    Rect16 subrect = Rect16(pos, qoi::Decoder::get_image_size(std::span<const std::byte, qoi::Decoder::HEADER_SIZE>(header)));
-    subrect.Intersection(Rect16(0, 0, ILI9488_COLS, ILI9488_ROWS)); // Clip drawn subrect to display size
 
     // Prepare output
     // Set write rectangle
@@ -698,7 +685,7 @@ static void ili9488_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader
                 // Keep track of pixel position
                 auto orig_pos = pos;
                 pos.x++;
-                if (pos.x > subrect.Right()) {
+                if (pos.x > image_right) {
                     pos.x = subrect.Left();
                     pos.y++;
                 }
@@ -741,12 +728,12 @@ static void ili9488_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader
     ili9488_set_cs();
 }
 
-void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
-    ili9488_draw_qoi_ex_impl(pt, reader, back_color, rop, COLOR_WHITE, false);
+void ili9488_draw_qoi_ex(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop) {
+    ili9488_draw_qoi_ex_impl(rect, reader, back_color, rop, COLOR_WHITE, false);
 }
 
-void ili9488_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color) {
-    ili9488_draw_qoi_ex_impl(pt, reader, back_color, rop, tint_color, true);
+void ili9488_draw_qoi_ex_tinted(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color) {
+    ili9488_draw_qoi_ex_impl(rect, reader, back_color, rop, tint_color, true);
 }
 
 void ili9488_inversion_on(void) {

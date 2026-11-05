@@ -2,6 +2,7 @@
 #include <inc/MarlinConfigPre.h>
 
 #include <bitset>
+#include <utility>
 
 #include <utils/array_extensions.hpp>
 #include <utils/storage/encoded_bitset.hpp>
@@ -26,6 +27,7 @@
 #include <module/prusa/dock_position.hpp>
 #include <module/prusa/tool_offset.hpp>
 #include <tristate.hpp>
+#include <utils/meta/meta_utils.hpp>
 #include <tool_index.hpp>
 #include <option/has_loadcell.h>
 #include <option/has_sheet_profiles.h>
@@ -33,6 +35,7 @@
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_mmu2.h>
 #include <option/has_toolchanger.h>
+#include <option/has_tool_mapping.h>
 #include <option/has_tool_offset_sensor.h>
 #include <option/has_selftest.h>
 #include <option/has_phase_stepping.h>
@@ -62,6 +65,7 @@
 #include <option/has_psu_fan.h>
 #include <option/has_heatbed_screws_during_transport.h>
 #include <option/has_anfc.h>
+#include <option/has_gantry_squareness_check.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_side_fsensor.h>
@@ -121,6 +125,10 @@
 #include <option/has_side_fsensor_remap.h>
 #if HAS_SIDE_FSENSOR_REMAP()
     #include <feature/filament_sensor/filament_sensors_remap_data.hpp>
+#endif
+
+#if HAS_TOOL_MAPPING()
+    #include <feature/tool_mapping/tool_mapping_preset.hpp>
 #endif
 
 namespace config_store_ns {
@@ -321,6 +329,12 @@ struct CurrentStore
     StoreItem<uint16_t, 0, ItemFlag::stats, journal::hash("Crash Count Y")> crash_count_y; // number of crashes of Y axis in total
     StoreItem<uint16_t, 0, ItemFlag::stats, journal::hash("Power Panics Count")> power_panics_count; // number of power losses in total
 
+#if HAS_CRASH_DETECTION()
+    /// Whether g-code interrupts are enabled (instant runout/...)
+    /// If disabled, the interrupts go through the inject route
+    StoreItem<bool, true, ItemFlag::features, journal::hash("GCode Interrupts")> gcode_interrupts_enabled;
+#endif
+
     StoreItem<time_tools::TimeFormat, defaults::time_format, ItemFlag::user_interface, journal::hash("Time Format")> time_format;
 
     // filament sensor values:
@@ -421,6 +435,12 @@ struct CurrentStore
 #endif
     // Should we verify gcode (CRC & similar)?
     StoreItem<bool, true, ItemFlag::features, journal::hash("Verify Gcode")> verify_gcode;
+
+#if HAS_TOOL_MAPPING()
+    /// Mapping the tool mapping screen starts with when the print has no mapping set up yet.
+    /// Out of range = default
+    StoreItem<uint8_t, 255, ItemFlag::features, journal::hash("Tool Mapping Preset")> tool_mapping_preset;
+#endif
 
     StoreItem<bool, true, ItemFlag::user_interface, journal::hash("Run LEDs")> run_leds;
     StoreItem<bool, defaults::heat_entire_bed, ItemFlag::features | ItemFlag::common_misconfigurations, journal::hash("Heat Entire Bed")> heat_entire_bed;
@@ -525,21 +545,29 @@ struct CurrentStore
 #if HAS_INDX()
     StoreItemArray<FilamentTypeParameters_EEPROM4, FilamentTypeParameters_EEPROM4 {}, ItemFlag::user_presets, journal::hash("User Filament Parameters 4"), 32, user_filament_type_count> user_filament_parameters_4;
 #endif
+    // EEPROM5 (color) is adhoc-only
+    // EEPROM6 (UUIDs) is adhoc-only
 
-    StoreItemArray<FilamentTypeParameters_EEPROM1, defaults::adhoc_filament_parameters, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters"), 16, adhoc_filament_type_count> adhoc_filament_parameters;
+    StoreItemArray<FilamentTypeParameters_EEPROM1, defaults::adhoc_filament_parameters, ItemFlag::printer_state, journal::hash("Adhoc Filament Parameters"), 16, adhoc_filament_type_count> adhoc_filament_parameters;
 #if HAS_CHAMBER_API()
-    StoreItemArray<FilamentTypeParameters_EEPROM2, FilamentTypeParameters_EEPROM2 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 2"), 16, adhoc_filament_type_count> adhoc_filament_parameters_2;
+    StoreItemArray<FilamentTypeParameters_EEPROM2, FilamentTypeParameters_EEPROM2 {}, ItemFlag::printer_state, journal::hash("Adhoc Filament Parameters 2"), 16, adhoc_filament_type_count> adhoc_filament_parameters_2;
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
-    StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 3"), 16, adhoc_filament_type_count> adhoc_filament_parameters_3;
+    StoreItemArray<FilamentTypeParameters_EEPROM3, FilamentTypeParameters_EEPROM3 {}, ItemFlag::printer_state, journal::hash("Adhoc Filament Parameters 3"), 16, adhoc_filament_type_count> adhoc_filament_parameters_3;
 #endif
-#if HAS_INDX()
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
     StoreItemArray<FilamentTypeParameters_EEPROM4, FilamentTypeParameters_EEPROM4 {}, ItemFlag::user_presets, journal::hash("Adhoc Filament Parameters 4"), 16, adhoc_filament_type_count> adhoc_filament_parameters_4;
 #endif
+    StoreItemArray<FilamentTypeParameters_EEPROM5, AnyDefaultConstructor {}, ItemFlag::printer_state, journal::hash("Adhoc Filament Parameters 5d"), 16, adhoc_filament_type_count> adhoc_filament_parameters_5;
+
 #if HAS_ANFC()
     /// Tags assigned to specific tools. See ToolTag::for_tool_assigned
     /// Not using ToolTag::UIDHash here to avoid dependency hell. static_asserted inside tool_tag.cpp
     StoreItemArray<uint16_t, uint16_t(0), ItemFlag::printer_state, journal::hash("OpenPrintTag assigned tool"), 16, VirtualToolIndex::count> adhoc_filament_assigned_openprinttag;
+
+    /// !!! ONLY ONE SLOT SUPPORTED, We don't have big enough EEPROM :( Every record is 48 B.
+    StoreItemArray<FilamentTypeParameters_EEPROM6, AnyDefaultConstructor {}, ItemFlag::printer_state, journal::hash("Adhoc Filament Parameters 6"), 16, 1> adhoc_filament_parameters_6;
+    static_assert(HAS_MMU2() || VirtualToolIndex::count == 1, "Figure out where to store UUIDs for the other materials");
 #endif
 
     StoreItem<EncodedBitset<max_user_filament_type_count>, defaults::visible_user_filament_types, ItemFlag::user_presets, journal::hash("Visible User Filament Types")> visible_user_filament_types;
@@ -552,7 +580,8 @@ struct CurrentStore
         return get_filament_type(tool.to_raw());
     }
 
-    void set_filament_type(VirtualToolIndex tool, FilamentType value);
+    /// @returns FilamentType that was actually set. PendingAdHocFilamentType gets changed to AdHocFilamentType
+    FilamentType set_filament_type(VirtualToolIndex tool, FilamentType value);
 
     FilamentType get_previous_filament_type(VirtualToolIndex tool);
 
@@ -560,6 +589,13 @@ struct CurrentStore
 
     // Note: hash is kept for backwards compatibility
     StoreItem<bool, false, ItemFlag::features, journal::hash("Heatup Bed")> filament_change_preheat_all;
+
+    /// Whether to ask for filament color on filament load
+    /// Tristate::other = default (decided dynamically)
+    StoreItem<Tristate, Tristate::other, ItemFlag::features, journal::hash("Ask For Filament Color")> load_ask_for_filament_color;
+
+    /// Interprets `load_ask_for_filament_color`
+    bool should_load_ask_for_filament_color();
 
     // This makes sure that we do not exceed 16 hotends, a lot of things are limited to 16 hotends (bitsets, arrays, etc)
     static_assert(HOTENDS <= 16);
@@ -579,19 +615,9 @@ struct CurrentStore
     }));
     StoreItemLegacyArray<float, defaults::nozzle_diameter, ItemFlag::hw_config, nozzle_diameter_hashes> nozzle_diameters;
 
-    [[deprecated("Use the ToolIndex overload")]]
-    float get_nozzle_diameter(uint8_t index);
+    float get_nozzle_diameter(PhysicalToolIndex tool);
 
-    inline float get_nozzle_diameter(PhysicalToolIndex index) {
-        return get_nozzle_diameter(index.to_raw());
-    }
-
-    [[deprecated("Use the ToolIndex overload")]]
-    void set_nozzle_diameter(uint8_t index, float value);
-
-    inline void set_nozzle_diameter(PhysicalToolIndex tool, float value) {
-        set_nozzle_diameter(tool.to_raw(), value);
-    }
+    void set_nozzle_diameter(PhysicalToolIndex tool, float value);
 
     static_assert(sizeof(EncodedBitset<8>) == 4);
     static_assert(sizeof(EncodedBitset<8>) == sizeof(EncodedBitset<16>));
@@ -599,19 +625,9 @@ struct CurrentStore
     /// Stores whether a nozzle is hardened (resistant to abrasive filament) or not. One bit per each hotend
     StoreItem<EncodedBitset<16>, defaults::nozzle_is_hardened, ItemFlag::hw_config, journal::hash("Nozzle is Hardened")> nozzle_is_hardened;
 
-    [[deprecated("Use the ToolIndex overload")]]
-    bool get_nozzle_is_hardened(uint8_t index);
+    bool get_nozzle_is_hardened(PhysicalToolIndex tool);
 
-    inline bool get_nozzle_is_hardened(PhysicalToolIndex tool) {
-        return get_nozzle_is_hardened(tool.to_raw());
-    }
-
-    [[deprecated("Use the ToolIndex overload")]]
-    void set_nozzle_is_hardened(uint8_t index, bool value);
-
-    inline void set_nozzle_is_hardened(PhysicalToolIndex tool, bool value) {
-        set_nozzle_is_hardened(tool.to_raw(), value);
-    }
+    void set_nozzle_is_hardened(PhysicalToolIndex tool, bool value);
 
     /// Stores whether a nozzle is high-flow (supports high-flow print profile) or not. One bit per each hotend
     StoreItem<EncodedBitset<16>, defaults::nozzle_is_high_flow, ItemFlag::hw_config, journal::hash("Nozzle is High-Flow")> nozzle_is_high_flow;
@@ -623,12 +639,7 @@ struct CurrentStore
         return get_nozzle_is_high_flow(tool.to_raw());
     }
 
-    [[deprecated("Use the ToolIndex overload")]]
-    void set_nozzle_is_high_flow(uint8_t index, bool value);
-
-    inline void set_nozzle_is_high_flow(PhysicalToolIndex tool, bool value) {
-        set_nozzle_is_high_flow(tool.to_raw(), value);
-    }
+    void set_nozzle_is_high_flow(PhysicalToolIndex tool, bool value);
 
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor X")> homing_bump_divisor_x;
     StoreItem<float, 0.0f, ItemFlag::calibrations, journal::hash("Homing Bump Divisor Y")> homing_bump_divisor_y;
@@ -983,6 +994,10 @@ struct CurrentStore
     StoreItem<std::bitset<PhysicalToolIndex::count>, 0, ItemFlag::calibrations, journal::hash("INDX dock calibrated mask")> indx_dock_calibrated_mask;
 #endif
 
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    StoreItem<TestResult, defaults::test_result_unknown, ItemFlag::calibrations, journal::hash("Selftest Result - Gantry Squareness")> selftest_result_gantry_squareness;
+#endif
+
 #if HAS_TOOL_OFFSET_SENSOR()
     // WARNING: This is a temporary solution to store the selftest result of the tool offsets calibration independently from previous Tool Offset Calibration implementation using pin
     // TODO: BFW-9196
@@ -1074,12 +1089,6 @@ struct CurrentStore
     // Casts float of range < 0.0f ; 254f > to uint8. Value 255 is reserved to unknown value
     void set_filament_retracted_distance(PhysicalToolIndex tool, std::optional<float> dist);
     std::optional<float> get_filament_retracted_distance(PhysicalToolIndex tool);
-#endif
-
-#if HAS_ANFC()
-    /// Whether we should automatically read data from the OpenPrintTag during load procedure
-    /// Tristate::other = ask the user
-    StoreItem<Tristate, Tristate::other, ItemFlag::features, journal::hash("OpenPrintTag auto use loadunload")> opt_auto_read_on_load;
 #endif
 
 #if HAS_CHAMBER_VENTS()
@@ -1276,6 +1285,8 @@ struct DeprecatedStore
         StoreItem<uint32_t, defaults::side_fs_value_span, ItemFlag::calibrations | ItemFlag::dev_items, journal::hash("Side FS Value Span 5")> side_fs_value_span_5;
 
         StoreItem<bool, true, ItemFlag::calibrations, journal::hash("Run Selftest")> run_selftest;
+
+        StoreItem<Tristate, Tristate::other, ItemFlag::features, journal::hash("OpenPrintTag auto use loadunload")> opt_auto_read_on_load;
         */
 
     // Old filament order stored as variant-based FilamentType array (2 bytes each, 128 bytes total).

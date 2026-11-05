@@ -157,20 +157,22 @@ class Temperature {
     #if ENABLED(PREVENT_COLD_EXTRUSION)
       static bool allow_cold_extrude;
       static int16_t extrude_min_temp;
-      FORCE_INLINE static bool tooCold(const int16_t temp) { return allow_cold_extrude ? false : temp < extrude_min_temp; }
-
-      [[deprecated("Use the ToolIndex overload")]]
-      FORCE_INLINE static bool tooColdToExtrude(const uint8_t E_NAME) {
-        return tooCold(static_cast<int16_t>(degHotend(HOTEND_INDEX)));
+      FORCE_INLINE static bool tooCold(const int16_t temp) {
+        return allow_cold_extrude ? false : temp < extrude_min_temp;
       }
-    #else
-      // #error dead code found by automatic analyses (see BFW-5461)
-      [[deprecated("Use the ToolIndex overload")]]
-      FORCE_INLINE static bool tooColdToExtrude(const uint8_t) { return false; }
     #endif
 
     inline static bool tooColdToExtrude(PhysicalToolIndex physical_tool) {
-      return tooColdToExtrude(physical_tool.to_raw());
+      #if ENABLED(PREVENT_COLD_EXTRUSION)
+        const auto temp = Hotend::for_tool(physical_tool).nozzle_temp();
+        if (temp.has_value()) {
+          return tooCold(static_cast<int16_t>(temp.value()));
+        }
+        return !allow_cold_extrude;
+      #else
+        // #error dead code found by automatic analyses (see BFW-5461)
+        return false;
+      #endif
     }
 
     #if ENABLED(PID_EXTRUSION_SCALING)
@@ -256,14 +258,17 @@ class Temperature {
      * Call periodically to manage heaters
      */
     static void manage_heater() __O2; // __O2 added to work around a compiler error
-    
+
     static void manage_fans();
 
     // Return true if the temperatures have been sampled at least once
     static bool temperatures_ready();
 
+    enum class RequireCooling : bool { all_tools = true, current_tool_only = false };
+    /// @param require_cooling current_tool_only - for other tools temperature higher than
+    //                                             target temperature is reported as reached (return true)
     /// @returns whether all the hotends and the bed have stabilized on the target temperature (or if the target temp is 0)
-    static bool are_all_temperatures_reached();
+    static bool are_all_temperatures_reached(RequireCooling require_cooling);
 
     //high level conversion routines, for use outside of temperature.cpp
     //inline so that there is no performance decrease.
@@ -307,14 +312,9 @@ class Temperature {
         setTargetHotend(celsius, tool.to_raw());
       }
 
-      static bool are_hotend_temperatures_reached();
+      static bool are_hotend_temperatures_reached(RequireCooling require_cooling);
 
-      static bool wait_for_hotend(PhysicalToolIndex target_extruder, WaitForHotendParams params = {}) {
-        return wait_for_hotend(target_extruder.to_raw(), params);
-      }
-
-      [[deprecated]]
-      static bool wait_for_hotend(const uint8_t target_extruder, WaitForHotendParams params = {});
+      static bool wait_for_hotend(PhysicalToolIndex target_tool, WaitForHotendParams params = {});
     #endif
 
     #if HAS_HEATED_BED
@@ -371,7 +371,7 @@ class Temperature {
     #if HAS_TEMP_HEATBREAK
       [[deprecated("Use the ToolIndex overload")]]
       FORCE_INLINE static float degHeatbreak(const uint8_t E_NAME)            { return Hotend::for_tool(HOTEND_INDEX).heatbreak_temp(); }
-      
+
       inline static float degHeatbreak(PhysicalToolIndex tool) {
         return degHeatbreak(tool.to_raw());
       }
@@ -410,13 +410,13 @@ class Temperature {
      * The software PWM power for a heater
      */
     static int16_t getHeaterPower(const heater_ind_t heater);
-    
+
 public:
     /**
      * Switch off all heaters, set all target temperatures to 0
      */
     static void disable_all_heaters();
-    
+
     /**
      * Switch off all hotends, set all hotend target temperatures to 0
      */
@@ -440,7 +440,7 @@ public:
         }
       #endif
     #endif
-    
+
     static void _temp_error(const heater_ind_t e, PGM_P const serial_msg, PGM_P const lcd_msg);
     static void min_temp_error(const heater_ind_t e);
     static void max_temp_error(const heater_ind_t e);

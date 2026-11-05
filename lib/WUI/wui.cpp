@@ -463,8 +463,7 @@ private:
                 if (iface_mode(ifaces[NETDEV_ESP_ID]) != Mode::Off && espif_need_ap() && !(events & Reconfigure)) {
                     {
                         unique_lock lock(mutex);
-                        const char *passwd = ap.pass[0] == '\0' ? NULL : ap.pass;
-                        espif_join_ap(ap.ssid, passwd);
+                        espif_join_ap(ap.ssid, ap.pass);
                     }
                     set_up(ifaces[NETDEV_ESP_ID].dev);
                 }
@@ -650,7 +649,9 @@ public:
     static void get_hostname(uint32_t netdev_id, char *buffer, size_t buffer_len) {
         memset(buffer, 0, buffer_len);
         with_iface(netdev_id, [&](netif &iface, NetworkState &) {
-            strlcpy(buffer, iface.hostname, buffer_len);
+            if (iface.hostname != nullptr) {
+                strlcpy(buffer, iface.hostname, buffer_len);
+            }
         });
     }
 

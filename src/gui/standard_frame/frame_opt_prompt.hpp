@@ -13,6 +13,22 @@
 
 namespace buddy::openprinttag {
 
+class WindowColoredSpool : public window_t {
+
+public:
+    WindowColoredSpool(window_t *parent);
+
+    void set_color(OptionalColor new_color);
+
+    const img::Resource &image() const;
+
+protected:
+    virtual void unconditionalDraw() override;
+
+private:
+    OptionalColor color_;
+};
+
 /// Frame that loads basic properties from the provided OpenPrintTag
 /// With a radio button on the bottom
 class FrameOPTPrompt : public window_frame_t {
@@ -38,7 +54,10 @@ public:
 public:
     FrameOPTPrompt(window_frame_t *parent, const string_view_utf8 &title);
 
-    void setup_radio(PhaseResponses responses, const RadioCallback &callback);
+    inline auto &radio() {
+        return radio_;
+    }
+
     void setup_tag(std::optional<ToolTag> tag, const ErrorCallback &error_callback);
 
 protected:
@@ -49,7 +68,7 @@ protected:
 private:
     window_text_t title_;
     BasicWindow title_line_;
-    window_icon_t spool_image_;
+    WindowColoredSpool spool_image_;
     window_text_t status_text_;
     RadioButton radio_;
 

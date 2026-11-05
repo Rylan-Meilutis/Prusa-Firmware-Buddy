@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <sys/stat.h>
+#include <span>
 
 #include <common/mutable_path.hpp>
 #include <common/unique_file_ptr.hpp>
@@ -143,6 +144,10 @@ public:
             return path.get_buffer();
         }
 
+        std::span<char> get_buffer_span() {
+            return path.get_buffer_span();
+        }
+
         static constexpr size_t maximum_length() {
             return MutablePath::maximum_length();
         }
@@ -251,7 +256,8 @@ private:
     /// Timestamp of the last time the backup file was updated (used to throttle the updates)
     std::optional<uint32_t> last_backup_update_ms;
 
-    /// Number of downloaded bytes on last update (similar as above).
+    /// Valid size of the state last written to the backup file. Throttles the
+    /// updates and detects there is something new to write.
     size_t last_backup_update_bytes = 0;
 
     /// Allow at most this many retries for network errors.

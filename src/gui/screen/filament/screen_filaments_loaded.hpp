@@ -1,7 +1,5 @@
 #pragma once
 
-#include <meta_utils.hpp>
-
 #include <i_window_menu_item.hpp>
 #include <WindowMenuItems.hpp>
 #include <filament_list.hpp>
@@ -10,6 +8,9 @@
 #include <tool_index.hpp>
 #include <filament_color.hpp>
 #include <filament_manufacturer.hpp>
+#include <tool_index.hpp>
+#include <gui_utils.hpp>
+#include <filament.hpp>
 
 class MI_LOADED_FILAMENT : public IWindowMenuItem {
 
@@ -24,7 +25,9 @@ public:
     };
 
 public:
-    MI_LOADED_FILAMENT(DisplayFormat display_format = DisplayFormat::auto_submenu, uint8_t tool = 0);
+    MI_LOADED_FILAMENT(DisplayFormat display_format = DisplayFormat::auto_submenu, VirtualToolIndex tool = VirtualToolIndex::from_raw(0));
+    MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t tool)
+        : MI_LOADED_FILAMENT(display_format, VirtualToolIndex::from_raw(tool)) {}
 
 protected:
     virtual void click(IWindowMenu &) override;
@@ -32,10 +35,11 @@ protected:
     void printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const override;
 
 private:
-    std::array<char, 96> label_buffer_;
+    std::array<char, 32> info_buffer_;
+    StringViewUtf8Parameters<4> label_params_;
+    MenuItemColorSwatchExtension extension_;
     VirtualToolIndex tool_;
     FilamentType filament_type_;
-    std::optional<Color> color_;
     DisplayFormat display_format_ : 2;
     bool should_open_submenu_ : 1;
 };

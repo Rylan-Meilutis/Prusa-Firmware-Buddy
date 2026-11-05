@@ -9,6 +9,8 @@
 #include <openprinttag/opt_fields.hpp>
 #include <bsod/bsod.h>
 #include <utils/byte_utils.hpp>
+#include <utils/color.hpp>
+#include <uuid/uuid.hpp>
 
 namespace buddy::openprinttag {
 
@@ -55,11 +57,11 @@ protected:
     Value result_;
 };
 
-class ReadInt32FieldRequest : public ReadRequestMixin<int32_t> {
+class ReadInt64FieldRequest : public ReadRequestMixin<int64_t> {
 
 public:
     // Inherit constructor
-    using ReadRequestMixin<int32_t>::ReadRequestMixin;
+    using ReadRequestMixin<int64_t>::ReadRequestMixin;
 
     void serialize(RequestID, TagID, anfc::modbus::Request &) final;
     void complete(Bytes event_data) final;
@@ -179,6 +181,28 @@ public:
 
 private:
     std::array<char, array_size> array_;
+};
+
+class ReadColorFieldRequest : public ReadRequestMixin<Color> {
+    // Note: can report field_missing for overly transparent colors as Color does not support transparency
+    static_assert((requires { Color()._unused; }), "Color got alpha -> remove the comment");
+
+public:
+    // Inherit constructor
+    using ReadRequestMixin<Color>::ReadRequestMixin;
+
+    void serialize(RequestID, TagID, anfc::modbus::Request &) final;
+    void complete(Bytes event_data) final;
+};
+
+class ReadUUIDFieldRequest : public ReadRequestMixin<UUID> {
+
+public:
+    // Inherit constructor
+    using ReadRequestMixin<UUID>::ReadRequestMixin;
+
+    void serialize(RequestID, TagID, anfc::modbus::Request &) final;
+    void complete(Bytes event_data) final;
 };
 
 } // namespace buddy::openprinttag

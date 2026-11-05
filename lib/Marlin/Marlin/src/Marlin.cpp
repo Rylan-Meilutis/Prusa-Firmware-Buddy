@@ -31,6 +31,10 @@
 #include "Marlin.h"
 
 #include <option/has_phase_stepping.h>
+#include <option/has_ht_hotend.h>
+#if HAS_HT_HOTEND()
+  #include <hotend_detect.hpp>
+#endif
 #if HAS_PHASE_STEPPING()
   #include "feature/phase_stepping/phase_stepping.hpp"
 #endif
@@ -57,6 +61,7 @@
 
 #include "module/probe.h"
 #include "module/temperature.h"
+#include <tool/hotend/hotend.hpp>
 #include "module/configuration_store.h"
 #include "module/printcounter.h"
 
@@ -469,6 +474,17 @@ void setup() {
     ui.reset_status();
   #endif
 
+  #if HAS_HT_HOTEND()
+    // Before settings.first_load(), the first Hotend consumer. As late as that allows, to keep
+    // the stretch from the heat pulse to watchdog_init() short.
+    hotend_detect::resolve();
+  #endif
+
+  // Construct the hotend here, before its first consumer (MarlinSettings::reset() in first_load())
+  // and before thermalManager.init() arms the temperature ISR, which must never be what constructs
+  // it (BFW-8126, BFW-8271).
+  Hotend::for_tool(PhysicalToolIndex::from_raw(0));
+
   // Load data from EEPROM if available (or use defaults)
   // This also updates variables in the planner, elsewhere
   settings.first_load();
@@ -531,6 +547,10 @@ void setup() {
 
   #if ENABLED(USE_WATCHDOG)
     watchdog_init();          // Reinit watchdog after HAL_get_reset_source call
+  #endif
+
+  #if HAS_HT_HOTEND()
+    hotend_detect::release_heat_pulse_guard();
   #endif
 
   #ifdef STARTUP_COMMANDS

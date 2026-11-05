@@ -1,488 +1,192 @@
-#include <errno.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <time.h>
-#include <string.h>
-#include <sys/iosupport.h>
-#include <sys/stat.h>
-#include <sys/syslimits.h>
-#include <buddy/filesystem.h>
-#include <buddy/filesystem_littlefs.h>
-#include <buddy/littlefs_internal.h>
+#include "filesystem_littlefs.hpp"
+#include "filesystem_littlefs_device.hpp"
+#include "littlefs_flash_device.hpp"
 
-#define RESULT result < 0 ? -1 : 0;
+#include <logging/log.hpp>
+#include <buddy/filename_defs.hpp>
+#include <common/w25x.hpp>
+#if HAS_INTERNAL_STORAGE_FLASH()
+    #include <common/mt29f_flash.hpp>
+#endif
 
-#define FLAG_SYNC 0b00000001
+DEFINE_LITTLEFS_DEVICE(system)
 
-#define PREPARE_FIL_EX(f, fs) \
-    FIL_EX *f = fs;           \
-    if (f == NULL) {          \
-        r->_errno = EBADF;    \
-        return -1;            \
-    }
+#if HAS_INTERNAL_STORAGE_FLASH()
+DEFINE_LITTLEFS_DEVICE(internal)
 
-#define device            (ctx->device)
-#define devoptab_littlefs (*ctx->devoptab)
-
-static int get_errno(int result) { // Only negative LFS results are errors
-    if (result >= 0) {
-        return 0;
-    }
-
-    switch (result) {
-    case LFS_ERR_IO:
-        return EIO;
-    case LFS_ERR_CORRUPT:
-        return EIO;
-    case LFS_ERR_NOENT:
-        return ENOENT;
-    case LFS_ERR_EXIST:
-        return EEXIST;
-    case LFS_ERR_NOTDIR:
-        return ENOTDIR;
-    case LFS_ERR_ISDIR:
-        return EISDIR;
-    case LFS_ERR_NOTEMPTY:
-        return ENOTEMPTY;
-    case LFS_ERR_BADF:
-        return EBADF;
-    case LFS_ERR_FBIG:
-        return EFBIG;
-    case LFS_ERR_INVAL:
-        return EINVAL;
-    case LFS_ERR_NOSPC:
-        return ENOSPC;
-    case LFS_ERR_NOMEM:
-        return ENOMEM;
-    case LFS_ERR_NOATTR:
-        return ENODATA;
-    case LFS_ERR_NAMETOOLONG:
-        return ENAMETOOLONG;
-    default:
-        return EINVAL;
-    }
+static LittlefsFlashDevice<Mt29fFlash> &internal_storage_device_instance() {
+    // Cap filenames on the MT29F filesystem. Not applied to the W25x /system
+    // filesystem below, which was formatted with the littlefs default name_max;
+    // lowering it would fail the mount and trigger a reformat.
+    static LittlefsFlashDevice<Mt29fFlash> instance(Mt29fFlash::instance(), 0, filename_defs::max_filename_length);
+    return instance;
 }
 
-static enum lfs_open_flags get_littlefs_flags(int flags) {
-    enum lfs_open_flags lfs_flags;
-
-    switch (flags & O_ACCMODE) {
-    case O_RDWR:
-        lfs_flags = LFS_O_RDWR;
-        break;
-    case O_WRONLY:
-        lfs_flags = LFS_O_WRONLY;
-        break;
-    case O_RDONLY:
-    default:
-        lfs_flags = LFS_O_RDONLY;
+static bool chip_erase_and_mount() {
+    Mt29fFlash::instance().chip_erase();
+    if (int err = Mt29fFlash::instance().fetch_error()) {
+        log_error(FileSystem, "MT29F chip erase failed: %d", err);
+        return false;
     }
-
-    if (flags & O_APPEND) {
-        lfs_flags = static_cast<lfs_open_flags>(lfs_flags | LFS_O_APPEND);
+    // init() will fail to mount the erased chip, format it, and mount the fresh filesystem
+    lfs_t *lfs = internal_storage_device_instance().init();
+    if (!lfs) {
+        log_error(FileSystem, "Internal storage mount failed");
+        return false;
     }
-
-    if (flags & O_CREAT) {
-        lfs_flags = static_cast<lfs_open_flags>(lfs_flags | LFS_O_CREAT);
-    }
-
-    if (flags & O_EXCL) {
-        lfs_flags = static_cast<lfs_open_flags>(lfs_flags | LFS_O_EXCL);
-    }
-
-    if (flags & O_TRUNC) {
-        lfs_flags = static_cast<lfs_open_flags>(lfs_flags | LFS_O_TRUNC);
-    }
-
-    return lfs_flags;
+    internal_ns::mount(lfs);
+    return true;
 }
+#endif
 
-static inline uint16_t crc32to16(uint32_t crc) {
-    uint16_t crc1 = crc << 16;
-    uint16_t crc2 = crc & 0xFFFF;
-    return crc1 ^ crc2;
-}
-
-int filesystem_littlefs_open_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r,
-    void *fileStruct,
-    const char *path,
-    int flags,
-    [[maybe_unused]] int mode) {
-
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
-
-    if (IS_EMPTY(path)) {
-        r->_errno = EINVAL;
-        return -1;
+void filesystem_littlefs_init() {
+    static LittlefsFlashDevice<W25xFlash> system_device(W25xFlash::instance(), W25xFlash::fs_start_address);
+    if (lfs_t *lfs = system_device.init()) {
+        system_ns::mount(lfs);
     }
 
-    path = process_path(path, devoptab_littlefs.name);
-
-    enum lfs_open_flags lfs_flags = get_littlefs_flags(flags);
-
-    result = lfs_file_open(ctx->lfs, &(f->fil), path, lfs_flags);
-    r->_errno = get_errno(result);
-
-    if (result < 0) {
-        return -1;
+#if HAS_INTERNAL_STORAGE_FLASH()
+    if (!Mt29fFlash::instance().is_initialized()) {
+        // Don't mount or erase an unresponsive or misidentified chip
+        return;
     }
-
-    f->flags = 0;
-    if (flags & O_SYNC) {
-        f->flags |= FLAG_SYNC;
+    // Retry mounting to rule out a transient IO error: the recovery below is
+    // destructive and must not trigger on a bus hiccup
+    lfs_t *lfs = nullptr;
+    for (int attempt = 0; attempt < 3 && !lfs; attempt++) {
+        lfs = internal_storage_device_instance().init();
     }
-
-    return 0;
-}
-
-int filesystem_littlefs_close_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
-    result = lfs_file_close(ctx->lfs, &(f->fil));
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-int filesystem_littlefs_fsync_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
-    result = lfs_file_sync(ctx->lfs, &(f->fil));
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-ssize_t filesystem_littlefs_write_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct, const char *ptr, size_t len) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
-
-    if (!ptr) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    if (len == 0) {
-        r->_errno = 0;
-        return 0;
-    }
-
-    result = lfs_file_write(ctx->lfs, &(f->fil), ptr, len);
-    r->_errno = get_errno(result);
-
-    if (result < 0) {
-        return -1;
-    }
-
-    if (f->flags & FLAG_SYNC) {
-        filesystem_littlefs_fsync_r(ctx, r, fileStruct);
-    }
-
-    return result;
-}
-
-ssize_t filesystem_littlefs_read_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct, char *ptr, size_t len) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
-
-    if (!ptr) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    if (len == 0) {
-        r->_errno = 0;
-        return 0;
-    }
-
-    result = lfs_file_read(ctx->lfs, &(f->fil), ptr, len);
-    r->_errno = get_errno(result);
-
-    if (result < 0) {
-        return -1;
-    }
-
-    return result;
-}
-
-off_t filesystem_littlefs_seek_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct, off_t pos, int dir) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
-
-    result = lfs_file_seek(ctx->lfs, &(f->fil), pos, dir);
-    r->_errno = get_errno(result);
-
-    // this function is called from lseek not fseek.
-    //  fseek returns 0 on successful move and lseek returns offset, where it moved.
-    //  Thus we need to return offset not 0 on successful move
-    return result;
-}
-
-int filesystem_littlefs_stat_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *path, struct stat *st) {
-    int result;
-    struct lfs_info info;
-    memset(&info, 0, sizeof(struct lfs_info));
-    memset(st, 0, sizeof(struct stat));
-
-    if (IS_EMPTY(path)) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    path = process_path(path, devoptab_littlefs.name);
-
-    result = lfs_stat(ctx->lfs, path, &info);
-    r->_errno = get_errno(result);
-
-    if (result < 0) {
-        return -1;
-    }
-
-    st->st_mode = ALLPERMS; // Permissions handling not implemented, use all
-
-    if (info.type & LFS_TYPE_DIR) {
-        st->st_mode = S_IFDIR;
-    } else if (info.type & LFS_TYPE_REG) {
-        st->st_mode = S_IFREG;
+    if (lfs) {
+        internal_ns::mount(lfs);
     } else {
-        // Unexpected type, return error
-        r->_errno = EINVAL;
-        return -1;
+        // First boot (factory pages have invalid ECC) or corrupted beyond
+        // mounting, chip erase to get a valid ECC state
+        chip_erase_and_mount();
+    }
+#endif
+}
+
+#if HAS_INTERNAL_STORAGE_FLASH()
+void internal_storage_unmount() {
+    internal_ns::unmount();
+}
+
+bool internal_storage_initialized() {
+    return Mt29fFlash::instance().is_initialized();
+}
+
+bool internal_storage_format() {
+    if (!Mt29fFlash::instance().is_initialized()) {
+        return false;
+    }
+    internal_storage_unmount();
+    return chip_erase_and_mount();
+}
+
+bool internal_storage_check() {
+    if (!internal_ns::get_lfs()) {
+        log_error(FileSystem, "Internal storage not mounted");
+        return false;
+    }
+    (void)Mt29fFlash::instance().fetch_error(); // clear any stale state before the check
+
+    auto traverse_cb = [](void *, lfs_block_t) -> int { return 0; };
+    if (int err = lfs_fs_traverse(internal_ns::get_lfs(), traverse_cb, nullptr); err < 0) {
+        log_error(FileSystem, "Internal storage traverse failed: %d", err);
+        return false;
+    }
+    if (int err = Mt29fFlash::instance().fetch_error()) {
+        log_error(FileSystem, "Internal storage flash error during check: %d", err);
+        return false;
+    }
+    return true;
+}
+
+// Pattern derived from absolute byte address — every cell holds a distinct value
+// within a 32-bit window, so misrouted writes and stuck cells both surface.
+static uint8_t expected_byte(uint32_t addr) {
+    return static_cast<uint8_t>(addr ^ (addr >> 8) ^ (addr >> 16) ^ (addr >> 24));
+}
+
+InternalStorageTester::InternalStorageTester()
+    : total(Mt29fFlash::instance().block_count())
+    , wbuf(std::make_unique<uint8_t[]>(Mt29fFlash::page_size))
+    , rbuf(std::make_unique<uint8_t[]>(Mt29fFlash::page_size)) {
+    internal_storage_unmount();
+    (void)Mt29fFlash::instance().fetch_error(); // clear any stale state
+}
+
+void InternalStorageTester::test_block(uint32_t block) {
+    auto &nand = Mt29fFlash::instance();
+    constexpr uint32_t block_sz = Mt29fFlash::block_size;
+    constexpr uint32_t page_sz = Mt29fFlash::page_size;
+    constexpr uint32_t pages_per_block = Mt29fFlash::pages_per_block;
+
+    const uint32_t base = block * block_sz;
+
+    nand.erase_block(base);
+    if (int err = nand.fetch_error()) {
+        log_error(FileSystem, "Block %lu erase failed: %d", static_cast<unsigned long>(block), err);
+        bad++;
+        return;
     }
 
-    st->st_dev = device;
-    st->st_size = info.size;
-    st->st_blksize = ctx->lfs->cfg->block_size;
-    st->st_blocks = 1;
-
-    return 0;
-}
-
-int filesystem_littlefs_fstat_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct, struct stat *st) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    memset(st, 0, sizeof(struct stat));
-
-    st->st_mode = ALLPERMS; // Permissions handling not implemented, use all
-
-    if (f->fil.type & LFS_TYPE_DIR) {
-        st->st_mode = S_IFDIR;
-    } else if (f->fil.type & LFS_TYPE_REG) {
-        st->st_mode = S_IFREG;
-    } else {
-        // Unexpected type, return error
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    st->st_dev = device;
-    st->st_size = f->fil.ctz.size;
-    st->st_blksize = ctx->lfs->cfg->block_size;
-    st->st_blocks = 1;
-
-    return 0;
-}
-
-int filesystem_littlefs_link_r([[maybe_unused]] filesystem_littlefs_ctx_t *ctx, [[maybe_unused]] struct _reent *r,
-    [[maybe_unused]] const char *existing,
-    [[maybe_unused]] const char *newLink) {
-
-    // Links are not supported on littlefs
-    r->_errno = ENOTSUP;
-    return -1;
-}
-
-int filesystem_littlefs_unlink_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *path) {
-    int result;
-
-    if (IS_EMPTY(path)) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    path = process_path(path, devoptab_littlefs.name);
-
-    result = lfs_remove(ctx->lfs, path);
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-int filesystem_littlefs_chdir_r([[maybe_unused]] filesystem_littlefs_ctx_t *ctx, [[maybe_unused]] struct _reent *r, [[maybe_unused]] const char *path) {
-    // chdir not implemented for littlefs
-    r->_errno = ENOTSUP;
-    return -1;
-}
-
-int filesystem_littlefs_rename_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *oldName, const char *newName) {
-    int result;
-
-    if (IS_EMPTY(oldName) || IS_EMPTY(newName)) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    oldName = process_path(oldName, devoptab_littlefs.name);
-    newName = process_path(newName, devoptab_littlefs.name);
-
-    result = lfs_rename(ctx->lfs, oldName, newName);
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-int filesystem_littlefs_chmod_r([[maybe_unused]] filesystem_littlefs_ctx_t *ctx, [[maybe_unused]] struct _reent *r,
-    [[maybe_unused]] const char *path,
-    [[maybe_unused]] mode_t mode) {
-
-    r->_errno = ENOTSUP;
-    return -1;
-}
-
-int filesystem_littlefs_fchmod_r([[maybe_unused]] filesystem_littlefs_ctx_t *ctx, [[maybe_unused]] struct _reent *r,
-    [[maybe_unused]] void *fileStruct,
-    [[maybe_unused]] mode_t mode) {
-
-    r->_errno = ENOTSUP;
-    return -1;
-}
-
-int filesystem_littlefs_mkdir_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *path, [[maybe_unused]] int mode) {
-    int result;
-
-    if (IS_EMPTY(path)) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    path = process_path(path, devoptab_littlefs.name);
-
-    result = lfs_mkdir(ctx->lfs, path);
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-DIR_ITER *filesystem_littlefs_diropen_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, DIR_ITER *dirState, const char *path) {
-    int result;
-
-    if (IS_EMPTY(path)) {
-        r->_errno = EINVAL;
-        return NULL;
-    }
-
-    path = process_path(path, devoptab_littlefs.name);
-
-    result = lfs_dir_open(ctx->lfs, static_cast<lfs_dir_t *>(dirState->dirStruct), path);
-    r->_errno = get_errno(result);
-
-    if (result < 0) {
-        return NULL;
-    }
-
-    return dirState;
-}
-
-int filesystem_littlefs_dirreset_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, DIR_ITER *dirState) {
-    int result;
-
-    result = lfs_dir_rewind(ctx->lfs, static_cast<lfs_dir_t *>(dirState->dirStruct));
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-int filesystem_littlefs_dirnext_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, DIR_ITER *dirState, char *filename, struct stat *filestat) {
-    int result;
-    struct lfs_info info;
-
-    if (filename == NULL) {
-        r->_errno = EINVAL;
-        return -1;
-    }
-
-    result = lfs_dir_read(ctx->lfs, static_cast<lfs_dir_t *>(dirState->dirStruct), &info);
-    r->_errno = get_errno(result);
-
-    if (result == 0) {
-        // End of the directory
-        r->_errno = ENOENT; // has to be set at the end
-        return -1;
-    } else if (result < 0) {
-        return -1;
-    }
-
-    if (info.type & LFS_TYPE_DIR) {
-        if (filestat) {
-            filestat->st_mode = S_IFDIR;
+    for (uint32_t p = 0; p < pages_per_block; p++) {
+        const uint32_t addr = base + p * page_sz;
+        for (uint32_t i = 0; i < page_sz; i++) {
+            wbuf[i] = expected_byte(addr + i);
         }
-    } else if (info.type & LFS_TYPE_REG) {
-        if (filestat) {
-            filestat->st_mode = S_IFREG;
+        nand.program(addr, wbuf.get(), page_sz);
+        if (int err = nand.fetch_error()) {
+            log_error(FileSystem, "Block %lu page %lu program failed: %d",
+                static_cast<unsigned long>(block), static_cast<unsigned long>(p), err);
+            bad++;
+            return;
         }
-    } else {
-        // Unexpected type, skip to the next dir
-        return filesystem_littlefs_dirnext_r(ctx, r, dirState, filename, filestat);
     }
 
-    strlcpy(filename, info.name, NAME_MAX);
-
-    return 0;
-}
-
-int filesystem_littlefs_dirclose_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, DIR_ITER *dirState) {
-    int result;
-
-    result = lfs_dir_close(ctx->lfs, static_cast<lfs_dir_t *>(dirState->dirStruct));
-    r->_errno = get_errno(result);
-
-    return RESULT;
-}
-
-int filesystem_littlefs_statvfs_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *path, struct statvfs *buf) {
-    if (IS_EMPTY(path)) {
-        r->_errno = EINVAL;
-        return -1;
+    for (uint32_t p = 0; p < pages_per_block; p++) {
+        const uint32_t addr = base + p * page_sz;
+        nand.read(addr, rbuf.get(), page_sz);
+        if (int err = nand.fetch_error()) {
+            log_error(FileSystem, "Block %lu page %lu read failed: %d",
+                static_cast<unsigned long>(block), static_cast<unsigned long>(p), err);
+            bad++;
+            return;
+        }
+        for (uint32_t i = 0; i < page_sz; i++) {
+            if (rbuf[i] != expected_byte(addr + i)) {
+                log_error(FileSystem, "Block %lu page %lu offset %lu: expected 0x%02x got 0x%02x",
+                    static_cast<unsigned long>(block), static_cast<unsigned long>(p),
+                    static_cast<unsigned long>(i), expected_byte(addr + i), rbuf[i]);
+                bad++;
+                return;
+            }
+        }
     }
-
-    memset(buf, 0, sizeof(struct statvfs));
-
-    buf->f_frsize = ctx->lfs->cfg->block_size;
-    buf->f_bfree = ctx->lfs->free.size;
-    buf->f_bavail = buf->f_bfree;
-    buf->f_files = 0; // TODO: Count all inodes
-    buf->f_ffree = ctx->lfs->cfg->name_max - buf->f_files;
-    buf->f_favail = buf->f_ffree;
-    buf->f_fsid = (device & 0xFFFF) | crc32to16(ctx->lfs->seed); // 16b for filesystems, 16b for driver per filesystem
-    buf->f_flag = ST_NOSUID;
-    buf->f_namemax = ctx->lfs->cfg->name_max;
-
-    return 0;
 }
 
-int filesystem_littlefs_ftruncate_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, void *fileStruct, off_t len) {
-    PREPARE_FIL_EX(f, static_cast<FIL_EX *>(fileStruct));
-    int result;
+bool InternalStorageTester::step() {
+    switch (current_phase) {
+    case Phase::testing:
+        test_block(current++);
+        if (current >= total) {
+            current_phase = Phase::restoring;
+        }
+        return false;
 
-    result = lfs_file_truncate(ctx->lfs, &(f->fil), len);
-    r->_errno = get_errno(result);
+    case Phase::restoring:
+        if (bad > 0) {
+            log_error(FileSystem, "Internal storage test: %lu bad blocks out of %lu",
+                static_cast<unsigned long>(bad), static_cast<unsigned long>(total));
+        }
+        format_ok = chip_erase_and_mount();
+        current_phase = Phase::done;
+        return true;
 
-    return RESULT;
+    case Phase::done:
+        return true;
+    }
+    return true;
 }
-
-int filesystem_littlefs_rmdir_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *path) {
-    return filesystem_littlefs_unlink_r(ctx, r, path);
-}
-
-int filesystem_littlefs_lstat_r(filesystem_littlefs_ctx_t *ctx, struct _reent *r, const char *file, struct stat *st) {
-    // littlefs doesn't support links, just return stat
-    return filesystem_littlefs_stat_r(ctx, r, file, st);
-}
-
-int filesystem_littlefs_utimes_r([[maybe_unused]] filesystem_littlefs_ctx_t *ctx, [[maybe_unused]] struct _reent *r,
-    [[maybe_unused]] const char *filename,
-    [[maybe_unused]] const struct timeval times[2]) {
-
-    // Timestamps not implemented for littlefs r->_errno = ENOTSUP;
-    return -1;
-}
+#endif

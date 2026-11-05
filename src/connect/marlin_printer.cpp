@@ -1,23 +1,38 @@
 #include "marlin_printer.hpp"
-#include <module/prusa/tool_mapper.hpp>
 #include "printer_common.hpp"
 #include "hostname.hpp"
+
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
+#include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <crc32.h>
+#include <algorithm>
 
 #include <ini.h>
 #include <otp.hpp>
 #include <buddy/filename_defs.hpp>
-#include <odometer.hpp>
 #include <netdev.h>
 #include <print_utils.hpp>
+#include <common/marlin_vars.hpp>
 #include <wui_api.h>
 #include <wui.h>
-#include <filament.hpp>
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include <feature/filament_sensor/filament_sensor_states.hpp>
 #include <state/printer_state.hpp>
 #include <transfers/transfer_file_check.hpp>
 #include <common/sys.hpp>
 #include <common/unique_file_ptr.hpp>
+#include <raii/scope_guard.hpp>
+#include <config_store/store_instance.hpp>
+#include <common/aggregate_arity.hpp>
+#include <bsod/bsod.h>
+#include <client_response.hpp>
+#include <option/has_esp.h>
+#include <common/aggregate_arity.hpp>
+#include <random/random.h>
 
 #include <option/has_cancel_object.h>
 #if HAS_CANCEL_OBJECT()
@@ -37,8 +52,7 @@
     #include <module/prusa/spool_join.hpp>
 #endif
 
-#include <option/has_esp.h>
-
+#include <option/xl_enclosure_support.h>
 #if XL_ENCLOSURE_SUPPORT()
     #include <xl_enclosure.hpp>
     #include <fanctl.hpp>
@@ -52,23 +66,25 @@ static_assert(HAS_CHAMBER_FILTRATION_API());
     #include <feature/chamber/chamber.hpp>
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
 #endif
-#include <client_response.hpp>
-
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cctype>
-#include <sys/stat.h>
-#include <sys/statvfs.h>
-#include <crc32.h>
-
-#include <config_store/store_instance.hpp>
 
 #include <option/has_mmu2.h>
-#include <bsod/bsod.h>
 #if HAS_MMU2()
-    #include <Marlin/src/feature/prusa/MMU2/mmu2_mk4.h>
     #include <mmu2/mmu2_fsm.hpp>
+#endif
+
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
+    #include <module/prusa/tool_mapper.hpp>
+#endif
+
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
+#endif
+
+#include <option/has_filament_tracker.h>
+#if HAS_FILAMENT_TRACKER()
+    #include <feature/filament_tracker/filament_tracker.hpp>
 #endif
 
 using marlin_client::GcodeTryResult;
@@ -223,45 +239,86 @@ void MarlinPrinter::drop_paths() {
 }
 
 namespace {
-    void get_slot_info(Printer::Params &params) {
+#if HAS_FILAMENT_TRACKER()
+    uint32_t odometer_id() {
+        // Filament tracker stores data in RAM, so the value gets reset on printer restart
+        static const uint32_t id = rand_u();
+        return id;
+    }
+#endif
+
+    void get_tool_info(Printer::Params &params) {
+        params.tool_args = {
+#if HAS_MMU2()
+            .mmu_enabled = config_store().mmu2_enabled.get()
+#endif
+        };
+
 #if HAS_MMU2()
         params.progress_code = MMU2::Fsm::Instance().reporter.GetProgressCode();
         params.command_code = MMU2::Fsm::Instance().reporter.GetCommandInProgress();
-        params.mmu_version = MMU2::mmu2.GetMMUFWVersion();
 #endif
 
-        params.active_slot = VirtualToolIndex::currently_selected();
+        params.active_physical_tool = PhysicalToolIndex::currently_selected();
 
-        params.slot_mask = 0;
-        for (VirtualToolIndex vt : VirtualToolIndex::all().skip_all_disabled()) {
-            const PhysicalToolIndex pt = vt.to_physical();
+        params.physical_tool_mask = 0;
+        params.virtual_tool_mask = 0;
+        params.active_virtual_tool_mask = 0;
+
+        for (PhysicalToolIndex pt : PhysicalToolIndex::all().skip_all_disabled()) {
             const auto &hotend = marlin_vars().hotend(pt);
-            params.slot_mask |= (1 << vt.to_raw());
+            params.physical_tool_mask |= (1 << pt.to_raw());
+            // A virtual tool loaded into a head is active even when the head is not picked
+            if (const auto vt = stdext::get_optional<VirtualToolIndex>(pt.currently_selected_virtual_tool())) {
+                params.active_virtual_tool_mask |= (1 << vt->to_raw());
+            }
 
-            auto &slot = params.slots[vt];
-            const auto filament = config_store().get_filament_type(vt).parameters();
-            slot.material = filament_material_name(filament);
-            slot.profile = filament.name;
-            slot.temp_nozzle = hotend.temp_nozzle;
+            auto &physical_tool = params.physical_tools[pt];
+            physical_tool.temp_nozzle = hotend.temp_nozzle;
+            physical_tool.target_nozzle = hotend.target_nozzle;
 #if PRINTER_IS_PRUSA_iX()
-            slot.temp_heatbreak = hotend.temp_heatbreak;
+            physical_tool.temp_heatbreak = hotend.temp_heatbreak;
 
             if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::extruder)) {
-                slot.extruder_fs_state = sensor->get_state();
+                physical_tool.extruder_fs_state = sensor->get_state();
             } else {
-                slot.extruder_fs_state.reset();
+                physical_tool.extruder_fs_state.reset();
             }
             if (IFSensor *sensor = FSensors_instance().sensor(LogicalFilamentSensor::side)) {
-                slot.remote_fs_state = sensor->get_state();
+                physical_tool.remote_fs_state = sensor->get_state();
             } else {
-                slot.remote_fs_state.reset();
+                physical_tool.remote_fs_state.reset();
             }
 #endif
-            slot.print_fan_rpm = hotend.print_fan_rpm;
-            slot.heatbreak_fan_rpm = hotend.heatbreak_fan_rpm;
-            slot.nozzle_diameter = config_store().get_nozzle_diameter(pt);
-            slot.hardened = config_store().get_nozzle_is_hardened(pt.to_raw());
-            slot.high_flow = config_store().get_nozzle_is_high_flow(pt.to_raw());
+            physical_tool.print_fan_rpm = hotend.print_fan_rpm;
+            physical_tool.heatbreak_fan_rpm = hotend.heatbreak_fan_rpm;
+            physical_tool.nozzle_diameter = config_store().get_nozzle_diameter(pt);
+            physical_tool.hardened = config_store().get_nozzle_is_hardened(pt);
+            physical_tool.high_flow = config_store().get_nozzle_is_high_flow(pt.to_raw());
+        }
+
+        for (VirtualToolIndex vt : VirtualToolIndex::all().skip_all_disabled()) {
+            params.virtual_tool_mask |= (1 << vt.to_raw());
+            static_assert(aggregate_arity<Printer::VirtualToolInfo>() == 2 * HAS_FILAMENT_TRACKER() + HAS_ANFC() * 3);
+
+            [[maybe_unused]] auto &vtp = params.virtual_tools[vt];
+
+#if HAS_FILAMENT_TRACKER()
+            vtp.odometer_id = odometer_id();
+            vtp.odometer_e_mm = buddy::filament_tracker().get_extruded_distance(vt);
+#endif
+
+#if HAS_ANFC()
+            if (const auto report = buddy::openprinttag::filament_usage_tracker().filament_report(vt)) {
+                vtp.consumed_weight_g = static_cast<uint32_t>(std::max(0.f, report->full_weight_g - report->remaining_weight_g));
+                vtp.full_weight_g = static_cast<uint32_t>(report->full_weight_g);
+                vtp.full_weight_is_nominal = report->full_weight_is_nominal;
+            } else {
+                vtp.consumed_weight_g = std::nullopt;
+                vtp.full_weight_g = std::nullopt;
+                vtp.full_weight_is_nominal = false;
+            }
+#endif
         }
     }
 } // namespace
@@ -277,7 +334,6 @@ Printer::Params MarlinPrinter::params() const {
     params.temp_ambient = thermalManager.deg_ambient();
 #endif
     params.target_bed = marlin_vars().target_bed;
-    params.target_nozzle = marlin_vars().active_hotend().target_nozzle;
     params.pos[X_AXIS_POS] = marlin_vars().logical_pos[X_AXIS_POS];
     params.pos[Y_AXIS_POS] = marlin_vars().logical_pos[Y_AXIS_POS];
     params.pos[Z_AXIS_POS] = marlin_vars().logical_pos[Z_AXIS_POS];
@@ -289,17 +345,17 @@ Printer::Params MarlinPrinter::params() const {
 
     params.job_id = marlin_vars().job_id;
     params.version = PrinterModelInfo::current().version;
-    get_slot_info(params);
+    get_tool_info(params);
 
 #if XL_ENCLOSURE_SUPPORT()
     params.enclosure_info = {
-        .present = xl_enclosure.isActive(),
-        .enabled = xl_enclosure.isEnabled(),
+        .present = xl_enclosure.is_active(),
+        .enabled = xl_enclosure.is_enabled(),
         .printing_filtration = config_store().chamber_print_filtration_enable.get(),
         .post_print = config_store().chamber_post_print_filtration_enable.get(),
         // it is stored is minutes, but we want seconds, so that it is consistent with the rest
         .post_print_filtration_time = static_cast<uint16_t>(config_store().chamber_post_print_filtration_duration_min.get() * 60),
-        .temp = static_cast<int>(xl_enclosure.getEnclosureTemperature().value_or(0)),
+        .temp = static_cast<int>(xl_enclosure.get_enclosure_temperature().value_or(0)),
         .fan_rpm = Fans::enclosure().get_actual_rpm(),
         .time_in_use = config_store().chamber_filter_time_used_s.get()
     };
@@ -327,7 +383,6 @@ Printer::Params MarlinPrinter::params() const {
     params.time_to_end = marlin_vars().time_to_end;
     params.time_to_pause = marlin_vars().time_to_pause;
     params.progress_percent = marlin_vars().sd_percent_done;
-    params.filament_used = Odometer_s::instance().get_extruded_all();
     params.has_usb = marlin_vars().media_inserted;
     params.can_start_download = can_start_download;
 
@@ -386,8 +441,8 @@ bool MarlinPrinter::load_cfg_from_ini() {
     if (ok && config.custom_cert) {
         // OK to fail (for example if the dir already exists). In any case, we
         // care about the below successes.
-        mkdir("/internal/connect", 0777);
-        if (!copy("/usb/connect.der", "/internal/connect/connect.der")) {
+        mkdir("/system/connect", 0777);
+        if (!copy("/usb/connect.der", "/system/connect/connect.der")) {
             ok = false;
         }
     }
@@ -490,17 +545,13 @@ namespace {
         }
     #endif
 
-        auto cleanup = []() {
-            tool_mapper.reset();
-    #if HAS_SPOOL_JOIN()
-            spool_join.reset();
-    #endif
-            tool_mapper.set_enable(false);
-        };
         // Wipe defaults (eg mapping 1-1, 2-2, ...) - we want to replace it,
         // not merge and create some kind of weird hydra-mapping.
         tool_mapper.set_all_unassigned();
         tool_mapper.set_enable(true);
+    #if HAS_SPOOL_JOIN()
+        spool_join.reset();
+    #endif
         for (size_t i = 0; i < tool_mapping.size(); i++) {
             auto &curr_tool = tool_mapping[i][0];
             if (curr_tool == ToolMapper::NO_TOOL_MAPPED) {
@@ -508,7 +559,6 @@ namespace {
             }
 
             if (!tool_mapper.set_mapping(i, curr_tool)) {
-                cleanup();
                 return "Invalid tools mapping";
             }
             for (size_t j = 1; j < tool_mapping[i].size(); j++) {
@@ -518,7 +568,6 @@ namespace {
 
     #if HAS_SPOOL_JOIN()
                 if (!spool_join.add_join(curr_tool, tool_mapping[i][j])) {
-                    cleanup();
                     return "Invalid spool join setting";
                 }
     #endif
@@ -538,20 +587,37 @@ Printer::StartPrintResult MarlinPrinter::start_print(const char *path, [[maybe_u
         return std::unexpected("Can't print now");
     }
 
-    if (tools_mapping.has_value()) {
 #if HAS_TOOL_MAPPING()
+    ScopeGuard tool_mapping_cleanup_guard = []() {
+        tool_mapper.reset();
+    #if HAS_SPOOL_JOIN()
+        spool_join.reset();
+    #endif
+        tool_mapper.set_enable(false);
+    };
+
+    if (tools_mapping.has_value()) {
         if (const char *error = handle_tool_mapping(tools_mapping.value()); error != nullptr) {
             return std::unexpected(error);
         }
-#else
-        return std::unexpected("Tools mapping not enabled");
-#endif
+    } else {
+        tool_mapping_cleanup_guard.disarm();
     }
+#else
+    if (tools_mapping.has_value()) {
+        return std::unexpected("Tools mapping not enabled");
+    }
+#endif
 
-    marlin_client::print_start(path, marlin_server::PreviewSkipIfAble::all);
+    marlin_client::print_start(path, marlin_server::PreviewSkipIfAble::all, tools_mapping.has_value() ? ResetToolMapping::no : ResetToolMapping::yes);
     if (!marlin_client::is_print_started()) {
         return std::unexpected("Can't print now");
     }
+
+#if HAS_TOOL_MAPPING()
+    tool_mapping_cleanup_guard.disarm();
+#endif
+
     // job_id already updated internally in MarkStarted phase
     return static_cast<uint16_t>(marlin_vars().job_id);
 }
@@ -676,11 +742,18 @@ std::optional<MarlinPrinter::FinishedJobResult> MarlinPrinter::get_prior_job_res
     return nullopt;
 }
 
-void MarlinPrinter::set_slot_info(VirtualToolIndex vt, const SlotInfo &info) {
-    const auto pt = vt.to_physical();
-    config_store().set_nozzle_diameter(pt, info.nozzle_diameter);
-    config_store().set_nozzle_is_hardened(pt, info.hardened);
-    config_store().set_nozzle_is_high_flow(pt, info.high_flow);
+std::optional<FilamentTypeParameters> MarlinPrinter::material(VirtualToolIndex tool) const {
+    const FilamentType type = FilamentType::for_tool(tool);
+    if (!type) {
+        return nullopt;
+    }
+    return type.parameters();
+}
+
+void MarlinPrinter::set_physical_tool_info(PhysicalToolIndex tool, const PhysicalToolInfo &info) {
+    config_store().set_nozzle_diameter(tool, info.nozzle_diameter);
+    config_store().set_nozzle_is_hardened(tool, info.hardened);
+    config_store().set_nozzle_is_high_flow(tool, info.high_flow);
 }
 
 } // namespace connect_client

@@ -8,7 +8,7 @@
 
 using namespace buddy::puppies;
 
-static constexpr auto REQUEST_DURATION_US = 2000;
+static constexpr auto RESPONSE_DURATION_US = 2000;
 static constexpr auto ITERATIONS = 1000;
 static constexpr auto STEP_US = 1000;
 
@@ -27,8 +27,8 @@ void run_simulation(TimeSync &time_sync, std::function<Times(uint32_t)> calc_tim
     for (unsigned int i = 0; i < ITERATIONS; ++i) {
         const Times times = calc_times(i);
         RequestTiming timing = {
-            .begin_us = times.buddy_time_us - REQUEST_DURATION_US / 2,
-            .end_us = times.buddy_time_us + REQUEST_DURATION_US / 2,
+            .request_end_us = times.buddy_time_us,
+            .response_end_us = times.buddy_time_us + RESPONSE_DURATION_US,
         };
         current_ticks_us = times.buddy_time_us;
         time_sync.sync(times.puppy_time_us, timing);
@@ -156,7 +156,47 @@ TEST_CASE("Puppy overflow") {
         };
     });
 
-    REQUIRE(time_sync.buddy_time_us(abs((static_cast<int>(ticks_us()) + (ITERATIONS / 2 * STEP_US))) - static_cast<int>(ticks_us())) < 10);
+    const uint32_t puppy_time_us = ticks_us() + (ITERATIONS / 2 * STEP_US);
+    REQUIRE(abs(ticks_diff(time_sync.buddy_time_us(puppy_time_us), ticks_us())) < 10);
+}
+
+TEST_CASE("Delayed timestamp rejected") {
+    TimeSync time_sync(0);
+
+    run_simulation(time_sync, [](uint32_t i) {
+        const uint32_t buddy_time_us = 10000 + STEP_US * i;
+        return Times {
+            .buddy_time_us = buddy_time_us,
+            .puppy_time_us = buddy_time_us,
+        };
+    });
+
+    const uint32_t before = time_sync.buddy_time_us(5000);
+
+    // Anchor stamped late by scheduling: the window shrinks beyond the
+    // tolerance, so the sync must be discarded and the conversion not move
+    RequestTiming timing = {
+        .request_end_us = current_ticks_us + 500,
+        .response_end_us = current_ticks_us + RESPONSE_DURATION_US,
+    };
+    time_sync.sync(current_ticks_us + 500, timing);
+
+    REQUIRE(time_sync.buddy_time_us(5000) == before);
+}
+
+TEST_CASE("Future timestamp clamped") {
+    TimeSync time_sync(0);
+
+    run_simulation(time_sync, [](uint32_t i) {
+        const uint32_t buddy_time_us = 10000 + STEP_US * i;
+        return Times {
+            .buddy_time_us = buddy_time_us,
+            .puppy_time_us = buddy_time_us,
+        };
+    });
+
+    // Conversion must never produce a time after "now"
+    REQUIRE(time_sync.buddy_time_us(ticks_us() + 1000) == ticks_us());
 }
 
 TEST_CASE("Offset overflow") {

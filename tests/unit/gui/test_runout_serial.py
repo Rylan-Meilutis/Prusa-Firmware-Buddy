@@ -22,6 +22,7 @@ class SerialRunout(unittest.TestCase):
 #define HAS_INDX() 1
 #define HAS_CRASH_DETECTION() 1
 #define HAS_SERIAL_PRINT() 1
+#define HAS_ANFC() 0
 #define log_info(...) ((void)0)
 enum class FilamentSensorState { NoFilament, HasFilament, Disabled, NotConnected };
 enum class LogicalFilamentSensor { primary_runout, extruder, side, closest_to_nozzle };
@@ -53,10 +54,14 @@ struct GCodeLiteral { const char *gcode; float parameter = 0; };
 struct Flag { bool get() { return false; } };
 struct { Flag fs_autoload_enabled; template<class A, class B> void set_filament_type(A,B) {} } store;
 auto &config_store() { return store; }
-using VirtualToolIndex = int;
+struct VirtualToolIndex {
+ operator int() const {return 7;}
+ int to_raw() const {return 7;}
+ static std::optional<VirtualToolIndex> currently_selected_opt() {return VirtualToolIndex{};}
+};
 struct PhysicalToolIndex { static constexpr unsigned count = 8;
  static PhysicalToolIndex from_raw(unsigned) { return {}; }
- std::optional<int> currently_selected_virtual_tool() const { return 7; }
+ std::optional<VirtualToolIndex> currently_selected_virtual_tool() const { return VirtualToolIndex{}; }
 };
 namespace stdext { template<class T> auto get_optional(std::optional<T> v) { return v; } }
 enum class FilamentType { none };
@@ -116,10 +121,14 @@ int main() {
                         source.index('segment_planned = true;'))
         self.assertIn('axis_unhomed_error(required_axes', source)
         self.assertIn('Manual move blocked by dock keep-out', source)
-        self.assertIn('thermalManager.tooColdToExtrude(active_extruder)',
+        self.assertIn('thermalManager.tooColdToExtrude(*selected_tool)',
                       source)
         self.assertIn(
-            '!PhysicalToolIndex::currently_selected_opt().has_value()', source)
+            'selected_tool = PhysicalToolIndex::currently_selected_opt()',
+            source)
+        self.assertIn(
+            '!selected_tool || thermalManager.tooColdToExtrude(*selected_tool)',
+            source)
 
     def test_jog_telemetry_classification_keeps_controls_interruptible(self):
         code = r'''

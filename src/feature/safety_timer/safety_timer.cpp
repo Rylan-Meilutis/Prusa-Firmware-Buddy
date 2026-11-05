@@ -2,6 +2,7 @@
 
 #include <marlin_server.hpp>
 #include <config_store/store_instance.hpp>
+#include <common/marlin_vars.hpp>
 #include <option/has_human_interactions.h>
 #include <raii/auto_restore.hpp>
 #include <bsod/bsod.h>
@@ -340,7 +341,7 @@ void SafetyTimer::step() {
         trigger();
     }
 
-    if (state_ == State::restoring && Temperature::are_hotend_temperatures_reached()) {
+    if (state_ == State::restoring && Temperature::are_hotend_temperatures_reached(Temperature::RequireCooling::all_tools)) {
         state_ = State::idle;
     }
 }

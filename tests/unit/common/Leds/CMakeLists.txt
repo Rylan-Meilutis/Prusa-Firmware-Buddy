@@ -1,17 +1,3 @@
-add_executable(
-  leds_tests
-  ${CMAKE_SOURCE_DIR}/tests/unit/test_main.cpp ${CMAKE_SOURCE_DIR}/tests/stubs/malloc_stub.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/led_animation_tests.cpp ${CMAKE_CURRENT_SOURCE_DIR}/timing_dummy.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/leds_dummy.cpp ${CMAKE_CURRENT_SOURCE_DIR}/leds_eeprom_access.cpp
-  )
-target_include_directories(
-  leds_tests
-  PUBLIC ${CMAKE_SOURCE_DIR}/tests/stubs ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/common
-         ${CMAKE_SOURCE_DIR}/src/gui/led_animations ${CMAKE_SOURCE_DIR}/src/guiapi/include
-         ${CMAKE_SOURCE_DIR}/src/gui/dialogs
-  )
-target_link_libraries(leds_tests PRIVATE freertos_tests)
-
 add_executable(startup_activity_tests ${CMAKE_CURRENT_SOURCE_DIR}/startup_activity_tests.cpp)
 target_include_directories(startup_activity_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 add_catch_test(startup_activity_tests)

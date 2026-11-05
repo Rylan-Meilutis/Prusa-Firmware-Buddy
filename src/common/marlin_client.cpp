@@ -1,6 +1,7 @@
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 
-#include "marlin_client_queue.hpp"
+#include "marlin_client_events.hpp"
 #include "marlin_server_request.hpp"
 #include "marlin_events.h"
 #include "marlin_server.hpp"
@@ -35,46 +36,30 @@ LOG_COMPONENT_DEF(MarlinClient, logging::Severity::info);
 
 static constexpr uint8_t max_retries = 5;
 
-// client
-typedef struct _marlin_client_t {
-    EventMask events; // event mask
-
-    uint32_t ack; // cached ack value from last Acknowledge event
-    uint8_t id; // client id (0..MARLIN_MAX_CLIENTS-1)
-} marlin_client_t;
-
 //-----------------------------------------------------------------------------
 // variables
 
-osThreadId marlin_client_task[MARLIN_MAX_CLIENTS]; // task handles
-ClientQueue marlin_client_queue[MARLIN_MAX_CLIENTS];
-
-marlin_client_t clients[MARLIN_MAX_CLIENTS]; // client structure
-uint8_t marlin_clients = 0; // number of connected clients
+static osThreadId marlin_client_task[MARLIN_MAX_CLIENTS]; // task handles
+freertos::EventGroup marlin_client_events[MARLIN_MAX_CLIENTS];
 
 //-----------------------------------------------------------------------------
 // forward declarations of private functions
 
-static bool receive_and_process_client_message(marlin_client_t *client, size_t milliseconds_to_wait);
-static marlin_client_t *_client_ptr();
+static freertos::EventGroup *_client_ptr();
 
 //-----------------------------------------------------------------------------
 // client side public functions
 
 static freertos::Mutex mutex;
 
-void init_maybe() {
-    if (!_client_ptr()) {
-        init();
-    }
-}
+static constexpr EventMask event_mask_all = make_mask(Event::_count) - 1;
+static constexpr EventMask event_mask_ack_nack = make_mask(Event::Acknowledge) | make_mask(Event::NotAcknowledge);
 
 void init() {
     // If the marlin has already been initialized, don't call init again
     debug_assert(!_client_ptr());
 
     int client_id;
-    marlin_client_t *client = 0;
     TaskDeps::wait(TaskDeps::Tasks::marlin_client);
     std::unique_lock lock { mutex };
     for (client_id = 0; client_id < MARLIN_MAX_CLIENTS; client_id++) {
@@ -84,51 +69,22 @@ void init() {
     }
     debug_assert(client_id < MARLIN_MAX_CLIENTS);
     if (client_id < MARLIN_MAX_CLIENTS) {
-        client = clients + client_id;
-        memset(client, 0, sizeof(marlin_client_t));
-        client->id = client_id;
-        client->events = 0;
-        marlin_clients++;
+        marlin_client_events[client_id].clear(event_mask_all);
         marlin_client_task[client_id] = osThreadGetId();
     }
 }
 
-void loop() {
-    if (marlin_client_t *client = _client_ptr()) {
-        while (receive_and_process_client_message(client, 0)) {
-        }
-    }
-}
-
-int get_id() {
-    marlin_client_t *client = _client_ptr();
-    if (client) {
-        return client->id;
-    }
-    return 0;
-}
-
 static bool try_send(Request &request) {
-    marlin_client_t *client = _client_ptr();
+    freertos::EventGroup *client = _client_ptr();
     if (client == nullptr) {
         bsod("Marlin client used before init");
     }
-    request.client_id = client->id;
+    request.client_id = client - marlin_client_events;
     request.response_required = 1;
 
-    client->events &= ~(make_mask(Event::Acknowledge) | make_mask(Event::NotAcknowledge));
+    client->clear(event_mask_ack_nack);
     request_queue.send(request);
-    for (;;) {
-        receive_and_process_client_message(client, 1000);
-        if (client->events & make_mask(Event::Acknowledge)) {
-            client->events &= ~make_mask(Event::Acknowledge);
-            return true;
-        }
-        if (client->events & make_mask(Event::NotAcknowledge)) {
-            client->events &= ~make_mask(Event::NotAcknowledge);
-            return false;
-        }
-    }
+    return client->wait_for_any(event_mask_ack_nack, true) & make_mask(Event::Acknowledge);
 }
 
 static bool try_send_with_retries(Request &request) {
@@ -146,7 +102,7 @@ static bool try_send_with_retries(Request &request) {
 }
 
 static void _send_request_to_server_and_wait(Request &request) {
-    marlin_client_t *client = _client_ptr();
+    freertos::EventGroup *client = _client_ptr();
     if (client == nullptr) {
         bsod("Marlin client used before init");
     }
@@ -157,20 +113,13 @@ static void _send_request_to_server_and_wait(Request &request) {
 
 /// send the request to the marlin server and don't ask for acknowledgement
 static void _send_request_to_server_noreply(Request &request) {
-    marlin_client_t *client = _client_ptr();
+    freertos::EventGroup *client = _client_ptr();
     if (client == nullptr) {
         return;
     }
-    request.client_id = client->id;
+    request.client_id = client - marlin_client_events;
     request.response_required = 0;
     request_queue.send(request);
-}
-
-void set_event_notify(uint64_t event_mask) {
-    Request request;
-    request.type = Request::Type::EventMask;
-    request.event_mask = event_mask;
-    _send_request_to_server_and_wait(request);
 }
 
 void _send_request_flag_to_server(const RequestFlag type) {
@@ -246,30 +195,14 @@ void gcode_interrupt(GCodeLiteral gcode) {
     _send_request_to_server_and_wait(request);
 }
 
-int event(Event evt_id) {
-    int ret = 0;
-    marlin_client_t *client = _client_ptr();
-    uint64_t msk = (uint64_t)1 << std::to_underlying(evt_id);
-    if (client) {
-        ret = (client->events & msk) ? 1 : 0;
-    }
-    return ret;
-}
-
 int event_clr(Event evt_id) {
     int ret = 0;
-    marlin_client_t *client = _client_ptr();
-    uint64_t msk = (uint64_t)1 << std::to_underlying(evt_id);
+    freertos::EventGroup *client = _client_ptr();
+    const EventMask msk = make_mask(evt_id);
     if (client) {
-        ret = (client->events & msk) ? 1 : 0;
-        client->events &= ~msk;
+        ret = (client->clear(msk) & msk) ? 1 : 0;
     }
     return ret;
-}
-
-uint64_t events() {
-    marlin_client_t *client = _client_ptr();
-    return (client) ? client->events : 0;
 }
 
 void do_babysteps_Z(float offs) {
@@ -441,40 +374,13 @@ bool is_idle() {
 //-----------------------------------------------------------------------------
 // private functions
 
-// process message on client side (set flags, update vars etc.)
-static bool receive_and_process_client_message(marlin_client_t *client, size_t milliseconds_to_wait) {
-    ClientEvent client_event;
-    ClientQueue &queue = marlin_client_queue[client->id];
-    if (!queue.try_receive(client_event, milliseconds_to_wait)) {
-        return false;
-    }
-
-    client->events |= make_mask(client_event.event);
-    switch (client_event.event) {
-    case Event::NotAcknowledge:
-    case Event::Acknowledge:
-        client->ack = client_event.usr32;
-        break;
-        // not handled events
-        // do not use default, i want all events listed here, so new event will generate warning, when not added
-    case Event::MediaInserted:
-    case Event::MediaError:
-    case Event::MediaRemoved:
-    case Event::RequestCalibrationsScreen:
-        break;
-    case Event::_count:
-        debug_assert(false);
-    }
-    return true;
-}
-
 // returns client pointer for calling client thread (client thread)
-static marlin_client_t *_client_ptr() {
+static freertos::EventGroup *_client_ptr() {
     osThreadId taskHandle = osThreadGetId();
     int client_id;
     for (client_id = 0; client_id < MARLIN_MAX_CLIENTS; client_id++) {
         if (taskHandle == marlin_client_task[client_id]) {
-            return clients + client_id;
+            return marlin_client_events + client_id;
         }
     }
     return 0;

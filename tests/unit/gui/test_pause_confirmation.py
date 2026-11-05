@@ -82,7 +82,7 @@ int main() {
 #define NOZZLE_PARK_Z_FEEDRATE 10
 bool selected=false, homed=false;
 int z_moves=0, e_moves=0;
-struct Pos {float z=0,e=0;} destination,current_position;
+struct Pos {float z=0,e=0; Pos with_z(float value) const {auto copy=*this; copy.z=value; return copy;}} destination,current_position;
 struct {struct {Pos pos;} resume;} server;
 struct PhysicalToolIndex {
  static std::optional<int> currently_selected_opt() {

@@ -134,9 +134,9 @@ ParkingPosition get_parking_position(ParkPosition position, [[maybe_unused]] std
 #if HAS_WASTEBIN_FILL_TRACKING()
     case ParkPosition::empty_wastebin:
         // Park at the INDX home corner (X to the min endstop, Y all the way back), clear of the
-        // cleaner which sits at high X, and drop the bed near its lowest (Z within 50 of Z_MAX, or
-        // 20 above tall prints) so there is room to reach in and empty the cleaner.
-        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 20, .absolute = Z_MAX_POS - 50 } };
+        // cleaner which sits at high X, with the bed lowered for hand access (or 20 above tall
+        // prints) to empty the cleaner.
+        return ParkingPosition { 0.0f, static_cast<float>(Y_MAX_POS), ParkingPosition::AtLeast { .above_print = 20, .absolute = Z_HAND_ACCESS_POS } };
 #endif
 
 #if HAS_NOZZLE_CLEANER() || HAS_NOZZLE_CLEANER_LITE()
@@ -227,14 +227,6 @@ ParkingPosition ParkingPosition::from_xyz_pos(const xyz_pos_t &pos) {
         std::isnan(pos.x) ? (X)unchanged : pos.x,
         std::isnan(pos.y) ? (Y)unchanged : pos.y,
         std::isnan(pos.z) ? (Z)unchanged : pos.z,
-    };
-}
-
-ParkingPosition ParkingPosition::from_xy_relative_z_pos(const xyz_pos_t &pos) {
-    return ParkingPosition {
-        std::isnan(pos.x) ? (X)unchanged : pos.x,
-        std::isnan(pos.y) ? (Y)unchanged : pos.y,
-        std::isnan(pos.z) ? (Z)unchanged : Relative { pos.z },
     };
 }
 
@@ -357,11 +349,9 @@ namespace {
 
         /// Can apply retraction as well, depending on the PrintArgs
         void move_z(float target) {
-            auto target_pos = current_position.xyz();
-            target_pos.z = target;
             // Away from the bed there is nothing to hit, so lift at the homing speed; the approach stays slow
             const feedRate_t fr = target > current_position.z ? fr_z_away_from_bed : fr_z_toward_bed;
-            move(target_pos, fr);
+            move(current_position.xyz().with_z(target), fr);
         }
 
         /// Retracts the remaining distance, in case the retraction was not fully done during the standard moves

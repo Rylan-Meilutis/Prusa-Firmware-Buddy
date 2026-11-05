@@ -7,12 +7,15 @@
 #include <config_store/store_instance.hpp>
 #include <gcode/gcode_info.hpp>
 #include <marlin_server.hpp>
+#include <common/marlin_vars.hpp>
 #include <warning_type.hpp>
 #include <client_response.hpp>
+#include <fsm/wastebin_emptying_phases.hpp>
 #include <inc/MarlinConfig.h>
 #include <mapi/parking.hpp>
 #include <mapi/motion.hpp>
 #include <mapi/feedrates/standard_feedrates.hpp>
+#include <nozzle_cleaner.hpp>
 #include <Marlin/src/module/motion.h>
 #include <Marlin/src/module/temperature.h>
 #include <module/planner.h>
@@ -41,7 +44,7 @@ void WastebinWatcher::account_ejected_pellet() {
 
     if (config_store().nozzle_cleaner_autopause_on_full.get()) {
         // Auto-pause: park + hold the print right here (we're on the marlin thread, directly after
-        // the eject) until the user answers the warning. No asynchronous gcode injection.
+        // the eject) until the user answers the prompt. No asynchronous gcode injection.
         pause_to_empty(/*full=*/true);
     } else {
         // Auto-pause off: informational only (the print keeps running; the user cannot safely empty
@@ -51,10 +54,10 @@ void WastebinWatcher::account_ejected_pellet() {
 }
 
 void WastebinWatcher::pause_to_empty(bool full) {
-    // full=true: mid-print "bin full" (NozzleCleanerFull, Ignore/Done). false: manual "Empty
-    // Wastebin" (NozzleCleanerManualEmpty, Done).
-    const WarningType warning = full ? WarningType::NozzleCleanerFull : WarningType::NozzleCleanerManualEmpty;
-    const bool printing = marlin_server::is_printing();
+    const std::optional<PhysicalToolIndex> tool = PhysicalToolIndex::currently_selected_opt();
+    // Deliberately narrower than is_printing(): the print preview (overfill prompt) also runs
+    // M1986, and there is nothing to return to there.
+    const bool printing = marlin_server::is_printing_state(marlin_vars().print_state);
     const xyz_pos_t resume_pos = current_position.xyz();
     const float resume_e = current_position.e;
     // Cleaner is outside the MBL mesh; save/restore Z in the machine frame (like G750), not native.
@@ -63,35 +66,37 @@ void WastebinWatcher::pause_to_empty(bool full) {
 #if HAS_SERIAL_PRINT()
     const bool notify_serial_host = full && marlin_server::serial_print_active();
 #endif
-    const int16_t resume_temp = Hotend::for_tool(PhysicalToolIndex::currently_selected()).nozzle_target_temp();
+    const int16_t resume_temp = tool ? Hotend::for_tool(*tool).nozzle_target_temp() : 0;
     const auto filament = FilamentType::for_current_tool_heuristic();
 
-    if (printing) {
+    // Scores over Printing and PrintPreview - all the entry points get the same screens.
+    marlin_server::FSM_Holder fsm { PhaseWastebinEmptying::parking };
+
+    if (printing && tool.has_value()) {
         // Drop the nozzle target so it doesn't cook/ooze during the (possibly long) wait; restored
         // and reheated over the cleaner before returning to the print.
-        Hotend::for_tool(PhysicalToolIndex::currently_selected()).set_nozzle_target_temp(0);
+        Hotend::for_tool(*tool).set_nozzle_target_temp(0);
         // Retract to the standard pre-park distance so the nozzle does not ooze while parked, then
         // park clear of the cleaner. retract_to() only moves the delta to the target, so it won't
         // over-retract (pull the filament out of the gears) if the print already had it retracted.
         // We block the gcode stream here (= effective pause); print_pause() + wait would deadlock
         // this gcode processor (BFW-8821).
         mapi::retract_to(STANDARD_RETRACT_LENGTH, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::retract, filament));
-        mapi::park(mapi::get_parking_position(mapi::ParkPosition::empty_wastebin));
-#if HAS_SERIAL_PRINT()
-        if (notify_serial_host) {
-            SerialPrinting::pause();
-            SerialPrinting::paused("purge_bucket_full");
-        }
-#endif
-    } else {
-        // Idle: axes may be unhomed, so home as needed before parking. No retract (cold nozzle) and
-        // no return afterwards (homing invalidates resume_pos).
-        mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::empty_wastebin));
     }
+    mapi::home_if_needed_and_park(mapi::get_parking_position(mapi::ParkPosition::empty_wastebin));
 
-    // Show the warning, block until the user answers, then close it.
-    const Response response = marlin_server::prompt_warning(warning);
-    switch (response) {
+#if HAS_SERIAL_PRINT()
+    if (notify_serial_host) {
+        SerialPrinting::pause();
+        SerialPrinting::paused("purge_bucket_full");
+    }
+#endif
+
+    // full=true: the bin hit capacity, so Ignore is offered to stop checking it for this print.
+    const auto prompt = full ? PhaseWastebinEmptying::prompt_full : PhaseWastebinEmptying::prompt_empty;
+    fsm.change(prompt);
+
+    switch (marlin_server::wait_for_response(prompt)) {
     case Response::Done:
         mark_emptied(); // bin emptied -> reset the counter
         break;
@@ -113,28 +118,40 @@ void WastebinWatcher::pause_to_empty(bool full) {
 #endif
 
     if (!printing) {
-        return; // idle: nothing to return to
+        return; // stay parked
     }
 
+    fsm.change(PhaseWastebinEmptying::raising_bed);
     // Park over in the nozzle cleaner so that reheating blob lands in the wastebin
     mapi::park(mapi::get_parking_position(mapi::ParkPosition::purge));
     // Move the most of the Z travel over the wastebin
     constexpr float return_clearance = 5;
-    MachinePosXYZE over_bin = current_machine_position();
-    over_bin.z = std::max(resume_machine_z, planner.max_printed_z + return_clearance);
-    line_to_machine_pos(over_bin, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = true });
-    // Reheat over the cleaner so heat-up ooze drips into the bin, not onto the print.
-    Hotend::for_tool(PhysicalToolIndex::currently_selected()).set_nozzle_target_temp(resume_temp);
-    if (const auto tool = PhysicalToolIndex::currently_selected_opt()) {
-        thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false });
-    }
+    const MachinePosXYZE over_bin = current_machine_position().with_z(std::max(resume_machine_z, planner.max_printed_z + return_clearance));
+    line_to_machine_pos(over_bin, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = false });
+    // Let the bed finish rising before announcing the heat-up, so the screen matches what moves.
     planner.synchronize();
+
+    if (tool.has_value()) {
+        fsm.change(PhaseWastebinEmptying::heating);
+        // Reheat over the cleaner so heat-up ooze drips into the bin, not onto the print.
+        Hotend::for_tool(*tool).set_nozzle_target_temp(resume_temp);
+        thermalManager.wait_for_hotend(*tool, { .no_wait_for_cooling = false });
+
+        fsm.change(PhaseWastebinEmptying::purging);
+        // The nozzle stays picked and residual heating is oozing the filament, the nozzle needs to be primed to return to printing
+        // It ends autoretracted, so on success declare E restored and let the deretract below no-op
+        // On failure E is untouched and the deretract restores the pre-park retract as before
+        if (!thermalManager.tooColdToExtrude(*tool)
+            && nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)) {
+            sync_e_position_to(resume_e);
+        }
+    }
+
+    fsm.change(PhaseWastebinEmptying::returning);
     // Traverse XY back (park routes around the cleaner) at that clearance height so we never drag
     // over the print, then drop to the saved machine Z and restore E.
     mapi::park(mapi::ParkingPosition { .x = resume_pos.x, .y = resume_pos.y });
-    MachinePosXYZE resume_target = current_machine_position();
-    resume_target.z = resume_machine_z;
-    line_to_machine_pos(resume_target, NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = true });
+    line_to_machine_pos(current_machine_position().with_z(resume_machine_z), NOZZLE_PARK_Z_FEEDRATE, { .ignore_e_factor = false });
     planner.synchronize();
     mapi::extruder_move(resume_e - current_position.e, buddy::standard_feedrates::extruder(buddy::standard_feedrates::Extruder::deretract, filament));
 #if HAS_SERIAL_PRINT()
@@ -187,7 +204,11 @@ void WastebinWatcher::set_fill_level(uint32_t pellets) {
 
 bool WastebinWatcher::serial_reset_and_hold_for_resume() {
 #if HAS_SERIAL_PRINT()
-    if (!marlin_server::is_warning_active(WarningType::NozzleCleanerFull)
+    const bool full_prompt = marlin_vars().peek_fsm_states([](const fsm::States &states) {
+        const auto &state = states[ClientFSM::WastebinEmptying];
+        return state && state->GetPhase() == static_cast<PhaseUnderlyingType>(PhaseWastebinEmptying::prompt_full);
+    });
+    if (!full_prompt
         || !marlin_server::serial_print_active()) {
         return false;
     }
@@ -196,7 +217,7 @@ bool WastebinWatcher::serial_reset_and_hold_for_resume() {
     serial_resume_required_ = true;
     marlin_server::set_response(EncodedFSMResponse {
         .response = FSMResponseVariant::make(Response::Done),
-        .fsm_and_phase = PhasesWarning::NozzleCleanerFull,
+        .fsm_and_phase = PhaseWastebinEmptying::prompt_full,
     });
     return true;
 #else

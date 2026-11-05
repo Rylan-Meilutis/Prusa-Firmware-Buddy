@@ -1,4 +1,5 @@
 #include "transfer.hpp"
+#include "transfer_recovery_private.hpp"
 
 #include <string.h>
 #include <memory>
@@ -12,6 +13,8 @@
 #include <common/filename_type.hpp>
 #include <common/filepath_operation.h>
 #include <lang/i18n.h>
+#include <path_utils.h>
+#include <option/websocket.h>
 
 LOG_COMPONENT_REF(transfers);
 using namespace transfers;
@@ -19,55 +22,6 @@ using namespace transfers;
 namespace {
 
 using FileOffset = long;
-
-struct SerializedString {
-    long offset = 0;
-    size_t size = 0;
-
-    static SerializedString serialize(const char *str, FILE *file, bool &error) {
-        const size_t len = strlen(str) + 1;
-        if (fwrite(str, len, 1, file) != 1) {
-            error = true;
-        }
-        return SerializedString { ftell(file) - static_cast<long>(len), len };
-    }
-
-    template <typename T>
-    const char *deserialize(T get_data_ptr) const {
-        return static_cast<const char *>(get_data_ptr(offset, size));
-    }
-};
-
-struct SerializedTransfer {
-    // what data are valid
-    PartialFile::State partial_file_state;
-
-    // crc of the partial file state only
-    uint32_t partial_file_state_crc;
-
-    // for compatibility check
-    SerializedString fw_version;
-
-    // basic url info
-    SerializedString host;
-    uint16_t port = 0;
-    SerializedString url_path_or_hash;
-    // Is this an inline transfer (running inside a websocket?)
-    //
-    // In such case, we use hash instead of url path, but we add the team_id below.
-    bool is_inline;
-    uint64_t team_id = 0;
-    uint32_t orig_size = 0;
-
-    TransferId transfer_id;
-
-    // encryption info
-    std::optional<Download::EncryptionInfo> encryption_info;
-
-    // raw data referenced by the above structure continue after this
-    // at the end of the raw data, there is a crc32 of the range [fw_version, end_of_file)
-};
-
 using EndOfDataCRC = uint32_t;
 
 // Connect transfer recovery is serialized in connectTask. Keep its bounded
@@ -97,6 +51,7 @@ bool Transfer::make_backup(FILE *file, const Download::Request &request, const P
     transfer.partial_file_state = state;
     transfer.partial_file_state_crc = crc32_calc((const uint8_t *)&state, sizeof(state));
     transfer.fw_version = SerializedString::serialize(version::project_version_full, file, error);
+#if !WEBSOCKET()
     if (const auto *encrypted = get_if<Download::Request::Encrypted>(&request.data); encrypted != nullptr) {
         transfer.host = SerializedString::serialize(encrypted->host, file, error);
         transfer.port = encrypted->port;
@@ -107,7 +62,9 @@ bool Transfer::make_backup(FILE *file, const Download::Request &request, const P
         if (encrypted->encryption.has_value()) {
             transfer.encryption_info = *encrypted->encryption;
         }
-    } else {
+    } else
+#endif
+    {
         const auto &in = get<Download::Request::Inline>(request.data);
         transfer.url_path_or_hash = SerializedString::serialize(in.hash, file, error);
         transfer.team_id = in.team_id;
@@ -283,8 +240,7 @@ const void *Transfer::RestoredTransfer::get_data_ptr(size_t offset, size_t size)
 
     const auto data_start = sizeof(SerializedTransfer);
     const auto data_end = data_start + data_buffer_size;
-    debug_assert(offset >= data_start && offset + size <= data_end);
-    if (offset < data_start || offset + size > data_end) {
+    if (offset < data_start || offset > data_end || size > data_end - offset) {
         log_error(transfers, "Data offset/size out of range");
         return nullptr;
     }
@@ -352,16 +308,28 @@ std::optional<Download::Request> Transfer::RestoredTransfer::get_download_reques
     // the compiler to optimize the optional out in practice.
     std::optional<Download::Request> req;
     if (transfer.is_inline) {
-        req = Download::Request(
-            transfer.url_path_or_hash.deserialize(get_data_ptr),
-            transfer.team_id,
-            transfer.orig_size);
+        const char *hash = transfer.url_path_or_hash.deserialize(get_data_ptr);
+        if (hash == nullptr) {
+            return std::nullopt;
+        }
+        req = Download::Request(hash, transfer.team_id, transfer.orig_size);
     } else {
+#if WEBSOCKET()
+        // Encrypted transfers are not supported on websocket builds.
+        // (invalid save file)
+        return std::nullopt;
+#else
+        const char *host = transfer.host.deserialize(get_data_ptr);
+        const char *url_path = transfer.url_path_or_hash.deserialize(get_data_ptr);
+        if (host == nullptr || url_path == nullptr) {
+            return std::nullopt;
+        }
         req = Download::Request(
-            transfer.host.deserialize(get_data_ptr),
+            host,
             transfer.port,
-            transfer.url_path_or_hash.deserialize(get_data_ptr),
+            url_path,
             transfer.encryption_info);
+#endif
     }
     req->set_transfer_id(transfer.transfer_id);
     return *req;
@@ -415,6 +383,10 @@ Transfer::IndexIter Transfer::next_in_index(unique_file_ptr &index, Path &out) {
         }
         if (len == 0) {
             // Skip empty lines
+            return IndexIter::Skip;
+        }
+
+        if (!path_allowed(path)) {
             return IndexIter::Skip;
         }
 

@@ -30,15 +30,22 @@ public: // Common/utilities
         bool heating = false;
         bool cooling = false;
 
-        /// Always show temperature control, even if temperature_control() == false
+        /// Always show temperature control, even if temperature_control_at_this_moment() == false
         /// In that situation, the temperature control widgets will be visible, but disabled
         bool always_show_temperature_control = false;
 
         /// Maximum temperature the chamber is allowed to reach
         std::optional<Temperature> max_temp = std::nullopt;
 
-        inline bool temperature_control() const {
+        /// \returns whether the chamber can act on a target right now (eg. the Core One
+        /// only cools while its chamber fans are on auto)
+        inline bool temperature_control_at_this_moment() const {
             return heating || cooling;
+        }
+
+        /// \returns whether the printer has temperature control at all, even if not right now
+        inline bool temperature_control_generally() const {
+            return temperature_control_at_this_moment() || always_show_temperature_control;
         }
     };
 
@@ -73,6 +80,10 @@ public: // Temperature control
     std::optional<Temperature> thermistor_temperature() const;
 
     std::optional<Temperature> target_temperature() const;
+
+    /// \returns target_temperature(), or nullopt if nothing is acting on it - the target
+    /// outlives temperature_control_at_this_moment() (eg. chamber fans switched to manual)
+    std::optional<Temperature> effective_target_temperature() const;
 
     /// Sets the \param target temperature. Can be nullopt if we are not interested in controlling the temperature at all.
     /// \returns the target temperature the chamber was actually set to - might differe because of capabilities().max_temp

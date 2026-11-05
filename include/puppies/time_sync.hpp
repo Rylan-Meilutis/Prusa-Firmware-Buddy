@@ -19,10 +19,12 @@ public:
     bool is_time_sync_valid() const;
 
 private:
-    static constexpr auto ROUNDTRIP_DURATION_SAMPLES = 10;
+    static constexpr auto RESPONSE_DURATION_EMA_WINDOW = 10;
 
-    // Threshold for considering a sync roundtrip too long - inaccurate
-    static constexpr auto LONG_ROUNDTRIP_THRESHOLD = 1.05;
+    // Tolerated deviation of the sync response duration from its average.
+    // Bounds the scheduling jitter of the wire timestamps, which is absolute (RTOS wakeup latency)
+    // Relative are not appropriate: too tight on short windows, too loose on long ones.
+    static constexpr uint32_t RESPONSE_JITTER_TOLERANCE_US = 150;
 
     const uint8_t id;
 
@@ -30,7 +32,7 @@ private:
     int32_t last_offset_us;
     int32_t average_drift_ppb;
     int32_t average_puppy_offset_us;
-    uint32_t average_roundtrip_us;
+    uint32_t average_response_us;
 
     KalmanFilterCallback drift_filter;
     KalmanFilterCallback offset_filter;

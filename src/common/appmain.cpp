@@ -262,12 +262,12 @@ static void filament_sensor_irq() {
             }
 
             // Main filament sensor
-            fs_process_sample(dwarf.get_tool_filament_sensor(), dwarf.dwarf_index());
+            fs_process_sample(dwarf.get_tool_filament_sensor(), dwarf.tool_index());
 
             // Side filament sensor
             auto mapping = side_fsensor_remap::get_mapping();
-            debug_assert(static_cast<size_t>(dwarf.dwarf_index()) < std::size(mapping));
-            const uint8_t remapped = mapping[dwarf.dwarf_index()];
+            debug_assert(static_cast<size_t>(dwarf.tool_index().to_raw()) < std::size(mapping));
+            const uint8_t remapped = mapping[dwarf.tool_index().to_raw()];
             debug_assert(remapped < HOTENDS);
 
             /**
@@ -295,7 +295,7 @@ static void filament_sensor_irq() {
             if (fs_raw_value == AdcGet::undefined_value) {
                 fs_raw_value = IFSensor::undefined_value;
             }
-            side_fs_process_sample(fs_raw_value, dwarf.dwarf_index());
+            side_fs_process_sample(fs_raw_value, dwarf.tool_index());
         }
         cnt_filament_sensor_update = 0;
     }

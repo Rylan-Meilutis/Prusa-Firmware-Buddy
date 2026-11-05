@@ -3,45 +3,36 @@
 
 void FileSort::Entry::Clear() {
     type = EntryType::INVALID;
-    lfn[0] = 0;
-    sfn[0] = 0;
+    name = {};
     time = 0;
 }
 
 void FileSort::Entry::CopyFrom(const EntryRef &er) {
-    if (er.sfn) {
-        strlcpy(sfn, er.sfn, sizeof(sfn));
-    }
-
-    if (er.lfn.s) {
-        strlcpy(lfn, er.lfn.s, sizeof(lfn));
-    }
-
+    name.assign(er.canonical, er.display.s);
     type = er.type;
     time = er.time;
 }
 
 void FileSort::Entry::SetDirUp() {
-    lfn[0] = lfn[1] = sfn[0] = sfn[1] = '.';
-    lfn[2] = sfn[2] = 0;
+    name.assign("..");
     type = EntryType::DIR;
     time = UINT_LEAST64_MAX;
 }
 
 FileSort::EntryRef::EntryRef(const Entry &e)
     : time(e.time)
-    , lfn(e.lfn)
-    , sfn(e.sfn)
+    , display(e.name.display())
+    , canonical(e.name.canonical())
     , type(e.type) {
 }
-FileSort::EntryRef::EntryRef(const dirent &de, const char *sfnPath)
+FileSort::EntryRef::EntryRef(const dirent &de, const char *canonical_path)
     : time(de.time)
-    , lfn(de.lfn)
-    , sfn(de.d_name) {
+    , display(de.lfn)
+    , canonical(de.d_name) {
 
     // Directory might be an actual directory or a running file transfer. we gotta check
     if (de.d_type & DT_DIR) {
-        MutablePath path(sfnPath);
+        MutablePath path(canonical_path);
         path.push(de.d_name);
         const auto r = transfers::transfer_check(path);
 

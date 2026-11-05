@@ -5,6 +5,7 @@
 #include "../Marlin/src/gcode/lcd/M73_PE.h"
 #include "../lib/Marlin/Marlin/src/module/temperature.h"
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 #include "marlin_server.hpp"
 #include "path_utils.h"
 #include "unique_file_ptr.hpp"
@@ -49,7 +50,7 @@ void run_once_after_boot() {
             return;
         }
         if (reset_pp) {
-            power_panic::reset();
+            power_panic::reset_state();
         }
     }
 #endif

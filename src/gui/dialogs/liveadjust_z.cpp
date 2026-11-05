@@ -7,6 +7,7 @@
 #include <ScreenFactory.hpp>
 #include <guiconfig/GuiDefaults.hpp>
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 #include "display.hpp"
 #include "display_helper.h"
 #include "img_resources.hpp"
@@ -225,13 +226,13 @@ void ScreenLiveAdjustZ::windowEvent(window_t *sender, GUI_event_t event, void *p
         break;
 
     case GUI_event_t::CLICK:
-        Screens::Access()->Close();
+        close_screen();
         break;
 
     case GUI_event_t::TOUCH_SWIPE_LEFT:
     case GUI_event_t::TOUCH_SWIPE_RIGHT:
         sound::play(SoundType::button_echo);
-        Screens::Access()->Close();
+        close_screen();
         break;
 
     default:

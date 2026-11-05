@@ -55,7 +55,6 @@ public:
 
 protected:
     virtual void unconditionalDraw() override;
-    virtual void set_layout(ColorLayout lt) override;
 };
 
 class window_icon_original_t : public window_icon_t {

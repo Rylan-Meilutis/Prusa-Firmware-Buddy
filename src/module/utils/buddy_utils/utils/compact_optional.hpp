@@ -4,6 +4,8 @@
 #include <optional>
 #include <cmath>
 #include <cstring>
+#include <functional>
+#include <type_traits>
 
 #include <bsod/bsod.h>
 
@@ -41,6 +43,11 @@ struct CompactOptional {
 public:
     static constexpr T nullopt_value = nullopt_value_;
 
+    enum class NulloptCheck : bool {
+        no,
+        yes
+    };
+
     constexpr CompactOptional()
         : value_(nullopt_value) {}
 
@@ -50,18 +57,25 @@ public:
     constexpr CompactOptional(const CompactOptional &) = default;
     constexpr CompactOptional(CompactOptional &&) = default;
 
-    constexpr CompactOptional(const T &value)
+    constexpr CompactOptional(const T &value, NulloptCheck nullopt_check = NulloptCheck::yes)
         : value_(value) {
-        enforce_has_value();
+        if (bool(nullopt_check)) {
+            enforce_has_value();
+        }
     }
 
-    explicit constexpr CompactOptional(T &&value)
+    explicit constexpr CompactOptional(T &&value, NulloptCheck nullopt_check = NulloptCheck::yes)
         : value_(std::move(value)) {
-        enforce_has_value();
+        if (bool(nullopt_check)) {
+            enforce_has_value();
+        }
     }
 
-    constexpr CompactOptional(const std::optional<T> &o)
+    constexpr CompactOptional(const std::optional<T> &o, NulloptCheck nullopt_check = NulloptCheck::yes)
         : value_(o.value_or(nullopt_value)) {
+        if (bool(nullopt_check) && o.has_value()) {
+            enforce_has_value();
+        }
     }
 
     constexpr bool has_value() const {
@@ -75,6 +89,31 @@ public:
 
     constexpr T value_or(const T &fallback) const {
         return has_value() ? value_ : fallback;
+    }
+
+    /// std::optional::transform equivalent - returns the result of @p f applied on the value, or nullopt.
+    /// @tparam Result optional type to be returned. Defaults to std::optional.
+    template <typename Result = void, typename F>
+    constexpr auto transform(F &&f) const {
+        using R = std::conditional_t<
+            !std::is_void_v<Result>,
+            Result,
+            std::optional<std::remove_cv_t<std::invoke_result_t<F, const T &>>>>;
+
+        if (!has_value()) {
+            return R { std::nullopt };
+        }
+        return R(std::invoke(std::forward<F>(f), value_));
+    }
+
+    /// std::optional::and_then equivalent - returns the result of @p f applied on the value, or nullopt.
+    /// Unlike transform, @p f is expected to return an optional itself.
+    template <typename F>
+    constexpr auto and_then(F &&f) const -> std::remove_cvref_t<std::invoke_result_t<F, const T &>> {
+        if (!has_value()) {
+            return std::nullopt;
+        }
+        return std::invoke(std::forward<F>(f), value_);
     }
 
     constexpr const T &operator*() const {

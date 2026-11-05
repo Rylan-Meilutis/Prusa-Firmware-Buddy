@@ -4,10 +4,13 @@
 #include <utils/string_builder.hpp>
 #include <print_utils.hpp>
 #include <ScreenHandler.hpp>
+#include <WindowMenuItems.hpp>
 #include <img_resources.hpp>
 #include <dialog_text_input.hpp>
 #include <filament_color_gui.hpp>
 #include <serial_printing.hpp>
+#include <gui_utils.hpp>
+#include <gui/screen/screen_menu_virtual.hpp>
 
 #include <option/has_anfc.h>
 #if HAS_ANFC()
@@ -29,64 +32,63 @@ void begin_edit(const VirtualToolIndex tool) {
         filament_manufacturer::loaded(tool.to_raw()).transform([](const auto &item) { return item.id; }) };
 }
 #endif
+constexpr int16_t arrow_right_space = 16;
+constexpr int16_t loaded_filament_color_swatch_space = 32;
+
+constexpr screen_menu_virtual::Configuration loaded_filaments_menu_config {
+    .item_count = [] -> int { return VirtualToolIndex::enabled_range_size() + 1; },
+    .item_constructor = [](WindowMenuVirtual::ItemVariant &variant, int index) {
+        if (index == 0) {
+            variant.emplace<MI_RETURN>();
+        } else {
+            variant.emplace<MI_LOADED_FILAMENT>(MI_LOADED_FILAMENT::DisplayFormat::slot_number, VirtualToolIndex::from_raw(index - 1));
+        } },
+    .title = N_("LOADED FILAMENTS"),
+};
 } // namespace
 
-MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, uint8_t tool)
-    : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes)
-    , tool_(VirtualToolIndex::from_raw(tool))
+MI_LOADED_FILAMENT::MI_LOADED_FILAMENT(DisplayFormat display_format, VirtualToolIndex tool)
+    : IWindowMenuItem({}, nullptr, is_enabled_t::yes, is_hidden_t::no)
+    , tool_(tool)
     , display_format_(display_format) {
 
     should_open_submenu_ = (display_format == DisplayFormat::auto_submenu) && (get_num_of_enabled_tools() > 1);
+    extension_.show_arrow = true;
+    extension_.show_null_color = false;
+
+    string_view_utf8 label;
 
     if (should_open_submenu_) {
-        SetLabel(_("Loaded filaments"));
+        label = _("Loaded Filaments");
 
     } else {
         filament_type_ = config_store().get_filament_type(tool);
 
-        StringBuilder sb(label_buffer_);
         if (display_format == DisplayFormat::auto_submenu) {
 #if HAS_MINI_DISPLAY()
             // Longer text doesn't fit well on the mini display
-            sb.append_string_view(_("Loaded"));
+            label = _("Loaded");
 #else
-            sb.append_string_view(_("Loaded filament"));
+            label = _("Loaded Filament");
 #endif
         } else {
-            sb.append_string_view(_("Filament"));
-            sb.append_printf(" %d", tool_.display_index());
+            label = _("Filament %d").formatted(label_params_, tool_.display_index());
         }
 
-        sb.append_string(": ");
-        sb.append_string(filament_material_name(filament_type_.parameters()).data());
-        color_ = filament_color::loaded(tool);
-        if (color_) {
-            extension_width = filament_color_gui::swatch_and_arrow_extension_width;
-        }
-
-        SetLabel(string_view_utf8::MakeRAM(label_buffer_.data()));
-        set_is_hidden(!tool_.is_enabled());
-    }
-}
-
-void MI_LOADED_FILAMENT::printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const {
-    if (!color_) {
-        IWindowMenuItem::printExtension(extension_rect, color_text, color_back, raster_op);
-        return;
+        StringBuilder info_sb { info_buffer_ };
+        info_sb.append_string(filament_material_name(filament_type_.parameters()).data());
+        extension_.text = string_view_utf8::MakeRAM(info_buffer_.data());
+        extension_.color = filament_color::loaded(tool_.to_raw());
+        set_enabled(tool_.is_enabled());
     }
 
-    Rect16 swatch_rect = extension_rect;
-    swatch_rect -= Rect16::Width_t { expand_icon_width };
-    filament_color_gui::draw_swatch(swatch_rect, *color_, color_back);
-
-    extension_rect += Rect16::Left_t { static_cast<int16_t>(extension_rect.Width() - expand_icon_width) };
-    extension_rect = Rect16::Width_t { expand_icon_width };
-    IWindowMenuItem::printExtension(extension_rect, color_text, color_back, raster_op);
+    SetLabel(label);
+    extension_width = extension_.compute_width();
 }
 
 void MI_LOADED_FILAMENT::click(IWindowMenu &) {
     if (should_open_submenu_) {
-        Screens::Access()->Open<ScreenLoadedFilaments>();
+        Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenMenuVirtual>(&loaded_filaments_menu_config));
     } else {
 #if HAS_ANFC()
         Screens::Access()->Open(buddy::openprinttag::screen_opt_info_loaded_creator(tool_));
@@ -99,6 +101,11 @@ void MI_LOADED_FILAMENT::click(IWindowMenu &) {
     #endif
 #endif
     }
+}
+
+void MI_LOADED_FILAMENT::printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const {
+    (void)color_text;
+    extension_.draw(*this, extension_rect, color_back, raster_op);
 }
 
 void MI_LOADED_FILAMENT::Loop() {
@@ -133,7 +140,7 @@ void MI_ASSIGN_LOADED_FILAMENT::click(IWindowMenu &) {
 #else
     pending.material = filament_type_;
 #endif
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }
 
 WindowMenuAssignLoadedFilament::WindowMenuAssignLoadedFilament(window_t *parent, Rect16 rect)
@@ -193,7 +200,7 @@ void MI_ASSIGN_LOADED_COLOR::printExtension(Rect16 extension_rect, Color, Color 
 
 void MI_ASSIGN_LOADED_COLOR::click(IWindowMenu &) {
     pending.color = color_;
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }
 
 WindowMenuAssignLoadedColor::WindowMenuAssignLoadedColor(window_t *parent, Rect16 rect)
@@ -274,7 +281,7 @@ void MI_SAVE_LOADED_FILAMENT::click(IWindowMenu &) {
     // committed. Hosts refresh immediately on RME_CHANGE and previously raced
     // the two metadata writes, leaving their loadout snapshot stale.
     SerialPrinting::notify_configuration("filament", "loaded");
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }
 
 ScreenEditLoadedFilament::ScreenEditLoadedFilament()
@@ -361,7 +368,7 @@ MI_ASSIGN_MANUFACTURER::MI_ASSIGN_MANUFACTURER(std::optional<uint8_t> id, std::s
     , id_(id) {}
 void MI_ASSIGN_MANUFACTURER::click(IWindowMenu &) {
     pending.manufacturer = id_;
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }
 WindowMenuAssignManufacturer::WindowMenuAssignManufacturer(window_t *parent, Rect16 rect)
     : WindowMenuVirtual(parent, rect, CloseScreenReturnBehavior::yes) {

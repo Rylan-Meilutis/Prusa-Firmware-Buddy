@@ -7,26 +7,9 @@
 
 namespace buddy::openprinttag {
 
-class MI_OPT_AUTO_SCAN_ON_LOAD final : public MenuItemSwitch {
-public:
-    static constexpr const EnumArray<Tristate::Value, const char *, 3> items {
-        { Tristate::no, N_("Do Nothing") },
-        { Tristate::yes, N_("Autoscan") },
-        { Tristate::other, N_("Ask") },
-    };
-
-    MI_OPT_AUTO_SCAN_ON_LOAD()
-        : MenuItemSwitch(_("On Filament Load"), items, std::to_underlying(config_store().opt_auto_read_on_load.get().value)) {}
-
-protected:
-    virtual void OnChange(size_t) override {
-        config_store().opt_auto_read_on_load.set(static_cast<Tristate::Value>(get_index()));
-    }
-};
-
 using ScreenOPTSettings_ = ScreenMenu<EFooter::Off,
     MI_RETURN,
-    MI_OPT_AUTO_SCAN_ON_LOAD,
+    MI_OPT_READER_STATUS,
     MI_OPT_READ_TAG>;
 
 class ScreenOPTSettings final : public ScreenOPTSettings_ {
@@ -35,6 +18,10 @@ public:
     ScreenOPTSettings()
         : ScreenOPTSettings_(_("OPENPRINTTAG SETTINGS")) {}
 };
+
+MI_OPT_READER_STATUS::MI_OPT_READER_STATUS()
+    // TODO: Tell apart several ANFC nodes (BFW-9360)
+    : MenuItemCyphalNodeStatus(_("Reader Status"), xbuddy_extension::NodeName::cz_prusa3d_honeybee_nfc) {}
 
 MI_OPT_SETTINGS::MI_OPT_SETTINGS()
     : IWindowMenuItem(string_view_utf8::MakeCPUFLASH("OpenPrintTag"), &img::openprinttag_white_16x16) {

@@ -19,40 +19,45 @@ using namespace screen_filament_detail;
 
 // * MI_FILAMENT_NAME
 MI_FILAMENT_NAME::MI_FILAMENT_NAME()
-    : WiInfo(_("Name")) {}
+    : WiInfo(_("Short Name")) {}
 
-void MI_FILAMENT_NAME::set_filament_type(FilamentType set) {
-    if (filament_type_ != set) {
-        filament_type_ = set;
-        value_ = set.parameters().name;
-        update_text();
+void MI_FILAMENT_NAME::set_params(const BuildFilamentNameWithInfoParams &set) {
+    if (data_ == set) {
+        return;
     }
+
+    data_ = set;
+    update_text();
 }
 
 void MI_FILAMENT_NAME::set_value(const FilamentTypeParameters::Name &set) {
-    if (value_ != set) {
-        value_ = set;
-        update_text();
+    if (value() == set) {
+        return;
     }
+
+    data_.name = set;
+    update_text();
 }
 
 void MI_FILAMENT_NAME::update_text() {
     ArrayStringBuilder<GetInfoLen()> sb;
-    filament_type_.build_name_with_info(value_, sb);
+    FilamentType::build_name_with_info(data_, sb);
     ChangeInformation(sb.str());
 }
 
 void MI_FILAMENT_NAME::click(IWindowMenu &) {
+    FilamentTypeParameters::Name new_name = value();
+
     while (true) {
-        if (!DialogTextInput::exec(GetLabel(), value_.data_)) {
+        if (!DialogTextInput::exec(GetLabel(), new_name.data_)) {
             return;
         }
 
-        for (char &ch : value_) {
+        for (char &ch : new_name) {
             ch = toupper(ch);
         }
 
-        if (const auto r = filament_type_.can_be_renamed_to(value_.data()); !r) {
+        if (const auto r = data_.type.can_be_renamed_to(new_name); !r) {
             MsgBoxWarning(_(r.error()), Responses_Ok);
             continue;
         }
@@ -60,10 +65,15 @@ void MI_FILAMENT_NAME::click(IWindowMenu &) {
         break;
     }
 
-    update_text();
+    set_value(new_name);
 }
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
+//* MI_FILAMENT_COLOR
+MI_FILAMENT_COLOR::MI_FILAMENT_COLOR()
+    : MenuItemColor(_("Color")) {
+}
+
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM() && !HAS_MINI_DISPLAY()
 
 MI_FILAMENT_BASE_PRESET::MI_FILAMENT_BASE_PRESET()
     : MenuItemSelectMenu(_("Base Preset")) {
@@ -72,22 +82,29 @@ MI_FILAMENT_BASE_PRESET::MI_FILAMENT_BASE_PRESET()
 MI_FILAMENT_BASE_PRESET::T MI_FILAMENT_BASE_PRESET::value() const {
     const auto i = current_item();
     debug_assert(i >= 0);
-    return i == 0 ? T(std::nullopt) : static_cast<PresetFilamentType>(i - 1);
+    return i == 0 ? T(std::nullopt) : preset_filament_types[i - 1];
 }
 
 void MI_FILAMENT_BASE_PRESET::set_value(T set) {
-    set_current_item(set.has_value() ? static_cast<int>(set.value()) + 1 : 0);
+    int new_item_index = 0;
+    if (set.has_value()) {
+        if (auto ix = stdext::index_of_opt(preset_filament_types, *set)) {
+            new_item_index = *ix + 1;
+        }
+    }
+
+    set_current_item(new_item_index);
 }
 
 int MI_FILAMENT_BASE_PRESET::item_count() const {
-    return static_cast<int>(PresetFilamentType::_count) + 1; // + "None"
+    return preset_filament_types.size() + 1; // + "None"
 }
 
-string_view_utf8 MI_FILAMENT_BASE_PRESET::build_item_text(int index, ItemTextParams &) const {
+string_view_utf8 MI_FILAMENT_BASE_PRESET::build_item_text(int index, StringViewUtf8ParamBase &params) const {
     if (index == 0) {
         return _("None");
     } else {
-        return string_view_utf8::MakeCPUFLASH(preset_filament_parameters[index - 1].name);
+        return string_view_utf8::MakeCPUFLASH("%.*s").formatted(params, std::string_view(preset_filament_parameters(preset_filament_types[index - 1]).name));
     }
 }
 
@@ -182,31 +199,80 @@ MI_FILAMENT_VISIBLE::MI_FILAMENT_VISIBLE()
     : WI_ICON_SWITCH_OFF_ON_t(false, _("Visible")) {
 }
 
-// * MI_CONFIRM
-MI_CONFIRM::MI_CONFIRM()
-    : IWindowMenuItem(_("Confirm"), &img::ok_16x16) {}
-
-void MI_CONFIRM::click(IWindowMenu &) {
-    callback();
-}
-
 // * ScreenFilamentDetail
 ScreenFilamentDetail::ScreenFilamentDetail(FilamentType filament_type)
     : ScreenFilamentDetail(N_("FILAMENT DETAIL")) {
-    setup(filament_type);
+    setup(filament_type, SetupArgs {});
 }
 
 ScreenFilamentDetail::ScreenFilamentDetail(PreheatModeParams params)
     : ScreenFilamentDetail(N_("CUSTOM PARAMETERS")) {
 
-    setup(PendingAdHocFilamentType {});
+    setup(PendingAdHocFilamentType {}, SetupArgs {});
     setup_preheat_mode_confirm(params);
+}
+
+ScreenFilamentDetail::ScreenFilamentDetail(LoadedFilamentMode loaded_filament_mode)
+    : ScreenFilamentDetail(nullptr) {
+
+    const VirtualToolIndex tool = loaded_filament_mode.tool;
+    header.SetText(_("%c%i LOADED FILAMENT").formatted(title_params_, tool.compact_name_prefix_char, tool.display_index()));
+
+    filament_type_ = FilamentType::for_tool(tool);
+    if (!filament_type_) {
+        close_screen();
+        return;
+    }
+
+    const SetupArgs setup_args {
+        // This is "loaded filament" info
+        // Editing a non-adhoc filament type (say user preset)
+        // could result in changing the parameters to other loaded slots as well.
+        // Enforce cast to Adhoc filament through the "Customize" button
+        .force_disable_customizable = !filament_type_.is_adhoc(),
+    };
+    setup(filament_type_, setup_args);
+
+    // If the filament type is preset/user preset,
+    if (!filament_type_.is_adhoc()) {
+        auto &item = Item<MI_CALLBACK>();
+        item.SetLabel(_("Customize"));
+        item.set_is_hidden(false);
+        item.callback = [this, tool] {
+            const Response r = MsgBoxInfo(
+                _("Customize the loaded filament? Changes will apply to this slot only and will be lost on unload."),
+                { Response::Ok, Response::Cancel });
+            if (r != Response::Ok) {
+                return;
+            }
+
+            // Transfer to the new filament type
+            const FilamentType new_filament_type = AdHocFilamentType { .tool = tool };
+            const FilamentTypeParameters params = filament_type_.parameters();
+            new_filament_type.set_parameters(params);
+            config_store().set_filament_type(tool, new_filament_type);
+
+            // Silence the asserts; we are changing set_is_hidden after the menu has been first drawn
+            // which we shouldn't generally do because the system is not ready for that
+            // But here we (hopefully) know what we're doing
+            for (int i = 0; i < menu.menu.item_count(); i++) {
+                menu.menu.item_at(i)->Invalidate();
+            }
+
+            // Re-setup the GUI
+            filament_type_ = new_filament_type;
+            menu.menu.move_focus_to_index(std::nullopt);
+            menu.menu.set_scroll_offset(0);
+            setup(filament_type_, params, SetupArgs {});
+            Item<MI_CALLBACK>().set_is_hidden(true);
+            Invalidate();
+        };
+    }
 }
 
 ScreenFilamentDetail::ScreenFilamentDetail(const char *title)
     : ScreenMenu(_(title)) {
-
-    Item<MI_CONFIRM>().set_is_hidden();
+    Item<MI_CALLBACK>().set_is_hidden();
 }
 
 ScreenFilamentDetail::~ScreenFilamentDetail() {
@@ -215,35 +281,52 @@ ScreenFilamentDetail::~ScreenFilamentDetail() {
     }
 }
 
-void ScreenFilamentDetail::setup(FilamentType filament_type, const FilamentTypeParameters &params) {
+void ScreenFilamentDetail::setup(FilamentType filament_type, SetupArgs args) {
+    setup(filament_type, filament_type.parameters(), args);
+}
+
+void ScreenFilamentDetail::setup(FilamentType filament_type, const FilamentTypeParameters &params, SetupArgs args) {
     filament_type_ = filament_type;
 
-    const bool is_customizable = filament_type.is_customizable();
+    const bool is_customizable = filament_type.is_customizable() && !args.force_disable_customizable;
 
 #if HAS_CHAMBER_API()
-    const auto chamber_caps = chamber().capabilities();
-    const bool hide_chamber_items = !chamber_caps.temperature_control() && !chamber_caps.always_show_temperature_control;
+    const bool hide_chamber_items = !chamber().capabilities().temperature_control_generally();
 #endif
 
-    Item<MI_FILAMENT_NAME>().set_filament_type(filament_type);
+    Item<MI_FILAMENT_NAME>().set_params(BuildFilamentNameWithInfoParams(filament_type, params));
 
     stdext::visit_tuple(container.menu_items, [&]<typename T>(T &item) {
-        static constexpr bool is_utility_button = std::is_same_v<T, MI_RETURN> || std::is_same_v<T, MI_CONFIRM>;
+        static constexpr bool is_utility_button = ::is_utility_button<T>;
 
-        if constexpr (!is_utility_button) {
-            item.set_enabled(is_customizable);
-        };
+        bool set_hidden = false;
 
-#if HAS_CHAMBER_API()
-        if constexpr (requires { T::is_chamber_item; }) {
-            item.set_is_hidden(hide_chamber_items);
+        if constexpr (requires { T::is_adhoc_only; }) {
+            set_hidden |= !(
+                filament_type.is_adhoc()
+                // Special case when showing data from OPT without any filament linkage
+                // See ScreenOPTFilamentDetail
+                || std::holds_alternative<NoFilamentType>(filament_type));
+        }
+
+#if HAS_ANFC()
+        if constexpr (std::is_same_v<T, MI_FILAMENT_ASSIGNED_OPENPRINTTAG>) {
+            // MI_FILAMENT_ASSIGNED_OPENPRINTTAG doesn't have the NoFilament exception
+            // When showing data from OPT directly, linkage information is meaningless
+            set_hidden |= !filament_type.is_adhoc();
         }
 #endif
 
-#if HAS_FILAMENT_BASE_PRESET_PARAM() && !HAS_MINI_DISPLAY()
+#if HAS_CHAMBER_API()
+        if constexpr (requires { T::is_chamber_item; }) {
+            set_hidden |= hide_chamber_items;
+        }
+#endif
+
+#if HAS_FILAMENT_MATERIAL_FAMILY_PARAM() && !HAS_MINI_DISPLAY()
         if constexpr (std::is_same_v<T, MI_FILAMENT_BASE_PRESET>) {
             // Presets have the base_preset set as identity. No point in showing it
-            item.set_is_hidden(std::holds_alternative<PresetFilamentType>(filament_type));
+            set_hidden |= std::holds_alternative<PresetFilamentType>(filament_type);
         }
 #endif
 
@@ -251,11 +334,17 @@ void ScreenFilamentDetail::setup(FilamentType filament_type, const FilamentTypeP
             // pass
 
         } else if constexpr (std::is_same_v<T, MI_FILAMENT_VISIBLE>) {
-            item.set_is_hidden(!filament_type.is_visibility_customizable());
+            set_hidden |= !filament_type.is_visibility_customizable();
             item.set_value(filament_type.is_visible());
 
         } else if constexpr (true) {
             item.set_value(params.*(T::parameter_ptr));
+            item.set_enabled(is_customizable);
+        }
+
+        if constexpr (!is_utility_button) {
+            // Utility buttons have visibility managed separately
+            item.set_is_hidden(set_hidden);
         }
     });
 }
@@ -265,7 +354,7 @@ void ScreenFilamentDetail::save_changes() {
     FilamentTypeParameters params;
 
     stdext::visit_tuple(container.menu_items, [&]<typename T>(T &item) {
-        static constexpr bool is_utility_button = std::is_same_v<T, MI_RETURN> || std::is_same_v<T, MI_CONFIRM>;
+        static constexpr bool is_utility_button = std::is_same_v<T, MI_RETURN> || std::is_same_v<T, MI_CALLBACK>;
 
         if constexpr (is_utility_button) {
             // pass
@@ -287,19 +376,17 @@ void ScreenFilamentDetail::save_changes() {
     }
 }
 
-void ScreenFilamentDetail::setup(FilamentType filament_type) {
-    setup(filament_type, filament_type.parameters());
-}
-
-void screen_filament_detail::ScreenFilamentDetail::setup_preheat_mode_confirm(PreheatModeParams params) {
-    auto &confirm_item = Item<MI_CONFIRM>();
+void ScreenFilamentDetail::setup_preheat_mode_confirm(PreheatModeParams params) {
+    auto &confirm_item = Item<MI_CALLBACK>();
+    confirm_item.SetLabel(_("Confirm"));
+    confirm_item.SetIconId(&img::ok_16x16);
     confirm_item.set_is_hidden(false);
     confirm_item.callback = [this, params] {
         // handle_filament_selection is reading from the filament parameters for checking, so we need to update them
         save_changes();
 
         if (ScreenPreheat::handle_filament_selection(PendingAdHocFilamentType {}, params.tool, params.mode)) {
-            Screens::Access()->Close();
+            close_screen();
         }
     };
 }

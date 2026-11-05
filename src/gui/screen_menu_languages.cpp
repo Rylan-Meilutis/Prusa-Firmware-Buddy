@@ -16,12 +16,12 @@ MI_LangBase::MI_LangBase(const char *label, const char *lang_code, const img::Re
 
 void MI_LangBase::click(IWindowMenu & /*window_menu*/) {
     LangEEPROM::getInstance().setLanguage(lang_code);
-    Screens::Access()->Close();
+    Screens::Access()->close_screen();
 }
 
 void MI_LangBase::printIcon(Rect16 icon_rect, ropfn raster_op, Color color_back) const {
     raster_op.swap_bw = has_swapped_bw::no;
-    render_icon_align_original(icon_rect, id_icon, color_back, icon_flags(Align_t::Center(), raster_op));
+    render_icon_align_original(icon_rect, id_icon, color_back, Align_t::Center(), raster_op);
 }
 
 ScreenMenuLanguages::ScreenMenuLanguages(Context context)

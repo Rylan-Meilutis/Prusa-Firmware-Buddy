@@ -50,7 +50,7 @@
 
     #include <marlin_server.hpp>
     #include <calibration_z.hpp>
-    #include <option/has_uneven_bed_prompt.h>
+    #include <option/has_uneven_bed_detection.h>
 
     #include <mapi/motion.hpp>
 
@@ -307,6 +307,9 @@ void GcodeSuite::G29() {
     const uint8_t max_nozzle_cleaning_retries = 3;        
     uint8_t nozzle_cleaning_retries = 0;
 #endif
+#if HAS_UNEVEN_BED_DETECTION()
+    bool automatic_z_align_attempted = false;
+#endif
 
     while (true) {
         ubl.g29_min_max_measured_z = std::nullopt;
@@ -392,7 +395,7 @@ void GcodeSuite::G29() {
         }
     #endif
 
-    #if HAS_UNEVEN_BED_PROMPT()
+    #if HAS_UNEVEN_BED_DETECTION()
         // If we've done some measuring in this phase and it is too uneven, offer running Z calib
         if (
             ubl.g29_min_max_measured_z.has_value()
@@ -402,8 +405,17 @@ void GcodeSuite::G29() {
             && !parser.seenval('C') //
         ) {
             log_warning(Marlin, "Uneven bed detected: %f - %f", (double)ubl.g29_min_max_measured_z->min, (double)ubl.g29_min_max_measured_z->max);
-
         #if HAS_SELFTEST()
+            if (!automatic_z_align_attempted) {
+                //only automatically attempt once
+                automatic_z_align_attempted = true;
+                
+                if (selftest::auto_calib_Z(true)) {
+                    // if we were successful, tun MBL again, if not, ask user
+                    continue;
+                }
+            }
+
             if (marlin_server::prompt_warning(WarningType::BedUnevenAlignmentPrompt) == Response::Yes) {
                 // calib_Z does not have its own holder - we have to handle that
                 marlin_server::FSM_Holder _fsm(PhasesSelftest::CalibZ);
@@ -414,11 +426,12 @@ void GcodeSuite::G29() {
         #endif
         }
     #elif defined(MBL_Z_DIFF_CALIB_WARNING_THRESHOLD)
-        #error "MBL_Z_DIFF_CALIB_WARNING_THRESHOLD defined but HAS_UNEVEN_BED_PROMPT is false"
+        #error "MBL_Z_DIFF_CALIB_WARNING_THRESHOLD defined but HAS_UNEVEN_BED_DETECTION is false"
     #endif
 
         break;
     }
+    debug_assert(axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::full));
 }
 
 /** @}*/

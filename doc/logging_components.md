@@ -23,6 +23,8 @@ This file is generated automatically so don't edit it directly
 - FlashBus: logging::Severity::info, src/common/spi_flash_bus.cpp
 - Fsm: logging::Severity::debug, src/common/fsm_states.cpp
 - GUI: logging::Severity::debug, src/gui/logger.cpp
+- GantrySquareness: logging::Severity::info, src/feature/indx_gantry_squareness/indx_gantry_squareness.cpp
+- HTController: logging::Severity::info, src/puppy/htcontroller/src/main.cpp
 - HotendDetect: logging::Severity::info, src/common/tool/printer/tools_xbuddy.cpp
 - INDX: logging::Severity::info, src/puppies/INDX.cpp
 - LDC1612: logging::Severity::warning, src/puppy/tool_offset_sensor/src/ldc1612.cpp
@@ -39,10 +41,13 @@ This file is generated automatically so don't edit it directly
 - ModbusFIFOHandlers: logging::Severity::debug, src/puppy/dwarf/modbus/ModbusFIFOHandlers.cpp
 - ModularBed: logging::Severity::info, src/puppies/modular_bed.cpp
 - Network: logging::Severity::info, lib/WUI/wui.cpp
+- NfcField: logging::Severity::warning, src/module/nfc/field_manager/field_manager.cpp
+- NfcTask: logging::Severity::warning, src/module/nfc/prusa_nfc_task/prusa_nfc/nfc_task.cpp
 - Node: logging::Severity::info, src/puppy/honeybee_shared/cyphal_node.cpp
 - NozzleCleanerCalibration: logging::Severity::info, src/feature/indx_nozzle_cleaner_calibration/indx_nozzle_cleaner_calibration.cpp
 - NozzleCleanerLite: logging::Severity::info, src/feature/nozzle_cleaner_lite/nozzle_cleaner_lite.cpp
 - OpenPrintTag: logging::Severity::info, src/feature/openprinttag/detail/requests_base.cpp
+- Opt: logging::Severity::warning, src/module/nfc/openprinttag_nfcv/openprinttag_nfcv/opt_nfcv.cpp
 - PRUSA_GCODE: logging::Severity::info, src/marlin_stubs/gcode.cpp
 - PRUSA_PACK_READER: logging::Severity::info, src/common/gcode/gcode_reader_binary.cpp
 - PhaseStepping: logging::Severity::debug, lib/Marlin/Marlin/src/feature/phase_stepping/phase_stepping.cpp
@@ -50,12 +55,12 @@ This file is generated automatically so don't edit it directly
 - PowerPanic: logging::Severity::info, src/common/power_panic.cpp
 - PreciseStepping: logging::Severity::debug, lib/Marlin/Marlin/src/feature/precise_stepping/precise_stepping.cpp
 - Probe: logging::Severity::info, lib/Marlin/Marlin/src/module/probe.cpp
-- PrusaToolChanger: logging::Severity::debug, lib/Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
-- PrusaToolChanger: logging::Severity::debug, lib/Marlin/Marlin/src/module/prusa/toolchanger_utils_indx.cpp
+- PrusaToolChanger: logging::Severity::debug, lib/Marlin/Marlin/src/module/prusa/toolchanger_common.cpp
 - Puppies: logging::Severity::debug, src/puppies/puppy_task.cpp
 - Resources: logging::Severity::debug, src/resources/bootstrap.cpp
 - RingAllocator: logging::Severity::info, src/common/ring_allocator.cpp
 - Selftest: logging::Severity::debug, src/common/selftest/i_selftest.cpp
+- St25r: logging::Severity::info, src/module/nfc/nfc_st25r39xxb/ST25R39XXB.cpp
 - ToolOffsetCalib: logging::Severity::info, src/feature/tool_offset_calibration/tool_offset_calibration.cpp
 - ToolOffsetWizard: logging::Severity::info, src/feature/tool_offset_wizard/tool_offset_wizard.cpp
 - Touch: logging::Severity::info, src/hw/touchscreen/touchscreen_common.cpp
@@ -68,5 +73,6 @@ This file is generated automatically so don't edit it directly
 - can: logging::Severity::debug, src/can/cyphal_task.cpp
 - connect: logging::Severity::debug, src/connect/connect.cpp
 - httpc: logging::Severity::debug, src/common/http/httpc.cpp
+- nfc: logging::Severity::info, src/puppy/anfc/src/main.cpp
 - socket: logging::Severity::info, src/common/http/socket.cpp
 - transfers: logging::Severity::info, src/transfers/logging.cpp

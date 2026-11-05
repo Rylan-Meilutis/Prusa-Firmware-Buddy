@@ -10,6 +10,7 @@
 #include <ranges>
 
 #include "i_window_menu_item.hpp"
+#include <common/utils/string_builder.hpp>
 #include <guiconfig/GuiDefaults.hpp>
 
 /*****************************************************************************/
@@ -22,7 +23,10 @@
  */
 
 class IWiInfo : public IWindowMenuItem {
+
+public:
     static constexpr Font font = GuiDefaults::FontMenuSpecial;
+    static Color extension_text_color(const IWindowMenuItem &item);
 
 public:
     IWiInfo(const string_view_utf8 &value, const string_view_utf8 &label, const img::Resource *id_icon = nullptr, is_enabled_t enabled = is_enabled_t::yes, is_hidden_t hidden = is_hidden_t::no);
@@ -30,6 +34,9 @@ public:
     inline const string_view_utf8 &value() const {
         return value_;
     }
+
+    /// @returns maximum reasonable extension width for the current platform
+    static uint16_t max_extension_width();
 
     /// Updates extension width to match the info value
     void update_extension_width();
@@ -98,9 +105,9 @@ public:
 
     WiInfo(uint32_t num_to_print, const string_view_utf8 &label, is_hidden_t hidden = is_hidden_t::no, const img::Resource *id_icon = nullptr)
         : WiInfo(label, id_icon, is_enabled_t::yes, hidden) {
-        decltype(value_array_) buf;
-        itoa(num_to_print, buf.data(), 10);
-        ChangeInformation(buf.data());
+        ArrayStringBuilder<GetInfoLen()> sb;
+        sb.append_printf("%" PRIu32, num_to_print).check();
+        ChangeInformation(sb.str());
     }
 
     using WiInfoArray::ChangeInformation;

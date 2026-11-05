@@ -13,7 +13,12 @@ public:
         static Screens ret;
         return &ret;
     }
-    void Close() {}
+
+    void close_screen() {}
+
+    void close_dialog() {}
+
+    void close_screen_or_dialog() {}
 
     screen_t *Get() const {
         return frame;

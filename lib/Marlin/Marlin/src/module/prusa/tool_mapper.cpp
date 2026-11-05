@@ -1,17 +1,15 @@
 #include "module/prusa/tool_mapper.hpp"
-#include <option/has_mmu2.h>
-#include <option/has_toolchanger.h>
 
 #include <utils/variant_utils.hpp>
 
-#if HAS_TOOL_MAPPING()
-
-    #include "mmu2_toolchanger_common.hpp"
-    #if HAS_TOOLCHANGER()
-        #include <module/prusa/toolchanger.h>
-    #endif
-
 ToolMapper tool_mapper;
+
+ToolMapper &ToolMapper::operator=(const GcodeToVirtualArray &mapping) {
+    std::scoped_lock lock(mutex);
+    this->enabled = true;
+    this->gcode_to_virtual = mapping;
+    return *this;
+}
 
 ToolMapper &ToolMapper::operator=(const ToolMapper &other) {
     std::scoped_lock lock(mutex, other.mutex);
@@ -78,5 +76,3 @@ void ToolMapper::deserialize(serialized_state_t &from) {
         gcode_to_virtual[gcode_tool] = (virtual_raw == NO_TOOL_MAPPED) ? ToVirtualResult { ToolNotMapped {} } : VirtualToolIndex::from_raw(virtual_raw);
     }
 }
-
-#endif

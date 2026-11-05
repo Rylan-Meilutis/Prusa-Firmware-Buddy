@@ -1,7 +1,7 @@
 add_subdirectory(probe_analysis)
 add_subdirectory(extrusion_calibration)
-add_subdirectory(automata)
 add_subdirectory(Leds)
+add_subdirectory(automata)
 add_subdirectory(gcode)
 add_subdirectory(e2ee)
 add_subdirectory(http)
@@ -10,6 +10,7 @@ add_subdirectory(ring_allocator)
 add_subdirectory(filament_sensor)
 add_subdirectory(freertos)
 add_subdirectory(st25dv64k)
+add_subdirectory(power_panic)
 
 add_executable(
   support_utils_tests ${CMAKE_CURRENT_SOURCE_DIR}/support_utils_lib_test.cpp
@@ -77,6 +78,12 @@ target_include_directories(otp_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common)
 target_link_libraries(otp_tests otp)
 
 add_executable(
+  percent_encode_tests ${CMAKE_SOURCE_DIR}/src/common/http/percent_encode.cpp
+                       ${CMAKE_CURRENT_SOURCE_DIR}/percent_encode_tests.cpp
+  )
+target_include_directories(percent_encode_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common)
+
+add_executable(
   url_decode_tests
   ${CMAKE_SOURCE_DIR}/src/common/http/url_decode.cpp ${CMAKE_SOURCE_DIR}/src/common/str_utils.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/url_decode_tests.cpp
@@ -111,9 +118,27 @@ target_include_directories(
 add_executable(exponential_backoff_tests ${CMAKE_CURRENT_SOURCE_DIR}/exponential_backoff_tests.cpp)
 target_include_directories(exponential_backoff_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common)
 
+add_executable(filename_tests ${CMAKE_CURRENT_SOURCE_DIR}/filename_test.cpp)
+target_include_directories(
+  filename_tests PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
+  )
+add_catch_test(filename_tests)
+
 add_executable(hotend_detect_tests ${CMAKE_CURRENT_SOURCE_DIR}/hotend_detect_tests.cpp)
 target_include_directories(hotend_detect_tests PUBLIC ${CMAKE_SOURCE_DIR}/src/common)
 add_catch_test(hotend_detect_tests)
+
+add_executable(
+  lfn_tests
+  ${CMAKE_CURRENT_SOURCE_DIR}/lfn_tests.cpp ${CMAKE_SOURCE_DIR}/src/common/lfn.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/directory.cpp ${CMAKE_SOURCE_DIR}/tests/stubs/posix/ourPosix.cpp
+  ${CMAKE_SOURCE_DIR}/tests/stubs/strlcpy.c ${CMAKE_SOURCE_DIR}/tests/stubs/strlcat.c
+  )
+target_include_directories(
+  lfn_tests PUBLIC ${CMAKE_SOURCE_DIR}/tests/stubs/posix ${CMAKE_SOURCE_DIR}/src/common
+                   ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
+  )
+add_catch_test(lfn_tests)
 
 add_catch_test(support_utils_tests)
 add_catch_test(str_utils_tests)
@@ -124,6 +149,7 @@ add_catch_test(weighted_modus_tests)
 add_catch_test(algorithm_scale_tests)
 add_catch_test(median_tests)
 add_catch_test(otp_tests)
+add_catch_test(percent_encode_tests)
 add_catch_test(url_decode_tests)
 add_catch_test(json_tests)
 add_catch_test(path_utils_tests)
@@ -141,6 +167,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/lang/string_view_utf8.cpp
   ${CMAKE_SOURCE_DIR}/src/persistent_stores/store_instances/config_store/filament_variant_decode.cpp
   )
+target_link_libraries(encoded_filament_tests uuid)
 target_include_directories(
   encoded_filament_tests
   PUBLIC # Stubs must come first to shadow headers with heavy dependencies (e.g. tool_index.hpp →

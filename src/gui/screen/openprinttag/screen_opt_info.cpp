@@ -16,6 +16,7 @@
 #include <img_resources.hpp>
 #include <feature/openprinttag/utils.hpp>
 #include <bsod/bsod.h>
+#include <utils/optional_extensions.hpp>
 
 namespace buddy::openprinttag {
 
@@ -110,7 +111,7 @@ void MI_OPT_TAG_STATUS::printExtension(Rect16 extension_rect, [[maybe_unused]] C
     render_text_align(Rect16::fromLTRB(extension_rect.Left(), extension_rect.Top(), arrow_left - 8, extension_rect.Bottom()), _(status.short_text), Font::small, color_back, status.color, {}, Align_t::RightCenter());
 
     // Render extension arrow - indicate that clicking shows a dialog
-    render_icon_align(Rect16::fromLTRB(arrow_left, extension_rect.Top(), extension_rect.Right(), extension_rect.Bottom()), &img::arrow_right_10x16, color_back, icon_flags(Align_t::Center(), raster_op));
+    render_icon_align(Rect16::fromLTRB(arrow_left, extension_rect.Top(), extension_rect.Right(), extension_rect.Bottom()), &img::arrow_right_10x16, color_back, Align_t::Center(), raster_op);
 }
 
 void MI_OPT_TAG_STATUS::click(IWindowMenu &) {
@@ -122,7 +123,7 @@ void MI_OPT_TAG_STATUS::click(IWindowMenu &) {
     const auto assigned_tag = ToolTag::for_tool_assigned(screen_.tool_);
     PhaseResponses responses = { Response::Ok, assigned_tag.has_value() ? Response::Disable : Response::_none };
 
-    const auto status_response = MsgBoxError(_(msg), responses);
+    const auto status_response = MsgBoxInfo(_(msg), responses);
     switch (status_response) {
 
     case Response::Ok:
@@ -186,7 +187,7 @@ void WindowMenuOPTInfo::setup_item(ItemVariant &variant, int index) {
                 break;
 
             case Mode::loaded:
-                creator = ScreenFactory::ScreenWithArg<ScreenFilamentDetail>(FilamentType::for_tool(screen_->tool_));
+                creator = ScreenFactory::ScreenWithArg<ScreenFilamentDetail>(ScreenFilamentDetail::LoadedFilamentMode(screen_->tool_));
                 break;
             }
 
@@ -230,6 +231,7 @@ bool ScreenOPTInfo::scan() {
     using MultiRequest = MultiReadFieldRequest<
         MainField::material_name,
         MainField::brand_name,
+        MainField::primary_color,
         AmountsInfo::Requirements {},
         AbbreviationInfo::Requirements {}>;
 
@@ -268,16 +270,19 @@ bool ScreenOPTInfo::scan() {
 
     AmountsInfo amounts { req };
     AbbreviationInfo type { req };
+    OptionalColor color = to_optional(req.result<MainField::primary_color>());
 
     // In the loaded mode, data in memory have precedence over what's in the tag
     if (mode_ == Mode::loaded) {
         const auto params = FilamentType::for_tool(tool_).parameters();
 
-        // "Fake" abbreviation from filament parameters
+        // "Fake" data from filament parameters
         type.abbreviation = std::string_view {
             type.abbreviation_buffer.begin(),
             std::string_view { params.name }.copy(type.abbreviation_buffer.data(), type.abbreviation_buffer.size())
         };
+
+        color = params.color;
     }
 
     auto &menu = this->menu.menu;
@@ -285,7 +290,11 @@ bool ScreenOPTInfo::scan() {
     menu.data_items_.clear();
 
     if (auto val = req.result<MainField::material_name>()) {
-        add_string_item(N_("Material Name"), *val, material_name_buffer_);
+        add_string_item(N_("Full Name"), *val, material_name_buffer_);
+    }
+
+    if (color.has_value()) {
+        add_color_item(N_("Color"), *color);
     }
 
     if (auto val = req.result<MainField::brand_name>()) {
@@ -302,7 +311,7 @@ bool ScreenOPTInfo::scan() {
             sb.append_printf(" (%.*s)", default_abbr->size(), default_abbr->data());
         }
 
-        add_string_item(N_("Abbreviation"), sb.str(), abbreviation_buffer_);
+        add_string_item(N_("Short Name"), sb.str(), abbreviation_buffer_);
     }
 
     if (amounts.full_weight_g.has_value() && amounts.remaining_weight_g.has_value() && amounts.full_weight_g != amounts.remaining_weight_g) {
@@ -341,6 +350,14 @@ void ScreenOPTInfo::add_fmt_item(std::type_identity_t<Args>... args) {
         snprintf(buf.data(), buf.size(), fmt, args...);
 #pragma GCC diagnostic pop
         iv.emplace<MenuItemInfo>(_(label), buf.data());
+    });
+}
+
+void ScreenOPTInfo::add_color_item(const char *label, OptionalColor color) {
+    menu.menu.data_items_.push_back([label, color](ItemVariant &iv) {
+        auto &item = iv.emplace<MenuItemColor>(_(label));
+        item.set_value(color);
+        item.set_is_editable(false);
     });
 }
 

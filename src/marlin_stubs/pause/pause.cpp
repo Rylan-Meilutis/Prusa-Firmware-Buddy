@@ -39,6 +39,7 @@ static_assert(HAS_PAUSE());
 #include "Marlin/src/feature/pause.h"
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
 #include "marlin_server.hpp"
+#include <common/marlin_vars.hpp>
 #include "fs_event_autolock.hpp"
 #include "filament.hpp"
 #include "client_response.hpp"
@@ -421,6 +422,16 @@ void Pause::plan_e_move(const float &length, const feedRate_t &fr_mm_s) {
     }
 }
 
+void Pause::mark_filament_as_loaded() {
+    // set_filament_type possibly modifies the filament type from PendingAdHoc to AdHoc
+    // and invalidates the PendingAdHoc data.
+    //
+    // Propagate the new filament back to type_to_load so that this function is idempotent
+    // PD-9393
+    const auto filament = config_store().set_filament_type(settings.virtual_tool(), filament::get_type_to_load());
+    filament::set_type_to_load(filament);
+}
+
 void Pause::start_process([[maybe_unused]] Response response) {
     setup_progress_mapper();
 
@@ -572,7 +583,14 @@ void Pause::filament_push_ask_process(Response response) {
 
         if (response == Response::Continue || is_mmu_rework_and_has_filament) {
             set(LoadState::load_to_gears);
-        } else if (!is_unstoppable() && side_fs_empty && extruder_fs_not_working) { // We got to this state because extruder sensor is not working and side sensor triggered autoload (if now sideFS is empty we exit out)
+        } else if (!is_unstoppable() && side_fs_empty && extruder_fs_not_working) {
+            // Extruder sensor unusable and side sensor empty: nothing can signal arrival, so exit
+#if HAS_SIDE_FSENSOR()
+            // Only a manual load needs an explanation; pulling out of an autoload is deliberate
+            if (load_type == LoadType::load) {
+                marlin_server::set_warning(WarningType::ExtruderFSensorNotReady);
+            }
+#endif
             set(LoadState::stop);
         }
     }
@@ -580,8 +598,15 @@ void Pause::filament_push_ask_process(Response response) {
 
 void Pause::await_filament_process([[maybe_unused]] Response response) {
     setPhase(is_unstoppable() ? PhasesLoadUnload::AwaitingFilament_unstoppable : PhasesLoadUnload::AwaitingFilament_stoppable);
-    // If EXTRUDER sensor is not assigned or not working, or if the user fails to insert filament in time, show Warning and quit loading.
-    if (!FSensors_instance().is_working(LogicalFilamentSensor::extruder) || (!is_unstoppable() && ticks_diff(ticks_ms(), start_time_ms) > 10 * 60 * 1000)) {
+#if HAS_SIDE_FSENSOR()
+    // Arrival at the gears can't be detected without the extruder sensor
+    if (!FSensors_instance().is_working(LogicalFilamentSensor::extruder)) {
+        marlin_server::set_warning(WarningType::ExtruderFSensorNotReady);
+        set(LoadState::stop);
+        return;
+    }
+#endif
+    if (!is_unstoppable() && ticks_diff(ticks_ms(), start_time_ms) > 10 * 60 * 1000) {
         marlin_server::set_warning(WarningType::FilamentLoadingTimeout);
         set(LoadState::stop);
         return;
@@ -770,8 +795,9 @@ void Pause::purge_process([[maybe_unused]] Response response) {
 
     planner.synchronize(); // Finish any pending moves before starting the purge
 
-    const auto old_filament = config_store().get_filament_type(settings.virtual_tool());
-    config_store().set_filament_type(settings.virtual_tool(), filament::get_type_to_load());
+    // Warning: purge_process can get called multiple times during a load thanks to PURGE MORE
+    // mark_filament_as_loaded must be idempotent
+    mark_filament_as_loaded();
 
 #if HAS_NOZZLE_CLEANER()
     const bool purge_ok = nozzle_cleaner_purge_sequence();
@@ -779,7 +805,6 @@ void Pause::purge_process([[maybe_unused]] Response response) {
     const bool purge_ok = standard_purge_sequence();
 #endif
     if (!purge_ok) {
-        config_store().set_filament_type(settings.virtual_tool(), old_filament);
         return;
     }
 
@@ -913,22 +938,17 @@ void Pause::color_correct_ask_process(Response response) {
 
 void Pause::mmu_load_start_process([[maybe_unused]] Response response) {
     if (load_type == LoadType::load) {
-        if (!MMU2::mmu2.load_filament_to_nozzle(settings.mmu_filament_to_load)) {
+        if (!MMU2::mmu2.load_filament_to_nozzle(settings.virtual_tool().to_raw())) {
             // TODO tell user that he has already loaded filament if he really wants to continue
             // TODO check fsensor .. how should I behave if filament is not detected ???
             // some error?
             set(LoadState::load_finalize);
             return;
         }
-        config_store().set_filament_type(VirtualToolIndex::from_raw(settings.mmu_filament_to_load), filament::get_type_to_load());
+        mark_filament_as_loaded();
 
         set(LoadState::color_correct_ask);
     } else if (load_type == LoadType::filament_change) {
-        if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
-            set(LoadState::load_finalize);
-            return;
-        }
-
         setPhase(PhasesLoadUnload::LoadFilamentIntoMMU);
         set(LoadState::mmu_load_ask);
     }
@@ -943,13 +963,8 @@ void Pause::mmu_load_ask_process(Response response) {
 }
 
 void Pause::mmu_load_process([[maybe_unused]] Response response) {
-    if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
-        set(LoadState::load_finalize);
-        return;
-    }
-
-    MMU2::mmu2.load_filament(settings.mmu_filament_to_load);
-    MMU2::mmu2.load_filament_to_nozzle(settings.mmu_filament_to_load);
+    MMU2::mmu2.load_filament(settings.virtual_tool().to_raw());
+    MMU2::mmu2.load_filament_to_nozzle(settings.virtual_tool().to_raw());
 
     set(LoadState::color_correct_ask);
 }
@@ -958,17 +973,20 @@ void Pause::mmu_unload_start_process([[maybe_unused]] Response response) {
     if (load_type == LoadType::unload) {
         MMU2::mmu2.unload();
         set(LoadState::_finished);
+
     } else if (load_type == LoadType::filament_change) {
-        settings.mmu_filament_to_load = MMU2::mmu2.get_current_tool();
+        const auto virtual_tool = VirtualToolIndex::currently_selected_opt();
 
         // No filament loaded in MMU, we can't continue, as we don't know what slot to load
-        if (settings.mmu_filament_to_load == MMU2::FILAMENT_UNKNOWN) {
+        if (!virtual_tool.has_value()) {
             set(LoadState::unload_finish_or_change);
             return;
         }
 
+        settings.virtual_tool_ = *virtual_tool;
+
         MMU2::mmu2.unload();
-        MMU2::mmu2.eject_filament(settings.mmu_filament_to_load);
+        MMU2::mmu2.eject_filament(virtual_tool->to_raw());
         set(LoadState::unload_finish_or_change);
     }
 
@@ -1079,6 +1097,13 @@ void Pause::load_finalize_process(Response) {
             mapi::park(mapi::get_parking_position(mapi::ParkPosition::park).without_z_move());
         }
     }
+#endif
+
+#if HAS_ANFC()
+    buddy::openprinttag::filament_usage_tracker().flush({
+        .tools = settings.virtual_tool(),
+        .warn_on_failure = false,
+    });
 #endif
 
     set(LoadState::_finished);
@@ -1598,7 +1623,8 @@ void Pause::park_nozzle_and_notify() {
     const float target_Z = park.resolve_z(current_position.z);
 
     // Initial retract before move to filament change position
-    if (!thermalManager.tooColdToExtrude(active_extruder)) {
+    const auto tool = PhysicalToolIndex::currently_selected_opt();
+    if (tool.has_value() && !thermalManager.tooColdToExtrude(tool.value())) {
         mapi::retract_to(-settings.retract, standard_feedrates::extruder(standard_feedrates::Extruder::retract, FilamentType::for_current_tool_heuristic()));
     }
 
@@ -1741,15 +1767,26 @@ void Pause::filament_change(const pause::Settings &settings_, std::optional<Load
     }
 
     if (did_pause_print) {
+        log_info(MarlinServer, "filament_change() aborted: already paused.");
         return; // already paused
     }
 
     // Restore target temperatures, otherwise targetTooColdToExtrude would return true
     buddy::safety_timer().reset_restore_nonblocking();
 
-    if (!DEBUGGING(DRYRUN) && settings.unload_length && thermalManager.targetTooColdToExtrude(settings.virtual_tool().to_physical())) {
-        SERIAL_ECHO_MSG(MSG_ERR_HOTEND_TOO_COLD);
-        return; // unable to reach safe temperature
+    if (!DEBUGGING(DRYRUN) && settings.unload_length && thermalManager.targetTooColdToExtrude(settings.physical_tool())) {
+        // try to set target temp based on current filament
+        const FilamentType loaded = FilamentType::for_tool_heuristic(settings.virtual_tool());
+        if (loaded) {
+            const auto temp = loaded.parameters().nozzle_temperature;
+            thermalManager.setTargetHotend(temp, settings.physical_tool());
+        }
+        // recheck temp, in case .nozzle_temperature is still too cold
+        if (thermalManager.targetTooColdToExtrude(settings.physical_tool())) {
+            log_info(MarlinServer, "filament_change() aborted: Temp too low and unable to get filament");
+            SERIAL_ECHO_MSG(MSG_ERR_HOTEND_TOO_COLD);
+            return; // unable to reach safe temperature
+        }
     }
 
     // Lock filament sensor, so it does not enqueue new M600, beacuse of filament run out

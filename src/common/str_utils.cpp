@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
-#include <cinttypes>
 #include <string_view_utf8.hpp>
+#include <bsod/bsod.h>
 
 RectTextLayout::RectTextLayout(StringReaderUtf8 &reader, uint16_t max_cols, uint16_t max_rows, is_multiline multiline) {
     if (max_cols == 0 || max_rows == 0) {
@@ -110,13 +110,15 @@ from_chars_light_result from_chars_light_common(const char *first, const char *l
     }
     std::copy(first, last, buffer.begin());
     buffer[len] = '\0'; // make sure there is ending zero, to avoid strtoi reading beyond the buffer
-    char *out_end = nullptr;
+    char *out_end_buf = nullptr;
     errno = 0;
-    auto value_res = strtox_func(buffer.data(), &out_end, base);
+    auto value_res = strtox_func(buffer.data(), &out_end_buf, base);
+
+    const char *out_end = first + (out_end_buf - buffer.begin());
     if (errno != 0) {
         return { out_end, std::errc::result_out_of_range };
     }
-    if (out_end == buffer.data()) {
+    if (out_end == first) {
         return { out_end, std::errc::invalid_argument };
     }
     if (value_res < std::numeric_limits<T>::min() || value_res > std::numeric_limits<T>::max()) {
@@ -196,10 +198,20 @@ from_chars_light_result from_chars_light(const char *first, const char *last, fl
     }
     std::copy(first, last, buffer.begin());
     buffer[len] = '\0'; // make sure there is ending zero, to avoid strtoi reading beyond the buffer
-    char *out_end = nullptr;
-    value = std::strtof(buffer.data(), &out_end);
-    if (out_end == buffer.data()) {
+    char *out_end_buf = nullptr;
+    value = std::strtof(buffer.data(), &out_end_buf);
+
+    const char *out_end = first + (out_end_buf - buffer.begin());
+
+    if (out_end == first) {
         return { first, std::errc::invalid_argument };
     }
     return { out_end, std::errc {} };
+}
+
+uint16_t RectTextLayout::compute_line_count(const string_view_utf8 &text, uint16_t max_cols) {
+    StringReaderUtf8 reader { text };
+    const RectTextLayout layout { reader, max_cols, MaxLines, is_multiline::yes };
+    debug_assert(!layout.has_text_overflown());
+    return layout.get_line_count();
 }

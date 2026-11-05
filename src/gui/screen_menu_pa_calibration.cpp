@@ -19,7 +19,7 @@ static constexpr std::array<const char *, 3> auto_pa_labels { N_("Off"), N_("Aut
 MI_AUTO_PA_MODE::MI_AUTO_PA_MODE()
     : MenuItemSwitch(_("Auto PA"), auto_pa_labels, config_store().auto_pa_mode.get()) {}
 void MI_AUTO_PA_MODE::OnChange([[maybe_unused]] size_t old_index) {
-    config_store().auto_pa_mode.set(get_index());
+    config_store().auto_pa_mode.set(current_item());
 }
 void MI_AUTO_PA_MODE::Loop() {
     set_current_item(config_store().auto_pa_mode.get());

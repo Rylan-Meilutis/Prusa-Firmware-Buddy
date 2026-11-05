@@ -87,10 +87,6 @@ int mkdir(const char *path, mode_t mode) {
     return 0;
 }
 
-void get_SFN_path(char *path) {
-    // Stays intact
-}
-
 void get_SFN_path_copy(const char *lfn, char *sfn_out, size_t size) {
     strlcpy(sfn_out, lfn, size);
 }
@@ -105,7 +101,7 @@ void sys_mutex_lock(sys_mutex_t *mutex) {
 void sys_mutex_unlock(sys_mutex_t *mutex) {
 }
 
-void lwip_platform_assert(const char *message, const char *file, int line) {
+void lwip_platform_assert(void) {
 }
 
 void wui_lwip_assert_core_locked() {

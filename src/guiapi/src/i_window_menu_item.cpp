@@ -1,7 +1,4 @@
-/**
- * @file i_window_menu_item.cpp
- */
-
+/// @file
 #include "i_window_menu_item.hpp"
 #include "cmath_ext.h"
 #include "gui_invalidate.hpp"
@@ -11,6 +8,14 @@
 #include <gui/event/touch_event.hpp>
 #include <option/development_items.h>
 #include <bsod/bsod.h>
+
+// UNITTESTS run on x64, which has higher sizeof(void*), and the check does not match
+#ifndef UNITTESTS
+
+// Make sure this highly used base class does not grow in size
+static_assert(sizeof(IWindowMenuItem) == 24);
+
+#endif
 
 namespace window_menu_item_private {
 
@@ -81,8 +86,8 @@ IWindowMenuItem::IWindowMenuItem(const string_view_utf8 &label, Rect16::Width_t 
     : label(label)
     , hidden((uint8_t)hidden)
     , enabled(enabled)
-    , show_disabled_extension(show_disabled_extension_t::yes)
     , extension_width(extension_width_)
+    , show_disabled_extension(show_disabled_extension_t::yes)
     , id_icon(id_icon) {
 }
 
@@ -321,12 +326,12 @@ void IWindowMenuItem::Print(Rect16 rect) {
 
 void IWindowMenuItem::printIcon(Rect16 icon_rect, ropfn raster_op, Color color_back) const {
     if (id_icon) {
-        render_icon_align(icon_rect, id_icon, color_back, icon_flags(Align_t::Center(), raster_op));
+        render_icon_align(icon_rect, id_icon, color_back, Align_t::Center(), raster_op);
     }
 }
 
 void IWindowMenuItem::printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const {
-    render_icon_align(extension_rect, &img::arrow_right_10x16, color_back, color_text, icon_flags(Align_t::Center(), raster_op));
+    render_icon_align(extension_rect, &img::arrow_right_10x16, color_back, color_text, Align_t::RightCenter(), raster_op);
 }
 
 void IWindowMenuItem::Click(IWindowMenu &window_menu) {

@@ -28,7 +28,8 @@ class ToolSensorDisplayWatchdogTests(unittest.TestCase):
             source[end:])
         gui = (root / "src/gui/guimain.cpp").read_text()
         loop = gui[gui.index(
-            "while (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done))"):]
+            "while (!TaskDeps::check(TaskDeps::Tasks::bootstrap_screen_done))"
+        ):]
         self.assertLess(
             loop.index("ScreenSplash::check_bootstrap_progress();"),
             loop.index("gui_bare_loop();"))

@@ -4,9 +4,9 @@
 ; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
 ;
 [subrepo]
-	remote = git@github.com:prusa3d/OpenPrintTag.git
+	remote = git@github.com:OpenPrintTag/openprinttag-specification.git
 	branch = main
-	commit = 15cb2d5ce9a9271cb3ffd2397c93e9752213101a
-	parent = d6c15af9c23f7051f7068df975ed818d620c1441
+	commit = 2f64e19166e33bee0845d757cd03bcf06b86b292
+	parent = fcccaa10c62d0e399210bc7aabb14c868e3c5a33
 	method = merge
 	cmdver = 0.4.9

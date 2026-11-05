@@ -2,6 +2,7 @@
 #include "ScreenHandler.hpp"
 #include "screen_messages.hpp"
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 #include "WindowMenuSpin.hpp"
 #include "window_msgbox.hpp"
 #include <feature/filament_sensor/filament_sensors_handler.hpp>
@@ -11,14 +12,11 @@
     #include "ScreenSelftest.hpp"
 #endif
 
-#include "screen_menu_mmu_load_test_filament.hpp"
-#include "screen_menu_mmu_eject_filament.hpp"
-#include "screen_menu_mmu_cut_filament.hpp"
-#include "screen_menu_mmu_load_to_nozzle.hpp"
 #include "screen/screen_menu_mmu_preload_all.hpp"
 #include "screen_menu_filament_changeall.hpp"
 
 #include <config_store/store_instance.hpp>
+#include <utils/string_builder.hpp>
 #include <feature/prusa/MMU2/mmu2_mk4.h>
 #include <gui/screen_printer_setup.hpp>
 #include <MItem_tools.hpp>
@@ -38,49 +36,44 @@ void MI_MMU_PRELOAD::click(IWindowMenu & /*window_menu*/) {
 
 /**********************************************************************************************/
 // MI_MMU_LOAD_TEST_FILAMENT
-MI_MMU_LOAD_TEST_FILAMENT::MI_MMU_LOAD_TEST_FILAMENT()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, MMU2::mmu2.Enabled() ? is_hidden_t::no : is_hidden_t::yes, expands_t::yes) {
+MI_MMU_LOAD_TEST_FILAMENT::MI_MMU_LOAD_TEST_FILAMENT() {
+    set_is_hidden(!MMU2::mmu2.Enabled());
 }
-void MI_MMU_LOAD_TEST_FILAMENT::click(IWindowMenu & /*window_menu*/) {
-    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuMMULoadTestFilament>);
+
+void MI_MMU_LOAD_TEST_FILAMENT::click(IWindowMenu &) {
+    static constexpr screen_menu_virtual::Configuration config {
+        .item_count = [] -> int { return VirtualToolIndex::count + 2; },
+        .item_constructor = [](WindowMenuVirtual::ItemVariant &variant, int index) {
+            if (index == 0) {
+                variant.emplace<MI_RETURN>();
+            } else if (index <= VirtualToolIndex::count) {
+                variant.emplace<MI_MMU_LOAD_TEST_FILAMENT_I>(index - 1);
+            } else {
+                variant.emplace<MI_MMU_LOAD_TEST_ALL>();
+            } },
+        .title = N_("Loading Test"),
+    };
+    Screens::Access()->Open(ScreenFactory::ScreenWithArg<ScreenMenuVirtual>(&config));
 }
 
 /**********************************************************************************************/
 // MI_MMU_EJECT_FILAMENT
-MI_MMU_EJECT_FILAMENT::MI_MMU_EJECT_FILAMENT()
-    : IWindowMenuItem(_(label), nullptr,
-        // enable the eject menu only if there is no filament already loaded
-        FSensors_instance().WhereIsFilament() == MMU2::FilamentState::AT_FSENSOR ? is_enabled_t::no : is_enabled_t::yes,
-        is_hidden_t::no, expands_t::yes) {
-}
-void MI_MMU_EJECT_FILAMENT::click(IWindowMenu & /*window_menu*/) {
-    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuMMUEjectFilament>);
+MI_MMU_EJECT_FILAMENT::MI_MMU_EJECT_FILAMENT() {
+    // Ejecting is not possible while filament is loaded all the way to the nozzle
+    set_enabled(FSensors_instance().WhereIsFilament() != MMU2::FilamentState::AT_FSENSOR);
 }
 
 /**********************************************************************************************/
 // MI_MMU_CUT_FILAMENT
-MI_MMU_CUT_FILAMENT::MI_MMU_CUT_FILAMENT()
-    : IWindowMenuItem(_(label), nullptr,
-        FSensors_instance().WhereIsFilament() == MMU2::FilamentState::AT_FSENSOR ? is_enabled_t::no : is_enabled_t::yes,
-        is_hidden_t::no, expands_t::yes) {
-}
-void MI_MMU_CUT_FILAMENT::click(IWindowMenu & /*window_menu*/) {
-    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuMMUCutFilament>);
-}
-
-/**********************************************************************************************/
-// MI_MMU_LOAD_TO_NOZZLE
-MI_MMU_LOAD_TO_NOZZLE::MI_MMU_LOAD_TO_NOZZLE()
-    : IWindowMenuItem(_(label), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {
-}
-void MI_MMU_LOAD_TO_NOZZLE::click(IWindowMenu & /*window_menu*/) {
-    Screens::Access()->Open(ScreenFactory::Screen<ScreenMenuMMULoadToNozzle>);
+MI_MMU_CUT_FILAMENT::MI_MMU_CUT_FILAMENT() {
+    // Cutting is not possible while filament is loaded all the way to the nozzle
+    set_enabled(FSensors_instance().WhereIsFilament() != MMU2::FilamentState::AT_FSENSOR);
 }
 
 /**********************************************************************************************/
 // MI_MMU_ISSUE_GCODE
-MI_MMU_ISSUE_GCODE::MI_MMU_ISSUE_GCODE(const char *lbl, const char *gcode, is_hidden_t hidden)
-    : IWindowMenuItem(_(lbl), nullptr, is_enabled_t::yes, hidden)
+MI_MMU_ISSUE_GCODE::MI_MMU_ISSUE_GCODE(TranslatableString label, const char *gcode, is_hidden_t hidden)
+    : IWindowMenuItem(label, nullptr, is_enabled_t::yes, hidden)
     , gcode(gcode) {
 }
 
@@ -92,22 +85,15 @@ void MI_MMU_ISSUE_GCODE::click(IWindowMenu & /*window_menu*/) {
 
 /**********************************************************************************************/
 // MI_MMU_ITEM_WITH_SLOT
-MI_MMU_ITEM_WITH_SLOT::MI_MMU_ITEM_WITH_SLOT(uint8_t slot_i, const char *label_prefix)
+MI_MMU_ITEM_WITH_SLOT::MI_MMU_ITEM_WITH_SLOT(uint8_t slot_i, TranslatableString label)
     : slot_i_(slot_i) {
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-    std::array<char, 32> translated_prefix;
-    _(label_prefix).copyToRAM(translated_prefix.data(), translated_prefix.size());
-    snprintf(label_.data(), label_.size(), "%s %i", translated_prefix.data(), slot_i + 1);
-    SetLabel(string_view_utf8::MakeRAM(label_.data()));
-#pragma GCC diagnostic pop
+    SetLabel(string_view_utf8(label).formatted(label_params_, slot_i + 1));
 }
 
 /**********************************************************************************************/
 // MI_MMU_ISSUE_GCODE_SLOT_FMT
-MI_MMU_ISSUE_GCODE_SLOT_FMT::MI_MMU_ISSUE_GCODE_SLOT_FMT(uint8_t slot_i, const char *label_prefix, const char *gcode_fmt)
-    : MI_MMU_ITEM_WITH_SLOT(slot_i, label_prefix)
+MI_MMU_ISSUE_GCODE_SLOT_FMT::MI_MMU_ISSUE_GCODE_SLOT_FMT(uint8_t slot_i, TranslatableString label, const char *gcode_fmt)
+    : MI_MMU_ITEM_WITH_SLOT(slot_i, label)
     , gcode_fmt_(gcode_fmt) {
 }
 
@@ -118,23 +104,35 @@ void MI_MMU_ISSUE_GCODE_SLOT_FMT::click(IWindowMenu &) {
 }
 
 /**********************************************************************************************/
-// MI_MMU_ISSUE_LOAD_TO_NOZZLE_SLOT
-MI_MMU_ISSUE_LOAD_TO_NOZZLE_SLOT::MI_MMU_ISSUE_LOAD_TO_NOZZLE_SLOT(uint8_t slot_i, const char *label_prefix)
-    : MI_MMU_ITEM_WITH_SLOT(slot_i, label_prefix) {}
+// MI_MMU_LOAD_TO_NOZZLE_I
+MI_MMU_LOAD_TO_NOZZLE_I::MI_MMU_LOAD_TO_NOZZLE_I(VirtualToolIndex tool)
+    : MI_MMU_ITEM_WITH_SLOT(tool.to_raw(), N_("Load Filament %i")) {
+    filament_type_ = FilamentType::for_tool(tool);
 
-void MI_MMU_ISSUE_LOAD_TO_NOZZLE_SLOT::click(IWindowMenu &) {
-    std::array<char, MAX_CMD_SIZE> gcode;
-    FilamentType f = config_store().get_filament_type(slot_i_);
+    StringBuilder info_sb { info_buffer_ };
+    filament_type_.build_name_with_info(info_sb);
 
-    if (f == FilamentType::none) {
-        // if, for some reason, no filament type is known on a specific slot, we shall omit the S parameter from the M701 gcode
-        // Also, un-preloaded filament slots shall be grayed-out to prevent the user from getting into these edge-cases
-        snprintf(gcode.data(), gcode.size(), "M701 W2 P%i", slot_i_);
-    } else {
-        snprintf(gcode.data(), gcode.size(), "M701 S\"%s\" W2 P%i", f.parameters().name.data(), slot_i_);
-    }
+    extension_ = MenuItemColorSwatchExtension {
+        .text = string_view_utf8::MakeRAM(info_buffer_.data()),
+        .color = filament_type_.parameters().color,
+        .show_null_color = false,
+    };
+    extension_width = extension_.compute_width();
 
-    gui_try_gcode_with_msg(gcode.data());
+    set_enabled(filament_type_ != FilamentType::none);
+}
+
+void MI_MMU_LOAD_TO_NOZZLE_I::printExtension(Rect16 extension_rect, Color color_text, Color color_back, ropfn raster_op) const {
+    (void)color_text;
+    extension_.draw(*this, extension_rect, color_back, raster_op);
+}
+
+void MI_MMU_LOAD_TO_NOZZLE_I::click(IWindowMenu &) {
+    ArrayStringBuilder<MAX_CMD_SIZE> gcode;
+    gcode.append_string("M701 S\"");
+    filament_type_.build_encoded_gcode_param(gcode);
+    gcode.append_printf("\" W2 P%i", slot_i_);
+    gui_try_gcode_with_msg(gcode.str());
 }
 
 /**********************************************************************************************/
@@ -185,7 +183,7 @@ static bool set_mmu_rework(bool set) {
 #if HAS_SELFTEST() && !PRINTER_IS_PRUSA_MK3_5()
     // Invalidate the extruder fsensor calibration
     FilamentSensorCalibrator::Storage storage;
-    GetExtruderFSensor(0)->create_calibrator(storage)->finish();
+    GetExtruderFSensor(PhysicalToolIndex::from_raw(0))->create_calibrator(storage)->finish();
 
     // And start the calibration right away
     marlin_client::gcode("M1981");
@@ -275,7 +273,7 @@ int MI_MMU_NEXTRUDER_REWORK::item_count() const {
     return mmu_rework_items.size();
 }
 
-string_view_utf8 MI_MMU_NEXTRUDER_REWORK::build_item_text(int index, [[maybe_unused]] MenuItemSelectMenu::ItemTextParams &params) const {
+string_view_utf8 MI_MMU_NEXTRUDER_REWORK::build_item_text(int index, [[maybe_unused]] StringViewUtf8ParamBase &params) const {
     return _(mmu_rework_items[index]);
 }
 

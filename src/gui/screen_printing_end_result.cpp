@@ -1,14 +1,17 @@
 #include "screen_printing_end_result.hpp"
 
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <gcode_info.hpp>
 #include <format_print_will_end.hpp>
 #include <img_resources.hpp>
 #include <timing.h>
-#include "mmu2_toolchanger_common.hpp"
 #include "print_time_module.hpp"
-#include <option/has_mmu2.h>
 #include <tool_index.hpp>
+
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
+    #include <feature/prusa/MMU2/mmu2_mk4.h>
+#endif
 
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()

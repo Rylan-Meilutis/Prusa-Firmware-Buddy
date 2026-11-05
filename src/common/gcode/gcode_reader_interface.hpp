@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <utils/abstract_byte_reader.hpp>
@@ -12,6 +13,7 @@
 #include "gcode_reader_restore_info.hpp"
 #include "gcode_reader_result.hpp"
 #include <bsod/bsod.h>
+#include <option/has_e2ee_support.h>
 
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/e2ee.hpp>
@@ -44,6 +46,17 @@ public:
         uint16_t height;
         unsigned long num_bytes;
         ImgType type;
+
+        [[nodiscard]] bool matches(uint16_t expected_width, uint16_t expected_height, ImgType expected_type, bool allow_larger) const {
+            if (type != expected_type) {
+                return false;
+            }
+            if (allow_larger) {
+                return expected_width <= width && expected_height <= height;
+            } else {
+                return expected_width == width && expected_height == height;
+            }
+        }
     };
 
     using StreamRestoreInfo = GCodeReaderStreamRestoreInfo;
@@ -201,6 +214,12 @@ public:
      */
     virtual bool fully_valid() const = 0;
 
+    /// Whether this reader's file handle can see the file up to its final
+    /// size. On littlefs an already open handle doesn't see the file grow as
+    /// it is downloaded. FAT partial files are preallocated, a handle sees
+    /// everything.
+    virtual bool handle_sees_whole_file() const = 0;
+
     /// Returns whether the reader is in an (unrecoverable) error state
     virtual bool has_error() const = 0;
 
@@ -223,8 +242,9 @@ protected:
     // For unittest purposes only.
     GcodeReaderCommon() {}
 
-    GcodeReaderCommon(unique_file_ptr &&f)
-        : file(std::move(f)) {}
+    GcodeReaderCommon(unique_file_ptr &&f, size_t medium_size)
+        : file(std::move(f))
+        , medium_size(medium_size) {}
 
     GcodeReaderCommon(GcodeReaderCommon &&other) = default;
 
@@ -239,6 +259,10 @@ public:
 
     bool fully_valid() const override {
         return !validity.has_value() || validity->fully_valid();
+    }
+
+    bool handle_sees_whole_file() const override {
+        return !validity.has_value() || medium_size >= validity->total_size;
     }
 
     Result_t stream_getc(char &out) override {
@@ -294,6 +318,10 @@ protected:
 
     /// nullopt -> everything available; empty state -> error
     std::optional<transfers::PartialFile::State> validity = std::nullopt;
+
+    /// The size of the file on the medium at the time of open (st_size);
+    /// range_valid() gates reads by it.
+    size_t medium_size = SIZE_MAX;
 
     using stream_getc_type = IGcodeReader::Result_t (IGcodeReader::*)(char &out);
 

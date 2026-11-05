@@ -141,6 +141,17 @@
             }
         },
         {
+            "name": "mini_big_flash",
+            "description": "Special board with a 2MB-flash MCU (STM32F429/F439) and possibly blank OTP for debugging purposes",
+            "cacheVariables": {
+                "PRINTER": "MINI",
+                "SIGNATURE_OAK": "OFF",
+                "BOARD": "BUDDY",
+                "MCU": "STM32F429VI",
+                "ALLOW_MISSING_OTP": true
+            }
+        },
+        {
             "name": "mk4",
             "description": "Original Prusa MK4 with xBuddy 0.2.7c or newer fw compatible, 400-step motors and planetary gearbox",
             "cacheVariables": {
@@ -314,7 +325,8 @@
                 "BOARD": "ANFC",
                 "CAN_BUS_TYPE": "PUB6",
                 "NFC_BOARD_HAS_LEFT_RIGHT_DETECTION_PIN": "YES",
-                "NFC_BOARD_HAS_FILAMENT_SENSORS": "YES"
+                "NFC_BOARD_HAS_FILAMENT_SENSORS": "YES",
+                "HAS_CYPHAL_LOGGING": "YES"
             }
         },
         {
@@ -406,6 +418,14 @@
                 "PRINTER": "XL",
                 "BOARD": "TOOL_OFFSET_SENSOR",
                 "CAN_BUS_TYPE": "PUB6"
+            }
+        },
+        {
+            "name": "xl-htcontroller",
+            "description": "Firmware for HT controller for XL",
+            "cacheVariables": {
+                "PRINTER": "XL",
+                "BOARD": "HTCONTROLLER"
             }
         },
         {

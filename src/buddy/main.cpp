@@ -11,6 +11,7 @@
 #include <buddy/usb_device.hpp>
 #include <bsod/bsod.h>
 #include <common/st25dv64k.h>
+#include <common/otp.hpp>
 #include "usb_host.h"
 #include "buffered_serial.hpp"
 #include "bsod_gui.hpp"
@@ -39,7 +40,7 @@
 #include "timing.h"
 #include <buddy/filesystem.h>
 #include "adc.hpp"
-#include <buddy/logging.h>
+#include <buddy/logging.hpp>
 #include <i2c.hpp>
 #include <option/buddy_enable_connect.h>
 #include <option/has_power_panic.h>
@@ -60,6 +61,9 @@
 #include <option/has_xbuddy_extension.h>
 #include <option/buddy_enable_wui.h>
 #include <option/has_touch.h>
+#if HAS_TOUCH()
+    #include <hw/touchscreen/touchscreen.hpp>
+#endif
 #include <option/has_nfc.h>
 #include <option/has_i2c_expander.h>
 #if HAS_I2C_EXPANDER() && BOARD_IS_XBUDDY()
@@ -67,6 +71,10 @@
 #endif
 #include <option/has_local_accelerometer.h>
 #include <option/has_cpu_fan.h>
+#include <option/has_ht_hotend.h>
+#if HAS_HT_HOTEND()
+    #include <hotend_detect.hpp>
+#endif
 #include "tasks.hpp"
 #include <appmain.hpp>
 #include "safe_state.h"
@@ -162,6 +170,7 @@ void iwdg_warning_cb(void);
 /// Keep task control blocks together and away from stacks.
 struct TaskControlBlock {
     StaticTask_t marlin;
+    StaticTask_t usb_device;
 #if HAS_POWER_PANIC()
     StaticTask_t acfault;
 #endif
@@ -190,6 +199,7 @@ struct TaskStack {
 #else
     uint32_t marlin[buddy::task_stack_requirements::marlin_words];
 #endif
+    uint32_t usb_device[640];
 #if HAS_POWER_PANIC()
     // The complete AC-fault logging/notification path needs more than the
     // historical 80 words. An overflow here corrupts the adjacent task TCB.
@@ -272,9 +282,10 @@ static void resources_update() {
 }
 
 // Initializes static variables of singletons which are accessed from ISRs (requires locking a mutex)
-// Note: Hotend/Tool initialization is NOT done here — it is deferred to after ADC init
-// to allow hotend model detection from ADC readings.
+// Note: Hotend/Tool initialization is NOT done here — Marlin setup() does it, once the hotend
+// type is settled.
 static void init_isr_statics() {
+    (void)otp_get_bom_id(); // Parses the OTP into a static
     EMotorStallDetector::Instance();
     Fans::print(PhysicalToolIndex::from_raw(0));
     Fans::heat_break(PhysicalToolIndex::from_raw(0));
@@ -288,8 +299,8 @@ static void init_isr_statics() {
     Fans::cpu();
 #endif
     sensor_data();
-    GetExtruderFSensor(0);
-    GetSideFSensor(0);
+    GetExtruderFSensor(PhysicalToolIndex::from_raw(0));
+    GetSideFSensor(PhysicalToolIndex::from_raw(0));
     Sound::getInstance();
 }
 
@@ -325,13 +336,19 @@ extern "C" void main_cpp(void) {
     // Required time is at least 6us. We use 2ms to force pause of at least 1ms
     freertos::delay(2);
 
-    // Initialize tool/hotend AFTER the ADC is ready — on HT-capable builds the
-    // LocalHotend ctor reads the ADC to detect the NTC vs PT1000 hotend.
-    // ISR ordering (BFW-8126): Hotend is accessed from the Marlin temperature ISR, so
-    // it must be constructed before that ISR is armed — it is, the temperature timer is
-    // started in Temperature::init() on the marlin task (created below). The ADC IRQ
-    // enabled just above never touches Hotend (it only fills the DMA buffer the ISR reads).
-    Hotend::for_tool(PhysicalToolIndex::from_raw(0));
+#if RTT_METRICS_ENABLED()
+    // Started here rather than at the end of this function, where the other tasks are, because it
+    // is a consumer and its producers are already running: the ADC samples from now on, while
+    // networking -- which the old placement waited for -- comes up much later. Started that late,
+    // the queues simply overflow across the whole of boot. It depends on nothing but FreeRTOS and
+    // SEGGER, both of which are up.
+    create_task("rtt_metrics", rtt_metrics_task, TASK_PRIORITY_RTT_METRICS_TASK, task_stack.rtt_metrics, task_control_block.rtt_metrics);
+#endif
+
+#if HAS_HT_HOTEND()
+    // The type is settled later by hotend_detect::resolve() in Marlin setup.
+    hotend_detect::classify_early();
+#endif
 
 #if PRINTER_IS_PRUSA_XL()
     // Read Sandwich hw revision
@@ -355,6 +372,8 @@ extern "C" void main_cpp(void) {
 #endif
 
     hw_tim14_init();
+
+    hw_rtc_init();
 
     const bool want_error_screen = (dump_is_valid() && !dump_is_displayed()) || (message_is_valid() && message_get_type() != MsgType::EMPTY && !message_is_displayed());
 
@@ -385,6 +404,9 @@ extern "C" void main_cpp(void) {
         const auto &error = find_error(ErrCode::WARNING_DIFFERENT_FW_REQUIRED);
         crash_dump::force_save_message_without_dump(crash_dump::MsgType::FATAL_WARNING, static_cast<uint16_t>(error.err_code), error.err_text, error.err_title);
         hwio_safe_state();
+    #if HAS_HT_HOTEND()
+        hotend_detect::init_skipped();
+    #endif
         init_error_screen();
         return;
     }
@@ -418,6 +440,9 @@ extern "C" void main_cpp(void) {
      */
     if (want_error_screen) {
         hwio_safe_state();
+#if HAS_HT_HOTEND()
+        hotend_detect::init_skipped();
+#endif
         init_error_screen();
 
 #if BUDDY_ENABLE_WUI() && BUDDY_ENABLE_CONNECT()
@@ -431,9 +456,6 @@ extern "C" void main_cpp(void) {
         //
         // block esp in tester mode (redscreen probably shouldn't happen on tester, but better safe than sorry)
         if (!running_in_tester_mode() && config_store().connect_enabled.get()) {
-            TaskDeps::components_init();
-            // Needed for certificate verification
-            hw_rtc_init();
             // Needed for SSL random data
             hw_rng_init();
 
@@ -452,8 +474,7 @@ extern "C" void main_cpp(void) {
     }
     bsod_mark_shown(); // BSOD would be shown, allow new BSOD dump
 
-    logging_init();
-    TaskDeps::components_init();
+    buddy::logging_init();
 
 #if BOARD_IS_BUDDY() || BOARD_IS_XBUDDY()
     hw_tim3_init();
@@ -499,7 +520,6 @@ extern "C" void main_cpp(void) {
     }
 #endif
 
-    hw_rtc_init();
     hw_rng_init();
 
 #if HAS_ESP()
@@ -533,7 +553,7 @@ extern "C" void main_cpp(void) {
         // XFLASH dump and power-panic data, since it is not relevant anymore
         dump_reset();
 #if HAS_POWER_PANIC()
-        power_panic::reset();
+        power_panic::reset_state();
 #endif
     }
 
@@ -558,7 +578,7 @@ extern "C" void main_cpp(void) {
     }
 #endif
 
-    usb_device_init();
+    create_task("usb_device", usb_device_task_run, TASK_PRIORITY_USB_DEVICE, task_stack.usb_device, task_control_block.usb_device);
 
 #if ENABLED(RESOURCES())
     resources_update();
@@ -610,10 +630,6 @@ extern "C" void main_cpp(void) {
     TaskDeps::wait(TaskDeps::Tasks::syslog);
     logging::syslog_reconfigure();
     metrics_reconfigure();
-
-#if RTT_METRICS_ENABLED()
-    create_task("rtt_metrics", rtt_metrics_task, TASK_PRIORITY_RTT_METRICS_TASK, task_stack.rtt_metrics, task_control_block.rtt_metrics);
-#endif
 }
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
@@ -639,6 +655,11 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) {
     if (hspi == spi_handle_flash) {
         SpiFlashBus::instance().on_error();
     }
+#if HAS_LOCAL_ACCELEROMETER()
+    if (hspi == spi_handle_accelerometer) {
+        prusa_accelerometer_handle_spi_error();
+    }
+#endif
 }
 
 void HAL_SPI_TxRxCpltCallback([[maybe_unused]] SPI_HandleTypeDef *hspi) {
@@ -693,8 +714,7 @@ extern "C" void idle_callback() {
 }
 
 void init_error_screen() {
-#if HAS_TOUCH
-    // #error dead code found by automatic analyses (see BFW-5461)
+#if HAS_TOUCH()
     touchscreen.disable_till_reset();
 #endif
 

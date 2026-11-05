@@ -29,7 +29,12 @@ CommunicationStatus XlCan::ping(PuppyModbus &bus) {
 }
 
 CommunicationStatus XlCan::initial_scan(PuppyModbus &bus) {
-    return ping(bus);
+    Lock lock(mutex);
+    cyphal_node_table.invalidate();
+    return aggregate_communication_status({
+        refresh_input(bus, 0),
+        refresh_cyphal_node_table(bus),
+    });
 }
 
 CommunicationStatus XlCan::refresh_input(PuppyModbus &bus, uint32_t max_age) {
@@ -48,6 +53,7 @@ CommunicationStatus XlCan::refresh_input(PuppyModbus &bus, uint32_t max_age) {
     case CommunicationStatus::ERROR:
         status_valid.store(false);
         flash.invalidate();
+        cyphal_node_table.invalidate();
         break;
     case CommunicationStatus::SKIPPED:
         break;
@@ -84,6 +90,7 @@ CommunicationStatus XlCan::refresh(PuppyModbus &bus) {
             lock.lock();
         }),
         cyphal_bridge.refresh(bus, modbus::ServerAddress::xl_can),
+        refresh_cyphal_node_table(bus),
     });
 }
 
@@ -134,6 +141,15 @@ CommunicationStatus XlCan::set_modular_bed_reset(PuppyModbus &bus, bool nreset) 
     return refresh_holding(bus);
 }
 
+CommunicationStatus XlCan::refresh_cyphal_node_table(PuppyModbus &bus) {
+    // Caller holds `mutex`.
+    if (status_valid) {
+        return cyphal_node_table.refresh(bus, modbus::ServerAddress::xl_can, status.value.cyphal_node_table_sequence);
+    } else {
+        return CommunicationStatus::SKIPPED;
+    }
+}
+
 CommunicationStatus XlCan::refresh_holding(PuppyModbus &bus) {
     // Caller holds `mutex`.
     const auto write = [&](uint16_t &dst, const uint16_t val) {
@@ -167,6 +183,15 @@ uint8_t XlCan::get_flash_progress_percent() const {
     return flash.progress_percent();
 }
 
+xbuddy_extension::FileId XlCan::get_flash_file_id() const {
+    Lock lock(mutex);
+    return flash.get_flash_file_id();
+}
+
 XlCan xl_can;
+
+const CyphalNodeTableHost &cyphal_node_table() {
+    return xl_can.cyphal_node_table;
+}
 
 } // namespace buddy::puppies

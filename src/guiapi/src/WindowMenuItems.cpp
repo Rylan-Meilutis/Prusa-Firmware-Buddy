@@ -15,7 +15,7 @@ MI_RETURN::MI_RETURN()
 
 void MI_RETURN::click(IWindowMenu &window_menu) {
     window_menu.Validate(); /// don't redraw since we leave the menu
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }
 
 MI_EXIT::MI_EXIT()
@@ -24,7 +24,7 @@ MI_EXIT::MI_EXIT()
 
 void MI_EXIT::click(IWindowMenu &window_menu) {
     window_menu.Validate(); /// don't redraw since we leave the menu
-    Screens::Access()->Close();
+    Screens::Access()->close_screen_or_dialog();
 }
 
 WI_ICON_SWITCH_OFF_ON_t::WI_ICON_SWITCH_OFF_ON_t(bool value, const string_view_utf8 &label, const img::Resource *id_icon, is_enabled_t enabled, is_hidden_t hidden)
@@ -55,5 +55,5 @@ void WI_ICON_SWITCH_OFF_ON_t::click(IWindowMenu &) {
 }
 
 void WI_ICON_SWITCH_OFF_ON_t::printExtension(Rect16 extension_rect, [[maybe_unused]] Color color_text, Color color_back, ropfn raster_op) const {
-    render_icon_align(extension_rect, (value_ ^ invert_value_) ? &img::switch_on_36x18 : &img::switch_off_36x18, color_back, { Align_t::Center(), raster_op });
+    render_icon_align(extension_rect, (value_ ^ invert_value_) ? &img::switch_on_36x18 : &img::switch_off_36x18, color_back, Align_t::Center(), raster_op);
 }

@@ -21,6 +21,8 @@
 namespace automatic_chamber_vents {
 namespace {
 
+    static constexpr auto approach_feedrate = feedRate_t(XY_PROBE_FEEDRATE_MM_S); ///< Moves that do not touch the lever
+
     /// The following constants define key positions for controlling a vent lever.
     /// These coordinates are absolute in the printer's coordinate system.
 #if HAS_INDX()
@@ -28,15 +30,6 @@ namespace {
     static constexpr auto VENT_DOCK = PhysicalToolIndex::from_raw(3); // T4
     static constexpr auto vent_feedrate = feedRate_t(60.0f); ///< 60 mm/s (G0 F3600)
     static constexpr float vent_travel_accel_mm_s2 = 1000.0f; ///< M204 T1000
-    #if PRINTER_IS_PRUSA_COREONE()
-    static constexpr auto DOCK_FRONT_X = 108.0f; ///< X of dock 4 — sequences assume they start aligned here
-    static constexpr auto DOCK_FRONT_Y = 0.f; ///< Safe Y line in front of docks
-    #elif PRINTER_IS_PRUSA_COREONEL()
-    static constexpr auto DOCK_FRONT_X = 130.0f; ///< X of dock 4 — sequences assume they start aligned here
-    static constexpr auto DOCK_FRONT_Y = 0.f; ///< Safe Y line in front of docks
-    #else
-        #error
-    #endif
 #elif PRINTER_IS_PRUSA_COREONE()
     static constexpr auto Y_SAFE = -3.f; ///< Safe Y line with no risk of coming in contact with lever
     static constexpr auto Y_LEVER = -18.f; ///< In line with the lever
@@ -63,73 +56,68 @@ namespace {
     /// @brief Plans a move to a new X-axis coordinate.
     /// @param x The target X-axis position.
     /// @param feedrate The speed of the move in mm/s.
-    void plan_to_x(float x, feedRate_t feedrate = feedRate_t(XY_PROBE_FEEDRATE_MM_S)) {
-        xyze_pos_t xyz = current_position;
-        xyz.x = x;
-        prepare_move_to(xyz, feedrate, {});
+    void plan_to_x(float x, feedRate_t feedrate) {
+        prepare_move_to(current_position.with_x(x), feedrate, {});
     }
 
     /// @brief Plans a move to a new Y-axis coordinate.
     /// @param y The target Y-axis position.
     /// @param feedrate The speed of the move in mm/s.
-    void plan_to_y(float y, feedRate_t feedrate = feedRate_t(XY_PROBE_FEEDRATE_MM_S)) {
-        xyze_pos_t xyz = current_position;
-        xyz.y = y;
-        prepare_move_to(xyz, feedrate, {});
+    void plan_to_y(float y, feedRate_t feedrate) {
+        prepare_move_to(current_position.with_y(y), feedrate, {});
     }
 
     /// @brief Plans a move to a new XY coordinate.
-    [[maybe_unused]] void plan_to_xy(float x, float y, feedRate_t feedrate = feedRate_t(XY_PROBE_FEEDRATE_MM_S)) {
-        xyze_pos_t xyz = current_position;
-        xyz.x = x;
-        xyz.y = y;
-        prepare_move_to(xyz, feedrate, {});
+    [[maybe_unused]] void plan_to_xy(float x, float y, feedRate_t feedrate) {
+        prepare_move_to(current_position.with_xy(x, y), feedrate, {});
     }
 
 #if HAS_INDX()
     void open_vents_move_sequence() {
     #if PRINTER_IS_PRUSA_COREONE()
-        plan_to_y(0.0f, vent_feedrate);
-        plan_to_x(123.0f, vent_feedrate);
+        plan_to_y(0.0f, approach_feedrate);
+        plan_to_x(123.0f, approach_feedrate);
         plan_to_y(-7.0f, vent_feedrate);
         plan_to_xy(120.0f, -7.5f, vent_feedrate);
         plan_to_x(115.0f, vent_feedrate);
         plan_to_x(117.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
     #elif PRINTER_IS_PRUSA_COREONEL()
-        plan_to_y(0.0f, vent_feedrate);
-        plan_to_x(149.0f, vent_feedrate);
-        plan_to_y(-16.5f, vent_feedrate);
-        plan_to_xy(146.0f, -17.0f, vent_feedrate);
-        plan_to_x(142.0f, vent_feedrate);
-        plan_to_x(144.0f, vent_feedrate);
+        plan_to_y(0.0f, approach_feedrate);
+        plan_to_x(153.0f, approach_feedrate);
+        plan_to_y(-10.0f, vent_feedrate);
+        plan_to_xy(147.0f, -16.0f, vent_feedrate);
+        plan_to_x(140.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
     #endif
     }
 
     void close_vents_move_sequence() {
     #if PRINTER_IS_PRUSA_COREONE()
+        plan_to_y(0.0f, approach_feedrate);
+        plan_to_x(108.0f, approach_feedrate);
         plan_to_y(-11.5f, vent_feedrate);
         // Complete the slide stroke before backing away from the lever.
         plan_to_x(118.0f, vent_feedrate);
         plan_to_x(115.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
     #elif PRINTER_IS_PRUSA_COREONEL()
-        plan_to_x(134.0f, vent_feedrate);
-        plan_to_y(-17.0f, vent_feedrate);
-        plan_to_x(144.0f, vent_feedrate);
-        plan_to_x(142.0f, vent_feedrate);
+        plan_to_y(0.0f, approach_feedrate);
+        plan_to_x(127.0f, approach_feedrate);
+        plan_to_y(-10.0f, vent_feedrate);
+        plan_to_xy(133.0f, -16.0f, vent_feedrate);
+        plan_to_x(145.0f, vent_feedrate);
         plan_to_y(0.0f, vent_feedrate);
     #endif
     }
 #else
     void switch_lever(VentState wanted_state) {
         // Move to a safe Y-axis position to avoid the lever.
-        plan_to_y(Y_SAFE);
+        plan_to_y(Y_SAFE, approach_feedrate);
         // Move to a horizontal position (left or right) of the lever.
-        plan_to_x(wanted_state == VentState::open ? X_OPEN_START_POS : X_CLOSE_START_POS);
+        plan_to_x(wanted_state == VentState::open ? X_OPEN_START_POS : X_CLOSE_START_POS, approach_feedrate);
         // Move into the lever's Y-axis line.
-        plan_to_y(Y_LEVER);
+        plan_to_y(Y_LEVER, approach_feedrate);
         // Move horizontally to engage the lever and switch it.
         const auto lever_end_pos = wanted_state == VentState::open ? X_OPEN_END_POS : X_CLOSE_END_POS;
         const auto start_pos = wanted_state == VentState::open ? X_OPEN_START_POS : X_CLOSE_START_POS;
@@ -138,7 +126,7 @@ namespace {
         // Move horizontally to release the lever tension
         plan_to_x(wanted_state == VentState::open ? X_OPEN_END_POS + X_LEVER_MOVE_AWAY : X_CLOSE_END_POS - X_LEVER_MOVE_AWAY, lever_move_feedrate);
         // Back out to the safe Y-axis position to avoid a collision on future moves.
-        plan_to_y(Y_SAFE);
+        plan_to_y(Y_SAFE, approach_feedrate);
     }
 #endif
 
@@ -148,20 +136,11 @@ namespace {
     bool execute_indx_vent_lever(bool open) {
         prusa_toolchanger.pick_tool_out_of_dock(VENT_DOCK);
 
-        // Approach dock 4 at default travel speed — Y to the safe front-of-docks line first,
-        // then X, so we don't slowly cross other docks during the reduced-accel sequence.
-        plan_to_y(DOCK_FRONT_Y);
-        plan_to_x(DOCK_FRONT_X);
-
-        // Reduce travel acceleration for the lever interaction.
-        const auto saved_travel_acceleration = planner.settings.travel_acceleration;
-        auto apply_accel = [](float v) {
-            auto s = planner.user_settings;
-            s.travel_acceleration = v;
-            planner.apply_settings(s);
-        };
-        apply_accel(vent_travel_accel_mm_s2);
-        ScopeGuard restore_accel = [&] { apply_accel(saved_travel_acceleration); };
+        // Make lever moves independent of print-time M203/M204, then lower travel accel.
+        Temporary_Reset_Motion_Parameters motion_params_guard;
+        auto vent_settings = planner.user_settings;
+        vent_settings.travel_acceleration = vent_travel_accel_mm_s2;
+        planner.apply_settings(vent_settings);
 
         if (open) {
             open_vents_move_sequence();

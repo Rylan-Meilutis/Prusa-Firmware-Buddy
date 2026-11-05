@@ -1,6 +1,7 @@
 #include "MItem_tools.hpp"
 #include "img_resources.hpp"
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 #include "marlin_server.hpp"
 #include "gui.hpp"
 #include "time_helper.hpp"
@@ -33,6 +34,7 @@
 #include "connect/marlin_printer.hpp"
 #include <crash_dump/dump.hpp>
 #include <transfers/monitor.hpp>
+#include <utils/algorithm_extensions.hpp>
 #include <feature/prusa/e-stall_detector.h>
 #include <option/bootloader.h>
 #include <option/filament_sensor.h>
@@ -51,6 +53,7 @@
 #include <footer_items_heaters.hpp>
 #include <footer_line.hpp>
 #include <freertos/critical_section.hpp>
+#include <utils/enum_array.hpp>
 #include <utils/string_builder.hpp>
 #include <netdev.h>
 #include <wui.h>
@@ -93,6 +96,10 @@
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/e2ee.hpp>
 #endif // HAS_E2EE_SUPPORT()
+
+#if HAS_TOOL_MAPPING()
+    #include <feature/tool_mapping/tool_mapping_preset.hpp>
+#endif
 
 namespace {
 
@@ -137,6 +144,10 @@ void MI_FILAMENT_SENSOR::update() {
     set_value(config_store().fsensor_enabled.get());
 }
 
+void MI_FILAMENT_SENSOR::Loop() {
+    update();
+}
+
 void MI_FILAMENT_SENSOR::OnChange(size_t old_index) {
     // Enabling/disabling FS can generate gcodes (I'm looking at you, MMU!).
     // Fail the action if there's no space in the queue.
@@ -152,9 +163,6 @@ void MI_FILAMENT_SENSOR::OnChange(size_t old_index) {
         FSensors_instance().set_enabled_global(false);
         set_value(old_index > 0);
     }
-
-    // Signal to the parent to check for changed
-    Screens::Access()->Get()->WindowEvent(nullptr, GUI_event_t::CHILD_CLICK, nullptr);
 }
 
 /*****************************************************************************/
@@ -280,7 +288,7 @@ MI_NOZZLE_CLEANER_CAPACITY::MI_NOZZLE_CLEANER_CAPACITY()
     : MenuItemSwitch(_(label), nozzle_cleaner_capacity_items, static_cast<size_t>(config_store().nozzle_cleaner_extended_capacity.get())) {}
 
 void MI_NOZZLE_CLEANER_CAPACITY::OnChange(size_t /*old_index*/) {
-    config_store().nozzle_cleaner_extended_capacity.set(get_index() == 1);
+    config_store().nozzle_cleaner_extended_capacity.set(current_item() == 1);
 }
 
 static constexpr NumericInputConfig nozzle_cleaner_pause_threshold_config = {
@@ -465,7 +473,7 @@ MI_SOUND_MODE::MI_SOUND_MODE()
 }
 
 void MI_SOUND_MODE::OnChange(size_t /*old_index*/) {
-    sound::set_mode(static_cast<SoundMode>(get_index()));
+    sound::set_mode(static_cast<SoundMode>(current_item()));
 }
 
 /*****************************************************************************/
@@ -479,7 +487,7 @@ MI_SOUND_VOLUME::MI_SOUND_VOLUME()
     : WiSpin(static_cast<uint8_t>(sound::get_volume()), sound_volume_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
 
 void MI_SOUND_VOLUME::OnClick() {
-    sound::set_volume(static_cast<int>(GetVal()));
+    sound::set_volume(static_cast<int>(value()));
 }
 
 /*****************************************************************************/
@@ -512,7 +520,7 @@ static constexpr NumericInputConfig timezone_spin_config = {
 MI_TIMEZONE::MI_TIMEZONE()
     : WiSpin(config_store().timezone.get(), timezone_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {}
 void MI_TIMEZONE::OnClick() {
-    int8_t timezone = static_cast<int8_t>(GetVal());
+    int8_t timezone = static_cast<int8_t>(value());
     config_store().timezone.set(timezone);
 }
 
@@ -531,7 +539,7 @@ MI_TIMEZONE_MIN::MI_TIMEZONE_MIN()
 }
 
 void MI_TIMEZONE_MIN::OnChange([[maybe_unused]] size_t old_index) {
-    config_store().timezone_minutes.set(static_cast<time_tools::TimezoneOffsetMinutes>(get_index()));
+    config_store().timezone_minutes.set(static_cast<time_tools::TimezoneOffsetMinutes>(current_item()));
 }
 
 /*****************************************************************************/
@@ -557,7 +565,7 @@ MI_TIME_FORMAT::MI_TIME_FORMAT()
 }
 
 void MI_TIME_FORMAT::OnChange([[maybe_unused]] size_t old_index) {
-    config_store().time_format.set(static_cast<time_tools::TimeFormat>(get_index()));
+    config_store().time_format.set(static_cast<time_tools::TimeFormat>(current_item()));
 }
 
 /*****************************************************************************/
@@ -613,7 +621,7 @@ MI_PRINT_PROGRESS_TIME::MI_PRINT_PROGRESS_TIME()
         config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::no) {
 }
 void MI_PRINT_PROGRESS_TIME::OnClick() {
-    config_store().print_progress_time.set(static_cast<uint16_t>(GetVal()));
+    config_store().print_progress_time.set(static_cast<uint16_t>(value()));
 }
 
 MI_ODOMETER_DIST::MI_ODOMETER_DIST(const string_view_utf8 &label, const img::Resource *icon, is_enabled_t enabled, is_hidden_t hidden, float initVal)
@@ -868,7 +876,7 @@ void MI_FOOTER_RESET::click([[maybe_unused]] IWindowMenu &window_menu) {
     Screens::Access()->ScreenEvent(nullptr, GUI_event_t::REINIT_FOOTER, footer::encode_item_for_event(footer::Item::none));
 
     // close this menu, because it is no longer valid and needs to be redrawn
-    Screens::Access()->Close();
+    Screens::Access()->close_screen();
 }
 
 static constexpr const char *heatup_bed_values[] = {
@@ -882,6 +890,43 @@ MI_FILAMENT_CHANGE_PREHEAT_ALL::MI_FILAMENT_CHANGE_PREHEAT_ALL()
 void MI_FILAMENT_CHANGE_PREHEAT_ALL::OnChange(size_t old_index) {
     config_store().filament_change_preheat_all.set(!old_index);
 }
+
+#if HAS_TOOL_MAPPING()
+static constexpr EnumArray<ToolMappingPreset, const char *, ToolMappingPreset::_cnt, enum_array::AllowWeakIndexing::no> tool_mapping_preset_names {
+    { ToolMappingPreset::smart_without_colors, N_("Smart") },
+    { ToolMappingPreset::direct, N_("Direct") },
+    { ToolMappingPreset::empty, N_("Empty") },
+    { ToolMappingPreset::smart_with_colors, N_("Smart+Color") },
+};
+
+/// Presets in GUI order
+static constexpr std::array tool_mapping_preset_list {
+    ToolMappingPreset::smart_without_colors,
+    ToolMappingPreset::smart_with_colors,
+    ToolMappingPreset::direct,
+    ToolMappingPreset::empty,
+};
+static_assert(tool_mapping_preset_list.size() == std::to_underlying(ToolMappingPreset::_cnt));
+
+MI_TOOL_MAPPING_PRESET::MI_TOOL_MAPPING_PRESET()
+    : MenuItemSelectMenu(_("Default Tool Mapping")) //
+{
+    set_current_item(stdext::index_of(tool_mapping_preset_list, default_tool_mapping_preset()));
+}
+
+int MI_TOOL_MAPPING_PRESET::item_count() const {
+    return static_cast<int>(tool_mapping_preset_list.size());
+}
+
+string_view_utf8 MI_TOOL_MAPPING_PRESET::build_item_text(int index, [[maybe_unused]] StringViewUtf8ParamBase &params) const {
+    return _(tool_mapping_preset_names[tool_mapping_preset_list[index]]);
+}
+
+bool MI_TOOL_MAPPING_PRESET::on_item_selected(const OnItemSelectedArgs &args) {
+    config_store().tool_mapping_preset.set(std::to_underlying(tool_mapping_preset_list[args.new_index]));
+    return true;
+}
+#endif
 
 MI_SET_READY::MI_SET_READY()
     : IWindowMenuItem(_(label), &img::set_ready_16x16, connect_client::MarlinPrinter::is_printer_ready() ? is_enabled_t::no : is_enabled_t::yes, is_hidden_t::no) {
@@ -1114,7 +1159,7 @@ MI_SIDE_LEDS_DIMMING_ENABLE::MI_SIDE_LEDS_DIMMING_ENABLE()
     : MenuItemSwitch(_(label), dimming_enabled_values, std::to_underlying(leds::SideStripHandler::instance().get_dimming_enabled())) {
 }
 void MI_SIDE_LEDS_DIMMING_ENABLE::OnChange([[maybe_unused]] size_t old_index) {
-    leds::SideStripHandler::instance().set_dimming_enabled(static_cast<leds::DimmingEnabled>(get_index()));
+    leds::SideStripHandler::instance().set_dimming_enabled(static_cast<leds::DimmingEnabled>(current_item()));
 }
 #endif
 
@@ -1181,7 +1226,7 @@ MI_CHAMBER_LIGHT_MODE::MI_CHAMBER_LIGHT_MODE()
     : MenuItemSwitch(_("Chamber Light"), std::span(chamber_mode_labels).first(leds::SideStripHandler::instance().chamber_print_active() ? 2 : 3), leds::SideStripHandler::instance().chamber_mode()) {}
 
 void MI_CHAMBER_LIGHT_MODE::OnChange([[maybe_unused]] size_t old_index) {
-    leds::SideStripHandler::instance().set_chamber_mode(get_index());
+    leds::SideStripHandler::instance().set_chamber_mode(current_item());
 }
 
 void MI_CHAMBER_LIGHT_MODE::Loop() {
@@ -1466,7 +1511,7 @@ MI_EXTERNAL_LIGHT_BAR_PIN_MODE::MI_EXTERNAL_LIGHT_BAR_PIN_MODE(uint8_t pin)
 }
 
 void MI_EXTERNAL_LIGHT_BAR_PIN_MODE::OnChange([[maybe_unused]] size_t old_index) {
-    if (!leds::external_light_bar::set_pin_mode(pin, static_cast<leds::external_light_bar::OutputMode>(get_index()))) {
+    if (!leds::external_light_bar::set_pin_mode(pin, static_cast<leds::external_light_bar::OutputMode>(current_item()))) {
         set_current_item(mode_to_index(pin));
         return;
     }
@@ -1539,7 +1584,7 @@ MI_DISPLAY_BAUDRATE::MI_DISPLAY_BAUDRATE()
 }
 
 void MI_DISPLAY_BAUDRATE::OnChange(size_t) {
-    config_store().reduce_display_baudrate.set(get_index());
+    config_store().reduce_display_baudrate.set(current_item());
 }
 #endif
 

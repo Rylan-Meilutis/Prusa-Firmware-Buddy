@@ -10,8 +10,6 @@
 
 namespace NScreenMenuFilamentSensors {
 
-static constexpr size_t toolhead_count = HOTENDS;
-
 class MI_RestoreDefaults final : public IWindowMenuItem {
     static constexpr const char *label = N_("Restore Defaults");
 
@@ -23,52 +21,36 @@ protected:
 };
 
 class IMI_AnySensor : public WI_ICON_SWITCH_OFF_ON_t {
-    // We need a buffer to store the formatted string
-    // because the label_base needs to go through snprintf
-    std::array<char, 32> label;
-
-public:
-    /// Update enable value/enable state
-    void update();
 
 protected:
-    IMI_AnySensor(uint8_t sensor_index, bool is_side, const char *label_base);
+    IMI_AnySensor(uint8_t sensor_index, bool is_side);
 
     void OnChange(size_t) final;
+    void Loop() final;
 
     const uint8_t sensor_index;
     const bool is_side;
-};
 
-class IMI_ExtruderSensor : public IMI_AnySensor {
-    static constexpr const char *label_base = N_("Toolhead Filament Sensor");
+private:
+    /// Sync the value and the enable state with the config store
+    void update();
 
-protected:
-    inline IMI_ExtruderSensor(uint8_t sensor_index)
-        : IMI_AnySensor(sensor_index, false, label_base) {}
+    StringViewUtf8Parameters<3> label_params_;
 };
 
 template <size_t sensor_index_>
-class MI_ExtruderSensor final : public IMI_ExtruderSensor {
+class MI_ExtruderSensor final : public IMI_AnySensor {
 public:
     MI_ExtruderSensor()
-        : IMI_ExtruderSensor(sensor_index_) {}
+        : IMI_AnySensor(sensor_index_, false) {}
 };
 
 #if HAS_SIDE_FSENSOR()
-class IMI_SideSensor : public IMI_AnySensor {
-    static constexpr const char *label_base = N_("Side Filament Sensor");
-
-protected:
-    inline IMI_SideSensor(uint8_t sensor_index)
-        : IMI_AnySensor(sensor_index, true, label_base) {}
-};
-
 template <size_t sensor_index_>
-class MI_SideSensor final : public IMI_SideSensor {
+class MI_SideSensor final : public IMI_AnySensor {
 public:
     MI_SideSensor()
-        : IMI_SideSensor(sensor_index_) {}
+        : IMI_AnySensor(sensor_index_, true) {}
 };
 #endif
 
@@ -87,7 +69,7 @@ struct MenuBase_<std::index_sequence<i...>> {
         MI_RestoreDefaults>;
 };
 
-using MenuBase = MenuBase_<std::make_index_sequence<toolhead_count>>::T;
+using MenuBase = MenuBase_<std::make_index_sequence<PhysicalToolIndex::count>>::T;
 
 } // namespace NScreenMenuFilamentSensors
 
@@ -96,7 +78,4 @@ class ScreenMenuFilamentSensors final : public NScreenMenuFilamentSensors::MenuB
 
 public:
     ScreenMenuFilamentSensors();
-
-protected:
-    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 };

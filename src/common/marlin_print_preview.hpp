@@ -1,16 +1,14 @@
-/**
- * @file marlin_print_preview.hpp
- * @brief state machine for print preview
- */
+/// @file
 #pragma once
+
 #include "client_response.hpp"
-#include <module/prusa/tool_mapper.hpp>
 #include <marlin_events.h>
 #include <bitset>
 #include "gcode_info.hpp"
 #include <option/has_mmu2.h>
 #include <option/has_tool_mapping.h>
 #include <option/has_wastebin_fill_tracking.h>
+#include <option/has_e2ee_support.h>
 #include <async_job/async_job.hpp>
 #include <inplace_function.hpp>
 #include <fsm/print_preview_phases.hpp>
@@ -43,8 +41,7 @@ public:
 
 #if HAS_WASTEBIN_FILL_TRACKING()
         wastebin_overfill_wait_user, ///< bin projected to overfill
-        wastebin_emptying, ///< M1986 is parking and dropping the bed, before the empty-the-bin prompt
-        wastebin_emptied_returning, ///< the bin has been emptied, M1986 is on its way back
+        wastebin_emptying, ///< waiting for M1986, which brings its own screens
 #endif
 
         filament_not_inserted_wait_user,

@@ -9,6 +9,9 @@ enum class PhasesPreheat : PhaseUnderlyingType {
     user_temp_selection,
 
 #if HAS_ANFC()
+    /// Wait screen while communicating with the OPT
+    loading_openprinttag,
+
     /// Asks the user to load the data from OpenPrintTag
     ask_load_openprinttag,
 
@@ -31,7 +34,8 @@ inline constexpr EnumArray<PhasesPreheat, PhaseResponses, PhasesPreheat::_cnt> p
     { PhasesPreheat::user_temp_selection, { Response::Abort, Response::Cooldown } },
 
 #if HAS_ANFC()
-        { PhasesPreheat::ask_load_openprinttag, { Response::Yes, Response::No, Response::Always, Response::Never } },
+        { PhasesPreheat::loading_openprinttag, {} },
+        { PhasesPreheat::ask_load_openprinttag, { Response::Yes, Response::No } },
         { PhasesPreheat::openprinttag_parameters, {} },
 #endif
 };

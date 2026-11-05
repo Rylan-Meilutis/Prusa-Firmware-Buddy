@@ -15,7 +15,6 @@ namespace marlin_server {
 /// marlin_client -> marlin_server request
 struct Request {
     enum class Type : uint8_t {
-        EventMask,
         Gcode,
         Inject,
         GcodeInterrupt,
@@ -31,8 +30,7 @@ struct Request {
     };
 
     union {
-        uint64_t event_mask = 0; // Type::EventMask
-        int cancel_object_id; // Type::CancelObjectID/Type::UncancelObjectID
+        int cancel_object_id = 0; // Type::CancelObjectID/Type::UncancelObjectID
         struct {
             uintptr_t variable;
             union {
@@ -44,7 +42,7 @@ struct Request {
             uint64_t test_mask;
             selftest::TestData test_data;
         } test_start; // Type::TestStart
-        char gcode[MARLIN_MAX_REQUEST + 1]; // Type::Gcode
+        char gcode[MARLIN_MAX_REQUEST]; // Type::Gcode
         InjectQueueRecord inject; // Type::Inject
         GCodeLiteral gcode_interrupt; // Type::GcodeInterrupt
         float babystep; // Type::Babystep

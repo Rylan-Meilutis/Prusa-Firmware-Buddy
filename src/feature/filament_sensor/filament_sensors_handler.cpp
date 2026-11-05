@@ -9,7 +9,8 @@
 #include <tasks.hpp>
 #include <logging/log.hpp>
 #include <marlin_server.hpp>
-#include <option/has_crash_detection.h>
+#include <common/marlin_vars.hpp>
+#include <bsod/bsod.h>
 #include <option/has_selftest.h>
 #include <option/has_mmu2.h>
 #include <option/has_indx.h>
@@ -19,22 +20,24 @@
     #include <Marlin/src/module/prusa/toolchanger.h>
 #endif
 
-#include <stdio.h>
-
-#include "str_utils.hpp"
-
 #include <option/has_gui.h>
-#include <bsod/bsod.h>
 #if HAS_GUI()
     #include <window_msgbox.hpp>
 #endif
 
+#include <option/has_mmu2.h>
 #if HAS_MMU2()
     #include "../../lib/Marlin/Marlin/src/feature/prusa/MMU2/mmu2_mk4.h"
 #endif
 
+#include <option/has_crash_detection.h>
 #if HAS_CRASH_DETECTION()
     #include <feature/prusa/crash_recovery.hpp>
+#endif
+
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <feature/openprinttag/tool_tag.hpp>
 #endif
 
 LOG_COMPONENT_DEF(FSensor, logging::Severity::info);
@@ -71,7 +74,7 @@ bool FilamentSensors::gui_wait_for_init_with_msg() {
     const auto any_fsensor_in_state
         = [&](FilamentSensorState state) {
               uint8_t result = 0;
-              for_all_sensors([&](IFSensor &s, [[maybe_unused]] uint8_t index, bool is_side) {
+              for_all_sensors([&](IFSensor &s, [[maybe_unused]] PhysicalToolIndex tool, bool is_side) {
                   if (s.get_state() == state) {
                       result |= is_side ? f_side : f_extruder;
                   }
@@ -105,13 +108,13 @@ bool FilamentSensors::gui_wait_for_init_with_msg() {
 }
 #endif
 
-void FilamentSensors::for_all_sensors(const stdext::inplace_function<void(IFSensor &sensor, uint8_t index, bool is_side)> &f) {
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (IFSensor *s = GetExtruderFSensor(e)) {
-            f(*s, e, false);
+void FilamentSensors::for_all_sensors(const stdext::inplace_function<void(IFSensor &sensor, PhysicalToolIndex tool, bool is_side)> &f) {
+    for (auto tool : PhysicalToolIndex::all()) {
+        if (IFSensor *s = GetExtruderFSensor(tool)) {
+            f(*s, tool, false);
         }
-        if (IFSensor *s = GetSideFSensor(e)) {
-            f(*s, e, true);
+        if (IFSensor *s = GetSideFSensor(tool)) {
+            f(*s, tool, true);
         }
     }
 }
@@ -139,7 +142,7 @@ void FilamentSensors::step() {
     }
 
     // Run cycle to evaluate state of all sensors (even those not active)
-    for_all_sensors([](IFSensor &s, uint8_t, bool) {
+    for_all_sensors([](IFSensor &s, PhysicalToolIndex, bool) {
         if (s.is_enabled()) {
             s.cycle();
         }
@@ -241,9 +244,15 @@ void FilamentSensors::process_events() {
 
         m600_sent = true;
 
-        marlin_server::gcode_interrupt(GCodeLiteral { .gcode = "M600 A" }); // change filament
+        const auto tool = VirtualToolIndex::currently_selected_opt();
 
-        log_info(FSensor, "Injected runout");
+        if (tool.has_value()) {
+            marlin_server::gcode_interrupt(GCodeLiteral { .gcode = "M600 A P T%.0f", .parameter = static_cast<float>(tool->to_raw()) });
+            log_info(FSensor, "Injected runout for T: %u", tool->to_raw());
+        } else {
+            return false;
+        }
+
         return true;
     };
 
@@ -277,8 +286,18 @@ void FilamentSensors::process_events() {
 
         autoload_sent = true;
 
-        // autoload with return option and minimal Z value of 40mm
-        marlin_server::inject(GCodeLiteral { .gcode = "M1701 Z%.2f", .parameter = Z_AXIS_LOAD_POS });
+#if HAS_ANFC()
+        const auto opt_uid_hash = buddy::openprinttag::autoload_auto_assign_tool_tag_hash.load();
+        const auto opt_tag = VirtualToolIndex::currently_selected_opt().and_then(buddy::openprinttag::ToolTag::for_tool_ephemeral);
+        if (opt_tag.has_value() && opt_tag->uid_hash() == opt_uid_hash) {
+            // Make sure we don't lose any data when casting to float
+            static_assert(std::numeric_limits<float>::digits >= std::numeric_limits<decltype(opt_uid_hash)>::digits);
+            marlin_server::inject(GCodeLiteral { .gcode = "M1701 G%.0f", .parameter = (float)opt_uid_hash });
+        } else
+#endif
+        {
+            marlin_server::inject(GCodeLiteral { .gcode = "M1701" });
+        }
 
         log_info(FSensor, "Injected autoload");
 
@@ -325,14 +344,9 @@ void FilamentSensors::process_enable_state_update() {
     enable_state_update_processing = true;
     enable_state_update_pending = false;
 
-    for (int8_t e = 0; e < HOTENDS; e++) {
-        if (IFSensor *s = GetExtruderFSensor(e)) {
-            s->set_enabled(should_enable(s->id()));
-        }
-        if (IFSensor *s = GetSideFSensor(e)) {
-            s->set_enabled(should_enable(s->id()));
-        }
-    }
+    for_all_sensors([](IFSensor &s, PhysicalToolIndex, bool) {
+        s.set_enabled(should_enable(s.id()));
+    });
 
 #if HAS_MMU2()
     if (config_store().mmu2_enabled.get() && !config_store().fsensor_enabled.get()) {
@@ -395,16 +409,6 @@ FilamentState FilamentSensors::WhereIsFilament() {
 FilamentSensors &FSensors_instance() {
     static FilamentSensors ret;
     return ret;
-}
-
-bool hasActiveFilamentSensor(uint8_t index) {
-    const auto side_sensor = GetSideFSensor(index);
-    const auto ext_sensor = GetExtruderFSensor(index);
-
-    const auto side_ok = is_fsensor_working_state(side_sensor);
-    const auto ext_ok = is_fsensor_working_state(ext_sensor);
-
-    return side_ok || ext_ok;
 }
 
 bool should_enable(FilamentSensorID id) {

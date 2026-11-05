@@ -9,6 +9,7 @@
 #include <utils/color.hpp>
 #include <option/has_indx.h>
 #include <option/has_mmu2.h>
+#include <option/has_ht_hotend.h>
 #include <option/has_gcode_compatibility.h>
 #include <option/has_chamber_vents.h>
 #include <common/filament.hpp>
@@ -38,6 +39,20 @@ inline constexpr const char *filament_wipe_tower_g = "total filament used for wi
 #endif
 inline constexpr const char *printer = "printer_model";
 inline constexpr const char *m862 = "M862";
+
+// M862.6 feature tokens, spelled as the slicer emits them in P"...". Shared with the
+// M862.6 Q response, which must answer in the same spelling it accepts.
+inline constexpr const char *m862_6_input_shaper = "Input Shaper";
+#if HAS_MMU2()
+inline constexpr const char *m862_6_mmu = "MMU3";
+#endif
+#if HAS_INDX()
+inline constexpr const char *m862_6_indx_lock = "INDX lock";
+#endif
+#if HAS_HT_HOTEND()
+inline constexpr const char *m862_6_ht_hotend = "HT Hotend";
+#endif
+
 inline constexpr const char *m115 = "M115";
 inline constexpr const char *m555 = "M555";
 inline constexpr const char *m486 = "M486";
@@ -74,7 +89,7 @@ public:
         CompactOptional<float, NAN> filament_used_mm; /**< stores how much filament will be used for this print (distance) */
         CompactOptional<float, NAN> nozzle_diameter; /**< stores diameter of nozzle*/
 
-        CompactOptional<Color, COLOR_NONE> extruder_colour; /**< stores colour of extruder*/
+        OptionalColor extruder_colour; /**< stores colour of extruder*/
         FilamentTypeParameters::Name filament_name; /**< stores string representation of filament type */
 
         // Tristate::other represents std::nullopt/data not present in the gcode
@@ -119,6 +134,9 @@ private:
         bool sliced_with_input_shaper_ = false; ///< True if gcode was sliced with input shaper
 #if HAS_INDX()
         bool sliced_with_indx_lock_ = false; ///< True if gcode was sliced with INDX lock support
+#endif
+#if HAS_HT_HOTEND()
+        bool sliced_for_ht_hotend_ = false; ///< True if gcode declares it needs the high-temperature hotend
 #endif
         bool has_preview_thumbnail_ = false; ///< True if gcode has preview thumbnail
         bool has_progress_thumbnail_ = false; ///< True if gcode has progress thumbnail

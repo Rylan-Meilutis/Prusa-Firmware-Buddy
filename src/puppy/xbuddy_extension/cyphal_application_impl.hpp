@@ -46,22 +46,6 @@ static const Bytes dummy_parameter = std::as_bytes(std::span { dummy_parameter_s
 
 namespace cyphal {
 
-/// For now, there is a one-to-one correspondence; this may be extended with
-/// different hardware revisions of the same logical node in the future.
-inline FirmwareFile get_firmware_file_for_node_name(NodeName node_name) {
-    switch (node_name) {
-    case NodeName::none:
-        break;
-    case NodeName::cz_prusa3d_honeybee_ac_controller:
-        return FirmwareFile::firmware_ac_controller;
-    case NodeName::cz_prusa3d_honeybee_nfc:
-        return FirmwareFile::firmware_anfc;
-    case NodeName::cz_prusa3d_honeybee_tool_offset_sensor:
-        return FirmwareFile::firmware_tool_offset_sensor;
-    }
-    return FirmwareFile::none;
-}
-
 /// Application layer of the cyphal implementation.
 class ApplicationImpl final : public Application {
 private:
@@ -112,11 +96,60 @@ private:
         // The request on modbus.
         ModbusRequest modbus_request;
 
+        std::optional<NodeId> hash_node;
         FirmwareFile hash_request = FirmwareFile::none;
         FirmwareFile hash_response = FirmwareFile::none;
         uint32_t hash_salt = 0;
         std::array<std::byte, 32> hash_digest;
         xbuddy_extension::DigestStatus hash_status = xbuddy_extension::DigestStatus::unavailable;
+
+        [[nodiscard]] bool request_hash(NodeId node_id, FirmwareFile file, uint32_t salt) {
+            if (file == FirmwareFile::none) {
+                // Nothing to ask for; claiming would only hold up the others.
+                return false;
+            }
+
+            if (hash_request != FirmwareFile::none) {
+                // The parent has to answer before the exchange reopens.
+                return false;
+            }
+
+            if (hash_node && *hash_node != node_id) {
+                // Somebody else has not read their answer yet.
+                return false;
+            }
+
+            hash_response = FirmwareFile::none;
+            hash_node = node_id;
+            hash_request = file;
+            hash_salt = salt;
+            return true;
+        }
+
+        void release_hash_slot() {
+            hash_node = std::nullopt;
+            hash_request = FirmwareFile::none;
+            hash_response = FirmwareFile::none;
+            hash_salt = {};
+            hash_digest = {};
+            hash_status = xbuddy_extension::DigestStatus::unavailable;
+        }
+
+        [[nodiscard]] bool holds_hash_slot(NodeId node_id) const {
+            return hash_node == node_id;
+        }
+
+        [[nodiscard]] bool release_hash_slot_if_held_by(NodeId node_id) {
+            const bool do_release = holds_hash_slot(node_id);
+            if (do_release) {
+                release_hash_slot();
+            }
+            return do_release;
+        }
+
+        void request_hash_again() {
+            std::swap(hash_request, hash_response);
+        }
 
         void update_modbus_request() {
             modbus_request.hash_request = hash_request;
@@ -196,6 +229,8 @@ private:
         std::array<std::byte, sizeof(xbuddy_extension::modbus::LogMessage::text_data)> text;
     } log_buffer;
 
+    xbuddy_extension::modbus::CyphalNodeTable cyphal_node_table = {};
+
     /// Represents all the info we have/need about the node.
     struct Node {
         UniqueId unique_id;
@@ -208,8 +243,9 @@ private:
         };
         struct Verify {
             uint32_t salt;
-            bool source_requested : 1 = false;
-            bool request_sent : 1 = false;
+            bool salt_valid : 1 = false;
+            bool requested_from_source : 1 = false;
+            bool requested_from_device : 1 = false;
             bool received_from_device : 1 = false;
             bool received_from_source : 1 = false;
             bool matches : 1 = false;
@@ -384,6 +420,15 @@ private:
                 return true;
             }
 
+            if (!heartbeat_valid || !std::holds_alternative<Verify>(state)) {
+                // The digest exchange is ours only for as long as we are able
+                // to verify. Anything else - a lost heartbeat, moving on to
+                // another state - hands it back to whoever is waiting.
+                if (application->filesystem.release_hash_slot_if_held_by(node_id)) {
+                    return true;
+                }
+            }
+
             if (!heartbeat_valid) {
                 // We may have lost the heartbeat, or we may have invalidated it (as
                 // part of restart or start_app commands).
@@ -460,28 +505,26 @@ private:
             case Mode::initialization:
             case Mode::maintenance:
             case Mode::operational: {
-                if (!verify.request_sent) {
-                    // Reserving the source slot and sending the device command
-                    // are separate operations. start_app may still be awaiting
-                    // its acknowledgement, rate-limiting the first hash command.
-                    if (!verify.source_requested) {
-                        if (filesystem.hash_request != FirmwareFile::none) {
-                            return false; // Another node owns the source slot.
-                        }
-                        // Slot is open, let's request hash from the parent system
-                        const auto salt = get_random_salt();
-                        verify.salt = salt;
-                        // Request the hash from the parent system
-                        filesystem.hash_request = get_firmware_file_for_node_name(info.name);
-                        filesystem.hash_salt = salt;
-                        verify.source_requested = true;
+                const bool waiting_for_source = verify.requested_from_source && !verify.received_from_source;
+                if (waiting_for_source && !filesystem.holds_hash_slot(node_id)) {
+                    // The exchange was handed over to somebody else, taking
+                    // our answer with it. Ask both sides again, from scratch.
+                    verify = Verify {};
+                    return true;
+                }
+
+                if (!verify.salt_valid) {
+                    verify.salt = get_random_salt();
+                    verify.salt_valid = true;
+                    return true;
+                }
+
+                if (!verify.requested_from_source && verify.salt_valid) {
+                    if (filesystem.request_hash(node_id, xbuddy_extension::firmware_file_id(info.name), verify.salt)) {
                         presentation.transmit_diagnostic_record(Severity::notice, "hash requested");
+                        verify.requested_from_source = true;
+                        return true;
                     }
-                    // Retry with our original salt even if the motherboard has
-                    // already supplied its digest. Never wait on our own slot.
-                    const bool sent = execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(verify.salt));
-                    verify.request_sent = sent;
-                    return sent;
                 }
 
                 // A single lost ExecuteCommand response must not leave the
@@ -490,28 +533,40 @@ private:
                 // already have arrived. execute_command bounds retransmits to
                 // one per second and the node is still not trusted until both
                 // hashes match and its sensor status has been received.
-                if (!verify.received_from_device && (!last_command_valid || now >= last_command.timepoint + execute_command_timeout)) {
+                if (verify.requested_from_device && !verify.received_from_device && (!last_command_valid || now >= last_command.timepoint + execute_command_timeout)) {
                     return execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(verify.salt));
                 }
 
-                if (!verify.received_from_source) {
+                if (!verify.requested_from_device && verify.salt_valid) {
+                    if (execute_command(presentation, now, node_id, Command::get_app_salted_hash, trivial_as_bytes(verify.salt))) {
+                        verify.requested_from_device = true;
+                        return true;
+                    }
+                }
+
+                if (!verify.requested_from_source || !verify.requested_from_device) {
+                    // Do not continue until both requests have been sent.
+                    return false;
+                }
+
+                if (!verify.received_from_source && verify.salt_valid) {
                     // We are waiting for the digest from the board.
-                    if (filesystem.hash_response == get_firmware_file_for_node_name(info.name) && filesystem.hash_salt == verify.salt) {
+                    if (filesystem.hash_response == xbuddy_extension::firmware_file_id(info.name) && filesystem.hash_salt == verify.salt) {
                         switch (filesystem.hash_status) {
                         case xbuddy_extension::DigestStatus::ok:
                             verify.received_from_source = true;
                             verify.received(filesystem.hash_digest);
                             state = try_activate(application, verify);
                             presentation.transmit_diagnostic_record(Severity::notice, "hash received: ok");
-                            filesystem.hash_request = filesystem.hash_response = FirmwareFile::none;
+                            filesystem.release_hash_slot();
                             break;
                         case xbuddy_extension::DigestStatus::unavailable:
                             state = Inert {};
                             presentation.transmit_diagnostic_record(Severity::warning, "hash received: unavailable");
-                            filesystem.hash_request = filesystem.hash_response = FirmwareFile::none;
+                            filesystem.release_hash_slot();
                             break;
                         case xbuddy_extension::DigestStatus::retry:
-                            std::swap(filesystem.hash_request, filesystem.hash_response);
+                            filesystem.request_hash_again();
                             break;
                         }
                         return true;
@@ -624,7 +679,7 @@ private:
     /// We are the node 0, and we store our own info in the same array.
     /// Node ID itself is not stored in the structure and is implicitly
     /// given by its index in the array.
-    std::array<Node, 16> nodes = {};
+    std::array<Node, xbuddy_extension::cyphal_node_count> nodes = {};
 
     /// Return Node structure corresponding to given node_id or nullptr
     /// if there is none such node.
@@ -689,7 +744,7 @@ private:
                             // Give up on this node, try looking into the next one.
                             continue;
                         } else {
-                            filesystem.file = get_firmware_file_for_node_name(node.info.name);
+                            filesystem.file = xbuddy_extension::firmware_file_id(node.info.name);
                         }
                         filesystem.eof = false;
                         filesystem.delayed_update = true;
@@ -728,6 +783,7 @@ private:
                 read_size = std::min(read_size, filesystem.buffer.size());
             }
             if (filesystem.buffer.try_read(buf, read_size)) {
+                filesystem.read_offset += read_size;
                 presentation.transmit_file_read_response(NodeId { *filesystem.current_node }, *flash->transfer_id, { buf, read_size });
                 filesystem.last_activity = now;
                 // This chunk got sent, but the flashing continues, we expect we'll get another request.
@@ -768,6 +824,13 @@ public:
     /// Step internal state machine.
     /// Return true if the state machine made progress.
     bool step(Presentation &presentation, TimePoint now) final {
+        const bool progress = step_state_machines(presentation, now);
+        update_cyphal_node_table();
+        return progress;
+    }
+
+private:
+    bool step_state_machines(Presentation &presentation, TimePoint now) {
         if (application_step(presentation, now)) {
             return true;
         }
@@ -784,6 +847,25 @@ public:
         return false;
     }
 
+    void update_cyphal_node_table() {
+        bool changed = false;
+        for (size_t i = 0; i < nodes.size(); ++i) {
+            const Node &node = nodes[i];
+            const uint16_t entry = xbuddy_extension::modbus::serialize_cyphal_node_table_entry({
+                .name = node.info.name,
+                .state = get_node_state(node),
+            });
+            if (cyphal_node_table.nodes[i] != entry) {
+                cyphal_node_table.nodes[i] = entry;
+                changed = true;
+            }
+        }
+        if (changed) {
+            ++cyphal_node_table.sequence;
+        }
+    }
+
+public:
     void receive_pnp_allocation(const UniqueId &unique_id) final {
         // Try finding it in the allocation table first.
         for (uint8_t i = 1; i < nodes.size(); ++i) {
@@ -896,31 +978,22 @@ public:
         }
     }
 
-    xbuddy_extension::NodeState get_node_state(NodeName name) const {
+    static xbuddy_extension::NodeState get_node_state(const Node &node) {
         using xbuddy_extension::NodeState;
-        for (const auto &node : nodes) {
-            if (node.info.name != name) {
-                continue;
-            }
-            auto state = match(
-                node.state,
-                [](const ApplicationImpl::Node::NotAllocated &) { return NodeState::unknown; },
-                [](const ApplicationImpl::Node::InitialInfo &) { return NodeState::unknown; },
-                [](const ApplicationImpl::Node::Verify &) { return NodeState::verify; },
-                [](const ApplicationImpl::Node::Flash &) { return NodeState::flash; },
-                [](const ApplicationImpl::Node::AcControllerAlive &alive) {
-                    return alive.ac_controller->seen_status ? NodeState::ready : NodeState::verify;
-                },
-                [](const ApplicationImpl::Node::ToolOffsetSensorAlive &alive) {
-                    return alive.tool_offset_sensor->seen_status ? NodeState::ready : NodeState::verify;
-                },
-                [](const ApplicationImpl::Node::NfcAlive &) { return NodeState::ready; },
-                [](const ApplicationImpl::Node::Inert &) { return NodeState::unknown; });
-            if (state != NodeState::unknown) {
-                return state;
-            }
-        }
-        return NodeState::unknown;
+        return match(
+            node.state,
+            [](const ApplicationImpl::Node::NotAllocated &) { return NodeState::unknown; },
+            [](const ApplicationImpl::Node::InitialInfo &) { return NodeState::unknown; },
+            [](const ApplicationImpl::Node::Verify &) { return NodeState::verify; },
+            [](const ApplicationImpl::Node::Flash &) { return NodeState::flash; },
+            [](const ApplicationImpl::Node::AcControllerAlive &alive) {
+                return alive.ac_controller->seen_status ? NodeState::ready : NodeState::verify;
+            },
+            [](const ApplicationImpl::Node::ToolOffsetSensorAlive &alive) {
+                return alive.tool_offset_sensor->seen_status ? NodeState::ready : NodeState::verify;
+            },
+            [](const ApplicationImpl::Node::NfcAlive &) { return NodeState::ready; },
+            [](const ApplicationImpl::Node::Inert &) { return NodeState::unknown; });
     }
 
     bool receive_chunk(const uint8_t *data, size_t size, bool is_last, uint16_t file_id, uint32_t offset) final {
@@ -990,13 +1063,11 @@ public:
         return true;
     }
 
-    void request_ac_controller(xbuddy_extension::NodeState &node_state, ac_controller::Status &status) final {
-        node_state = get_node_state(NodeName::cz_prusa3d_honeybee_ac_controller);
+    void request_ac_controller(ac_controller::Status &status) final {
         status = ac_controller.status;
     }
 
-    void request_tool_offset_sensor(xbuddy_extension::NodeState &node_state, tool_offset_sensor::Status &status) final {
-        node_state = get_node_state(NodeName::cz_prusa3d_honeybee_tool_offset_sensor);
+    void request_tool_offset_sensor(tool_offset_sensor::Status &status) final {
         status = tool_offset_sensor.status;
     }
 
@@ -1026,6 +1097,10 @@ public:
             .sequence = log_buffer.sequence,
             .text = text.subspan(0, log_buffer.text_size),
         };
+    }
+
+    const xbuddy_extension::modbus::CyphalNodeTable &get_cyphal_node_table() const final {
+        return cyphal_node_table;
     }
 
     void receive_nfc_event(cyphal::NodeId node_id, Bytes data) final {

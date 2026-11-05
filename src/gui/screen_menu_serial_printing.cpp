@@ -23,7 +23,7 @@ MI_SERIAL_PRINT_UI_MODE::MI_SERIAL_PRINT_UI_MODE()
     : MenuItemSwitch(_("Serial Printing UI"), serial_print_ui_mode_items, static_cast<size_t>(SerialPrinting::ui_mode())) {}
 
 void MI_SERIAL_PRINT_UI_MODE::OnChange([[maybe_unused]] size_t old_index) {
-    const auto mode = static_cast<SerialPrintingUiMode>(get_index());
+    const auto mode = static_cast<SerialPrintingUiMode>(current_item());
     config_store().serial_print_ui_mode.set(mode);
     config_store().serial_print_legacy_ui.set(mode == SerialPrintingUiMode::legacy);
 }

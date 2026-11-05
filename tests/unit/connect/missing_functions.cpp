@@ -4,6 +4,7 @@
 #include <common/filepath_operation.h>
 #include <marlin_events.h>
 #include <tool_index.hpp>
+#include <connect/tools.hpp>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
@@ -52,6 +53,15 @@ bool random32bit(uint32_t *output) {
 template <>
 bool VirtualToolIndex::is_enabled() const {
     return true;
+}
+
+template <>
+bool PhysicalToolIndex::is_enabled() const {
+    return true;
+}
+
+PhysicalToolIndex VirtualToolIndexExtension::to_physical() const {
+    return PhysicalToolIndex::from_raw(0);
 }
 
 extern "C" {

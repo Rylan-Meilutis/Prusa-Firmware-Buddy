@@ -13,6 +13,7 @@
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_mmu2.h>
 #include <option/has_e2ee_support.h>
+#include <option/has_internal_storage_flash.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_lights_menu.h>
 #include <img_resources.hpp>
@@ -134,9 +135,6 @@ using MI_PRUSA_CONNECT
 using MI_PRUSALINK
     = MI_SCREEN<N_("PrusaLink"), class ScreenMenuPrusaLink>;
 
-using MI_FOOTER_SETTINGS
-    = MI_SCREEN<N_("Footer"), class ScreenMenuFooterSettings>;
-
 using MI_USER_INTERFACE
     = MI_SCREEN<N_("User Interface"), class ScreenMenuUserInterface>;
 
@@ -152,9 +150,6 @@ using MI_NETWORK_STATUS
 using MI_HARDWARE
     = MI_SCREEN<N_("Hardware"), class ScreenMenuHardware>;
 
-using MI_GCODE_CHECKS
-    = MI_SCREEN<N_("G-Code Checks"), class ScreenMenuGcodeChecks>;
-
 using MI_HELP_FW_UPDATE
     = MI_SCREEN<N_("Firmware Update"), class ScreenHelpFWUpdate, &img::question_16x16>;
 
@@ -165,6 +160,11 @@ using MI_WASTEBIN
 
 using MI_SYSTEM
     = MI_SCREEN<N_("System"), class ScreenMenuSystem>;
+
+#if HAS_INTERNAL_STORAGE_FLASH()
+using MI_INTERNAL_STORAGE
+    = MI_SCREEN<N_("Internal Storage"), class ScreenMenuInternalStorage>;
+#endif
 
 using MI_INFO
     = MI_SCREEN<N_("Info"), class ScreenMenuInfo>;
@@ -225,12 +225,6 @@ using MI_PHASE_STEPPING_SCREEN
     = MI_SCREEN<
         N_("Phase Stepping"),
         class ScreenMenuPhaseStepping>;
-#endif
-
-#if HAS_SHEET_PROFILES()
-
-using MI_STEEL_SHEETS
-    = MI_SCREEN<N_("Steel Sheets"), class ScreenMenuSteelSheets>;
 #endif
 
 #if HAS_FILAMENT_SENSORS_MENU()

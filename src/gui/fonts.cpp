@@ -53,9 +53,9 @@ bool load_external_font_glyph(const font_t *font, const uint32_t glyph, uint8_t 
         int descriptor;
     };
     #if PRINTER_IS_PRUSA_MINI()
-    static ExternalFont fonts[] { { 7, 13, "/internal/res/fonts/7x13.bin", -1 }, { 9, 16, "/internal/res/fonts/9x16.bin", -1 }, { 11, 18, "/internal/res/fonts/11x18.bin", -1 } };
+    static ExternalFont fonts[] { { 7, 13, "/system/res/fonts/7x13.bin", -1 }, { 9, 16, "/system/res/fonts/9x16.bin", -1 }, { 11, 18, "/system/res/fonts/11x18.bin", -1 } };
     #else
-    static ExternalFont fonts[] { { 9, 16, "/internal/res/fonts/9x16.bin", -1 }, { 11, 19, "/internal/res/fonts/11x19.bin", -1 }, { 13, 22, "/internal/res/fonts/13x22.bin", -1 }, { 30, 53, "/internal/res/fonts/30x53.bin", -1 } };
+    static ExternalFont fonts[] { { 9, 16, "/system/res/fonts/9x16.bin", -1 }, { 11, 19, "/system/res/fonts/11x19.bin", -1 }, { 13, 22, "/system/res/fonts/13x22.bin", -1 }, { 30, 53, "/system/res/fonts/30x53.bin", -1 } };
     #endif
     static const ExternalFont *cached_font = nullptr;
     static uint32_t cached_glyph = UINT32_MAX;

@@ -117,7 +117,7 @@ Store &config_store(){static Store store;return store;}
 std::string filament_material_name(Params){return "FLEX";}
 struct Tool {
  int to_physical(){return 6;} int to_raw(){return 4;}
- std::string compact_display_name(int){return "T4";}
+ const char *compact_display_name(){return "T4";}
  operator int() const {return 4;}
 } tool;
 namespace filament_color {
@@ -126,8 +126,9 @@ std::optional<Color> loaded(int slot){assert(slot==4);return current;}
 }
 struct Data {std::string tool_name;std::optional<float> nozzle_diameter;
  std::string filament_name;std::optional<Color> color;};
+struct string_view_utf8 { static std::string MakeRAM(const char *text) {return text;} };
 Data row() {
- Data data; auto *virtual_tool=&tool; int tool_name_buf=0;
+ Data data; auto *virtual_tool=&tool; const char *tool_name=nullptr;
 ''' + block + r'''
  return data;
 }

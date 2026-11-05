@@ -48,6 +48,7 @@ class LIS2DH12Poller {
     std::atomic<bool> hw_good_flag = false;
     std::atomic<bool> overflow_flag = false;
     std::atomic<uint32_t> total_sample_count = 0;
+    std::atomic<uint32_t> spi_error_count = 0;
 
     AtomicCircularQueue<accelerometer::RawAcceleration, unsigned, 32> sample_queue;
 
@@ -72,29 +73,70 @@ class LIS2DH12Poller {
         return reg_stat == HAL_OK && data_stat == HAL_OK ? 0 : -1;
     }
 
-    void async_read_reg_start(uint8_t reg, uint16_t len) {
-        chip_select.write(buddy::hw::Pin::State::high); // Be sure to end any pending transaction
+    [[nodiscard]] bool async_read_reg_start(uint8_t reg, uint16_t len) {
         reg |= 0b11000000; // Set RW and MS bit to force read command and multiple command
         dma_buffer[0] = reg;
         chip_select.write(buddy::hw::Pin::State::low);
-        auto res = HAL_SPI_TransmitReceive_DMA(spi, dma_buffer, dma_buffer, len + 1);
-        if (res != HAL_OK) {
+        if (HAL_SPI_TransmitReceive_DMA(spi, dma_buffer, dma_buffer, len + 1) != HAL_OK) {
+            chip_select.write(buddy::hw::Pin::State::high);
             hw_good_flag = false;
+            return false;
         }
+        return true;
     }
 
+    // A request must only be recorded once the transfer is actually running.
+    // Recording one that never started leaves the chain latched forever: no
+    // completion interrupt will arrive to clear it, and polling_routine() only
+    // issues a new request when the chain is idle.
     void request_status_async() {
-        async_read_reg_start(LIS2DH12_STATUS_REG, 1);
-        pending_request = Request::status;
+        pending_request = async_read_reg_start(LIS2DH12_STATUS_REG, 1) ? Request::status : Request::none;
     }
 
     void request_sample_async() {
-        async_read_reg_start(LIS2DH12_OUT_X_L, 6);
-        pending_request = Request::sample;
+        pending_request = async_read_reg_start(LIS2DH12_OUT_X_L, 6) ? Request::sample : Request::none;
     }
 
     void finalize_async_request_chain() {
         pending_request = Request::none;
+    }
+
+    // Suspends the polling ISR for its lifetime so that the owner can talk to
+    // the chip synchronously. Restoring on every exit path matters: leaving
+    // is_running false keeps the poller stopped even once the hardware is
+    // healthy again. The previous state is restored rather than forced on,
+    // because setup also runs before hw_start() first enables polling.
+    class PollingSuspendGuard {
+        LIS2DH12Poller &poller;
+        const bool was_running;
+
+    public:
+        explicit PollingSuspendGuard(LIS2DH12Poller &poller)
+            : poller { poller }
+            , was_running { poller.is_running } {
+            poller.is_running = false;
+        }
+
+        ~PollingSuspendGuard() {
+            poller.is_running = was_running;
+        }
+
+        PollingSuspendGuard(const PollingSuspendGuard &) = delete;
+        PollingSuspendGuard &operator=(const PollingSuspendGuard &) = delete;
+    };
+
+    // Force the SPI peripheral and both DMA streams back to a usable state.
+    void reset_bus() {
+        // HAL_DMA_Abort() cannot be used here: it rejects any handle that is not
+        // exactly BUSY and returns without touching its state, so it cannot rescue
+        // a stream left stranded by a transfer that never completed. Its own
+        // timeout path parks the handle in HAL_DMA_STATE_TIMEOUT, which neither
+        // Abort nor Start_IT will ever accept again. HAL_DMA_Init() ignores the
+        // entry state and unconditionally ends in READY.
+        chip_select.write(buddy::hw::Pin::State::high);
+        HAL_SPI_Abort(spi);
+        HAL_DMA_Init(spi->hdmarx);
+        HAL_DMA_Init(spi->hdmatx);
     }
 
     bool is_chip_alive() {
@@ -125,8 +167,18 @@ public:
     LIS2DH12Poller &operator=(LIS2DH12Poller &&other) = delete;
 
     bool setup_accelerometer() {
+        // The bus may still be wedged by a transfer that never completed. An
+        // overrun leaves the RX DMA armed for bytes that will never arrive and
+        // raises no error callback, so nothing has cleaned up after it and
+        // everything below would talk over that transfer. Clear the chain only
+        // once the bus is down, so that a poll which slipped through cannot
+        // leave it latched.
+        PollingSuspendGuard suspend { *this };
+        hw_good_flag = false;
+        reset_bus();
+        finalize_async_request_chain();
+
         if (!is_chip_alive()) {
-            hw_good_flag = false;
             return false;
         }
 
@@ -164,7 +216,7 @@ public:
         auto timed_out = [&]() { return ticks_diff(ticks_us(), timeout_base) > TIMEOUT_US; };
 
         // Ensure synchronous comm
-        is_running = false;
+        PollingSuspendGuard suspend { *this };
         while (pending_request != Request::none) {
             if (timed_out()) {
                 hw_good_flag = false;
@@ -192,7 +244,6 @@ public:
         }
 
         clear();
-        is_running = true;
     }
 
     void stop() {
@@ -233,7 +284,7 @@ public:
         // In order to increase precision of the frequency measurement (as we
         // are limited by the frequency of the polling timer), we busy-poll for
         // two samples to get the precise end time.
-        is_running = false;
+        PollingSuspendGuard suspend { *this };
         timeout_base = ticks_us();
         while (pending_request != Request::none) {
             if (!handle_timeout()) {
@@ -260,8 +311,6 @@ public:
                 overflow_flag = true;
             }
         }
-
-        is_running = true;
 
         return total_sample_count / ((end_time - start_time) / 1'000'000.0f);
     }
@@ -291,6 +340,31 @@ public:
         }
     }
 
+    // This routine should be called from the SPI error ISR.
+    //
+    // It completes the failed transfer synchronously. There is nothing to wait
+    // for: HAL has already cleared TXDMAEN/RXDMAEN by the time it calls us, so
+    // an asynchronous HAL_SPI_Abort_IT() would find nothing to abort and invoke
+    // its completion callback inline anyway.
+    //
+    // The chip is left marked as bad so that ensure_setup() reconfigures it
+    // before the next measurement session. Recovering the bus without that
+    // would only latch the chain again on the very next poll.
+    void spi_error_routine() {
+        reset_bus();
+        finalize_async_request_chain();
+        hw_good_flag = false;
+        ++spi_error_count;
+    }
+
+    // Number of SPI errors observed since boot. Sampling is silently lossy
+    // otherwise - HAL_SPI_Abort() in spi_finish_routine() resets the HAL error
+    // code on every successful transfer, so nothing else records that an error
+    // ever happened.
+    uint32_t error_count() const {
+        return spi_error_count;
+    }
+
     // This routine should be called from the SPI TXRX ISR
     void spi_finish_routine() {
         chip_select.write(buddy::hw::Pin::State::high);
@@ -299,21 +373,24 @@ public:
             return;
         }
 
-        if (HAL_SPI_GetState(spi) == HAL_SPI_STATE_ERROR) {
-            hw_good_flag = false;
-            finalize_async_request_chain();
-            return;
-        }
-
         // There is a slight problem with STM32 HAL SPI driver. This callback is
-        // invoked from the DMA TX ISR. However, as DMA TX and RX share
-        // priority, it is possible that te DMA RX ISR is invoked before the TX
-        // ISR. Hence the handle of TX ISR is in busy state preventing further
+        // invoked from the DMA RX ISR. However, as DMA TX and RX share the same
+        // priority, it is possible that the DMA RX ISR is invoked before the TX
+        // ISR. Hence the handle of TX DMA is in busy state preventing further
         // DMA transactions. We know that all bits are shifted out, hence, it is
         // safe to clean it up manually:
+        //
+        // Only a busy stream may be aborted. Aborting an idle one leaves
+        // HAL_DMA_ERROR_NO_XFER in its handle, and HAL_DMA_IRQHandler() reports
+        // any leftover error code through the transfer error callback once
+        // this callback returns - a spurious SPI error that kills the session.
         HAL_SPI_Abort(spi);
-        HAL_DMA_Abort(spi->hdmarx);
-        HAL_DMA_Abort(spi->hdmatx);
+        if (spi->hdmarx->State == HAL_DMA_STATE_BUSY) {
+            HAL_DMA_Abort(spi->hdmarx);
+        }
+        if (spi->hdmatx->State == HAL_DMA_STATE_BUSY) {
+            HAL_DMA_Abort(spi->hdmatx);
+        }
 
         if (HAL_SPI_GetState(spi) != HAL_SPI_STATE_READY) {
             bsod("Accelerometer SPI not ready");

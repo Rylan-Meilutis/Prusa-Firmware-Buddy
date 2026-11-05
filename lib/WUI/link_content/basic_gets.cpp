@@ -1,6 +1,7 @@
 #include "basic_gets.h"
 #include "filament.hpp"
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 #include <lwip/init.h>
 #include "netdev.h"
 #include <config_store/store_instance.hpp>
@@ -37,7 +38,7 @@ JsonResult get_printer(size_t resume_point, JsonOutput &output) {
     // finish a print and base what we include on previous version, we may
     // outdated values, but they are still there.
     marlin_vars_t &vars = marlin_vars();
-    const FilamentType filament = FilamentType::for_tool(vars.active_extruder.get());
+    const FilamentType filament = FilamentType::for_tool(VirtualToolIndex::currently_selected());
     const FilamentTypeParameters filament_material = filament.parameters();
 
     bool operational = true;
@@ -201,7 +202,7 @@ JsonResult get_printer(size_t resume_point, JsonOutput &output) {
 JsonResult get_version(size_t resume_point, JsonOutput &output) {
     char hostname[HOSTNAME_LEN + 1];
     netdev_get_hostname(netdev_get_active_id(), hostname, sizeof hostname);
-    float nozzle_diameter = config_store().get_nozzle_diameter(0);
+    float nozzle_diameter = config_store().get_nozzle_diameter(PhysicalToolIndex::from_raw(0));
     const auto &printer_model_info = PrinterModelInfo::current();
 
     // Keep the indentation of the JSON in here!
@@ -229,7 +230,7 @@ JsonResult get_version(size_t resume_point, JsonOutput &output) {
 JsonResult get_info(size_t resume_point, JsonOutput &output) {
     char hostname[HOSTNAME_LEN + 1];
     netdev_get_hostname(netdev_get_active_id(), hostname, sizeof hostname);
-    float nozzle_diameter = config_store().get_nozzle_diameter(0);
+    float nozzle_diameter = config_store().get_nozzle_diameter(PhysicalToolIndex::from_raw(0));
     auto mmu2_enabled =
 #if HAS_MMU2()
         config_store().mmu2_enabled.get();
@@ -348,8 +349,8 @@ JsonResult get_job_octoprint(size_t resume_point, JsonOutput &output) {
         has_job = true;
     }
 
-    char lfn_buffer[filename_defs::max_filename_length];
-    char sfn_buffer[filename_defs::max_path_length];
+    char lfn_buffer[filename_defs::filename_buffer_size];
+    char sfn_buffer[filename_defs::path_buffer_size];
     {
         auto lock = MarlinVarsLockGuard();
         marlin_vars().media_LFN.copy_to(lfn_buffer, sizeof(lfn_buffer), lock);
@@ -408,8 +409,8 @@ json::JsonResult get_job_v1(size_t resume_point, json::JsonOutput &output) {
         state = "ERROR";
         break;
     }
-    char filename[filename_defs::max_filename_length];
-    char sfn_path[filename_defs::max_path_length];
+    char filename[filename_defs::filename_buffer_size];
+    char sfn_path[filename_defs::path_buffer_size];
     {
         auto lock = MarlinVarsLockGuard();
         marlin_vars().media_LFN.copy_to(filename, sizeof(filename), lock);

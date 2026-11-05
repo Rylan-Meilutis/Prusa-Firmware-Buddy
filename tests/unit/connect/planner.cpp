@@ -69,7 +69,7 @@ struct Test {
 
 } // namespace
 
-TEST_CASE("Success scenario") {
+TEST_CASE("connect::Success scenario", "[connect]") {
     Test test;
 
     test.consume_telemetry();
@@ -83,7 +83,7 @@ TEST_CASE("Success scenario") {
     test.consume_telemetry();
 }
 
-TEST_CASE("Retries early") {
+TEST_CASE("connect::Retries early", "[connect]") {
     Test test(ActionResult::Failed);
 
     // It'll provide a small sleep before trying again.
@@ -105,7 +105,7 @@ TEST_CASE("Retries early") {
     test.consume_telemetry();
 }
 
-TEST_CASE("Reinit after several failures") {
+TEST_CASE("connect::Reinit after several failures", "[connect]") {
     Test test;
 
     // Eventually, it stops trying to send the telemetry and goes back to trying to send Info
@@ -127,7 +127,7 @@ TEST_CASE("Reinit after several failures") {
     test.consume_telemetry();
 }
 
-TEST_CASE("Unknown / broken command refused") {
+TEST_CASE("connect::Unknown / broken command refused", "[connect]") {
     Test test;
 
     // Commands come as replies to telemetries
@@ -153,7 +153,7 @@ TEST_CASE("Unknown / broken command refused") {
     test.consume_telemetry();
 }
 
-TEST_CASE("Send info request") {
+TEST_CASE("connect::Send info request", "[connect]") {
     Test test;
 
     // Commands come as replies to telemetries
@@ -167,7 +167,7 @@ TEST_CASE("Send info request") {
     test.event_info();
 }
 
-TEST_CASE("Submit gcode") {
+TEST_CASE("connect::Submit gcode", "[connect]") {
     Test test;
 
     // Commands come as replies to telemetries
@@ -211,7 +211,7 @@ TEST_CASE("Submit gcode") {
     test.event_type(EventType::Finished);
 }
 
-TEST_CASE("Background command resubmit") {
+TEST_CASE("connect::Background command resubmit", "[connect]") {
     Test test;
 
     test.consume_telemetry();
@@ -258,7 +258,7 @@ TEST_CASE("Background command resubmit") {
     REQUIRE(test.planner.background_command_id() == 1);
 }
 
-TEST_CASE("Transport ended") {
+TEST_CASE("connect::Transport ended", "[connect]") {
     Test test;
 
     auto slot = Monitor::instance.allocate(Monitor::Type::Connect, "/usb/stuff.gcode", 1024);
@@ -287,7 +287,7 @@ TEST_CASE("Transport ended") {
     REQUIRE(((*event->transfer_id).to_uint32_t() & ~0x7FFFFFFF) == 0);
 }
 
-TEST_CASE("Transport ended and started") {
+TEST_CASE("connect::Transport ended and started", "[connect]") {
     Test test;
 
     auto slot = Monitor::instance.allocate(Monitor::Type::Connect, "/usb/stuff.gcode", false, 1024);
@@ -320,7 +320,7 @@ TEST_CASE("Transport ended and started") {
 }
 
 // When lost in history, we lose the notification, but doesn't crash or do anything extra weird.
-TEST_CASE("Transport ended, lost in history") {
+TEST_CASE("connect::Transport ended, lost in history", "[connect]") {
     Test test;
 
     auto slot = Monitor::instance.allocate(Monitor::Type::Connect, "/usb/stuff.gcode", false, 1024);
@@ -347,7 +347,7 @@ TEST_CASE("Transport ended, lost in history") {
     REQUIRE(holds_alternative<Sleep>(action2));
 }
 
-TEST_CASE("FileInfo after created file") {
+TEST_CASE("connect::FileInfo after created file", "[connect]") {
     Test test;
     test.consume_telemetry();
 
@@ -363,7 +363,7 @@ TEST_CASE("FileInfo after created file") {
     REQUIRE(event->incident == ChangedPath::Incident::Created);
 }
 
-TEST_CASE("FileChanged after deleted file") {
+TEST_CASE("connect::FileChanged after deleted file", "[connect]") {
     Test test;
     test.consume_telemetry();
 
@@ -379,7 +379,7 @@ TEST_CASE("FileChanged after deleted file") {
     REQUIRE(event->incident == ChangedPath::Incident::Deleted);
 }
 
-TEST_CASE("FileChanged after created folder") {
+TEST_CASE("connect::FileChanged after created folder", "[connect]") {
     Test test;
     test.consume_telemetry();
 
@@ -395,7 +395,7 @@ TEST_CASE("FileChanged after created folder") {
     REQUIRE(event->incident == ChangedPath::Incident::Created);
 }
 
-TEST_CASE("FileChanged after deleted folder") {
+TEST_CASE("connect::FileChanged after deleted folder", "[connect]") {
     Test test;
     test.consume_telemetry();
 
@@ -411,7 +411,7 @@ TEST_CASE("FileChanged after deleted folder") {
     REQUIRE(event->incident == ChangedPath::Incident::Deleted);
 }
 
-TEST_CASE("FileChanged after multiple fs changes") {
+TEST_CASE("connect::FileChanged after multiple fs changes", "[connect]") {
     Test test;
     test.consume_telemetry();
 
@@ -432,7 +432,7 @@ TEST_CASE("FileChanged after multiple fs changes") {
 }
 // TODO: Tests for unknown commands and such
 
-TEST_CASE("Command Set value - chamber.target_temp set/unset logic") {
+TEST_CASE("connect::Command Set value - chamber.target_temp set/unset logic", "[connect]") {
     SECTION("unset") {
         Test test;
         marlin_client::last_gcode.clear();
@@ -458,7 +458,7 @@ TEST_CASE("Command Set value - chamber.target_temp set/unset logic") {
     }
 }
 
-TEST_CASE("Test ID limited to 31bits only") {
+TEST_CASE("connect::Test ID limited to 31bits only", "[connect]") {
     Test test;
 
     // Create ID at the end of 31bit range and increment
@@ -490,7 +490,7 @@ namespace buddy {
 extern PWM255OrAuto cooling_fans_pwm;
 } // namespace buddy
 
-TEST_CASE("Command Set value - xbuddy_extension fan1, 2 set/unset logic") {
+TEST_CASE("connect::Command Set value - xbuddy_extension fan1, 2 set/unset logic", "[connect]") {
     SECTION("unset") {
         Test test;
         auto command = Command { CommandId(0), SetValue { PropertyName::ChamberFanPwmTarget, 0, int8_t(-1) } };
@@ -520,7 +520,7 @@ extern uint8_t side_max_brightness;
 extern bool side_activity_pinged;
 } // namespace leds
 
-TEST_CASE("Command Set value - xbuddy_extension LED intensity logic") {
+TEST_CASE("connect::Command Set value - xbuddy_extension LED intensity logic", "[connect]") {
     SECTION("0%") {
         Test test;
         leds::side_max_brightness = 123;
@@ -545,7 +545,7 @@ namespace buddy {
 extern bool usbpower;
 } // namespace buddy
 
-TEST_CASE("Command Set value - xbuddy_extension usb addon power logic") {
+TEST_CASE("connect::Command Set value - xbuddy_extension usb addon power logic", "[connect]") {
     SECTION("true") {
         Test test;
         auto command = Command { CommandId(0), SetValue { PropertyName::AddonPower, 0, true } };
@@ -568,7 +568,7 @@ TEST_CASE("Command Set value - xbuddy_extension usb addon power logic") {
 //      and the real job_id.
 //   2. Job A appears (has_job=true, job_id=A) -> start_cmd_id stays.
 //   3. Job B replaces A (has_job=true, job_id=B) -> start_cmd_id is dropped.
-TEST_CASE("start_cmd_id does not leak across jobs") {
+TEST_CASE("connect::start_cmd_id does not leak across jobs", "[connect]") {
     Test test;
 
     // Make StartPrint acceptable: the file "exists" and start_print succeeds
@@ -641,8 +641,8 @@ TEST_CASE("start_cmd_id does not leak across jobs") {
     }
 }
 
-TEST_CASE("Command Set value - nozzle out-of-range tool index rejected") {
-    // idx=7 exceeds the slots available in the test printer, so it must be rejected.
+TEST_CASE("connect::Command Set value - nozzle out-of-range tool index rejected", "[connect]") {
+    // idx=7 exceeds the physical tools available in the test printer, so it must be rejected.
     Test test;
     auto command = Command { CommandId(0), SetValue { PropertyName::NozzleDiameter, 7, float(0.4) } };
     test.planner.command(command);
@@ -650,7 +650,26 @@ TEST_CASE("Command Set value - nozzle out-of-range tool index rejected") {
     test.planner.action_done(ActionResult::Ok);
 }
 
-TEST_CASE("Connect duplicates command") {
+// Regression test: a chamber value changed via SET_VALUE must be reported
+// promptly, not only at the next periodic full telemetry.
+TEST_CASE("connect::Chamber change forces full telemetry", "[connect]") {
+    Test test;
+
+    test.consume_telemetry();
+    test.consume_sleep();
+    // Well below TELEMETRY_INTERVAL_FULL (5 minutes), so a Full telemetry
+    // here can only come from change detection, not the periodic timer.
+    advance_time_s(120);
+
+    test.params.chamber_info.led_intensity = 42;
+
+    const Action action = test.planner.next_action(buffer, nullptr);
+    const auto *telemetry = get_if<SendTelemetry>(&action);
+    REQUIRE(telemetry != nullptr);
+    REQUIRE(telemetry->mode == SendTelemetry::Mode::Full);
+}
+
+TEST_CASE("connect::Connect duplicates command", "[connect]") {
     Test test;
 
     auto command = Command { CommandId(42), SetValue { PropertyName::ChamberFanPwmTarget, 0, int8_t(-1) } };

@@ -38,6 +38,7 @@ static_assert(HAS_PAUSE());
 #include "Marlin/src/module/temperature.h"
 #include "Marlin/src/feature/prusa/e-stall_detector.h"
 #include "marlin_server.hpp"
+#include <common/marlin_vars.hpp>
 #include "pause_stubbed.hpp"
 #include <serial_printing.hpp>
 #include <cassert>
@@ -63,6 +64,7 @@ static_assert(HAS_PAUSE());
     #include <feature/prusa/crash_recovery.hpp>
 #endif /*ENABLED(CRASH_RECOVERY)*/
 
+#include <option/has_nozzle_cleaner.h>
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <Marlin/src/module/prusa/toolchanger.h>
@@ -136,7 +138,10 @@ void GcodeSuite::M600() {
 
 #if HAS_SPOOL_JOIN()
     if (is_auto_m600) {
-        auto virtual_tool = stdext::get_optional<VirtualToolIndex>(VirtualToolIndex::currently_selected());
+        // Get virtual tool index from G-code
+        // If not present, use current tool
+        auto virtual_tool = stdext::get_optional<VirtualToolIndex>(PrusaGcodeSuite::get_target_virtual_from_command_p(p));
+
         if (!virtual_tool.has_value()) {
             bsod("Spool join to notool");
         }
@@ -235,7 +240,7 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
         tool_change_data = ToolChangeData {
             .original_resume_point = logical_resume,
             .target_extruder_original_temperature = Temperature::degTargetHotend(physical_target_tool),
-            .original_extruder = marlin_vars().active_extruder,
+            .original_extruder = VirtualToolIndex::currently_selected(),
         };
 
         tool_change(target_tool, tool_return_t::no_return, tool_change_lift_t::mbl_only_lift, true);
@@ -286,30 +291,58 @@ void M600_execute(mapi::ParkingPosition park_position, VirtualToolIndex target_t
         filament_type = FilamentType::for_tool_heuristic(target_tool);
     }
 
+    *filament_type = filament::apply_load_color(*filament_type, target_tool, filament_colour);
+
     filament::set_type_to_load(*filament_type);
     filament::set_color_to_load(filament_colour);
     Pause::Instance().filament_change(settings, recovery_mode);
 
 #if HAS_TOOLCHANGER()
-    if (tool_change_data.has_value()) {
-        const auto &change_data = *tool_change_data;
-
-        if (std::isfinite(change_data.target_extruder_original_temperature)) {
-            Temperature::setTargetHotend(change_data.target_extruder_original_temperature, physical_target_tool);
-        }
-
-        destination = current_position;
-        if (std::isfinite(change_data.original_resume_point.x) && std::isfinite(change_data.original_resume_point.y) && std::isfinite(change_data.original_resume_point.z)) {
-            destination = change_data.original_resume_point.asNative();
-        } else {
-            destination.set(match(
-                change_data.original_extruder,
-                [](VirtualToolIndex virtual_tool) { return prusa_toolchanger.get_tool_dock_position(virtual_tool.to_physical()); },
-                [](NoTool) -> xy_float_t { return current_position.xy(); }));
-        }
-        tool_change(stdext::to_variant(change_data.original_extruder), tool_return_t::to_destination, tool_change_lift_t::mbl_only_lift, true);
-        report_current_position();
+    if (!tool_change_data.has_value()) {
+        return;
     }
+
+    const auto &change_data = *tool_change_data;
+
+    if (std::isfinite(change_data.target_extruder_original_temperature)) {
+        Temperature::setTargetHotend(change_data.target_extruder_original_temperature, physical_target_tool);
+    }
+
+    /// Evaluated in the coordinate frame of whichever tool is picked at the time of the call.
+    const auto resume_position = [&change_data]() {
+        if (std::isfinite(change_data.original_resume_point.x) && std::isfinite(change_data.original_resume_point.y) && std::isfinite(change_data.original_resume_point.z)) {
+            return change_data.original_resume_point.asNative().xyz();
+        }
+        xyz_pos_t result = current_position.xyz();
+        result.set(match(
+            change_data.original_extruder,
+            [](VirtualToolIndex virtual_tool) { return prusa_toolchanger.get_tool_dock_position(virtual_tool.to_physical()); },
+            [](NoTool) -> xy_float_t { return current_position.xy(); }));
+        return result;
+    };
+
+    // Change back to the original tool, without the return move - the tool
+    // has to be ready to print before the head returns to the print.
+    if (!tool_change(stdext::to_variant(change_data.original_extruder), tool_return_t::no_return, tool_change_lift_t::mbl_only_lift, false)) {
+        // Leave the head where the failed change left it, the recovery deals with it from there.
+        log_error(PRUSA_GCODE, "M600 failed to change back to the original tool");
+        return;
+    }
+
+    if (const auto original_tool = stdext::get_optional<VirtualToolIndex>(change_data.original_extruder)) {
+    #if HAS_NOZZLE_CLEANER()
+        // A parked tool is not heated, so the tool cooled down during the change.
+        // Reheat over safe spot where we wont be oozing
+        auto reheat_position = mapi::get_parking_position(mapi::ParkPosition::purge);
+        reheat_position.z = mapi::ParkingPosition::unchanged;
+        mapi::park(reheat_position);
+    #endif
+        Temperature::wait_for_hotend(original_tool->to_physical(), { .fan_cooling = true });
+    }
+
+    auto return_position = resume_position();
+    apply_motion_limits(return_position);
+    mapi::park({ .x = return_position.x, .y = return_position.y, .z = return_position.z });
 #endif
 
     if (notify_serial_host_resume && !marlin_server::aborting_or_aborted()) {

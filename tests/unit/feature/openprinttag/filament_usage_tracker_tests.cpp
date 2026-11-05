@@ -69,25 +69,7 @@ FilamentUsageTrackerTester tester;
 
 } // namespace buddy::openprinttag
 
-Request::~Request() {}
-
-void Request::set_finished(std::expected<std::monostate, Error> result) {
-    assert(!finished_);
-    finished_ = true;
-    error_ = result.error_or(Error::_cnt);
-}
-
 void Request::issue() {
-}
-
-void ReadFloatFieldRequest::serialize(RequestID, TagID, anfc::modbus::Request &) {}
-void WriteFloatFieldRequest::serialize(RequestID, TagID, anfc::modbus::Request &) {}
-
-void ReadFloatFieldRequest::complete(Bytes) {}
-void WriteFloatFieldRequest::complete(Bytes) {}
-
-Request::SerializeResult TagRequest::serialize(ManagerNoLockBadge badge, RequestID request_id, anfc::modbus::Request &request) {
-    return std::nullopt;
 }
 
 std::optional<ToolTag> ToolTag::for_tool_assigned(VirtualToolIndex tool) {
@@ -141,13 +123,20 @@ TEST_CASE("buddy::openprinttag::filament_usage_tracker") {
     stub_data[tag(0).field(MainField::actual_netto_full_weight)] = full_weight;
     stub_data[tag(0).field(AuxField::consumed_weight)] = pre_consumed_weight;
 
-    assigned_tags.emplace(0, tag(1));
+    assigned_tags.emplace(1, tag(1));
     stub_data[tag(1).field(MainField::nominal_full_length)] = full_length;
 
     // The tracker should now pick up the new tools and start tracking
     step_tracker();
     CHECK(tracker.is_tracking(tool(0)));
-    CHECK(tracker.remaining_filament_g(tool(0)) == full_weight - pre_consumed_weight);
+
+    {
+        const auto report = tracker.filament_report(tool(0));
+        REQUIRE(report.has_value());
+        CHECK_FALSE(report->full_weight_is_nominal);
+        CHECK(report->full_weight_g == full_weight);
+        CHECK(report->remaining_weight_g == full_weight - pre_consumed_weight);
+    }
 
     // Cannot track - missing full_legth
     CHECK(!tracker.is_tracking(tool(1)));
@@ -169,7 +158,12 @@ TEST_CASE("buddy::openprinttag::filament_usage_tracker") {
 
         const float consumed_weight = pre_consumed_weight + extruded_dist / full_length * full_weight;
         CHECK(std::any_cast<float>(stub_data[tag(0).field(AuxField::consumed_weight)]) == consumed_weight);
-        CHECK(tracker.remaining_filament_g(tool(0)) == full_weight - consumed_weight);
+
+        {
+            const auto report = tracker.filament_report(tool(0));
+            REQUIRE(report.has_value());
+            CHECK(report->remaining_weight_g == full_weight - consumed_weight);
+        }
     }
 
     // Extrude more than what is supposed to be on the spool
@@ -183,6 +177,11 @@ TEST_CASE("buddy::openprinttag::filament_usage_tracker") {
         CHECK(consumed_weight > full_weight);
 
         // Should crop to zero
-        CHECK(tracker.remaining_filament_g(tool(0)) == 0);
+
+        {
+            const auto report = tracker.filament_report(tool(0));
+            REQUIRE(report.has_value());
+            CHECK(report->remaining_weight_g == 0);
+        }
     }
 }

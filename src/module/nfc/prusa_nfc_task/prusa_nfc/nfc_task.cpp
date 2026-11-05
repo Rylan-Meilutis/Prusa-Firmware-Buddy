@@ -3,12 +3,15 @@
 #include <mutex>
 
 #include <freertos/timing.hpp>
+#include <logging/log.hpp>
 
 #include <prusa3d/nfc/event/Event_1_0.h>
 #include <prusa3d/nfc/util/ReaderError_1_0.h>
 #include <bsod/bsod.h>
 
 using namespace openprinttag;
+
+LOG_COMPONENT_DEF(NfcTask, logging::Severity::warning);
 
 namespace {
 bool is_valid_section(std::underlying_type_t<Section> section) {
@@ -86,6 +89,7 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 
         // Failed to deserialize the request -> drop
         if (deserialize_result < 0) {
+            log_error(NfcTask, "request deserialization failed: %i", static_cast<int>(deserialize_result));
             return;
         }
 
@@ -116,6 +120,8 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 
             const auto mime_len = req.mime_type.count;
             if (mime_len > mime_type_buffer_.size()) {
+                log_warning(NfcTask, "set_params mime type too long: %u > %u",
+                    static_cast<unsigned>(mime_len), static_cast<unsigned>(mime_type_buffer_.size()));
                 return;
             }
             memcpy(mime_type_buffer_.data(), req.mime_type.elements, mime_len);
@@ -179,6 +185,9 @@ bool NFCTask::enqueue_serialized_request(const std::span<const uint8_t> &data) {
 
 void NFCTask::task() {
     while (true) {
+        // Both branches below continue the loop, so this is the one place every iteration passes
+        reader_.backend().tick();
+
         // Process a reader event
         if (OPTReader::Event e; reader_.get_event(e, freertos::millis())) {
             handle_event(e);

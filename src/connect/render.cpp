@@ -24,6 +24,7 @@
     #include <feature/chamber_filtration/chamber_filtration.hpp>
 #endif
 
+#include <bit>
 #include <cstring>
 #include <cinttypes>
 
@@ -31,6 +32,7 @@
 #include <mbedtls/base64.h>
 
 #include <option/has_mmu2.h>
+#include <option/has_filament_tracker.h>
 #include <bsod/bsod.h>
 
 using json::JsonOutput;
@@ -123,13 +125,14 @@ namespace {
         const auto params = state.printer.params();
 
         const optional<Monitor::Status> transfer_status = get_transfer_status(resume_point, state);
-        const auto &preferred = params.slots[params.preferred_slot()];
-        const uint8_t active_slot = match(
-            params.active_slot,
-            [](VirtualToolIndex vt) -> uint8_t { return vt.to_raw() + 1; },
-            [](NoTool) -> uint8_t { return 0; });
+
+        const auto iter_physical_tool = [&] { return *state.iter_physical_tool(); };
+        const auto iter_virtual_tool = [&] { return *state.iter_virtual_tool(); };
+        const auto iter_physical_tool_info = [&]() -> const Printer::PhysicalToolInfo & { return params.physical_tools[iter_physical_tool()]; };
+        [[maybe_unused]] const auto iter_virtual_tool_info = [&]() -> const Printer::VirtualToolInfo & { return params.virtual_tools[iter_virtual_tool()]; };
 
 #if PRINTER_IS_PRUSA_iX()
+        const auto &preferred = params.physical_tools[state.preferred_physical_tool()];
         auto extruder_fs_state = preferred.extruder_fs_state;
         auto remote_fs_state = preferred.remote_fs_state;
 #endif
@@ -171,13 +174,7 @@ namespace {
                 JSON_FIELD_INT("progress", params.progress_percent) JSON_COMMA;
             }
 
-            // This info is duplicated in the slots structure if we have
-            // MMU/toolchanger. Eventually, it would be gread to deduplicate in
-            // some way (eg. send the slots structure only), but for that we
-            // need to coordinate with Connect, as these are probably
-            // "essential" fields right now.
             if (telemetry.mode == SendTelemetry::Mode::Full) {
-                JSON_FIELD_FFIXED("temp_nozzle", preferred.temp_nozzle, 1) JSON_COMMA;
                 JSON_FIELD_FFIXED("temp_bed", params.temp_bed, 1) JSON_COMMA;
 #if PRINTER_IS_PRUSA_iX()
                 JSON_FIELD_FFIXED("temp_heatbreak", preferred.temp_heatbreak, 1) JSON_COMMA;
@@ -187,17 +184,12 @@ namespace {
                     JSON_FIELD_STR_G(extruder_fs_state, "extruder_fs_state", to_str(*extruder_fs_state)) JSON_COMMA;
                 }
                 if (remote_fs_state) {
-                    JSON_FIELD_STR_G(extruder_fs_state, "remote_fs_state", to_str(*remote_fs_state)) JSON_COMMA;
+                    JSON_FIELD_STR_G(remote_fs_state, "remote_fs_state", to_str(*remote_fs_state)) JSON_COMMA;
                 }
 #endif
-                JSON_FIELD_FFIXED("target_nozzle", params.target_nozzle, 1) JSON_COMMA;
                 JSON_FIELD_FFIXED("target_bed", params.target_bed, 1) JSON_COMMA;
                 JSON_FIELD_INT("speed", params.print_speed) JSON_COMMA;
                 JSON_FIELD_INT("flow", params.flow_factor) JSON_COMMA;
-                if (!params.slots[params.preferred_slot()].material.empty()) {
-                    JSON_FIELD_STR("material", params.slots[params.preferred_slot()].material.data()) JSON_COMMA;
-                    JSON_FIELD_STR("profile", params.slots[params.preferred_slot()].profile.data()) JSON_COMMA;
-                }
 #if XL_ENCLOSURE_SUPPORT()
                 if (params.enclosure_info.present) {
                     JSON_FIELD_OBJ("enclosure");
@@ -223,34 +215,80 @@ namespace {
                     JSON_FIELD_FFIXED("axis_y", params.pos[Printer::Y_AXIS_POS], 2) JSON_COMMA;
                 }
                 JSON_FIELD_FFIXED("axis_z", params.pos[Printer::Z_AXIS_POS], 2) JSON_COMMA;
-                if (params.has_job) {
-                    JSON_FIELD_INT("fan_extruder", preferred.heatbreak_fan_rpm) JSON_COMMA;
-                    JSON_FIELD_INT("fan_print", preferred.print_fan_rpm) JSON_COMMA;
-                    JSON_FIELD_FFIXED("filament", params.filament_used, 1) JSON_COMMA;
-                }
 
-                if (params.enabled_tool_cnt() > 1) {
-                    JSON_FIELD_OBJ("slot");
-                        state.iter = 0;
-                        while (state.iter < params.slots.size()) {
-                            if (params.slot_mask & (1 << state.iter)) {
-                                JSON_CUSTOM("\"%zu\":{", state.iter + 1);
-                                    JSON_FIELD_STR("material", params.slots[state.iter].material.data()) JSON_COMMA;
-                                    JSON_FIELD_STR("profile", params.slots[state.iter].profile.data()) JSON_COMMA;
-                                    JSON_FIELD_FFIXED("temp", params.slots[state.iter].temp_nozzle, 1) JSON_COMMA;
-                                    JSON_FIELD_FFIXED("fan_hotend", params.slots[state.iter].heatbreak_fan_rpm, 1) JSON_COMMA;
-                                    JSON_FIELD_FFIXED("fan_print", params.slots[state.iter].print_fan_rpm, 1);
-                                JSON_OBJ_END JSON_COMMA;
-                            }
-                            state.iter++;
+                JSON_FIELD_OBJ("tools");
+                    for (state.iter = 0; state.iter < state.iter_tool_count(); state.iter++) {
+                        if (state.iter > 0) {
+                            JSON_COMMA;
                         }
+                        if (state.iter_physical_tool().has_value()) {
+                            if (!state.is_enabled(iter_physical_tool())) {
+                                JSON_FIELD_NULL(to_connect_tool(iter_physical_tool()).data());
+                                continue;
+                            }
+                            JSON_CUSTOM("\"%s\":{", to_connect_tool(iter_physical_tool()).data());
+                                JSON_FIELD_STR("type", "FFF_PRINT_HEAD") JSON_COMMA;
+                                JSON_FIELD_BOOL("active", state.is_active(iter_physical_tool())) JSON_COMMA;
+                                JSON_FIELD_FFIXED("nozzle_temp", iter_physical_tool_info().temp_nozzle, 1) JSON_COMMA;
+                                if (iter_physical_tool_info().target_nozzle != 0) {
+                                    JSON_FIELD_INT("nozzle_target_temp", iter_physical_tool_info().target_nozzle) JSON_COMMA;
+                                } else {
+                                    JSON_FIELD_NULL("nozzle_target_temp") JSON_COMMA;
+                                }
+                                JSON_FIELD_INT("heatbreak_fan_rpm", iter_physical_tool_info().heatbreak_fan_rpm) JSON_COMMA;
+                                JSON_FIELD_INT("print_fan_rpm", iter_physical_tool_info().print_fan_rpm) // No comma
+                                // The feeder mirrors the one in INFO. A head with a feeder leaves consumed_weight to its slots.
 #if HAS_MMU2()
-                        JSON_FIELD_INT("state", params.progress_code) JSON_COMMA;
-                        JSON_FIELD_STR_FORMAT("command", "%c", params.command_code) JSON_COMMA;
+                                if (state.tool_args.mmu_enabled) {
+                                    JSON_COMMA; JSON_FIELD_OBJ("feeder");
+                                        JSON_FIELD_INT("mmu_progress_code", params.progress_code);
+                                        // The MMU reports 0 when idle, which has no character to send
+                                        if (params.command_code != 0) {
+                                            JSON_COMMA;
+                                            JSON_FIELD_STR_FORMAT("mmu_command_in_progress", "%c", params.command_code);
+                                        }
+                                    JSON_OBJ_END;
+                                }
 #endif
-                        JSON_FIELD_INT("active", active_slot);
-                    JSON_OBJ_END JSON_COMMA;
-                }
+                        }
+                        else {
+                            if (!state.is_enabled(iter_virtual_tool())) {
+                                JSON_FIELD_NULL(to_connect_tool(iter_virtual_tool(), state.tool_args).data());
+                                continue;
+                            }
+
+                            JSON_CUSTOM("\"%s\":{", to_connect_tool(iter_virtual_tool(), state.tool_args).data());
+                            JSON_FIELD_BOOL("active", state.is_active(iter_virtual_tool()));
+
+                            #if HAS_MMU2()
+                                JSON_COMMA; JSON_FIELD_STR("type", "FFF_FEEDER_SLOT");
+                            #else
+                                bsod_unreachable();
+                            #endif
+                        }
+
+                        if(state.iter_virtual_tool().has_value()) {
+                            debug_assert(state.is_enabled(iter_virtual_tool()));
+
+                            JSON_COMMA;
+                            #if HAS_ANFC()
+                                if(iter_virtual_tool_info().consumed_weight_g.has_value()) {
+                                    JSON_FIELD_INT("consumed_weight", iter_virtual_tool_info().consumed_weight_g.value_or(0));
+                                } else
+                            #endif
+                            {
+                                JSON_FIELD_NULL("consumed_weight");
+                            }
+
+                            #if HAS_FILAMENT_TRACKER()
+                                JSON_COMMA;
+                                JSON_FIELD_INT("odometer_id", iter_virtual_tool_info().odometer_id) JSON_COMMA;
+                                JSON_FIELD_INT("odometer_e", iter_virtual_tool_info().odometer_e_mm);
+                            #endif
+                        }
+                        JSON_OBJ_END;
+                    }
+                JSON_OBJ_END JSON_COMMA;
             }
             if (state.background_command_id.has_value()) {
                 JSON_FIELD_INT("command_id", *state.background_command_id) JSON_COMMA;
@@ -271,6 +309,14 @@ namespace {
     JsonResult render_msg(size_t resume_point, JsonOutput &output, RenderState &state, const Event &event) {
         const auto params = state.printer.params();
         const auto &info = state.printer.printer_info();
+
+        const auto iter_physical_tool = [&] { return *state.iter_physical_tool(); };
+        const auto iter_virtual_tool = [&] { return *state.iter_virtual_tool(); };
+        const auto iter_physical_tool_info = [&]() -> const Printer::PhysicalToolInfo & { return params.physical_tools[iter_physical_tool()]; };
+#if HAS_ANFC()
+        std::array<char, UUID::string_length> uuid_buffer;
+#endif
+
         const bool has_extra = (event.type != EventType::Accepted) && (event.type != EventType::Rejected);
         std::optional<Printer::FinishedJobResult> job_state;
 
@@ -343,11 +389,9 @@ namespace {
                     JSON_FIELD_STR("firmware", info.firmware_version) JSON_COMMA;
                     JSON_FIELD_STR_FORMAT("printer_type", "%hhu.%hhu.%hhu", params.version.type, params.version.version, params.version.subversion) JSON_COMMA;
                     JSON_FIELD_STR("sn", info.serial_number.begin()) JSON_COMMA;
-                    JSON_FIELD_BOOL("appendix", info.appendix) JSON_COMMA;
+                    // TODO: Deprecated, kept for now for backwards compatibility. Remove eventually.
+                    JSON_FIELD_BOOL("appendix", false) JSON_COMMA;
                     JSON_FIELD_STR("fingerprint", info.fingerprint) JSON_COMMA;
-                    // TODO: Deprecated, kept for now for backwards compatibility. Parts of the tools object.
-                    // Remove eventually.
-                    JSON_FIELD_FFIXED("nozzle_diameter", params.slots[params.preferred_slot()].nozzle_diameter, 2) JSON_COMMA;
                     JSON_FIELD_BOOL("transfer_paused", !params.can_start_download) JSON_COMMA;
                     if (strlen(creds.pl_password) > 0) {
                         JSON_FIELD_STR("api_key", creds.pl_password) JSON_COMMA;
@@ -385,23 +429,157 @@ namespace {
                         JSON_FIELD_STR("hostname", creds.hostname);
                     JSON_OBJ_END JSON_COMMA;
 
+#if HAS_MMU2()
+                    // The feeder block and the slots below belong to the only print head. Revisit once an MMU can sit
+                    // on one of several heads (an XL with MMUs, or a plain head next to one with an MMU).
+                    static_assert(PhysicalToolIndex::count == 1);
+#endif
                     JSON_FIELD_OBJ("tools");
-                        for (state.iter = 0, state.need_comma = false; state.iter < params.slots.size(); state.iter ++) {
-                            if (params.slot_mask & (1 << state.iter)) {
-                                if (state.need_comma) {
+                        for (state.iter = 0; state.iter < state.iter_tool_count(); state.iter++) {
+                            if (state.iter > 0) {
+                                JSON_COMMA;
+                            }
+                            // Runs once per tool: a resumed chunk jumps past it
+                            if (const auto virtual_tool = state.iter_virtual_tool()) {
+                                state.material = state.printer.material(*virtual_tool);
+                                state.virtual_tool_info = params.virtual_tools[*virtual_tool];
+                            }
+                            if (state.iter_physical_tool().has_value()) {
+                                // Connect merges INFO into what it already has: null removes a tool, absence would keep it
+                                if (!state.is_enabled(iter_physical_tool())) {
+                                    JSON_FIELD_NULL(to_connect_tool(iter_physical_tool()).data());
+                                    continue;
+                                }
+                                JSON_CUSTOM("\"%s\":{", to_connect_tool(iter_physical_tool()).data());
+                                    JSON_FIELD_STR("type", "FFF_PRINT_HEAD") JSON_COMMA;
+                                    JSON_FIELD_OBJ("features");
+                                        JSON_FIELD_FFIXED("nozzle_diameter", iter_physical_tool_info().nozzle_diameter, 2) JSON_COMMA;
+                                        JSON_FIELD_BOOL("nozzle_hardened", iter_physical_tool_info().hardened) JSON_COMMA;
+                                        JSON_FIELD_BOOL("nozzle_high_flow", iter_physical_tool_info().high_flow);
+                                    JSON_OBJ_END;
+#if HAS_MMU2()
                                     JSON_COMMA;
+                                    if (state.tool_args.mmu_enabled) {
+                                        JSON_FIELD_OBJ("feeder");
+                                            JSON_FIELD_STR("type", "MMU") JSON_COMMA;
+                                            JSON_FIELD_STR("model", "MMU3") JSON_COMMA;
+                                            JSON_FIELD_STR("base_model", "MMU3") JSON_COMMA;
+                                            JSON_FIELD_INT("slot_count", VirtualToolIndex::count);
+                                        JSON_OBJ_END;
+                                    } else {
+                                        // Removes a feeder reported before. Its slots stay out - without a feeder,
+                                        // Connect does not look at them.
+                                        JSON_FIELD_NULL("feeder");
+                                    }
+#endif
+                            } else {
+                                if (!state.is_enabled(iter_virtual_tool())) {
+                                    JSON_FIELD_NULL(to_connect_tool(iter_virtual_tool(), state.tool_args).data());
+                                    continue;
                                 }
 
-                                JSON_CUSTOM("\"%zu\":{", state.iter + 1);
-                                    JSON_FIELD_FFIXED("nozzle_diameter", params.slots[state.iter].nozzle_diameter, 2) JSON_COMMA;
-                                    JSON_FIELD_BOOL("high_flow", params.slots[state.iter].high_flow) JSON_COMMA;
-                                    JSON_FIELD_BOOL("hardened", params.slots[state.iter].hardened) JSON_COMMA;
-                                    JSON_FIELD_STR("material", !params.slots[state.iter].material.empty() ? params.slots[state.iter].material.data() : "---") JSON_COMMA;
-                                    JSON_FIELD_STR("profile", !params.slots[state.iter].profile.empty() ? params.slots[state.iter].profile.data() : "---");
-                                JSON_OBJ_END;
+                                JSON_CUSTOM("\"%s\":{", to_connect_tool(iter_virtual_tool(), state.tool_args).data());
 
-                                state.need_comma = true;
+                                #if HAS_MMU2()
+                                    JSON_FIELD_STR("type", "FFF_FEEDER_SLOT"); // No comma - last field
+                                #else
+                                    bsod_unreachable();
+                                #endif
                             }
+
+                            if (state.iter_virtual_tool().has_value()) {
+                                JSON_COMMA;
+                                if (!state.material.has_value()) {
+                                    JSON_FIELD_NULL("material_package_instance");
+                                } else {
+                                    JSON_FIELD_OBJ("material_package_instance");
+                                        JSON_FIELD_STR("class", "FFF");
+#if HAS_ANFC()
+                                        if (state.material->instance_uuid.has_value()) {
+                                            JSON_COMMA;
+                                            JSON_FIELD_STR("uuid", state.material->instance_uuid->to_string(uuid_buffer));
+                                        }
+                                        if (state.virtual_tool_info.full_weight_g.has_value() && !state.virtual_tool_info.full_weight_is_nominal) {
+                                            JSON_COMMA;
+                                            JSON_FIELD_INT("actual_netto_full_weight", *state.virtual_tool_info.full_weight_g);
+                                        }
+#endif
+                                        JSON_COMMA;
+                                        JSON_FIELD_OBJ("package");
+                                            JSON_FIELD_STR("class", "FFF");
+#if HAS_ANFC()
+                                            if (state.material->package_uuid.has_value()) {
+                                                JSON_COMMA;
+                                                JSON_FIELD_STR("uuid", state.material->package_uuid->to_string(uuid_buffer));
+                                            }
+                                            if (state.virtual_tool_info.full_weight_g.has_value() && state.virtual_tool_info.full_weight_is_nominal) {
+                                                JSON_COMMA;
+                                                JSON_FIELD_INT("nominal_netto_full_weight", *state.virtual_tool_info.full_weight_g);
+                                            }
+#endif
+                                            JSON_COMMA;
+                                            JSON_FIELD_OBJ("material");
+                                                JSON_FIELD_STR("class", "FFF");
+#if HAS_ANFC()
+                                                if (state.material->material_uuid.has_value()) {
+                                                    JSON_COMMA;
+                                                    JSON_FIELD_STR("uuid", state.material->material_uuid->to_string(uuid_buffer));
+                                                }
+#endif
+                                                if (!state.material->name.empty()) {
+                                                    JSON_COMMA;
+                                                    JSON_FIELD_STR("abbreviation", state.material->name.data());
+                                                }
+                                                if (state.material->color.has_value()) {
+                                                    JSON_COMMA;
+                                                    JSON_FIELD_OBJ("primary_color");
+                                                        // Color keeps 0x00RRGGBB in its raw value
+                                                        JSON_FIELD_STR_FORMAT("color_rgba", "#%06" PRIx32, state.material->color->raw & 0xffffff);
+                                                    JSON_OBJ_END;
+                                                }
+                                                JSON_COMMA;
+                                                JSON_FIELD_ARR("tags");
+                                                    if (state.material->is_abrasive) {
+                                                        JSON_CUSTOM("\"%s\"", "abrasive");
+                                                    }
+#if HAS_CHAMBER_FILTRATION_API()
+                                                    if (state.material->requires_filtration) {
+                                                        if (state.material->is_abrasive) {
+                                                            JSON_COMMA;
+                                                        }
+                                                        JSON_CUSTOM("\"%s\"", "filtration_recommended");
+                                                    }
+#endif
+                                                JSON_ARR_END;
+                                                JSON_COMMA;
+                                                JSON_FIELD_OBJ("properties");
+                                                    // The filament has one printing temperature, the architecture a range
+                                                    JSON_FIELD_INT("min_print_temperature", state.material->nozzle_temperature) JSON_COMMA;
+                                                    JSON_FIELD_INT("max_print_temperature", state.material->nozzle_temperature) JSON_COMMA;
+                                                    JSON_FIELD_INT("preheat_temperature", state.material->nozzle_preheat_temperature) JSON_COMMA;
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+                                                    JSON_FIELD_INT("heatbreak_temperature", state.material->heatbreak_temperature) JSON_COMMA;
+#endif
+#if HAS_CHAMBER_API()
+                                                    if (state.material->chamber_min_temperature.has_value()) {
+                                                        JSON_FIELD_INT("min_chamber_temperature", *state.material->chamber_min_temperature) JSON_COMMA;
+                                                    }
+                                                    if (state.material->chamber_max_temperature.has_value()) {
+                                                        JSON_FIELD_INT("max_chamber_temperature", *state.material->chamber_max_temperature) JSON_COMMA;
+                                                    }
+                                                    if (state.material->chamber_target_temperature.has_value()) {
+                                                        JSON_FIELD_INT("chamber_temperature", *state.material->chamber_target_temperature) JSON_COMMA;
+                                                    }
+#endif
+                                                    JSON_FIELD_INT("min_bed_temperature", state.material->heatbed_temperature) JSON_COMMA;
+                                                    JSON_FIELD_INT("max_bed_temperature", state.material->heatbed_temperature);
+                                                JSON_OBJ_END;
+                                            JSON_OBJ_END;
+                                        JSON_OBJ_END;
+                                    JSON_OBJ_END;
+                                }
+                            }
+                            JSON_OBJ_END;
                         }
                     JSON_OBJ_END JSON_COMMA;
 
@@ -428,16 +606,10 @@ namespace {
                         JSON_OBJ_END JSON_COMMA;
                     }
 #endif
-#if HAS_MMU2()
-                    JSON_FIELD_OBJ("mmu");
-                        JSON_FIELD_BOOL("enabled", params.enabled_tool_cnt() > 1) JSON_COMMA;
-                        JSON_FIELD_STR_FORMAT("version", "%d.%d.%d", params.mmu_version.major, params.mmu_version.minor, params.mmu_version.build);
-                    JSON_OBJ_END JSON_COMMA;
-#endif
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
                     JSON_FIELD_BOOL("addon_power", params.addon_power) JSON_COMMA;
 #endif
-                    JSON_FIELD_INT("slots", params.enabled_tool_cnt());
+                    JSON_FIELD_INT("tool_count", PhysicalToolIndex::count);
                 JSON_OBJ_END JSON_COMMA;
             } else if (event.type == EventType::JobInfo) {
                 JSON_FIELD_OBJ("data");
@@ -1086,6 +1258,16 @@ FileExtra::FileExtra(std::unique_ptr<AnyGcodeFormatReader> gcode_reader_)
 FileExtra::FileExtra(const char *base_path, Directory dir)
     : renderer(move(DirRenderer(base_path, move(dir)))) {}
 
+#if PRINTER_IS_PRUSA_iX()
+PhysicalToolIndex RenderState::preferred_physical_tool() const {
+    return match(
+        active_physical_tool,
+        [](PhysicalToolIndex pt) { return pt; },
+        // Nothing picked - take the first enabled tool (or the very first one on the error printer, which has none)
+        [this](NoTool) { return PhysicalToolIndex::from_raw(physical_tool_mask == 0 ? 0 : std::countr_zero(physical_tool_mask)); });
+}
+#endif
+
 RenderState::RenderState(const Printer &printer, const Action &action, optional<CommandId> background_command_id)
     : printer(printer)
     , action(action)
@@ -1097,9 +1279,15 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
     , background_command_id(background_command_id) {
     memset(&st, 0, sizeof st);
 
+    const auto params = printer.params();
+    physical_tool_mask = params.physical_tool_mask;
+    virtual_tool_mask = params.virtual_tool_mask;
+    active_physical_tool = params.active_physical_tool;
+    active_virtual_tool_mask = params.active_virtual_tool_mask;
+    tool_args = params.tool_args;
+
     if (const auto *event = get_if<Event>(&action); event != nullptr) {
         const char *path = nullptr;
-        const auto params = printer.params();
         bool error = false;
 
         switch (event->type) {
@@ -1142,7 +1330,7 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
             // * If this is ever called multiple times (it can be, if the same
             //   event needs to be resent), it results into the same values
             //   there.
-            get_SFN_path(spath.path());
+            get_SFN_path(spath.path_span());
             get_LFN(spath.name(), filename_defs::filename_buffer_size, spath.path());
             break;
         }
@@ -1151,7 +1339,7 @@ RenderState::RenderState(const Printer &printer, const Action &action, optional<
             SharedPath spath = event->path.value();
             path = spath.path();
 
-            get_SFN_path(spath.path());
+            get_SFN_path(spath.path_span());
             get_LFN(spath.name(), filename_defs::filename_buffer_size, spath.path());
         }
         default:;
@@ -1189,4 +1377,50 @@ JsonResult Renderer::renderState(size_t resume_point, JsonOutput &output, Render
         state.action);
 }
 
+size_t RenderState::iter_tool_count() const {
+#if HAS_MMU2()
+    // 1 Tool with a feeder + X feeder slots
+    static_assert(PhysicalToolIndex::count == 1);
+    if (tool_args.mmu_enabled) {
+        return 1 + VirtualToolIndex::count;
+    } else {
+        static_assert(PhysicalToolIndex::count == 1);
+        return 1;
+    }
+#else
+    static_assert(PhysicalToolIndex::count == VirtualToolIndex::count);
+#endif
+
+    return VirtualToolIndex::count;
+}
+
+std::optional<PhysicalToolIndex> RenderState::iter_physical_tool() const {
+#if HAS_MMU2()
+    static_assert(PhysicalToolIndex::count == 1);
+    if (tool_args.mmu_enabled) {
+        if (iter == 0) {
+            return PhysicalToolIndex::from_raw(0);
+        } else {
+            return std::nullopt;
+        }
+    }
+#endif
+
+    return VirtualToolIndex::from_raw(iter).to_physical();
+}
+
+std::optional<VirtualToolIndex> RenderState::iter_virtual_tool() const {
+#if HAS_MMU2()
+    static_assert(PhysicalToolIndex::count == 1);
+    if (tool_args.mmu_enabled) {
+        if (iter == 0) {
+            return std::nullopt;
+        } else {
+            return VirtualToolIndex::from_raw(iter - 1);
+        }
+    }
+#endif
+
+    return VirtualToolIndex::from_raw(iter);
+}
 } // namespace connect_client

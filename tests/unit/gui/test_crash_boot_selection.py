@@ -31,6 +31,7 @@ class CrashBootSelectionTests(unittest.TestCase):
 #include <cassert>
 #define BUDDY_ENABLE_WUI() 0
 #define BUDDY_ENABLE_CONNECT() 0
+#define HAS_HT_HOTEND() 0
 namespace crash_dump {
 enum class MsgType { FACTORY_RESET, RSOD, BSOD, EMPTY };
 struct Retained { bool dump_valid, dump_displayed, message_valid, message_displayed; MsgType type; } flash;

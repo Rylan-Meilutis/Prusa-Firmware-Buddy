@@ -35,7 +35,7 @@
 #include <option/has_chamber_api.h>
 #include <option/has_chamber_filtration_api.h>
 #include <option/has_xbuddy_extension.h>
-#include <option/has_uneven_bed_prompt.h>
+#include <option/has_uneven_bed_detection.h>
 #include <option/has_ceiling_clearance.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_auto_retract.h>
@@ -360,7 +360,7 @@ enum class PhasesWarning : PhaseUnderlyingType {
     FailedToReachChamberTemperature,
 #endif
 
-#if HAS_UNEVEN_BED_PROMPT()
+#if HAS_UNEVEN_BED_DETECTION()
     /// A prompt offering Z align calibration when uneven bed is detected
     BedUnevenAlignmentPrompt,
 #endif
@@ -377,21 +377,6 @@ enum class PhasesWarning : PhaseUnderlyingType {
 
 #if HAS_ILI9488_DISPLAY() && HAS_HUMAN_INTERACTIONS()
     DisplayProblemDetected,
-#endif
-
-#if HAS_TOOL_OFFSET_SENSOR()
-    /// Blocking dialog shown when tool offset calibration fails. Lets the user abort or retry.
-    ToolOffsetCalibrationFailed,
-    HotendOffsetUnsafeZDeviation,
-    HotendOffsetUnsafeXyDeviation,
-    HotendOffsetUnsafeSensorXY,
-#endif
-
-#if HAS_WASTEBIN_FILL_TRACKING()
-    /// Mid-print, auto-pause on: the nozzle-cleaner wastebin is full. Ignore (disable check this print) / Done (reset counter).
-    NozzleCleanerFull,
-    /// Manual "Empty Wastebin": print parked, prompting the user to empty the bin and confirm (Done -> reset counter).
-    NozzleCleanerManualEmpty,
 #endif
 
     /// Shown when the M334 is attempting to change metrics configuration, prompting the user to confirm the change (security reasons)
@@ -582,7 +567,15 @@ enum class PhaseToolOffsetsCalibration : PhaseUnderlyingType {
     moving_away,
     homing,
     picking_tool,
+    pickup_failed, ///< no tool could be picked; the toolchanger has no prompt of its own outside a print
     calibrating,
+    tool_failed, ///< a tool could not be cleaned, probed or scanned
+    tool_not_picked, ///< the tool to calibrate is not the one in the head
+    sensor_not_found, ///< the sensor was not where it should be, or is missing
+    sensor_failure, ///< the sensor stopped answering during the measurement
+    unsafe_xy_offset, ///< XY spread between the tools over the limit
+    unsafe_z_offset, ///< Z spread between the tools over the limit
+    unsafe_sensor_position, ///< the tools' average offset puts the sensor too far from where it should be
     calibration_success,
     calibration_failed,
     _last = calibration_failed,
@@ -783,7 +776,7 @@ inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarn
 #if HAS_CHAMBER_API()
         { PhasesWarning::FailedToReachChamberTemperature, { Response::Ok, Response::Skip } },
 #endif
-#if HAS_UNEVEN_BED_PROMPT()
+#if HAS_UNEVEN_BED_DETECTION()
         { PhasesWarning::BedUnevenAlignmentPrompt, { Response::Yes, Response::No } },
 #endif
 #if HAS_CEILING_CLEARANCE()
@@ -796,16 +789,6 @@ inline constexpr EnumArray<PhasesWarning, PhaseResponses, CountPhases<PhasesWarn
 #endif
 #if HAS_ILI9488_DISPLAY() && HAS_HUMAN_INTERACTIONS()
         { PhasesWarning::DisplayProblemDetected, { Response::Yes, Response::No } },
-#endif
-#if HAS_TOOL_OFFSET_SENSOR()
-        { PhasesWarning::ToolOffsetCalibrationFailed, { Response::Retry, Response::Abort } },
-        { PhasesWarning::HotendOffsetUnsafeZDeviation, { Response::Retry, Response::Abort } },
-        { PhasesWarning::HotendOffsetUnsafeXyDeviation, { Response::Retry, Response::Abort } },
-        { PhasesWarning::HotendOffsetUnsafeSensorXY, { Response::Retry, Response::Abort } },
-#endif
-#if HAS_WASTEBIN_FILL_TRACKING()
-        { PhasesWarning::NozzleCleanerFull, { Response::Ignore, Response::Done } },
-        { PhasesWarning::NozzleCleanerManualEmpty, { Response::Done } },
 #endif
         { PhasesWarning::MetricsConfigChangePrompt, { Response::Yes, Response::No } },
 };
@@ -951,7 +934,15 @@ inline constexpr EnumArray<PhaseToolOffsetsCalibration, PhaseResponses, CountPha
         { PhaseToolOffsetsCalibration::moving_away, {} },
         { PhaseToolOffsetsCalibration::homing, {} },
         { PhaseToolOffsetsCalibration::picking_tool, {} },
+        { PhaseToolOffsetsCalibration::pickup_failed, { Response::Retry, Response::Abort } },
         { PhaseToolOffsetsCalibration::calibrating, { Response::Abort } },
+        { PhaseToolOffsetsCalibration::tool_failed, { Response::Retry, Response::Abort } },
+        { PhaseToolOffsetsCalibration::tool_not_picked, { Response::Retry, Response::Abort } },
+        { PhaseToolOffsetsCalibration::sensor_not_found, { Response::Retry, Response::Abort } },
+        { PhaseToolOffsetsCalibration::sensor_failure, { Response::Retry, Response::Abort } },
+        { PhaseToolOffsetsCalibration::unsafe_xy_offset, { Response::Retry, Response::Abort } },
+        { PhaseToolOffsetsCalibration::unsafe_z_offset, { Response::Retry, Response::Abort } },
+        { PhaseToolOffsetsCalibration::unsafe_sensor_position, { Response::Retry, Response::Abort } },
         { PhaseToolOffsetsCalibration::calibration_success, { Response::Continue } },
         { PhaseToolOffsetsCalibration::calibration_failed, { Response::Continue } },
 };

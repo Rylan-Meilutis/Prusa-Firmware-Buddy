@@ -27,6 +27,11 @@
 
 #include <option/has_indx.h>
 
+#include <option/has_ht_hotend.h>
+#if HAS_HT_HOTEND()
+    #include <hotend_type.hpp>
+#endif
+
 #include <option/has_anfc.h>
 #if HAS_ANFC()
     #include <feature/openprinttag/filament_usage_tracker/filament_usage_tracker.hpp>
@@ -104,6 +109,19 @@ constinit const ChecksTraits<GeneralCheck>::Metadata ChecksTraits<GeneralCheck>:
             },
         },
 #endif
+#if HAS_HT_HOTEND()
+        {
+            GeneralCheck::ht_hotend,
+            CheckMetadata {
+                // Same bucket as GeneralCheck::mmu -- both are "the g-code needs optional
+                // hardware this printer does not have" -- and the same one that governs this
+                // g-code today, through unsupported_features.
+                .severity = HWCheckType::firmware,
+                .title = N_("Sliced for HT hotend"),
+                .description = N_("G-Code is sliced for the high-temperature hotend, which is not installed."),
+            },
+        },
+#endif
         {
             GeneralCheck::unsupported_features,
             CheckMetadata {
@@ -115,7 +133,9 @@ constinit const ChecksTraits<GeneralCheck>::Metadata ChecksTraits<GeneralCheck>:
         {
             GeneralCheck::not_enough_tools,
             CheckMetadata {
-                .severity = HWCheckSeverity::Abort,
+                // Needs to be overridable - some people use multiextruder sliced GCode with M600 for singlenozzle prints
+                // BFW-9260
+                .severity = HWCheckSeverity::Warning,
                 .title = N_("Not enough tools"),
                 .description = N_("G-Code requires more tools than are currently enabled."),
             },
@@ -355,6 +375,16 @@ void CompatibilityReport::generate_without_toolmapping(const GCodeInfo &gcode_in
     }
 #endif
 
+#if HAS_HT_HOTEND()
+    // hotend_type is read from EEPROM, so test against the safe default rather than for
+    // high_temp: an unknown or future-FW value then warns instead of silently letting an
+    // HT-sliced g-code run on a hotend that cannot take its temperatures.
+    static_assert(PhysicalToolIndex::count == 1, "HT hotend is a single-tool printer feature");
+    if (gcode_info.info().sliced_for_ht_hotend_ && config_store().hotend_type.get(0) != HotendType::high_temp) {
+        failed_general_checks.set(GeneralCheck::ht_hotend);
+    }
+#endif
+
     if (gcode_info.UsedExtrudersCount() > get_num_of_enabled_tools()) {
         failed_general_checks.set(GeneralCheck::not_enough_tools);
     }
@@ -377,8 +407,6 @@ void CompatibilityReport::generate_toolmapping_only(const ToolMappingArgs &args)
 }
 
 void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] const ToolMappingArgs &args) {
-    const auto &gcode_info = GCodeInfo::getInstance();
-
 #if HAS_MMU2()
     const bool mmu_enabled = MMU2::mmu2.Enabled();
 #else
@@ -389,7 +417,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
     for (GcodeToolIndex gcode_tool : GcodeToolIndex::all()) {
         auto &gcode_tool_fails = failed_gcode_tool_checks[gcode_tool];
 
-        const auto &extruder_info = gcode_info.get_extruder_info(gcode_tool);
+        const auto &extruder_info = args.gcode_info.get_extruder_info(gcode_tool);
         if (!extruder_info.used()) {
             continue;
         }
@@ -413,7 +441,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
         // Note: Always checking first bit in the config store, since nozzle_is_high_flow is set per toolhead and MMU always uses first one.
         if (extruder_info.requires_high_flow_nozzle == Tristate::yes
             && !config_store().get_nozzle_is_high_flow(0)
-            && !gcode_info.is_singletool_gcode()
+            && !args.gcode_info.is_singletool_gcode()
             && mmu_enabled) {
             failed_virtual_tool_checks[base_virtual_tool].set(VirtualToolCheck::nozzle_not_high_flow);
         }
@@ -462,7 +490,7 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
                 }
             }
 
-            if (auto dia = extruder_info.nozzle_diameter; dia.has_value() && std::abs(*dia - config_store().get_nozzle_diameter(physical_tool.to_raw())) > 0.001f) {
+            if (auto dia = extruder_info.nozzle_diameter; dia.has_value() && std::abs(*dia - config_store().get_nozzle_diameter(physical_tool)) > 0.001f) {
                 virtual_tool_fails.set(VirtualToolCheck::nozzle_diameter);
             }
             if (extruder_info.requires_hardened_nozzle == Tristate::yes && !config_store().get_nozzle_is_hardened(physical_tool)
@@ -485,8 +513,8 @@ void CompatibilityReport::generate_toolmapping_only_noclear([[maybe_unused]] con
             }
 
 #if HAS_ANFC()
-            if (auto v = buddy::openprinttag::filament_usage_tracker().remaining_filament_g(virtual_tool)) {
-                remaining_filament_g += *v;
+            if (auto v = buddy::openprinttag::filament_usage_tracker().filament_report(virtual_tool)) {
+                remaining_filament_g += v->remaining_weight_g;
             } else {
                 // At least one of the spools does not have an OPT
                 // We cannot rely on the remaining filament calculations

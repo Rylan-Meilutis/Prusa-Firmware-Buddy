@@ -205,19 +205,13 @@ void GcodeSuite::M115() {
     );
 
     // MOTION_MODES (M80-M89)
-    cap_line(PSTR("MOTION_MODES")
-#if ENABLED(GCODE_MOTION_MODES)
-        // #error dead code found by automatic analyses (see BFW-5461)
-        ,
-        true
-#endif
-    );
+    cap_line(PSTR("MOTION_MODES"));
 
     // CHAMBER_TEMPERATURE (M141, M191)
     cap_line(PSTR("CHAMBER_TEMPERATURE")
 #if HAS_CHAMBER_API()
                  ,
-        buddy::chamber().capabilities().temperature_reporting
+        buddy::chamber().capabilities().temperature_control_generally()
 #endif
     );
 }

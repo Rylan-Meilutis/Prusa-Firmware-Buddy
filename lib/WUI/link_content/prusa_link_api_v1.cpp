@@ -12,6 +12,7 @@
 
 #include <buddy/filename_defs.hpp>
 #include <marlin_client.hpp>
+#include <common/marlin_vars.hpp>
 #include <common/path_utils.h>
 #include <transfers/monitor.hpp>
 #include <transfers/changed_path.hpp>
@@ -20,6 +21,7 @@
 #include <cstdio>
 #include <cerrno>
 #include <charconv>
+#include <span>
 #include <unistd.h>
 
 namespace nhttp::link_content {
@@ -219,7 +221,7 @@ Selector::Accepted PrusaLinkApiV1::accept(const RequestParser &parser, handler::
             return Accepted::Accepted;
         }
         case Method::Post: {
-            out.next = print_file(filename, parser);
+            out.next = print_file(std::span(filename), parser);
             return Accepted::Accepted;
         }
         default:

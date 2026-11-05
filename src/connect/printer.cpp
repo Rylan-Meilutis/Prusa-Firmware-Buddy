@@ -1,6 +1,9 @@
 #include "printer.hpp"
 
+#include <common/aggregate_arity.hpp>
 #include <crc32.h>
+#include <option/has_mmu2.h>
+#include <option/has_filament_tracker.h>
 
 #include <cstring>
 
@@ -40,6 +43,59 @@ struct Crc {
 
 namespace connect_client {
 
+// The fingerprints pick the members one by one - a new member needs a decision there
+static_assert(aggregate_arity<ToConnectToolArgs>() == HAS_MMU2());
+static_assert(aggregate_arity<Printer::PhysicalToolInfo>() == 7 + 3 * PRINTER_IS_PRUSA_iX());
+static_assert(aggregate_arity<Printer::VirtualToolInfo>() == 2 * HAS_FILAMENT_TRACKER() + 3 * HAS_ANFC());
+
+// A new filament parameter needs a decision whether INFO reports it
+static_assert(
+    aggregate_arity<FilamentTypeParameters>()
+    == 7
+        + HAS_FILAMENT_HEATBREAK_PARAM() * 1
+        + HAS_CHAMBER_API() * 3
+        + HAS_CHAMBER_FILTRATION_API() * 1
+        + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1
+        + HAS_ANFC() * 4
+        + HAS_HT_HOTEND() * 1);
+
+namespace {
+
+    void add_material(Crc &crc, const std::optional<FilamentTypeParameters> &material) {
+        crc.add(material.has_value());
+        if (!material.has_value()) {
+            return;
+        }
+
+        // Member by member, the padding bytes are indeterminate
+        crc
+#if HAS_ANFC()
+            .add(material->material_uuid.value_or(UUID::nil()))
+            .add(material->package_uuid.value_or(UUID::nil()))
+            .add(material->instance_uuid.value_or(UUID::nil()))
+#endif
+            .add_str(material->name.data())
+            .add(material->color.has_value() ? material->color->raw : uint32_t(-1))
+            .add(material->nozzle_temperature)
+            .add(material->nozzle_preheat_temperature)
+            .add(material->heatbed_temperature)
+#if HAS_FILAMENT_HEATBREAK_PARAM()
+            .add(material->heatbreak_temperature)
+#endif
+#if HAS_CHAMBER_FILTRATION_API()
+            .add(material->requires_filtration)
+#endif
+            .add(material->is_abrasive);
+#if HAS_CHAMBER_API()
+        // Through the value: the bytes of an empty optional are indeterminate
+        for (const std::optional<uint8_t> &temperature : { material->chamber_min_temperature, material->chamber_max_temperature, material->chamber_target_temperature }) {
+            crc.add(temperature.has_value() ? int(*temperature) : -1);
+        }
+#endif
+    }
+
+} // namespace
+
 uint32_t Printer::Params::telemetry_fingerprint(bool include_xy_axes) const {
     // Note: keep in sync with the rendering of telemetry in render.cpp
     // Note: There are some guessed "precision" constants - making sure we
@@ -55,37 +111,59 @@ uint32_t Printer::Params::telemetry_fingerprint(bool include_xy_axes) const {
             .add(int(pos[Printer::Y_AXIS_POS]));
     }
 
-    for (VirtualToolIndex vt : VirtualToolIndex::all()) {
+    for (PhysicalToolIndex pt : PhysicalToolIndex::all()) {
         // Use the list of enabled at the time of snapshot, not current
         // (that is, the mask, not .skip_all_disabled)
-        if (slot_mask & (1 << vt.to_raw())) {
-            crc.add_str(slots[vt].material.data())
-                .add_str(slots[vt].profile.data())
-                .add(int(slots[vt].temp_nozzle))
+        if (physical_tool_mask & (1 << pt.to_raw())) {
+            const auto &physical_tool = physical_tools[pt];
+            crc.add(int(physical_tool.temp_nozzle))
+                .add(physical_tool.target_nozzle)
 #if PRINTER_IS_PRUSA_iX()
-                .add(int(slots[vt].temp_heatbreak))
-                .add(slots[vt].extruder_fs_state ? std::to_underlying(*slots[vt].extruder_fs_state) : -1)
-                .add(slots[vt].remote_fs_state ? std::to_underlying(*slots[vt].remote_fs_state) : -1)
+                .add(int(physical_tool.temp_heatbreak))
+                .add(physical_tool.extruder_fs_state ? std::to_underlying(*physical_tool.extruder_fs_state) : -1)
+                .add(physical_tool.remote_fs_state ? std::to_underlying(*physical_tool.remote_fs_state) : -1)
 #endif
                 // The RPM values are in thousands and fluctuating a bit, we don't want
                 // that to trigger the send too often, only when it actually really
                 // changes.
-                .add(slots[vt].print_fan_rpm / 500)
-                .add(slots[vt].heatbreak_fan_rpm / 500);
+                .add(physical_tool.print_fan_rpm / 500)
+                .add(physical_tool.heatbreak_fan_rpm / 500);
         }
     }
 
+    for (VirtualToolIndex vt : VirtualToolIndex::all()) {
+        // Use the list of enabled at the time of snapshot, not current
+        // (that is, the mask, not .skip_all_disabled)
+        if (!(virtual_tool_mask & (1 << vt.to_raw()))) {
+            continue;
+        }
+
+        [[maybe_unused]] const auto &virtual_tool = virtual_tools[vt];
+#if HAS_FILAMENT_TRACKER()
+        crc.add(virtual_tool.odometer_id)
+            // Don't send telemetry on every extruded millimeter
+            .add(virtual_tool.odometer_e_mm / 100);
+#endif
+#if HAS_ANFC()
+        // Don't send telemetry on every consumed gram. The full weight is reported in INFO.
+        crc.add(uint32_t(virtual_tool.consumed_weight_g.value_or(-1) / 10));
+#endif
+    }
+
     return crc
-        .add(active_slot)
+        .add(physical_tool_mask)
+        .add(virtual_tool_mask)
+        .add(active_physical_tool)
+        .add(active_virtual_tool_mask)
+#if HAS_MMU2()
+        .add(tool_args.mmu_enabled)
+#endif
         .add(int(pos[Printer::Z_AXIS_POS]))
         .add(print_speed)
         .add(flow_factor)
-        // Report only about once every 10mm of filament
-        .add(int(filament_used / 10))
-        .add(int(target_nozzle))
+        .add(int(target_bed))
         .add(int(temp_bed))
-#if PRINTER_IS_PRUSA_iX
-        // #error dead code found by automatic analyses (see BFW-5461)
+#if PRINTER_IS_PRUSA_iX()
         .add(int(temp_psu))
         .add(int(temp_ambient))
 #endif
@@ -96,6 +174,9 @@ uint32_t Printer::Params::telemetry_fingerprint(bool include_xy_axes) const {
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
         .add(int(chamber_info.fan_1_rpm / 500))
         .add(int(chamber_info.fan_2_rpm / 500))
+        .add(chamber_info.target_temp)
+        .add(chamber_info.fan_pwm_target)
+        .add(chamber_info.led_intensity)
 #endif
         .done();
 }
@@ -141,17 +222,29 @@ uint32_t Printer::info_fingerprint() const {
     const auto creds = net_creds();
     const auto &parameters = params();
 
-    for (VirtualToolIndex vt : VirtualToolIndex::all()) {
+    for (PhysicalToolIndex pt : PhysicalToolIndex::all()) {
         // Use the list of enabled at the time of snapshot, not current
         // (that is, the mask, not .skip_all_disabled)
-        if (parameters.slot_mask & (1 << vt.to_raw())) {
-            const auto &slot = parameters.slots[vt];
+        if (parameters.physical_tool_mask & (1 << pt.to_raw())) {
+            const auto &physical_tool = parameters.physical_tools[pt];
             crc
-                .add(slot.nozzle_diameter)
-                .add(slot.hardened)
-                .add(slot.high_flow)
-                .add_str(slot.material.data())
-                .add_str(slot.profile.data());
+                .add(physical_tool.nozzle_diameter)
+                .add(physical_tool.hardened)
+                .add(physical_tool.high_flow);
+        }
+    }
+
+    for (VirtualToolIndex vt : VirtualToolIndex::all()) {
+        // Use the list of enabled at the time of snapshot, not current
+        if (parameters.virtual_tool_mask & (1 << vt.to_raw())) {
+            [[maybe_unused]] auto &vd = parameters.virtual_tools[vt];
+
+            add_material(crc, material(vt));
+#if HAS_ANFC()
+            crc
+                .add(vd.full_weight_g.value_or(-1))
+                .add(vd.full_weight_is_nominal);
+#endif
         }
     }
 
@@ -164,7 +257,11 @@ uint32_t Printer::info_fingerprint() const {
         .add(parameters.version.type)
         .add(parameters.version.version)
         .add(parameters.version.subversion)
-        .add(parameters.enabled_tool_cnt())
+        .add(parameters.physical_tool_mask)
+#if HAS_MMU2()
+        // Decides the tool ids
+        .add(parameters.tool_args.mmu_enabled)
+#endif
 #if XL_ENCLOSURE_SUPPORT()
         .add(parameters.enclosure_info.present)
         .add(parameters.enclosure_info.enabled)
@@ -211,15 +308,6 @@ const char *Printer::Params::job_lfn() const {
     } else {
         return nullptr;
     }
-}
-
-VirtualToolIndex Printer::Params::preferred_slot() const {
-    return match(
-        active_slot,
-        [](VirtualToolIndex vt) { return vt; },
-        // We need to give Connect _some_ temperature. Pick the first enabled
-        // tool (or the first tool completely, in case of Error printer).
-        [this](NoTool) { return VirtualToolIndex::from_raw(slot_mask == 0 ? 0 : std::countr_zero(slot_mask)); });
 }
 
 } // namespace connect_client

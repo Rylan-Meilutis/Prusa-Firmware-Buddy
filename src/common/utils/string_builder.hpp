@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 #include <string_view_utf8.hpp>
@@ -78,6 +79,11 @@ public:
     constexpr inline const uint8_t *str_bytes() const {
         debug_assert(is_ok());
         return reinterpret_cast<const uint8_t *>(buffer_start_);
+    }
+
+    constexpr inline std::string_view string_view() const {
+        debug_assert(is_ok());
+        return std::string_view { buffer_start_, char_count() };
     }
 
 private:

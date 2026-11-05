@@ -481,7 +481,7 @@ int MI_UI_THEME_PRESET_SELECT::item_count() const {
     return theme_preset_names.size();
 }
 
-string_view_utf8 MI_UI_THEME_PRESET_SELECT::build_item_text(int index, [[maybe_unused]] ItemTextParams &params) const {
+string_view_utf8 MI_UI_THEME_PRESET_SELECT::build_item_text(int index, [[maybe_unused]] StringViewUtf8ParamBase &params) const {
     if (index < 0 || index >= item_count()) {
         return string_view_utf8::MakeCPUFLASH("");
     }

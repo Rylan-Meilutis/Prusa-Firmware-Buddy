@@ -124,9 +124,9 @@ void ScreenFirmwareFileBrowser::windowEvent([[maybe_unused]] window_t *sender, G
 }
 
 void ScreenFirmwareFileBrowser::check_missing_media(MediaState_t media_state) {
-    if (media_state == MediaState_t::removed || media_state == MediaState_t::error) {
-        browser().clear_first_visible_sfn();
-        Screens::Access()->Close();
+    if (media_state == MediaState_t::removed) {
+        browser().clear_first_visible_canonical();
+        Screens::Access()->close_screen_or_dialog();
     }
 }
 
@@ -166,6 +166,6 @@ void ScreenFirmwareFileBrowser::select_file() {
 }
 
 void ScreenFirmwareFileBrowser::go_home() {
-    browser().clear_first_visible_sfn();
-    Screens::Access()->Close();
+    browser().clear_first_visible_canonical();
+    Screens::Access()->close_screen_or_dialog();
 }

@@ -19,6 +19,12 @@
 #include <utils/timing/rate_limiter.hpp>
 #include <logging/log.hpp>
 #include "display_hw_checks.hpp"
+
+#include <option/has_anfc.h>
+#if HAS_ANFC()
+    #include <screen/openprinttag/opt_gui_manager.hpp>
+#endif
+
 #include <option/has_leds.h>
 #include <guiconfig/guiconfig.h>
 #if HAS_LEDS()
@@ -36,7 +42,6 @@
 #endif
 
 #include <option/has_touch.h>
-
 #if HAS_TOUCH()
     #include <hw/touchscreen/touchscreen.hpp>
 #endif
@@ -322,6 +327,7 @@ void gui_reset_loop_timer() {
 void gui_bare_loop() {
     ++guiloop_nesting;
 
+    lcd::bare_communication_check();
     gui_handle_jogwheel();
     const bool screen_brightness_off = update_screen_brightness_and_is_off();
     invalidate_after_screen_wake(screen_brightness_off);
@@ -356,7 +362,6 @@ void gui_loop(void) {
         switch (media_state) {
         case MediaState_t::inserted:
         case MediaState_t::removed:
-        case MediaState_t::error:
             Screens::Access()->ScreenEvent(nullptr, GUI_event_t::MEDIA, (void *)int(media_state));
             break;
         default:
@@ -369,12 +374,17 @@ void gui_loop(void) {
     } else {
         osDelay(GUI_DELAY_MIN);
     }
-    marlin_client::loop();
     GuiMediaEventsHandler::Tick();
+
 #if HAS_SELFTEST()
     if (marlin_client::event_clr(marlin_server::Event::RequestCalibrationsScreen)) {
         Screens::Access()->Open<ScreenMenuSTSCalibrations>();
     }
 #endif
+
+#if HAS_ANFC()
+    buddy::openprinttag::gui_loop_opt();
+#endif
+
     --guiloop_nesting;
 }

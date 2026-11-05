@@ -35,6 +35,8 @@ static rme_tune::Delta tune_delta;
 #include "../module/planner.h"
 #include "../module/temperature.h"
 #include "../Marlin.h"
+#include <cstring>
+#include <iterator>
 #include <option/has_serial_print.h>
 #if HAS_SERIAL_PRINT()
     #include "serial_printing.hpp"
@@ -125,6 +127,7 @@ extern "C" bool buddy_rme_firmware_service(const char *command);
 extern "C" bool buddy_rme_binary_upload_active();
 extern "C" void buddy_rme_binary_upload_byte(uint8_t byte);
 extern "C" void buddy_rme_firmware_service_tick();
+#include <marlin_server.hpp>
 
 /**
  * GCode line number handling. Hosts may opt to include line numbers when
@@ -237,7 +240,8 @@ void GCodeQueue::_commit_command(bool say_ok
 /**
  * Copy a command from RAM into the main command buffer.
  * Return true if the command was successfully added.
- * Return false for a full buffer, or if the 'command' is a comment.
+ * Return false for a full buffer, a comment, or a command that would not
+ * fit a queue slot (>= MAX_CMD_SIZE).
  */
 bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
   #if NUM_SERIAL > 1
@@ -246,7 +250,8 @@ bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
   #endif
 ) {
   if (*cmd == ';' || length >= recovery_capacity) return false;
-  strcpy(command_buffer[index_w], cmd);
+  char(&slot)[MAX_CMD_SIZE] = command_buffer[index_w];
+  if (strlcpy(slot, cmd, std::size(slot)) >= std::size(slot)) return false;
   _commit_command(say_ok
     #if NUM_SERIAL > 1
       // #error dead code found by automatic analyses (see BFW-5461)
@@ -982,7 +987,7 @@ static bool handle_remote_filament_service(const std::string_view command) {
       buddy::filament_material::preserve_loaded_preset(type, VirtualToolIndex::all(),
         [](const auto tool) { return config_store().get_filament_type(tool); },
         [&](const auto tool) {
-          const FilamentType snapshot = AdHocFilamentType { tool.to_raw() };
+          const FilamentType snapshot = AdHocFilamentType { tool };
           snapshot.set_parameters(previous_params);
           config_store().set_filament_type(tool, snapshot);
         });
@@ -2024,12 +2029,9 @@ void GCodeQueue::get_serial_commands() {
   // MAX_CMD_SIZE G-code queue.
   static constexpr size_t rme_serial_line_size = 640;
   static char serial_line_buffer[NUM_SERIAL][rme_serial_line_size];
-  static bool serial_comment_mode[NUM_SERIAL] = { false }
-              #if ENABLED(PAREN_COMMENTS)
-                // #error dead code found by automatic analyses (see BFW-5461)
-                , serial_comment_paren_mode[NUM_SERIAL] = { false }
-              #endif
-            ;
+  enum class LineState : uint8_t { ok, too_long, comment };
+  static_assert(LineState {} == LineState::ok);
+  static LineState serial_line_state[NUM_SERIAL] = {};
 
   // If the command buffer is empty for too long,
   // send "wait" to indicate Marlin is still waiting.
@@ -2067,13 +2069,10 @@ void GCodeQueue::get_serial_commands() {
        * If the character ends the line
        */
       if (serial_char == '\n' || serial_char == '\r') {
+        const bool line_too_long = (serial_line_state[i] == LineState::too_long);
 
-        // Start with comment mode off
-        serial_comment_mode[i] = false;
-        #if ENABLED(PAREN_COMMENTS)
-          // #error dead code found by automatic analyses (see BFW-5461)
-          serial_comment_paren_mode[i] = false;
-        #endif
+        // Start the next line with a clean state
+        serial_line_state[i] = LineState::ok;
 
         // Skip empty lines and comments
         if (!serial_count[i]) { thermalManager.manage_heater(); continue; }
@@ -2262,6 +2261,15 @@ void GCodeQueue::get_serial_commands() {
           }
           continue;
         }
+        if (line_too_long) {
+          // Reported only once the cropped command is certain to run - a dialog raised
+          // for a line rejected above could not be dismissed while the host resends it.
+          // Echo rather than error: hosts match error text against a list of recoverable
+          // conditions and abort the print on anything else.
+          PORT_REDIRECT(i);
+          SERIAL_ECHO_MSG(MSG_LINE_TOO_LONG);
+          marlin_server::set_warning(WarningType::GcodeCropped);
+        }
 
         // Add the command to the queue
         _enqueue(serial_line_buffer[i], true
@@ -2271,34 +2279,26 @@ void GCodeQueue::get_serial_commands() {
           #endif
         );
       }
+      else if (serial_line_state[i] == LineState::comment) {
+        // Drop the rest of the line, however long it grows
+      }
+      else if (serial_char == ';') {
+        serial_line_state[i] = LineState::comment;
+      }
       else if (serial_count[i] >= static_cast<int>(rme_serial_line_size - 1)
         || (serial_count[i] >= MAX_CMD_SIZE - 1 && strncmp(serial_line_buffer[i], "@RME ", 5) != 0)) {
         // Keep fetching, but ignore normal characters beyond the max length
-        // The command will be injected when EOL is reached
+        // The cropped command will be injected when EOL is reached
+        serial_line_state[i] = LineState::too_long;
       }
       else if (serial_char == '\\') {  // Handle escapes
         // if we have one more character, copy it over
-        if ((c = read_serial(i)) >= 0 && !serial_comment_mode[i]
-          #if ENABLED(PAREN_COMMENTS)
-            // #error dead code found by automatic analyses (see BFW-5461)
-            && !serial_comment_paren_mode[i]
-          #endif
-        )
+        if ((c = read_serial(i)) >= 0) {
           serial_line_buffer[i][serial_count[i]++] = (char)c;
+        }
       }
-      else { // it's not a newline, carriage return or escape char
-        if (serial_char == ';') serial_comment_mode[i] = true;
-        #if ENABLED(PAREN_COMMENTS)
-          // #error dead code found by automatic analyses (see BFW-5461)
-          else if (serial_char == '(') serial_comment_paren_mode[i] = true;
-          else if (serial_char == ')') serial_comment_paren_mode[i] = false;
-        #endif
-        else if (!serial_comment_mode[i]
-          #if ENABLED(PAREN_COMMENTS)
-            // #error dead code found by automatic analyses (see BFW-5461)
-            && ! serial_comment_paren_mode[i]
-          #endif
-        ) serial_line_buffer[i][serial_count[i]++] = serial_char;
+      else { // it's not a newline, carriage return, comment or escape char
+        serial_line_buffer[i][serial_count[i]++] = serial_char;
       }
     } // for NUM_SERIAL
   } // queue has space, serial has data

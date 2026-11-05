@@ -348,20 +348,26 @@ void GCodeInfo::parse_m862(GcodeBuffer::String cmd) {
                 feature.trim();
 
 #if HAS_MMU2()
-                if (compare(feature, "MMU3")) {
+                if (compare(feature, gcode_info::m862_6_mmu)) {
                     if (!MMU2::mmu2.Enabled()) {
                         info_.failed_gcode_checks.set(Check::mmu);
                     }
                     break;
                 }
 #endif
-                if (compare(feature, "Input Shaper")) {
+                if (compare(feature, gcode_info::m862_6_input_shaper)) {
                     info_.sliced_with_input_shaper_ = true;
                     break;
                 }
 #if HAS_INDX()
-                if (compare(feature, "INDX lock")) {
+                if (compare(feature, gcode_info::m862_6_indx_lock)) {
                     info_.sliced_with_indx_lock_ = true;
+                    break;
+                }
+#endif
+#if HAS_HT_HOTEND()
+                if (compare(feature, gcode_info::m862_6_ht_hotend)) {
+                    info_.sliced_for_ht_hotend_ = true;
                     break;
                 }
 #endif
@@ -499,7 +505,7 @@ void GCodeInfo::parse_comment(GcodeBuffer::String comment, bool plaintext_gcodes
     if (plaintext_gcodes) {
         if (const auto details = PlainGcodeReader::thumbnail_details(comment); details != std::nullopt) {
             auto check = [&](uint16_t w_exp, uint16_t h_exp, bool &has_thumbnail) {
-                if (details->width == w_exp && details->height == h_exp && details->type == IGcodeReader::ImgType::QOI) {
+                if (details->matches(w_exp, h_exp, IGcodeReader::ImgType::QOI, false)) {
                     has_thumbnail = true;
                 }
             };

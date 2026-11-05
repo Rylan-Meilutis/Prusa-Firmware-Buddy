@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "Rect16.h"
+#include "raster_opfn.hpp"
 
 #define ILI9488_COLS      480 //
 #define ILI9488_ROWS      320 //
@@ -30,13 +31,12 @@ extern void ili9488_fill_rect_colorFormat666(uint16_t rect_x, uint16_t rect_y, u
 
 /**
  * @brief Draw QOI.
- * @param pt coordinate of the top left corner of the image
- * @param reader A reader for reading QOI bytestream
+ * @param rect A rectangle with QOI size and desired position
+ * @param reader A reader for reading QOI bytestream positioned after header
  * @param back_color background color, (back_color >> 16) & 0xff is blue, (back_color >> 8) & 0xff is green, back_color & 0xff is red
- * @param rop raster operations as defined in display_math_helper.h and qoi_decoder.h
  */
-void ili9488_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop);
-void ili9488_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color);
+void ili9488_draw_qoi_ex(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop);
+void ili9488_draw_qoi_ex_tinted(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color);
 
 extern void ili9488_inversion_on(void);
 extern void ili9488_inversion_off(void);
@@ -56,7 +56,6 @@ extern void ili9488_brightness_disable(void);
 
 extern uint8_t *ili9488_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y);
 
-extern uint32_t ili9488_get_pixel_colorFormat666(uint16_t point_x, uint16_t point_y);
 extern void ili9488_set_pixel(uint16_t point_x, uint16_t point_y, uint32_t clr666);
 
 /**

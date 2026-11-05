@@ -167,7 +167,7 @@ void MI_PID_VALUE::OnClick() {
 }
 
 void MI_PID_VALUE::reload() {
-    SetVal(persisted_pid_value(heater_, term_));
+    set_value(persisted_pid_value(heater_, term_));
 }
 
 MI_PID_HOTEND_P::MI_PID_HOTEND_P()
@@ -356,11 +356,11 @@ void ScreenPidAutotune::windowEvent(window_t *sender, GUI_event_t event, void *p
         switch (event_conversion_union { .pvoid = param }.response) {
         case Response::Abort:
             marlin_client::gcode("M108");
-            Screens::Access()->Close();
+            Screens::Access()->close_screen_or_dialog();
             return;
         case Response::Done:
             if (finished_) {
-                Screens::Access()->Close();
+                Screens::Access()->close_screen_or_dialog();
                 return;
             }
             break;

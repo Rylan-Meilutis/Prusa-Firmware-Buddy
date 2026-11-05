@@ -8,6 +8,7 @@
 #include <option/has_crash_detection.h>
 #include <option/has_door_sensor_calibration.h>
 #include <option/has_esp.h>
+#include <option/has_gantry_squareness_check.h>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_indx.h>
 #include <option/has_input_shaper_calibration.h>
@@ -18,6 +19,7 @@
 #include <option/has_serial_print.h>
 #include <option/has_heaters_selftest_gcode.h>
 #include <option/has_tool_offset_sensor.h>
+#include <option/has_wastebin_fill_tracking.h>
 
 /// Client finite state machines bound to client_response.hpp
 enum class ClientFSM : uint8_t {
@@ -70,6 +72,12 @@ enum class ClientFSM : uint8_t {
     NozzleMismatch,
     DockCalibration,
     NozzleCleanerCalibration,
+#endif
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    GantrySquareness,
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+    WastebinEmptying,
 #endif
 #if HAS_TOOL_OFFSET_SENSOR()
     ToolOffsetsCalibration,

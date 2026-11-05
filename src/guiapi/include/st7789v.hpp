@@ -1,7 +1,7 @@
 #pragma once
 
-#include "display_math_helper.h"
 #include "Rect16.h"
+#include "raster_opfn.hpp"
 #include <utils/abstract_byte_reader.hpp>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -18,7 +18,7 @@ inline uint16_t color_to_565(Color clr) {
     static constexpr uint8_t r_shift = (8 - 5);
     static constexpr uint8_t g_shift = (8 - 6) + r_shift;
     static constexpr uint8_t b_shift = (8 - 5) + g_shift;
-    return swap_ui16(((clr.raw >> r_shift) & 0x001f) | ((clr.raw >> g_shift) & 0x07e0) | ((clr.raw >> b_shift) & 0xf800));
+    return __builtin_bswap16(((clr.raw >> r_shift) & 0x001f) | ((clr.raw >> g_shift) & 0x07e0) | ((clr.raw >> b_shift) & 0xf800));
 }
 
 extern void st7789v_init(void);
@@ -35,13 +35,12 @@ extern void st7789v_fill_rect_colorFormat565(uint16_t rect_x, uint16_t rect_y, u
 
 /**
  * @brief Draw QOI.
- * @param pt coordinate of the top left corner of the image
- * @param reader A reader for reading QOI bytestream
+ * @param rect A rectangle with QOI size and desired position
+ * @param reader A reader for reading QOI bytestream positioned after header
  * @param back_color background color, (back_color >> 16) & 0xff is blue, (back_color >> 8) & 0xff is green, back_color & 0xff is red
- * @param rop raster operations as defined in display_math_helper.h and qoi_decoder.h
  */
-void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop);
-void st7789v_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color);
+void st7789v_draw_qoi_ex(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop);
+void st7789v_draw_qoi_ex_tinted(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color);
 
 inline void st7789v_set_backlight([[maybe_unused]] uint8_t bck) {}
 
@@ -61,7 +60,6 @@ extern uint8_t st7789v_brightness_get(void);
 extern void st7789v_brightness_enable(void);
 extern void st7789v_brightness_disable(void);
 
-extern uint16_t st7789v_get_pixel_colorFormat565(uint16_t point_x, uint16_t point_y);
 extern uint8_t *st7789v_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y);
 extern void st7789v_set_pixel(uint16_t point_x, uint16_t point_y, uint16_t clr565);
 

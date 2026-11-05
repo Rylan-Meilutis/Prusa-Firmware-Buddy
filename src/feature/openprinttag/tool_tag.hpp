@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <optional>
+#include <atomic>
+#include <array>
 
 #include <tool_index.hpp>
 #include <bsod/bsod.h>
@@ -12,10 +14,15 @@
 
 namespace buddy::openprinttag {
 
-inline bool has_tool_openprinttag_reader([[maybe_unused]] VirtualToolIndex tool) {
-    // TODO
-    return true;
-}
+bool has_tool_openprinttag_reader(VirtualToolIndex tool);
+
+struct TagUID {
+    /// UID in the NFC-V wire order: LSB first (0xE0 is the last byte)
+    std::array<uint8_t, 8> data;
+
+    using Hash = uint16_t;
+    Hash hash() const;
+};
 
 struct ToolTagField;
 
@@ -24,7 +31,7 @@ struct ToolTagField;
 class ToolTag {
 
 public:
-    using UIDHash = uint16_t;
+    using UIDHash = TagUID::Hash;
 
     /// Used in config store
     static constexpr UIDHash no_tag_hash = 0;
@@ -99,5 +106,10 @@ constexpr inline ToolTagField ToolTag::field(F field) const {
         .field = static_cast<Field>(field),
     };
 }
+
+/// UID hash of a tool tag that is ready to be auto-assigned on autoload
+/// Basically when the OPTTagDetected screen is displayed, inserting the filament should automatically link it to the tag
+/// Yes, this is a hack, bridging GUI thread and Marlin thread
+inline std::atomic<ToolTag::UIDHash> autoload_auto_assign_tool_tag_hash = ToolTag::no_tag_hash;
 
 }; // namespace buddy::openprinttag

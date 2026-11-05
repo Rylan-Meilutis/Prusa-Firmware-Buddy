@@ -2,7 +2,12 @@
 
 #include "filament.hpp"
 #include "filament_material_family_storage.hpp"
+#include "encoded_filament.hpp"
+
 #include <utils/string/inplace_string.hpp>
+#include <utils/color555.hpp>
+#include <utils/compact_optional.hpp>
+#include <uuid/uuid.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_filament_heatbreak_param.h>
@@ -35,11 +40,11 @@ public:
     // bits, so it remains the "no base" representation; presets are stored as
     // one-based values. INDX retains its existing EEPROM4 storage.
     FilamentTypeParameters::BasePreset decode_inline_base_preset() const {
-        const auto decoded = buddy::filament_material_family_storage::decode(_unused, static_cast<uint8_t>(PresetFilamentType::_count));
+        const auto decoded = buddy::filament_material_family_storage::decode(_unused, static_cast<uint8_t>(PresetFilamentType::_count_sparse));
         if (!decoded.has_value()) {
             return std::nullopt;
         }
-        return static_cast<PresetFilamentType>(*decoded);
+        return EncodedFilamentType::preset_filament_type_from_enum_value(*decoded);
     }
 
     static uint8_t encode_inline_base_preset(FilamentTypeParameters::BasePreset preset) {
@@ -94,12 +99,11 @@ struct __attribute__((packed)) FilamentTypeParameters_EEPROM4 {
 
 public:
     static constexpr uint8_t none_base_preset = 0xff;
+    static_assert(std::to_underlying(PresetFilamentType::_count_sparse) < none_base_preset);
     uint8_t base_preset = none_base_preset;
 
     FilamentTypeParameters::BasePreset decode_base_preset() const {
-        return base_preset < static_cast<uint8_t>(PresetFilamentType::_count)
-            ? FilamentTypeParameters::BasePreset { static_cast<PresetFilamentType>(base_preset) }
-            : FilamentTypeParameters::BasePreset { std::nullopt };
+        return EncodedFilamentType::preset_filament_type_from_enum_value(base_preset);
     }
 
     static uint8_t encode_base_preset(FilamentTypeParameters::BasePreset preset) {
@@ -110,3 +114,49 @@ public:
     constexpr bool operator==(const FilamentTypeParameters_EEPROM4 &) const = default;
 };
 #endif
+
+// !!! DO NOT CHANGE - this is used in config store
+struct FilamentTypeParameters_EEPROM5 {
+
+public:
+    using EncodedColor = CompactOptional<Color555, Color555 { Color555::invalid_bit }>;
+    EncodedColor encoded_color = std::nullopt;
+    static_assert(sizeof(EncodedColor) == 2);
+
+    static constexpr EncodedColor encode_color(OptionalColor color) {
+        return color.transform(Color555::from_color);
+    }
+
+    constexpr OptionalColor color() const {
+        return encoded_color.transform(&Color555::to_color);
+    }
+
+public:
+    constexpr bool operator==(const FilamentTypeParameters_EEPROM5 &) const = default;
+};
+
+// !!! DO NOT CHANGE - this is used in config store
+struct FilamentTypeParameters_EEPROM6 {
+
+public:
+    using OptionalUUID = CompactOptional<UUID, UUID::nil()>;
+    using EncodedUUID = std::array<std::byte, 16>;
+
+    static EncodedUUID encode_uuid(const OptionalUUID &uuid) {
+        return uuid.value_or(UUID::nil()).bytes;
+    }
+    static OptionalUUID decode_uuid(EncodedUUID uuid) {
+        return OptionalUUID {
+            UUID::from_bytes(uuid),
+            // Accept nil UUID as std::nullopt without shouting
+            OptionalUUID::NulloptCheck::no
+        };
+    }
+
+    EncodedUUID material_uuid {};
+    EncodedUUID package_uuid {};
+    EncodedUUID instance_uuid {};
+
+public:
+    constexpr bool operator==(const FilamentTypeParameters_EEPROM6 &) const = default;
+};

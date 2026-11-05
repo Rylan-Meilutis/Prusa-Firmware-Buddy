@@ -2,6 +2,7 @@
 #include <gui/menu_vars.h>
 #include <option/has_crash_detection.h>
 #include <option/has_power_panic.h>
+#include <window_msgbox.hpp>
 
 // TODO do it in cmake
 #if HAS_CRASH_DETECTION()
@@ -56,18 +57,14 @@ MI_CRASH_SENSITIVITY_X::MI_CRASH_SENSITIVITY_X()
 }
 void MI_CRASH_SENSITIVITY_X::OnClick() {
 
-    xy_long_t se = crash_s.get_sensitivity();
-    se.x = static_cast<int>(value());
-    crash_s.set_sensitivity(se);
+    crash_s.set_sensitivity(crash_s.get_sensitivity().with_x(static_cast<int>(value())));
 }
 
 MI_CRASH_SENSITIVITY_Y::MI_CRASH_SENSITIVITY_Y()
     : WiSpin(crash_s.get_sensitivity().y, crash_sensitivity_spin_config, _(label), nullptr, is_enabled_t::yes, PRINTER_IS_PRUSA_XL() ? is_hidden_t::no : is_hidden_t::dev) {
 }
 void MI_CRASH_SENSITIVITY_Y::OnClick() {
-    xy_long_t se = crash_s.get_sensitivity();
-    se.y = static_cast<int>(value());
-    crash_s.set_sensitivity(se);
+    crash_s.set_sensitivity(crash_s.get_sensitivity().with_y(static_cast<int>(value())));
 }
 
 MI_CRASH_SENSITIVITY_XY::MI_CRASH_SENSITIVITY_XY()
@@ -81,18 +78,14 @@ MI_CRASH_MAX_PERIOD_X::MI_CRASH_MAX_PERIOD_X()
     : WiSpin(crash_s.get_max_period().x, crash_max_period_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {
 }
 void MI_CRASH_MAX_PERIOD_X::OnClick() {
-    xy_long_t mp = crash_s.get_max_period();
-    mp.x = static_cast<int>(value());
-    crash_s.set_max_period(mp);
+    crash_s.set_max_period(crash_s.get_max_period().with_x(static_cast<int>(value())));
 }
 
 MI_CRASH_MAX_PERIOD_Y::MI_CRASH_MAX_PERIOD_Y()
     : WiSpin(crash_s.get_max_period().y, crash_max_period_spin_config, _(label), nullptr, is_enabled_t::yes, is_hidden_t::dev) {
 }
 void MI_CRASH_MAX_PERIOD_Y::OnClick() {
-    xy_long_t mp = crash_s.get_max_period();
-    mp.y = static_cast<int>(value());
-    crash_s.set_max_period(mp);
+    crash_s.set_max_period(crash_s.get_max_period().with_y(static_cast<int>(value())));
 }
 
 #endif
@@ -151,4 +144,32 @@ void MI_CRASH_FILTERING::OnChange([[maybe_unused]] size_t old_index) {
     crash_s.set_filter(value());
 }
     #endif
+#endif
+
+#if HAS_CRASH_DETECTION()
+static constexpr std::array<const char *, 2> gcode_interrupt_items {
+    N_("Delayed"),
+    N_("Instant"),
+};
+
+MI_GCODE_INTERRUPTS::MI_GCODE_INTERRUPTS()
+    : MenuItemSwitch(
+        // Yes, this covers all GCode interupts, but try to explain what GCode interrupts mean to the user
+        _("Runout Reaction"),
+        gcode_interrupt_items, (size_t)config_store().gcode_interrupts_enabled.get()) {}
+
+void MI_GCODE_INTERRUPTS::click(IWindowMenu &menu) {
+    const auto r = MsgBoxInfo(
+        _("Sets how quickly the printer reacts to runouts and similar events.\n\nDelayed: Finishes queued moves first.\nInstant: Abruptly stops and rehomes (to fix skipped steps)."),
+        { Response::Ok, Response::Back });
+    if (r != Response::Ok) {
+        return;
+    }
+
+    MenuItemSwitch::click(menu);
+}
+
+void MI_GCODE_INTERRUPTS::OnChange(size_t) {
+    config_store().gcode_interrupts_enabled.set((bool)current_item());
+}
 #endif

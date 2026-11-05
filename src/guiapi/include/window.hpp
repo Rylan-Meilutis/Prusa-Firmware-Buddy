@@ -8,10 +8,11 @@
 #include "align.hpp"
 #include "color_scheme.hpp"
 #include "compact_pointer.hpp"
+#include <utils/uncopyable.hpp>
 
 #include <gui/event/focus_event.hpp>
 
-class window_t {
+class window_t : Uncopyable {
     Rect16 rect; // (8 bytes) display rectangle
     CompactRAMPointer<window_t> parent;
     CompactRAMPointer<window_t> next;
@@ -81,7 +82,6 @@ public:
     bool IsCaptured() const;
     bool IsCapturable() const;
     bool HasEnforcedCapture() const;
-    bool HasIcon() const;
     win_type_t GetType() const;
     bool IsDialog() const;
     bool ClosedOnTimeout() const;
@@ -129,8 +129,6 @@ public:
     Color GetBackColor() const;
     void SetRelativeSubwins() { flags.has_relative_subwins = true; }
     void SetRoundCorners() { flags.has_round_corners = true; }
-    void SetHasIcon();
-    void ClrHasIcon();
 
     void SetRedLayout();
     void SetBlackLayout();

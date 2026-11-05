@@ -19,7 +19,7 @@
 #include "timing.h"
 #include "fanctl.hpp"
 #include <marlin_server.hpp>
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <fsm/nozzle_mismatch_phases.hpp>
 #include <cmath_ext.h>
 #include <odometer.hpp>
@@ -54,8 +54,6 @@ static_assert(!HAS_NOZZLE_THERMAL_COMPENSATION(), "no nozzle thermal compensatio
 
 LOG_COMPONENT_REF(PrusaToolChanger);
 
-PrusaToolChanger prusa_toolchanger;
-
 // internal helpers for arc planning
 void plan_arc(const xyze_pos_t &cart, const xy_float_t &offset, const bool clockwise, const uint8_t circles);
 
@@ -69,11 +67,6 @@ constexpr bool arc_backtravel_allow = true;
 constexpr float arc_backtravel_max = 2.f; // 1/ratio
 
 } // namespace arc_move
-
-bool PrusaToolChanger::can_move_safely(AxisHomeLevel required_level) {
-    // Toolchange requires precise homing, otherwise we might not hit the docks right
-    return !axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS), required_level);
-}
 
 bool PrusaToolChanger::ensure_safe_move() {
     if (!can_move_safely()) {
@@ -233,13 +226,6 @@ void PrusaToolChanger::check_nozzle_presence_vs_eeprom() {
         return; // No debounced value yet (boot or after invalidation)
     }
 
-    // Don't open the nozzle mismatch dialog if another FSM (e.g. calibration) is already active
-    const bool any_fsm_active = marlin_vars().peek_fsm_states(
-        [](const auto &states) { return states.get_top().has_value(); });
-    if (any_fsm_active) {
-        return;
-    }
-
     const bool nozzle_present = maybe_nozzle.value();
     const bool eeprom_valid = config_store().indx_last_picked_tool_valid.get();
     const auto eeprom_tool = config_store().get_indx_last_picked_tool();
@@ -355,13 +341,9 @@ void PrusaToolChanger::loop(bool printing, bool paused) {
         return;
     }
 
-    if (!nozzle_check_disabled) {
-        if (printing && !paused) {
-            // EEPROM is invalidated during prints, so use the in-RAM active tool instead.
-            check_nozzle_presence_during_print();
-        } else {
-            check_nozzle_presence_vs_eeprom();
-        }
+    if (printing && !paused) {
+        // EEPROM is invalidated during prints, so use the in-RAM active tool instead.
+        check_nozzle_presence_during_print();
     }
 
     // set_active_extruder() owns the applied offset on every tool change. While idle, also re-derive it
@@ -373,12 +355,6 @@ void PrusaToolChanger::loop(bool printing, bool paused) {
             [](PhysicalToolIndex tool) -> xyz_pos_t { return hotend_offset[tool]; },
             [](NoTool) -> xyz_pos_t { return { 0, 0, 0 }; });
     }
-}
-
-void PrusaToolChanger::move(const float x, const float y, const feedRate_t feedrate) {
-    current_position.x = x;
-    current_position.y = y;
-    line_to_current_position(feedrate);
 }
 
 const xy_float_t PrusaToolChanger::get_tool_dock_position(PhysicalToolIndex tool, bool check_calibrated) {
@@ -455,8 +431,7 @@ bool PrusaToolChanger::manual_tool_park(std::optional<PhysicalToolIndex> tool) {
         return true;
     };
 
-    // Prevent re-entry: wait_for_response() runs the idle loop, which calls
-    // loop() -> check_nozzle_presence_vs_eeprom() again
+    // Prevent re-entry
     block_tool_check = true;
     ScopeGuard guard = [this] { block_tool_check = false; };
 
@@ -606,11 +581,7 @@ bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
     buddy::puppies::indx.invalidate_nozzle_data();
 
     // Verify nozzle is gone (successfully released)
-    if (!nozzle_check_disabled && !verify_nozzle_state(tool, false)) {
-        return false;
-    }
-
-    return true;
+    return verify_nozzle_state(tool, false);
 }
 
 void PrusaToolChanger::commit_park(PhysicalToolIndex previous_tool) {
@@ -629,7 +600,7 @@ bool PrusaToolChanger::park(PhysicalToolIndex tool) {
     ScopeGuard committer = [&] {
         // bail_on_power_panic - the presence analysis must settle even after a user Stop.
         // Power-panic still short-circuits inside wait() so we don't drain PSU caps.
-        if (!nozzle_check_disabled && verify_nozzle_state(tool, false, WaitMode::bail_on_power_panic)) {
+        if (verify_nozzle_state(tool, false, WaitMode::bail_on_power_panic)) {
             commit_park(tool);
         }
     };
@@ -796,7 +767,7 @@ bool PrusaToolChanger::pickup_procedure(PhysicalToolIndex tool) {
     planner.synchronize();
 
     buddy::puppies::indx.invalidate_nozzle_data();
-    if (!nozzle_check_disabled && !verify_nozzle_state(tool, true)) {
+    if (!verify_nozzle_state(tool, true)) {
         return false;
     }
 
@@ -885,8 +856,7 @@ void PrusaToolChanger::final_tool_change_moves(const FinalToolChangeMoves &args)
     if (args.z_return) {
         set_bed_leveling_enabled(args.levelling_active); // Reenable MBL for this move
         if (current_position.z != return_position.z) {
-            destination = current_position;
-            destination.z = return_position.z;
+            destination = current_position.with_z(return_position.z);
             prepare_move_to(destination, Z_HOP_FEEDRATE_MM_S, {});
         }
     }
@@ -1010,7 +980,7 @@ bool PrusaToolChanger::finish_pickup_after_lock(const ToolchangeReturnData &rd) 
     }
 
     buddy::puppies::indx.invalidate_nozzle_data();
-    if (!nozzle_check_disabled && !verify_nozzle_state(tool, true)) {
+    if (!verify_nozzle_state(tool, true)) {
         return false;
     }
 

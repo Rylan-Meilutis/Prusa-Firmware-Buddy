@@ -62,7 +62,7 @@
  * G34  - Z Stepper automatic alignment using probe: I<iterations> T<accuracy> A<amplification> (Requires Z_STEPPER_AUTO_ALIGN)
  * G38  - Probe in any direction using the Z_MIN_PROBE (Requires G38_PROBE_TARGET)
  * G42  - Coordinated move to a mesh point (Requires AUTO_BED_LEVELING_BLINEAR or AUTO_BED_LEVELING_UBL)
- * G80  - Cancel current motion mode (Requires GCODE_MOTION_MODES)
+ * G80  - Mesh Bed Leveling (Requires HAS_GCODE_COMPATIBILITY)
  * G90  - Use Absolute Coordinates
  * G91  - Use Relative Coordinates
  * G92  - Set current position to coordinates given
@@ -134,7 +134,7 @@
  * M201 - Set max acceleration in units/s^2 for print moves: "M201 X<accel> Y<accel> Z<accel> E<accel>"
  * M202 - Set max acceleration in units/s^2 for travel moves: "M202 X<accel> Y<accel> Z<accel> E<accel>" ** UNUSED IN MARLIN! **
  * M203 - Set maximum feedrate: "M203 X<fr> Y<fr> Z<fr> E<fr>" in units/sec.
- * M204 - Set default acceleration in units/sec^2: P<printing> R<extruder_only> T<travel>
+ * M204 - Set default acceleration in units/sec^2: S<acceleration> P<printing> R<extruder_only> T<travel> F<max_filament_acceleration>
  * M205 - Set advanced settings. Current units apply:
             S<print> T<travel> minimum speeds
             B<minimum segment time>
@@ -444,7 +444,7 @@ private:
     static void G42();
   #endif
 
-  #if ENABLED(GCODE_MOTION_MODES) || HAS_GCODE_COMPATIBILITY()
+  #if HAS_GCODE_COMPATIBILITY()
     static void G80();
   #endif
 

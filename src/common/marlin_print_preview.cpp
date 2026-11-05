@@ -16,8 +16,8 @@
 #include <option/developer_mode.h>
 #include "printers.h"
 #include <Marlin/src/module/motion.h>
-#include <option/has_mmu2.h>
 #include <option/has_gui.h>
+
 #include <option/has_wastebin_fill_tracking.h>
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include <feature/wastebin_watcher/wastebin_watcher.hpp>
@@ -25,6 +25,8 @@
 #if HAS_GUI()
     #include "screen_menu_filament_changeall.hpp"
 #endif
+
+#include <option/has_e2ee_support.h>
 #if HAS_E2EE_SUPPORT()
     #include <e2ee/key.hpp>
 #endif
@@ -39,16 +41,24 @@
     #include <module/prusa/toolchanger.h>
 #endif
 
+#include <option/has_mmu2.h>
+#if HAS_MMU2()
+    #include <feature/prusa/MMU2/mmu2_mk4.h>
+#endif
+
 #include <option/has_selftest.h>
 #if HAS_SELFTEST()
     #include <selftest_result_evaluation.hpp>
 #endif
 
-#include <config_store/store_instance.hpp>
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
+    #include <module/prusa/tool_mapper.hpp>
+#endif
+
 #include "tools_mapping.hpp"
+#include <config_store/store_instance.hpp>
 #include <bsod/bsod.h>
-#include <module/prusa/tool_mapper.hpp>
-#include <mmu2_toolchanger_common.hpp>
 #include <common/gcode/gcode_info_scan.hpp>
 #include <utils/variant_utils.hpp>
 #include <feature/compatibility_checks/filament_compatibility.hpp>
@@ -143,9 +153,7 @@ std::optional<PhasesPrintPreview> IPrintPreview::getCorrespondingPhase(IPrintPre
     case State::wastebin_overfill_wait_user:
         return PhasesPrintPreview::wastebin_overfill_warning;
     case State::wastebin_emptying:
-        return PhasesPrintPreview::wastebin_emptying;
-    case State::wastebin_emptied_returning:
-        return PhasesPrintPreview::wastebin_emptied_returning;
+        return std::nullopt; // the WastebinEmptying FSM outscores us and shows the progress itself
 #endif
 
     case State::filament_not_inserted_wait_user:
@@ -600,7 +608,12 @@ PrintPreview::Result PrintPreview::Loop() {
         switch (response) {
 
         case Response::Print:
+            // Resume the check chain right after the printer check that sent us here.
+#if HAS_WASTEBIN_FILL_TRACKING()
+            ChangeState(stateFromWastebinCheck());
+#else
             ChangeState(stateFromFilamentPresence());
+#endif
             break;
 
         case Response::Abort:
@@ -628,6 +641,7 @@ PrintPreview::Result PrintPreview::Loop() {
             break;
 
         case Response::Empty:
+            // Outside a print M1986 leaves the head parked; the start gcode homes anyway.
             marlin_server::enqueue_gcode("M1986");
             ChangeState(State::wastebin_emptying);
             break;
@@ -641,15 +655,6 @@ PrintPreview::Result PrintPreview::Loop() {
         break;
 
     case State::wastebin_emptying:
-        // The empty-the-bin prompt (a Warning FSM, drawn over us) only comes up once M1986 is done
-        // parking, so its appearance marks the handover to the trip back.
-        if (marlin_server::is_warning_active(WarningType::NozzleCleanerManualEmpty)) {
-            ChangeState(State::wastebin_emptied_returning);
-            break;
-        }
-        [[fallthrough]];
-
-    case State::wastebin_emptied_returning:
         // M1986 runs as a gcode; wait for the gcode queue to drain before continuing.
         if (marlin_server::is_processing()) {
             break;
@@ -850,7 +855,6 @@ PrintPreview::Result PrintPreview::stateToResult() const {
 #if HAS_WASTEBIN_FILL_TRACKING()
     case State::wastebin_overfill_wait_user:
     case State::wastebin_emptying:
-    case State::wastebin_emptied_returning:
 #endif
     case State::wrong_filament_change:
     case State::wrong_filament_wait_user:

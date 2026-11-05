@@ -75,5 +75,4 @@ void PrusaGcodeSuite::M863() {
 }
 
 /** @}*/
-
-#endif
+#endif // HAS_TOOL_MAPPING()

@@ -83,6 +83,11 @@ bool parse_file_url(const RequestParser &parser, const size_t prefix_len, char *
             return false;
         }
 
+        // Consumers strip a fixed "/usb/" prefix; normalise the accepted bare "/usb".
+        if (strcmp(fname_real, "/usb") == 0) {
+            fname_real = "/usb/";
+        }
+
         // We need to use memmove, because fname_real points into filename
         // and memmove explicitly allowes for overlapping buffer to be used
         size_t fname_real_len = strlen(fname_real);
@@ -125,9 +130,9 @@ StatusPage create_folder(const char *filename, const RequestParser &parser) {
     return StatusPage(Status::Created, parser);
 }
 
-StatusPage print_file(char *filename, const RequestParser &parser) {
+StatusPage print_file(std::span<char> filename, const RequestParser &parser) {
     // if not exists
-    if (access(filename, R_OK) != 0) {
+    if (access(filename.data(), R_OK) != 0) {
         return StatusPage(Status::NotFound, StatusPage::CloseHandling::ErrorClose, parser.accepts_json);
     }
 

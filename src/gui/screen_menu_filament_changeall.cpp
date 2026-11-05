@@ -18,6 +18,8 @@
 #include <window_menu_virtual.hpp>
 #include <filament_color_gui.hpp>
 #include <dialog_text_input.hpp>
+#include <bsod/bsod.h>
+#include <gui/menu_item/menu_item_color.hpp>
 
 using namespace multi_filament_change;
 
@@ -33,8 +35,8 @@ public:
 protected:
     void click(IWindowMenu &) override {
         owner_->set_selected_manufacturer(id_);
-        Screens::Access()->Close();
-        Screens::Access()->Close();
+        Screens::Access()->close_screen_or_dialog();
+        Screens::Access()->close_screen_or_dialog();
     }
 
 private:
@@ -66,8 +68,8 @@ protected:
         }
         const auto created = filament_manufacturer::custom(slot);
         owner_->set_selected_manufacturer(created ? std::optional<uint8_t> { created->id } : std::nullopt);
-        Screens::Access()->Close();
-        Screens::Access()->Close();
+        Screens::Access()->close_screen_or_dialog();
+        Screens::Access()->close_screen_or_dialog();
     }
 
 private:
@@ -206,6 +208,10 @@ MI_ActionSelect::MI_ActionSelect(uint8_t tool_ix)
     has_filament_loaded = (config_store().get_filament_type(tool) != FilamentType::none);
     set_is_hidden(!tool.is_enabled());
     SetLabel(tool.display_name(label_params));
+
+    // Emit on_item_selected even when selecting the same item
+    // the user might want to change to a different color
+    deduplicate_on_item_selected_ = false;
 }
 
 MI_ActionSelect::MI_ActionSelect(SetAllToMode)
@@ -256,7 +262,7 @@ int MI_ActionSelect::item_count() const {
     return index_mapping.total_item_count();
 }
 
-string_view_utf8 MI_ActionSelect::build_item_text(int index, MenuItemSelectMenu::ItemTextParams &params) const {
+string_view_utf8 MI_ActionSelect::build_item_text(int index, StringViewUtf8ParamBase &params) const {
     const auto mapping = index_mapping.from_index(index);
     switch (mapping.item) {
 
@@ -281,8 +287,19 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
         auto new_config = menu.configuration();
         const auto new_config_item = this->config(args.new_index);
 
+        // Skip reminders here, show them only on the final screen confirmation
+        if (!new_config_item.gui_confirm_incompatibilities(AllTools {}, Response::Cancel, buddy::compatibility_checks::CompatibilityLevel::compatible_with_reminder)) {
+            return false;
+        }
+
         for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
-            auto &config_item = new_config[tool];
+            auto &config_item = new_config.items[tool];
+
+            // Don't set to unload tools that are already unloaded
+            if (new_config_item.action == Action::unload && !FilamentType::for_tool(tool)) {
+                config_item.action = Action::keep;
+                continue;
+            }
 
             // Keep the color
             const auto orig_color = new_config.colors[tool];
@@ -309,6 +326,7 @@ bool MI_ActionSelect::on_item_selected(const OnItemSelectedArgs &args) {
         }
     }
 
+    // Just let current_item to be updated by the parent, will be picked up by the owning menu
     return true;
 }
 
@@ -357,9 +375,9 @@ void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, v
             container.Item<WithConstructorArgs<MI_ActionSelect, MI_ActionSelect::SetAllToMode {}>>().Click(*this);
 
             const auto config = configuration();
-            if (std::ranges::all_of(config, [](const ConfigItem &item) { return item.action == Action::keep; })) {
+            if (std::ranges::all_of(config.items, [](const ConfigItem &item) { return item.action == Action::keep; })) {
                 // Cancelled or "Don't change" picked - nothing to apply, return to the parent menu
-                Screens::Access()->Close();
+                Screens::Access()->close_screen();
                 return;
             }
 
@@ -371,17 +389,17 @@ void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, v
 
     case GUI_event_t::CHILD_CLICK: {
         if (carry_out_changes()) {
-            Screens::Access()->Close();
+            Screens::Access()->close_screen();
         }
         return;
     }
 
     case GUI_event_t::MEDIA: {
         const MediaState_t media_state = MediaState_t(reinterpret_cast<int>(param));
-        if (media_state == MediaState_t::removed || media_state == MediaState_t::error) {
+        if (media_state == MediaState_t::removed) {
             // USB was removed
             if (close_screen_on_media_disconnect_) {
-                Screens::Access()->Close();
+                Screens::Access()->close_screen();
                 return;
             }
         }
@@ -397,12 +415,12 @@ void MenuMultiFilamentChange::windowEvent(window_t *sender, GUI_event_t event, v
 
 bool MenuMultiFilamentChange::carry_out_changes() {
     const auto config = configuration();
-    if (!gui_config_confirm_incompatibilities(config, Response::Cancel)) {
+    if (!config.gui_confirm_incompatibilities(Response::Cancel)) {
         return false;
     }
 
     ArrayStringBuilder<MAX_CMD_SIZE> sb;
-    multi_filament_change::config_to_gcode(config, sb);
+    config.to_gcode(sb);
     marlin_client::gcode(sb.str());
     return true;
 }
@@ -419,7 +437,7 @@ ScreenChangeAllFilaments::ScreenChangeAllFilaments()
 
 ScreenChangeAllFilaments::ScreenChangeAllFilaments(SetupForPrint)
     : ScreenChangeAllFilaments {} {
-    menu.menu.set_configuration(multi_filament_change::config_from_current_print_setup());
+    menu.menu.set_configuration(multi_filament_change::Config::from_current_print_setup());
     menu.menu.close_screen_on_media_disconnect_ = true;
 }
 
@@ -427,9 +445,7 @@ ScreenChangeAllFilaments::ScreenChangeAllFilaments(SetupUnloadAll)
     : ScreenChangeAllFilaments {} {
 
     multi_filament_change::Config config;
-    for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
-        config[tool].action = multi_filament_change::Action::unload;
-    }
+    config.set_all_loaded_to_unload();
     menu.menu.set_configuration(config);
 
     // Preselect apply-changes, all should be clear

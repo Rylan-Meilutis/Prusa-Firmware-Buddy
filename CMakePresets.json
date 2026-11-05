@@ -2847,6 +2847,226 @@
             }
         },
         {
+            "name": "mini_big_flash_debug_boot",
+            "generator": "Ninja",
+            "binaryDir": "build/mini_big_flash_debug_boot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "MINI"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "BUDDY"
+                },
+                "MCU": {
+                    "type": "STRING",
+                    "value": "STM32F429VI"
+                },
+                "ALLOW_MISSING_OTP": {
+                    "type": "BOOL",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "mini_big_flash_debug_noboot",
+            "generator": "Ninja",
+            "binaryDir": "build/mini_big_flash_debug_noboot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "MINI"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "BUDDY"
+                },
+                "MCU": {
+                    "type": "STRING",
+                    "value": "STM32F429VI"
+                },
+                "ALLOW_MISSING_OTP": {
+                    "type": "BOOL",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "NO"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "mini_big_flash_release_boot",
+            "generator": "Ninja",
+            "binaryDir": "build/mini_big_flash_release_boot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "MINI"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "BUDDY"
+                },
+                "MCU": {
+                    "type": "STRING",
+                    "value": "STM32F429VI"
+                },
+                "ALLOW_MISSING_OTP": {
+                    "type": "BOOL",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "mini_big_flash_release_noboot",
+            "generator": "Ninja",
+            "binaryDir": "build/mini_big_flash_release_noboot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "MINI"
+                },
+                "SIGNATURE_OAK": {
+                    "type": "STRING",
+                    "value": "OFF"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "BUDDY"
+                },
+                "MCU": {
+                    "type": "STRING",
+                    "value": "STM32F429VI"
+                },
+                "ALLOW_MISSING_OTP": {
+                    "type": "BOOL",
+                    "value": "YES"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "NO"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
             "name": "mk4_debug_boot",
             "generator": "Ninja",
             "binaryDir": "build/mk4_debug_boot",
@@ -6267,6 +6487,10 @@
                     "type": "STRING",
                     "value": "YES"
                 },
+                "HAS_CYPHAL_LOGGING": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -6323,6 +6547,10 @@
                     "value": "YES"
                 },
                 "NFC_BOARD_HAS_FILAMENT_SENSORS": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "HAS_CYPHAL_LOGGING": {
                     "type": "STRING",
                     "value": "YES"
                 },
@@ -6385,6 +6613,10 @@
                     "type": "STRING",
                     "value": "YES"
                 },
+                "HAS_CYPHAL_LOGGING": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
                 "BOOTLOADER": {
                     "type": "STRING",
                     "value": "YES"
@@ -6441,6 +6673,10 @@
                     "value": "YES"
                 },
                 "NFC_BOARD_HAS_FILAMENT_SENSORS": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "HAS_CYPHAL_LOGGING": {
                     "type": "STRING",
                     "value": "YES"
                 },
@@ -8295,6 +8531,178 @@
                 "CAN_BUS_TYPE": {
                     "type": "STRING",
                     "value": "PUB6"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "NO"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-htcontroller_debug_boot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-htcontroller_debug_boot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "HTCONTROLLER"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-htcontroller_debug_noboot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-htcontroller_debug_noboot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "HTCONTROLLER"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "NO"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-htcontroller_release_boot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-htcontroller_release_boot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "HTCONTROLLER"
+                },
+                "BOOTLOADER": {
+                    "type": "STRING",
+                    "value": "YES"
+                },
+                "SIGNING_KEY": {
+                    "type": "FILEPATH",
+                    "value": ""
+                },
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/cmake/GccArmNoneEabi.cmake"
+                },
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                },
+                "PROJECT_VERSION_SUFFIX": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                },
+                "PROJECT_VERSION_SUFFIX_SHORT": {
+                    "type": "STRING",
+                    "value": "<auto>"
+                }
+            }
+        },
+        {
+            "name": "xl-htcontroller_release_noboot",
+            "generator": "Ninja",
+            "binaryDir": "build/xl-htcontroller_release_noboot",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/.dependencies/ninja-1.10.2/ninja"
+                },
+                "PRINTER": {
+                    "type": "STRING",
+                    "value": "XL"
+                },
+                "BOARD": {
+                    "type": "STRING",
+                    "value": "HTCONTROLLER"
                 },
                 "BOOTLOADER": {
                     "type": "STRING",

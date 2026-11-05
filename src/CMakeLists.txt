@@ -1,5 +1,5 @@
 # Modules are nice, so we can include them everywhere
-add_subdirectory(module)
+add_subdirectory(module EXCLUDE_FROM_ALL)
 
 if(BOARD IN_LIST BUDDY_BOARDS)
   target_include_directories(firmware PRIVATE .)
@@ -116,6 +116,13 @@ elseif(BOARD STREQUAL "ANFC")
   add_subdirectory(puppy/honeybee_shared)
   add_subdirectory(can)
 
+  add_subdirectory(logging)
+  if(HAS_CYPHAL_LOGGING)
+    target_link_libraries(firmware PRIVATE logging)
+  else()
+    target_link_libraries(firmware PRIVATE log_dev_null)
+  endif()
+
 elseif(BOARD STREQUAL "TOOL_OFFSET_SENSOR")
   add_subdirectory(freertos)
   add_subdirectory(puppy/tool_offset_sensor)
@@ -125,6 +132,10 @@ elseif(BOARD STREQUAL "TOOL_OFFSET_SENSOR")
 elseif(BOARD STREQUAL "INDX_HEAD")
   add_subdirectory(freertos)
   add_subdirectory(puppy/indx_head)
+
+elseif(BOARD STREQUAL "HTCONTROLLER")
+  add_subdirectory(freertos)
+  add_subdirectory(puppy/htcontroller)
 
 elseif(BOARD STREQUAL "XL_DEV_KIT_XLB")
   target_include_directories(firmware PRIVATE .)

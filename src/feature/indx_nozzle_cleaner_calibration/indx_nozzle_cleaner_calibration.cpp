@@ -219,6 +219,7 @@ private:
         }
 
         const mapi::CalibrationPreamble preamble {
+            .moving_away_position = { .z = mapi::ParkingPosition::AtLeast { .absolute = Z_HAND_ACCESS_POS } },
             .tool_policy = mapi::CalibrationPreamble::ToolPolicy::ensure_picked,
             .on_step = [&](mapi::CalibrationPreamble::Step step) {
                 switch (step) {
@@ -254,10 +255,10 @@ private:
             return Result::aborted;
         }
 
-        // The Z screw step disabled XY, so re-home before the loadcell touches (they work in machine
-        // coordinates and need a homed machine).
+        // The Z screw step disabled XY, so re-home before the loadcell touches. Precise homing: the
+        // stored offsets are applied after a regular (precise) G28, so measure in the same frame.
         fsm_change(PhaseNozzleCleanerCalibration::homing);
-        GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .precise = false });
+        GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .precise = true });
 
         // X (cleaner wall) first: the Y touch needs the measured wall middle and nozzle radius.
         {
@@ -352,9 +353,7 @@ private:
     /// head either on the purge-entry lane (only X changes) or retreating from a touch (only Y changes),
     /// so the move never cuts across the tray.
     void move_to_purge_touch_entry() {
-        auto target = current_machine_position();
-        target.x = *wall_middle_x - current_nozzle_offset().x;
-        target.y = Y_NOZZLE_CLEANER_PURGE_ENTRY;
+        const auto target = current_machine_position().with_xy(*wall_middle_x - current_nozzle_offset().x, Y_NOZZLE_CLEANER_PURGE_ENTRY);
         line_to_machine_pos(target, PrusaToolChanger::SLOW_MOVE_MM_S);
         planner.synchronize();
     }
@@ -364,9 +363,7 @@ private:
     /// then clears the cleaner instead of cutting a diagonal across it.
     void move_out_after_purge_touch() {
         move_to_purge_touch_entry();
-        auto target = current_machine_position();
-        target.x = X_NOZZLE_CLEANER_ORIGIN - 10.f;
-        line_to_machine_pos(target, PrusaToolChanger::SLOW_MOVE_MM_S);
+        line_to_machine_pos(current_machine_position().with_x(X_NOZZLE_CLEANER_ORIGIN - 10.f), PrusaToolChanger::SLOW_MOVE_MM_S);
         planner.synchronize();
     }
 
@@ -805,8 +802,8 @@ private:
             planner.synchronize();
         }
 
-        // Home XY (z_raise=0: Z is at the bottom, no need for Z clearance).
-        GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .precise = false });
+        // Home XY (z_raise=0: the bed is lowered, no need for Z clearance).
+        GcodeSuite::G28_no_parser(true, true, false, { .z_raise = 0, .precise = true });
 
         const ab_steps_t position_after = { { {
             .x = stepper.position_from_startup(AxisEnum::A_AXIS),

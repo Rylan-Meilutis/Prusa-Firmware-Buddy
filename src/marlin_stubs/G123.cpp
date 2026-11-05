@@ -47,8 +47,9 @@ void PrusaGcodeSuite::G123() {
     p.store_option_if_present('Z', target_pos.z);
     p.store_option_if_present('E', target_pos.e);
 
+    const auto selected_tool = PhysicalToolIndex::currently_selected_opt();
     if (target_pos.e != current_position.e
-        && (!PhysicalToolIndex::currently_selected_opt().has_value() || thermalManager.tooColdToExtrude(active_extruder))) {
+        && (!selected_tool || thermalManager.tooColdToExtrude(*selected_tool))) {
         SERIAL_ECHO_MSG("Manual extrusion blocked: select and heat a tool");
         return;
     }

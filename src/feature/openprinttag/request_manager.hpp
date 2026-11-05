@@ -1,6 +1,7 @@
 /// @file
 #pragma once
 
+#include <puppies/PuppyModbus.hpp>
 #include <anfc/modbus.hpp>
 #include <anfc/types.hpp>
 #include <array>
@@ -8,7 +9,7 @@
 #include <feature/openprinttag/detail/requests_base.hpp>
 #include <feature/openprinttag/detail/requests_util.hpp>
 #include <feature/openprinttag/tool_tag.hpp>
-#include <freertos/mutex.hpp>
+#include <common/freertos_shared_mutex.hpp>
 #include <openprinttag/opt_reader.hpp>
 #include <optional>
 #include <tool_index.hpp>
@@ -18,6 +19,7 @@
 #include <utils/uncopyable.hpp>
 #include <variant>
 #include <utils/byte_utils.hpp>
+#include <utils/timing/rate_limiter.hpp>
 
 namespace buddy::openprinttag {
 
@@ -33,7 +35,7 @@ public:
     /// Step internal state machine.
     /// This may attempt communication on modbus, using provided client.
     /// Returns false on error.
-    [[nodiscard]] bool step(anfc::modbus::Client &);
+    [[nodiscard]] puppies::CommunicationStatus step(anfc::modbus::Client &);
 
     /// Register Request with the manager.
     /// You must call remove_request() before Request's destruction.
@@ -45,14 +47,11 @@ public:
     /// You may call this even if Request was not registered with the manager.
     void remove_request(Badge<Request>, Request &);
 
-    struct TagUID {
-        std::uint8_t data[8];
-
-        ToolTag::UIDHash hash() const;
-    };
-
     /// Return TagUID detected on given tool, if any.
-    std::optional<TagUID> get_tag_uid_for_tool(VirtualToolIndex);
+    std::optional<TagUID> get_tag_uid_for_tool(VirtualToolIndex) const;
+
+    /// @returns TagUID linked to the provided ToolTag (if in memory)
+    std::optional<TagUID> get_tag_uid(ToolTag) const;
 
     struct TagDeviceInfo {
         anfc::Device device;
@@ -60,16 +59,17 @@ public:
     };
 
     /// @returns Device-specific TagID for the given tag, if the device is currently tracking the tag
-    std::optional<TagDeviceInfo> get_tag_device_info(ToolTag tool_tag);
+    std::optional<TagDeviceInfo> get_tag_device_info(ToolTag tool_tag) const;
 
-    std::optional<TagDeviceInfo> get_tag_device_info_nolock(ManagerNoLockBadge, ToolTag tool_tag);
+    std::optional<TagDeviceInfo> get_tag_device_info_nolock(ManagerNoLockBadge, ToolTag tool_tag) const;
 
 private:
     /// Mutex guarding all the member variables of this Manager.
     /// Every public method of the Manager is required to obtain the lock or pass the ManagerNoLockBadge.
     /// No other method is allowed to obtain the lock.
     /// No method of Manager is allowed to call public method.
-    freertos::Mutex mutex;
+    /// Expected readers: marlin & gui
+    mutable freertos::SharedMutex mutex { 2 };
 
     /// Tag is not being tracked
     struct TagUnused {};
@@ -98,20 +98,26 @@ private:
         std::optional<anfc::Device> device;
 
         /// nullopt - enable radio has not been issued yet
-        /// finished without error - radio is enabled
+        /// finished without error - radio is in the requested state
         std::optional<EnableRadioRequest> enable_radio_request;
 
         bool radio_enabled : 1 = false;
 
-        [[nodiscard]] bool step(anfc::modbus::Client &);
+        /// !!! Called while the mutex is not locked
+        /// Intended for async work that doesn't need to have the mutex locked, such as reading from modbus
+        /// However, the function can lock internally if it needs it
+        [[nodiscard]] puppies::CommunicationStatus poll_events_unlocked(anfc::modbus::Client &);
 
-        [[nodiscard]] bool handle_event(anfc::modbus::Client &, const anfc::modbus::Event &);
+        [[nodiscard]] puppies::CommunicationStatus step(anfc::modbus::Client &);
+
+        /// @returns event id to accept
+        [[nodiscard]] std::optional<uint16_t> handle_event(const anfc::modbus::Event &);
 
         void on_request_done(RequestID, Bytes);
         void on_tag_detected(TagID, TagUID);
         void on_tag_lost(TagID);
 
-        void forget_lost_tag(anfc::modbus::Client &);
+        [[nodiscard]] puppies::CommunicationStatus forget_lost_tag(anfc::modbus::Client &);
     };
     StrongIndexArray<DeviceState, VirtualToolIndex::count, VirtualToolIndex, VirtualToolIndex::to_raw_static> devices;
 
@@ -121,6 +127,9 @@ private:
     /// We could use different ID for each device, but having a global one
     /// helps with debugging a lot.
     uint16_t request_id = 0;
+
+    /// Rate-limits event polling
+    RateLimiter<uint32_t> event_poll_limiter_ms { 100 };
 
     /// This structure is used to keep additional info for requests which
     /// transitioned from pending state. We are keeping the info separate
@@ -139,6 +148,10 @@ private:
         /// This is in milliseconds since boot.
         /// This is used to handle timeouts.
         uint32_t sent_at;
+
+        [[nodiscard]] bool is_valid() const {
+            return request != nullptr;
+        }
     };
 
     /// We limit number of active requests.
@@ -149,7 +162,7 @@ private:
     std::array<ActiveRequestEntry, max_active_requests> active_requests;
 
     void on_request_done(RequestID, Bytes);
-    void handle_pending_request(anfc::modbus::Client &);
+    [[nodiscard]] puppies::CommunicationStatus handle_pending_request(anfc::modbus::Client &);
     void check_timeouts();
     RequestID make_request_id();
     void add_request_nolock(Request &);

@@ -29,37 +29,39 @@ add_tar_image(resources-tarball)
 
 if(HAS_ESP)
   set(ESP_PARTS ${CMAKE_CURRENT_BINARY_DIR}/include/esp_parts.gen)
+  set(esp_sources ${ESP_NIC_IMAGES})
   if(HAS_EMBEDDED_ESP32)
-    add_resource("esp32/uart_wifi.bin" "/esp/uart_wifi.bin")
-    add_resource("esp32/bootloader.bin" "/esp/bootloader.bin")
-    add_resource("esp32/partition-table.bin" "/esp/partition-table.bin")
-    add_custom_command(
-      OUTPUT ${ESP_PARTS}
-      COMMAND
-        "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/utils/gen_esp_parts.py ARGS --output
-        ${ESP_PARTS} --basedir ${CMAKE_CURRENT_SOURCE_DIR}/esp32/ --flash
-        partition-table.bin:0x08000 --flash bootloader.bin:0x01000 --flash uart_wifi.bin:0x10000
-      DEPENDS esp32/uart_wifi.bin esp32/bootloader.bin esp32/partition-table.bin
-              ${CMAKE_SOURCE_DIR}/utils/gen_esp_parts.py
-      )
+    set(esp_bootloader_offset 0x01000)
   else()
-    add_resource("esp8266/uart_wifi.bin" "/esp/uart_wifi.bin")
-    add_resource("esp8266/bootloader.bin" "/esp/bootloader.bin")
-    add_resource("esp8266/partition-table.bin" "/esp/partition-table.bin")
-    add_resource("esp8266/stub_text.bin" "/esp/stub_text.bin")
-    add_resource("esp8266/stub_data.bin" "/esp/stub_data.bin")
-    add_custom_command(
-      OUTPUT ${ESP_PARTS}
-      COMMAND
-        "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/utils/gen_esp_parts.py ARGS --output
-        ${ESP_PARTS} --basedir ${CMAKE_CURRENT_SOURCE_DIR}/esp8266/ --flash
-        partition-table.bin:0x08000 --flash bootloader.bin:0x00000 --flash uart_wifi.bin:0x10000
-        --memory stub_text.bin:0x4010d000 --memory stub_data.bin:0x3fff01b4
-      DEPENDS esp8266/uart_wifi.bin esp8266/bootloader.bin esp8266/partition-table.bin
-              esp8266/stub_text.bin esp8266/stub_data.bin
-              ${CMAKE_SOURCE_DIR}/utils/gen_esp_parts.py
-      )
+    set(esp_bootloader_offset 0x00000)
+    list(APPEND esp_sources ${CMAKE_CURRENT_SOURCE_DIR}/esp8266/stub_text.bin
+         ${CMAKE_CURRENT_SOURCE_DIR}/esp8266/stub_data.bin
+         )
+    set(esp_stub_args --memory stub_text.bin:0x4010d000 --memory stub_data.bin:0x3fff01b4)
   endif()
+
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/esp")
+  set(esp_images)
+  foreach(source ${esp_sources})
+    get_filename_component(name "${source}" NAME)
+    list(APPEND esp_images "${CMAKE_CURRENT_BINARY_DIR}/esp/${name}")
+    add_resource("${CMAKE_CURRENT_BINARY_DIR}/esp/${name}" "/esp/${name}")
+  endforeach()
+  add_custom_command(
+    OUTPUT ${esp_images}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${esp_sources} "${CMAKE_CURRENT_BINARY_DIR}/esp"
+    DEPENDS ${esp_sources}
+    VERBATIM
+    )
+
+  add_custom_command(
+    OUTPUT ${ESP_PARTS}
+    COMMAND
+      "${Python3_EXECUTABLE}" ${CMAKE_SOURCE_DIR}/utils/gen_esp_parts.py ARGS --output ${ESP_PARTS}
+      --basedir ${CMAKE_CURRENT_BINARY_DIR}/esp/ --flash partition-table.bin:0x08000 --flash
+      bootloader.bin:${esp_bootloader_offset} --flash uart_wifi.bin:0x10000 ${esp_stub_args}
+    DEPENDS ${esp_images} ${CMAKE_SOURCE_DIR}/utils/gen_esp_parts.py
+    )
   add_custom_target(esp-parts DEPENDS ${ESP_PARTS})
 endif()
 
@@ -93,6 +95,9 @@ if(PUPPY_FLASH_FW)
   endif()
   if(HAS_INDX_HEAD)
     add_resource("${INDX_HEAD_BINARY_PATH}" "/puppies/fw-indx_head.bin")
+  endif()
+  if(HAS_HTCONTROLLER)
+    add_resource("${HTCONTROLLER_BINARY_PATH}" "/puppies/fw-htcontroller.bin")
   endif()
 endif()
 
@@ -224,8 +229,7 @@ if(HAS_MMU2)
 
   add_custom_command(
     OUTPUT "${mmu_fw_bin_file}"
-    COMMAND "${RECOMMENDED_TOOLCHAIN_BINUTILS}/arm-none-eabi-objcopy" -I ihex -O binary
-            "${mmu_fw_adj_hex_file}" "${mmu_fw_bin_file}"
+    COMMAND "${CMAKE_OBJCOPY}" -I ihex -O binary "${mmu_fw_adj_hex_file}" "${mmu_fw_bin_file}"
     DEPENDS "${mmu_fw_adj_hex_file}"
     )
 

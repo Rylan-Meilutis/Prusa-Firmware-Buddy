@@ -7,6 +7,7 @@
     #include <feature/dock_cooldown/controller.hpp>
 #endif
 #include <feature/chamber/material_cooling_policy.hpp>
+#include <common/marlin_vars.hpp>
 
 #include <option/has_crash_detection.h>
 #include <option/has_pause.h>
@@ -16,7 +17,7 @@
 #include <marlin_stubs/skippable_gcode.hpp>
 #include <mapi/parking.hpp>
 #include <mapi/feedrates/standard_feedrates.hpp>
-#include "marlin_client_queue.hpp"
+#include "marlin_client_events.hpp"
 #include "marlin_server_request.hpp"
 #include <inttypes.h>
 #include <stdarg.h>
@@ -32,7 +33,6 @@
 #include "marlin_print_preview.hpp"
 #include "utils/exponential_backoff.hpp"
 #include <bsod.h>
-#include "module/prusa/tool_mapper.hpp"
 #include "print_utils.hpp"
 #include <random/random.h>
 #include "timing.h"
@@ -129,7 +129,6 @@
 #include <option/has_gui.h>
 #include <option/has_toolchanger.h>
 #include <option/has_tool_crash_recovery.h>
-#include <option/has_tool_mapping.h>
 #include <option/has_selftest.h>
 #include <option/has_dwarf.h>
 #include <option/has_remote_bed.h>
@@ -147,7 +146,7 @@
 #include <option/xbuddy_extension_variant.h>
 #include <option/has_emergency_stop.h>
 #include <option/has_ht_hotend.h>
-#include <option/has_uneven_bed_prompt.h>
+#include <option/has_uneven_bed_detection.h>
 #include <option/has_nextruder.h>
 #include <option/has_human_interactions.h>
 #include <option/has_chamber_vents.h>
@@ -296,23 +295,18 @@
     #include <fsm/nozzle_mismatch_phases.hpp>
 #endif
 
+#include <option/has_tool_mapping.h>
+#if HAS_TOOL_MAPPING()
+    #include <module/prusa/tool_mapper.hpp>
+#endif
+
 void record_fanctl_metrics();
 
 using namespace ExtUI;
 
-using ClientQueue = marlin_client::ClientQueue;
-
 extern osThreadId defaultTaskHandle;
 
 LOG_COMPONENT_DEF(MarlinServer, logging::Severity::info);
-
-//-----------------------------------------------------------------------------
-// external variables from marlin_client
-
-namespace marlin_client {
-extern osThreadId marlin_client_task[MARLIN_MAX_CLIENTS]; // task handles
-extern ClientQueue marlin_client_queue[MARLIN_MAX_CLIENTS];
-} // namespace marlin_client
 
 namespace marlin_server {
 
@@ -349,9 +343,6 @@ namespace {
     };
 
     struct server_t {
-        EventMask notify_events[MARLIN_MAX_CLIENTS]; // event notification mask - message filter
-        EventMask notify_changes[MARLIN_MAX_CLIENTS]; // variable change notification mask - message filter
-        EventMask client_events[MARLIN_MAX_CLIENTS]; // client event mask - unsent messages
         State print_state; // printing state (printing, paused, ...)
         bool print_is_serial = false; //< When true, current print is not from USB, but sent via gcode commands.
 #if HAS_CRASH_DETECTION() //
@@ -448,6 +439,7 @@ namespace {
     void process_pausing_begin_state(Pause_Type type = Pause_Type::Pause, bool notify_serial_host = true);
 
     fsm::States fsm_states;
+    bool fsm_states_dirty = false;
 
     class ErrorChecker {
     public:
@@ -746,9 +738,14 @@ Response prompt_warning(WarningType type, uint32_t timeout_ms) {
 // FSM Manipulation
 
 static void commit_fsm_states() {
+    if (!fsm_states_dirty) {
+        return;
+    }
+
     fsm_states.increment_state_id();
     marlin_vars().set_fsm_states(fsm_states);
     fsm_states.log();
+    fsm_states_dirty = false;
 }
 
 void fsm_create(FSMAndPhase fsm_and_phase, fsm::PhaseData data) {
@@ -758,7 +755,7 @@ void fsm_create(FSMAndPhase fsm_and_phase, fsm::PhaseData data) {
 void fsm_destroy(ClientFSM type) {
     if (fsm_states[type].has_value()) {
         fsm_states[type] = std::nullopt;
-        commit_fsm_states();
+        fsm_states_dirty = true;
     }
 }
 
@@ -778,14 +775,8 @@ void fsm_change(FSMAndPhase fsm_and_phase, fsm::PhaseData data) {
 
     if (fsm_state != base_data) {
         fsm_state = base_data;
-        commit_fsm_states();
+        fsm_states_dirty = true;
     }
-}
-
-static void fsm_destroy_and_create(ClientFSM old_type, ClientFSM new_type, fsm::BaseData data) {
-    fsm_states[old_type] = std::nullopt;
-    fsm_states[new_type] = data;
-    commit_fsm_states();
 }
 
 //-----------------------------------------------------------------------------
@@ -800,8 +791,6 @@ static bool is_cycle_running = false;
 // forward declarations of private functions
 
 static void _server_print_loop(void);
-static uint64_t _send_notify_events_to_client(int client_id, ClientQueue &queue, uint64_t evt_msk);
-static uint8_t _send_notify_event(Event evt_id, uint32_t usr32, uint16_t usr16);
 static void _server_update_vars();
 static bool _process_server_request(const Request &);
 static void _server_set_var(const Request &);
@@ -818,13 +807,8 @@ static void settings_load();
 // server side functions
 
 void init(void) {
-    int i;
     server = server_t();
     server.flags = 0;
-    for (i = 0; i < MARLIN_MAX_CLIENTS; i++) {
-        server.notify_events[i] = make_mask(Event::Acknowledge); // by default only ack
-        server.notify_changes[i] = 0; // by default nothing
-    }
     server_task = osThreadGetId();
 
     // Random at boot, to avoid chance of reusing the same (0/1) dialog ID
@@ -882,6 +866,9 @@ void init(void) {
     }
 
 #endif
+
+    // Clients may read the variables as soon as the server is initialized
+    _server_update_vars();
 }
 
 void print_fan_spd() {
@@ -939,15 +926,6 @@ void server_update_vars() {
     if ((tick - server.last_update) > MARLIN_UPDATE_PERIOD) {
         server.last_update = tick;
         _server_update_vars();
-    }
-}
-
-void send_notifications_to_clients() {
-    for (int client_id = 0; client_id < MARLIN_MAX_CLIENTS; client_id++) {
-        ClientQueue &queue = marlin_client::marlin_client_queue[client_id];
-        if (const uint64_t msk = server.client_events[client_id]) {
-            server.client_events[client_id] &= ~_send_notify_events_to_client(client_id, queue, msk);
-        }
     }
 }
 
@@ -1169,6 +1147,9 @@ static void cycle() {
 
     idle_publisher.call_all();
 
+    // Various notifiers and trackers can be linked to idle_publisher - commit right after that
+    commit_fsm_states();
+
     if (is_cycle_running) {
         return;
     }
@@ -1183,11 +1164,14 @@ static void cycle() {
 
 #if XL_ENCLOSURE_SUPPORT()
     int16_t dwarf_temp = std::numeric_limits<int16_t>().min();
+    float nozzle_temp = 0;
     #if HAS_TOOLCHANGER()
-    dwarf_temp = prusa_toolchanger.getActiveToolOrFirst().get_board_temperature();
+    auto &dwarf = prusa_toolchanger.getActiveToolOrFirst();
+    dwarf_temp = dwarf.get_board_temperature();
+    nozzle_temp = marlin_vars().hotend(dwarf.tool_index()).temp_nozzle.get();
     #endif
 
-    xl_enclosure.loop(remote_bed::get_mcu_temperature(), dwarf_temp);
+    xl_enclosure.loop(remote_bed::get_mcu_temperature(), dwarf_temp, nozzle_temp);
 #endif
 
 #if HAS_XL_CAN() && HAS_REMOTE_BED()
@@ -1208,7 +1192,8 @@ static void cycle() {
     // #error dead code found by automatic analyses (see BFW-5461)
     {
 #endif
-        _server_print_loop(); // we need call print loop here because it must be processed while blocking commands (M109)
+        // we need call print loop here because it must be processed while blocking commands (M109)
+        _server_print_loop();
     }
 
     // Clear temporary print status messages that have timed out -
@@ -1236,8 +1221,8 @@ static void cycle() {
     }
 
     // update variables
-    send_notifications_to_clients();
     server_update_vars();
+    commit_fsm_states();
 }
 
 /// Function that is called just before finalize_print, before the steppers are possibly disabled
@@ -1342,7 +1327,7 @@ static void cleanup_print(ResetToolMapping reset_tool_mapping = ResetToolMapping
 /// Executes all the print finishing touches
 void static finalize_print(bool finished) {
 #if HAS_POWER_PANIC()
-    power_panic::reset();
+    power_panic::reset_state();
 #endif
 
     const bool was_serial_print = server.print_is_serial;
@@ -1519,6 +1504,13 @@ void loop() {
 
     cycle();
 
+#if HAS_INDX()
+    // Don't open the nozzle mismatch dialog if another FSM (e.g. calibration) is already active
+    if (printer_idle() && !fsm_states.get_top().has_value()) {
+        prusa_toolchanger.check_nozzle_presence_vs_eeprom();
+    }
+#endif
+
 #if HAS_NFC()
     if (printer_idle() && !fsm_states.get_top().has_value()) {
         handle_nfc();
@@ -1533,6 +1525,8 @@ static bool idle_running = false;
 void do_babystep_Z(float offs) {
     babystep.add_steps(Z_AXIS, static_cast<int16_t>(std::round(offs * planner.settings.axis_steps_per_mm[Z_AXIS])));
 }
+
+static_assert(MARLIN_MAX_REQUEST == MAX_CMD_SIZE, "gcode request buffer must be exactly one gcode queue slot");
 
 void enqueue_gcode(const char *gcode) {
     if (!queue.enqueue_one(gcode)) {
@@ -1569,8 +1563,11 @@ void gcode_interrupt(GCodeLiteral gcode) {
 #else
     // In some situations we just inject the gcode
     if (
+        // If g-code interrupts are disabled
+        !config_store().gcode_interrupts_enabled.get()
+
         // When we're not printing (or we're printing serial)
-        !crash_s.is_active() || crash_s.get_state() != Crash_s::PRINTING
+        || !crash_s.is_active() || crash_s.get_state() != Crash_s::PRINTING
         || server.print_is_serial
         || (server.print_state != State::Printing && server.print_state != State::Finishing_WaitIdle)
 
@@ -2159,9 +2156,8 @@ static void crash_recovery_tool_pickup() {
     // wait for the user to return dropped nozzle to its dock
     if (marlin_server::get_response_from_phase(PhaseNozzleMismatch::tool_lost) == Response::Continue) {
         // tool is re-picked by crash recovery fsm
-        Crash_recovery_fsm cr_fsm(SelftestSubtestState_t::running, SelftestSubtestState_t::undef);
-        fsm_destroy_and_create(ClientFSM::NozzleMismatch, ClientFSM::CrashRecovery,
-            fsm::BaseData(std::to_underlying(PhasesCrashRecovery::home), cr_fsm.Serialize()));
+        fsm_destroy(ClientFSM::NozzleMismatch);
+        fsm_change(PhasesCrashRecovery::home, Crash_recovery_fsm { .x = SelftestSubtestState_t::running, .y = SelftestSubtestState_t::undef }.Serialize());
         server.print_state = State::CrashRecovery_XY_HOME;
     }
         #else
@@ -2611,7 +2607,7 @@ static void resuming_reheating() {
         }
     }
 
-    if (!Temperature::are_all_temperatures_reached()) {
+    if (!Temperature::are_all_temperatures_reached(Temperature::RequireCooling::current_tool_only)) {
         return;
     }
 
@@ -2793,10 +2789,6 @@ static void _server_print_loop(void) {
         buddy::reenable_ceiling_clearance_warning();
 #endif
 
-#if HAS_INDX()
-        prusa_toolchanger.set_nozzle_check_disabled(false);
-#endif
-
 #if HAS_CANCEL_OBJECT()
         buddy::cancel_object().reset();
         for (auto &cancel_object_name : marlin_vars().cancel_object_names) {
@@ -2844,9 +2836,7 @@ static void _server_print_loop(void) {
 #endif
         {
 
-            if (fsm_states.is_active(ClientFSM::PrintPreview)) {
-                fsm_destroy_and_create(ClientFSM::PrintPreview, ClientFSM::Printing, fsm::BaseData());
-            }
+            fsm_destroy(ClientFSM::PrintPreview);
             if (!fsm_states.is_active(ClientFSM::Printing)) {
                 // FIXME make this atomic change. It would require improvements in PrintScreen so that it can re-initialize upon phase change.
                 // FYI the DESTROY invoke is in print_start()
@@ -3172,6 +3162,12 @@ static void _server_print_loop(void) {
         if (crash_s.get_state() == Crash_s::RECOVERY) {
             endstops.enable_globally(true);
             crash_s.set_state(Crash_s::REPLAY);
+
+            if (crash_s.segments_finished == 0) {
+                // No segments to skip -> normal operation
+                crash_s.set_state(Crash_s::PRINTING);
+            }
+
         } else if (crash_s.get_state() == Crash_s::REPEAT_WAIT) {
             endstops.enable_globally(true);
             crash_s.set_state(Crash_s::PRINTING); // Coming from toolcrash or homing fail, no replay
@@ -3768,7 +3764,7 @@ static void _server_print_loop(void) {
 #if XL_ENCLOSURE_SUPPORT()
         const bool enclosure_fan_ok = Fans::enclosure().is_fan_ok();
         if (!enclosure_fan_ok && !enclosure_fan_checker.isFailed()) {
-            xl_enclosure.setEnabled(false);
+            xl_enclosure.set_enabled(false);
         }
         enclosure_fan_checker.checkTrue(enclosure_fan_ok, WarningType::EnclosureFanError, false, false);
         if (enclosure_fan_ok) {
@@ -3993,7 +3989,8 @@ static void park_head([[maybe_unused]] bool is_pause) {
 
 #if HAS_NOZZLE_CLEANER()
 bool unpark_prime() {
-    if (std::holds_alternative<NoTool>(PhysicalToolIndex::currently_selected())) {
+    const auto selected_tool = PhysicalToolIndex::currently_selected_opt();
+    if (!selected_tool) {
     #if HAS_INDX()
         // A host/control job may pause before selecting its first tool. There
         // is nothing to prime in that case. A missing saved tool still fails.
@@ -4003,12 +4000,12 @@ bool unpark_prime() {
     #endif
     }
 
-    if (!all_axes_homed() || thermalManager.tooColdToExtrude(active_extruder)) {
+    if (!all_axes_homed() || thermalManager.tooColdToExtrude(*selected_tool)) {
         return false;
     }
 
     if (!nozzle_cleaner::load_and_execute(nozzle_cleaner::Sequence::purge_clean)
-        || planner.draining() || thermalManager.tooColdToExtrude(active_extruder)
+        || planner.draining() || thermalManager.tooColdToExtrude(*selected_tool)
         || server.print_state != State::Resuming_ExecutingGCodeInterrupt) {
         return false;
     }
@@ -4018,7 +4015,7 @@ bool unpark_prime() {
         // filament state over the bin BEFORE returning to the perimeter.
         mapi::restore_retracted_distance(*print_state.pause_retracted_distance,
             buddy::standard_feedrates::current_extruder(buddy::standard_feedrates::Extruder::deretract));
-        if (planner.draining() || thermalManager.tooColdToExtrude(active_extruder)
+        if (planner.draining() || thermalManager.tooColdToExtrude(*selected_tool)
             || server.print_state != State::Resuming_ExecutingGCodeInterrupt) {
             return false;
         }
@@ -4053,8 +4050,7 @@ void unpark_head_ZE(void) {
     }
 
     // Move Z
-    destination = current_position;
-    destination.z = server.resume.pos.z;
+    destination = current_position.with_z(server.resume.pos.z);
     prepare_internal_move_to_destination(NOZZLE_PARK_Z_FEEDRATE);
 
 #if HAS_PAUSE()
@@ -4121,74 +4117,11 @@ int32_t get_knob_position() {
 //-----------------------------------------------------------------------------
 // private functions
 
-// send event notification to client (called from server thread)
-static bool _send_notify_event_to_client([[maybe_unused]] int client_id, ClientQueue &queue, Event evt_id, uint32_t usr32, uint16_t usr16) {
-    const marlin_client::ClientEvent client_message {
-        .event = evt_id,
-        .unused = 0,
-        .usr16 = usr16,
-        .usr32 = usr32,
-    };
-    return queue.try_send(client_message, 0);
-}
-
-// send event notification to client - multiple events (called from server thread)
-// returns mask of successfully sent events
-static uint64_t _send_notify_events_to_client(int client_id, ClientQueue &queue, uint64_t evt_msk) {
-    if (evt_msk == 0) {
-        return 0;
-    }
-    uint64_t sent = 0;
-    uint64_t msk = 1;
-    for (uint8_t evt_int = 0; evt_int <= std::to_underlying(Event::_last); evt_int++) {
-        Event evt_id = Event(evt_int);
-        if (msk & evt_msk) {
-            switch (Event(evt_id)) {
-                // Events without arguments
-                // TODO: send all these in a single message as a bitfield
-            case Event::MediaInserted:
-            case Event::MediaError:
-            case Event::MediaRemoved:
-            case Event::RequestCalibrationsScreen:
-                if (_send_notify_event_to_client(client_id, queue, evt_id, 0, 0)) {
-                    sent |= msk; // event sent, set bit
-                }
-                break;
-            case Event::NotAcknowledge:
-            case Event::Acknowledge:
-                if (_send_notify_event_to_client(client_id, queue, evt_id, 0, 0)) {
-                    sent |= msk; // event sent, set bit
-                }
-                break;
-            // unused events
-            case Event::_count:
-                debug_assert(false);
-                break;
-            }
-            if ((sent & msk) == 0) {
-                break; // skip sending if queue is full
-            }
-        }
-        msk <<= 1;
-    }
-    return sent;
-}
-
 // send event notification to all clients (called from server thread)
-// returns bitmask - bit0 = notify for client0 successfully send, bit1 for client1...
-static uint8_t _send_notify_event(Event evt_id, uint32_t usr32, uint16_t usr16) {
-    uint8_t client_msk = 0;
+static void _send_notify_event(Event evt_id) {
     for (int client_id = 0; client_id < MARLIN_MAX_CLIENTS; client_id++) {
-        if (server.notify_events[client_id] & ((uint64_t)1 << std::to_underlying(evt_id))) {
-            if (_send_notify_event_to_client(client_id, marlin_client::marlin_client_queue[client_id], evt_id, usr32, usr16) == 0) {
-                server.client_events[client_id] |= ((uint64_t)1 << std::to_underlying(evt_id)); // event not sent, set bit
-            } else {
-                // event sent, clear flag
-                client_msk |= (1 << client_id);
-            }
-        }
+        marlin_client::marlin_client_events[client_id].set(make_mask(evt_id));
     }
-    return client_msk;
 }
 
 // update all server variables
@@ -4359,7 +4292,6 @@ static void _server_update_vars() {
     }
     if (marlin_vars().media_inserted != media) {
         marlin_vars().media_inserted = media;
-        _send_notify_event(marlin_vars().media_inserted ? Event::MediaInserted : Event::MediaRemoved, 0, 0);
     }
 
     const auto duration = marlin_vars().print_duration.get();
@@ -4417,7 +4349,9 @@ static void _server_update_vars() {
 
     marlin_vars().mmu2_finda = mmu2FindaPressed;
 
-    marlin_vars().active_extruder = VirtualToolIndex::from_raw_notool(active_extruder);
+#if HAS_MMU2()
+    marlin_vars().mmu2_bowden_length = MMU2::mmu2.BowdenLength();
+#endif
 
 #if ENABLED(PREVENT_COLD_EXTRUSION)
     marlin_vars().extrude_min_temp = thermalManager.extrude_min_temp;
@@ -4432,7 +4366,7 @@ static void _server_update_vars() {
     marlin_vars().media_size_estimate = prefetch_metrics.stream_size_estimate;
 }
 
-bool _process_server_valid_request(const Request &request, int client_id) {
+static bool _process_server_valid_request(const Request &request) {
     switch (request.type) {
     case Request::Type::Gcode:
         //@TODO return value depending on success of enqueueing gcode
@@ -4464,16 +4398,6 @@ bool _process_server_valid_request(const Request &request, int client_id) {
         return true;
     case Request::Type::SetWarning:
         set_warning(request.warning_type);
-        return true;
-    case Request::Type::EventMask:
-        server.notify_events[client_id] = request.event_mask;
-        // Send Event::MediaInserted event if media currently inserted
-        // This is temporary solution, Event::MediaInserted and Event::MediaRemoved events are replaced
-        // with variable media_inserted, but some parts of application still using the events.
-        // We need this workaround for app startup.
-        if ((server.notify_events[client_id] & make_mask(Event::MediaInserted)) && marlin_vars().media_inserted) {
-            server.client_events[client_id] |= make_mask(Event::MediaInserted);
-        }
         return true;
 #if HAS_SELFTEST()
     case Request::Type::TestStart:
@@ -4566,17 +4490,13 @@ static bool _process_server_request(const Request &request) {
         return true;
     }
 
-    const bool processed = _process_server_valid_request(request, client_id);
+    const bool processed = _process_server_valid_request(request);
 
     // force update of marlin variables after proecssing request -> to ensure client can read latest variables after request completion
     _server_update_vars();
 
     if (request.response_required) {
-        Event evt_result = processed ? Event::Acknowledge : Event::NotAcknowledge;
-        if (!_send_notify_event_to_client(client_id, marlin_client::marlin_client_queue[client_id], evt_result, 0, 0)) {
-            // FIXME: Take care of resending process elsewhere.
-            server.client_events[client_id] |= make_mask(evt_result); // set bit if notification not sent
-        }
+        marlin_client::marlin_client_events[client_id].set(make_mask(processed ? Event::Acknowledge : Event::NotAcknowledge));
     }
     return processed;
 }
@@ -4808,5 +4728,5 @@ alignas(std::max_align_t) uint8_t FSMExtendedDataManager::extended_data_buffer[F
 size_t FSMExtendedDataManager::identifier = { 0 };
 
 void marlin_server::request_calibrations_screen() {
-    _send_notify_event(marlin_server::Event::RequestCalibrationsScreen, 0, 0);
+    _send_notify_event(marlin_server::Event::RequestCalibrationsScreen);
 }

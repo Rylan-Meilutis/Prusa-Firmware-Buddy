@@ -24,6 +24,7 @@
 #include <option/has_auto_retract.h>
 #include <option/has_toolchanger.h>
 #include <option/has_indx.h>
+#include <option/has_tool_mapping.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_extruder_fsensor.h>
 #include <meta_utils.hpp>
@@ -46,11 +47,13 @@ class MI_FILAMENT_SENSOR : public WI_ICON_SWITCH_OFF_ON_t {
 public:
     MI_FILAMENT_SENSOR();
 
-    /// Set the index to the correct value based on config_store
-    void update();
-
 protected:
     virtual void OnChange(size_t old_index) override;
+    void Loop() override;
+
+private:
+    /// Set the index to the correct value based on config_store
+    void update();
 };
 
 class MI_STUCK_FILAMENT_DETECTION : public WI_ICON_SWITCH_OFF_ON_t {
@@ -543,6 +546,20 @@ public:
 protected:
     void OnChange(size_t old_index) override;
 };
+
+#if HAS_TOOL_MAPPING()
+/// Which mapping the tool mapping screen starts with
+class MI_TOOL_MAPPING_PRESET : public MenuItemSelectMenu {
+public:
+    MI_TOOL_MAPPING_PRESET();
+
+    int item_count() const final;
+    string_view_utf8 build_item_text(int index, StringViewUtf8ParamBase &params) const final;
+
+protected:
+    bool on_item_selected(const OnItemSelectedArgs &args) override;
+};
+#endif
 
 /******************************************************************/
 

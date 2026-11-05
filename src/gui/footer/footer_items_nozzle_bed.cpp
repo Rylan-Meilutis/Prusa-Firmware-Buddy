@@ -14,7 +14,7 @@
 #include <module/temperature/temp_defines.hpp>
 #include <option/has_modular_bed.h>
 #include <sensor_data.hpp>
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <display.hpp>
 
 #if HAS_MODULAR_BED()
@@ -163,13 +163,15 @@ void FooterItemAllNozzles::unconditionalDraw() {
 
     // Individual nozzles
     for (auto tool : PhysicalToolIndex::all().skip_all_disabled()) {
+        const auto &hotend_config = Hotend::for_tool(tool).config();
+
         // Rectangle as high as temperature (can overwrite the white mark)
-        const uint gray_column_max = (static_cast<uint>(COLD) * icon.Height() + (HEATER_XL_HOTEND_MAXTEMP / 2)) / HEATER_XL_HOTEND_MAXTEMP;
+        const uint gray_column_max = (static_cast<uint>(COLD) * icon.Height() + (hotend_config.max_nozzle_temp / 2)) / hotend_config.max_nozzle_temp;
         // Guard against the uninitialized sentinel.
         const float temp = marlin_vars().hotend(tool).temp_nozzle;
         uint column_height = 0;
         if (temp != TempInfo::celsius_uninitialized) {
-            column_height = (static_cast<uint>(round(temp)) * icon.Height() + (HEATER_XL_HOTEND_MAXTEMP / 2)) / HEATER_XL_HOTEND_MAXTEMP;
+            column_height = (static_cast<uint>(round(temp)) * icon.Height() + (hotend_config.max_nozzle_temp / 2)) / hotend_config.max_nozzle_temp;
             column_height = std::clamp<uint>(column_height, 0, icon.Height());
         }
         uint gray_column_height = std::clamp<uint>(column_height, 0, gray_column_max);
@@ -231,7 +233,7 @@ int FooterItemNozzle::static_readValue() {
     const uint target = static_cast<uint>(marlin_vars().active_hotend().target_nozzle);
     const uint display = static_cast<uint>(round(marlin_vars().active_hotend().display_nozzle));
 #if HAS_TOOLCHANGER()
-    const bool no_tool = std::holds_alternative<NoTool>(marlin_vars().active_extruder.get());
+    const bool no_tool = std::holds_alternative<NoTool>(VirtualToolIndex::currently_selected());
 #else
     constexpr bool no_tool = false;
 #endif
@@ -243,8 +245,8 @@ int FooterItemNozzle::static_readValue() {
 
 float FooterItemNozzleDiameter::static_readValue() {
     return match(
-        marlin_vars().active_extruder.get(),
-        [](VirtualToolIndex virtual_tool) -> float { return config_store().get_nozzle_diameter(virtual_tool.to_raw()); },
+        PhysicalToolIndex::currently_selected(),
+        [](PhysicalToolIndex tool) -> float { return config_store().get_nozzle_diameter(tool); },
         [](NoTool) { return 0.0f; });
 }
 

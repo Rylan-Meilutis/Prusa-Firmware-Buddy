@@ -7,6 +7,7 @@
 /*****************************************************************************/
 // WindowPrintProgress
 #include "marlin_client.hpp"
+#include <common/marlin_vars.hpp>
 WindowPrintProgress::WindowPrintProgress(window_t *parent, Rect16 rect)
     : WindowProgressBar(parent, rect, ui_theme::progress(), COLOR_GRAY)
     , last_sd_percent_done(-1) {

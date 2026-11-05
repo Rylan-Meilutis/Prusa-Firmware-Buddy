@@ -45,10 +45,6 @@ namespace {
 const auto text_loading = N_("Loading...");
 const auto text_downloading = N_("Downloading...");
 const auto text_header_print = N_("PRINT");
-#if HAS_WASTEBIN_FILL_TRACKING()
-const auto text_parking = N_("Parking");
-const auto text_raising_bed = N_("Raising the bed");
-#endif
 
 #if HAS_LARGE_DISPLAY()
 static constexpr Rect16 title_rect {
@@ -87,12 +83,13 @@ public:
         radio.SetBtnCount(2);
         line.SetBackColor(COLOR_DARK_GRAY);
         parent->CaptureNormalWindow(radio);
-        //  this MakeRAM is safe - gcode_file_name is set to vars->media_LFN, which is statically allocated in RAM
-        title.SetText(string_view_utf8::MakeRAM(GCodeInfo::getInstance().GetGcodeFilename()));
+        strlcpy(title_text.data(), GCodeInfo::getInstance().GetGcodeFilename(), title_text.size());
+        title.SetText(string_view_utf8::MakeRAM(title_text.data()));
         gcode_description.update(GCodeInfo::getInstance());
     }
 
 private:
+    std::array<char, filename_defs::filename_buffer_size> title_text;
     window_roll_text_t title;
     BasicWindow line;
     WindowPreviewThumbnail thumbnail; // draws preview image
@@ -159,8 +156,6 @@ using Frames = FrameDefinitionList<ScreenPrintPreview::FrameStorage,
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
     FrameDefinition<Phase::wastebin_overfill_warning, frames::FrameWastebinOverfill>,
-    FrameDefinition<Phase::wastebin_emptying, FrameWait, text_parking>,
-    FrameDefinition<Phase::wastebin_emptied_returning, FrameWait, text_raising_bed>,
 #endif
     FrameDefinition<Phase::file_error, FramePrompt, Phase::file_error, map_print_preview_phase_to_error_code>>;
 
@@ -203,7 +198,7 @@ void ScreenPrintPreview::windowEvent([[maybe_unused]] window_t *sender, GUI_even
     // Catch event when USB is removed
     case GUI_event_t::MEDIA: {
         const MediaState_t media_state = MediaState_t(reinterpret_cast<int>(param));
-        if (media_state == MediaState_t::removed || media_state == MediaState_t::error) {
+        if (media_state == MediaState_t::removed) {
             marlin_client::print_abort(); // Abort print from marlin_server and close printing screens
         }
         break;

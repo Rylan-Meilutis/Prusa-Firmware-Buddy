@@ -165,14 +165,12 @@
 
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
-#define HEATER_0_MINTEMP 5
 #define BED_MINTEMP 5
 #define BOARD_MINTEMP 5
 
 // Above this temperature the heater will be switched off.
 // This can protect components from overheating, but NOT from shorts and failures.
 // (Use MINTEMP for thermistor short/failure protection.)
-#define HEATER_0_MAXTEMP 305
 #define HEATER_MAXTEMP_SAFETY_MARGIN 15
 #define BED_MAXTEMP 125
 #define BED_MAXTEMP_SAFETY_MARGIN 5
@@ -441,7 +439,11 @@
 #define DEFAULT_AXIS_STEPS_PER_UNIT_X 100
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Y 100
 #define DEFAULT_AXIS_STEPS_PER_UNIT_Z 400
-#define DEFAULT_AXIS_STEPS_PER_UNIT_E0 266 // 95% of the original 280 to account for normalised flow
+// Steps/mm at which the extruder feeds exactly the commanded length. The default is deliberately
+// lower ("normalised flow", formerly M221 S95 in the slicer start G-code); filament usage tracking
+// and the Move E menu compensate for it. Re-measure both when the extruder changes.
+#define CALIBRATED_AXIS_STEPS_PER_UNIT_E0 280
+#define DEFAULT_AXIS_STEPS_PER_UNIT_E0 266
 /**
  * Default Max Feed Rate (mm/s)
  * Override with M203
@@ -478,10 +480,17 @@
  *   M204 P    Acceleration
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
+ *   M204 F    Max filament acceleration
  */
 #define DEFAULT_ACCELERATION 1250 // X, Y, Z and E acceleration for printing moves
 #define DEFAULT_RETRACT_ACCELERATION 1250 // E acceleration for retracts
 #define DEFAULT_TRAVEL_ACCELERATION 1250 // X, Y, Z acceleration for travel (non printing) moves
+// Max filament acceleration on print moves (mm/s^2 of filament), M204 F.
+// 0 disables the limit.
+// Pressure advance turns filament acceleration into a jump in extruder speed.
+// Found experimentally as the largest jump this printer's extruder motor
+// follows, rounded to a round number. Re-measure it for a different extruder.
+#define DEFAULT_MAX_FILAMENT_ACCELERATION 120
 
 //
 // Use Junction Deviation instead of traditional Jerk Limiting

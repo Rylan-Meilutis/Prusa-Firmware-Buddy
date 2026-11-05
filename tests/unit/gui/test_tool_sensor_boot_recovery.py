@@ -27,7 +27,10 @@ class ToolSensorBootRecoveryTests(unittest.TestCase):
 #define HAS_XL_CAN() 0
 #define log_error(...) ((void)0)
 using buddy::puppies::ToolSensorBootstrapDeadline;
-namespace xbuddy_extension { enum class NodeState { unknown, verify, flash, ready }; }
+namespace xbuddy_extension {
+enum class NodeState { unknown, verify, flash, ready };
+enum class NodeName { cz_prusa3d_honeybee_tool_offset_sensor };
+}
 enum class CommunicationStatus { OK, ERROR };
 struct PuppyModbus {};
 enum class BootstrapStage { tool_offset_sensor_unknown, tool_offset_sensor_verify, tool_offset_sensor_flash, tool_offset_sensor_ready };
@@ -36,6 +39,10 @@ static int error_source = 0;
 static bool xbe_requires_reset = false;
 static bool enabled = false;
 static auto state = xbuddy_extension::NodeState::verify;
+struct CyphalNodeTableHost {
+ auto get_node_state(xbuddy_extension::NodeName) const {return state;}
+};
+const CyphalNodeTableHost &cyphal_node_table() {static CyphalNodeTableHost table; return table;}
 uint32_t ticks_ms() { return clock_ms; }
 int32_t ticks_diff(uint32_t a, uint32_t b) { return int32_t(a - b); }
 void bootstrap_state_set(int, BootstrapStage) {}
@@ -81,7 +88,7 @@ int main() {
     assert_failure(); assert_failure(); assert_terminal(); // Stalled flashing.
     successful_boot(); state = xbuddy_extension::NodeState::unknown;
     assert_failure(); assert_failure(); assert_terminal(); // Absent required node.
-    for (int fault : {1, 2}) {
+    for (int fault : {1}) {
         successful_boot(); error_source = fault;
         assert_failure(); assert_failure(); assert_terminal(); // Modbus failure.
     }

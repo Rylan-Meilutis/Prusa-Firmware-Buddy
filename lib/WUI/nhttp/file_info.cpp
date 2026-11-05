@@ -230,8 +230,8 @@ JsonResult FileInfo::FileRenderer::renderState(size_t resume_point, JsonOutput &
 }
 
 JsonResult FileInfo::FileRenderer::renderStateV1(size_t resume_point, JsonOutput &output, FileInfo::FileState &state) const {
+    get_SFN_path(state.owner->filepath);
     char *filename = state.owner->filepath;
-    get_SFN_path(filename);
     JSONIFY_STR(filename);
     char long_name[filename_defs::filename_buffer_size];
     get_LFN(long_name, sizeof long_name, filename);
@@ -342,7 +342,7 @@ void FileInfo::step(std::string_view, bool, uint8_t *output, size_t output_size,
         case FileType::Empty:
             // We are trying to list files in the root and it's not there -> USB is missing.
             // Special case it, we return empty list of files.
-            renderer = DirRenderer(api); // Produces empty file list
+            renderer = DirRenderer { this, Directory {}, api };
             break;
         case FileType::NotFound:
             out = Step { 0, 0, StatusPage(Status::NotFound, can_keep_alive ? StatusPage::CloseHandling::KeepAlive : StatusPage::CloseHandling::Close, json_errors) };

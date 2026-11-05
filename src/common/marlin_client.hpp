@@ -4,8 +4,8 @@
 #include "marlin_server_types/client_fsm_types.hpp"
 #include "encoded_fsm_response.hpp"
 #include <warning_type.hpp>
-#include "marlin_vars.hpp"
 #include "client_response.hpp"
+#include <option/has_cancel_object.h>
 #include <option/has_selftest.h>
 #include "Marlin/src/core/types.h"
 #include <option/has_selftest.h>
@@ -21,21 +21,8 @@ namespace marlin_client {
 //-----------------------------------------------------------------------------
 // client side functions (can be called from client thread only)
 
-/// Initialize the client side for the current task if it hasn't been initialized yet
-/// Otherwise does nothing
-void init_maybe();
-
-// initialize client side, returns pointer to client structure
+// initialize client side
 void init();
-
-// client loop - must be called periodically in client thread
-void loop();
-
-// returns client_id for calling thread (-1 for unattached thread)
-int get_id();
-
-// sets event notification mask
-void set_event_notify(uint64_t notify_events);
 
 // enqueue gcode - thread-safe version
 //
@@ -70,14 +57,8 @@ inline bool inject(ConstexprString gcode) { return inject(GCodeLiteral(gcode)); 
 /// !!! ONLY USE IF YOU 100% KNOW WHAT YOU'RE DOING
 void gcode_interrupt(GCodeLiteral gcode);
 
-// returns current event status for evt_id
-int event(marlin_server::Event evt_id);
-
 // returns current event status for evt_id and clear event
 int event_clr(marlin_server::Event evt_id);
-
-// returns current event status for all events as 64bit mask
-uint64_t events();
 
 // returns number of commands in gcode queue
 uint8_t get_gqueue();

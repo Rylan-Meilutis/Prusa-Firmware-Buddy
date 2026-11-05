@@ -16,6 +16,9 @@ class OutputPin;
 class Mt29fFlash {
 public:
     static constexpr uint32_t page_size = 4096;
+    /// A page must be written in a single program op: PROGRAM LOAD resets the chip
+    /// cache to all-FF, so a second program of the same page corrupts its ECC
+    static constexpr uint32_t prog_size = page_size;
     static constexpr uint32_t pages_per_block = 64;
     static constexpr uint32_t blocks_per_die = 2048;
     static constexpr uint32_t num_dies = 2;
@@ -25,6 +28,9 @@ public:
 
     /// Initialize the device. Returns true on success.
     [[nodiscard]] bool init();
+
+    /// True after a successful init()
+    [[nodiscard]] bool is_initialized() const { return initialized; }
 
     void read(uint32_t addr, uint8_t *data, uint32_t len);
     void program(uint32_t addr, const uint8_t *data, uint32_t len);
@@ -44,6 +50,7 @@ private:
 
     uint8_t current_die = 0;
     int current_error = 0;
+    bool initialized = false;
 
     struct Address {
         uint8_t die;

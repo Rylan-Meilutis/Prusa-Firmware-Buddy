@@ -2,36 +2,27 @@
 #pragma once
 
 #include <cstdint>
-#include <limits>
 #include <utils/utility_extensions.hpp>
 
 namespace marlin_server {
 
 enum class Event : uint8_t {
-    // Marlin events - UIAPI
-    MediaInserted, // onMediaInserted();
-    MediaError, // onMediaError();
-    MediaRemoved, // onMediaRemoved();
-    // Marlin events - other
-    RequestCalibrationsScreen, //
-    Acknowledge, // onAcknowledge - lowest priority
-    NotAcknowledge, // onNotAcknowledge - lowest priority
+    RequestCalibrationsScreen,
+    Acknowledge,
+    NotAcknowledge,
 
-    _last = NotAcknowledge,
-    _count
+    _count, // keep last
 };
 
-using EventMask = uint64_t;
+using EventMask = uint32_t;
 
-static_assert(sizeof(EventMask) * 8 > std::to_underlying(Event::_last));
+// Event group reserves the top 8 bits
+static_assert(std::to_underlying(Event::_count) <= 24);
 
 // event masks
 constexpr EventMask make_mask(Event id) {
     return static_cast<EventMask>(1) << std::to_underlying(id);
 }
-
-inline constexpr EventMask EVENT_MSK_ALL = std::numeric_limits<EventMask>::max();
-inline constexpr EventMask EVENT_MSK_DEF = EVENT_MSK_ALL;
 
 // commands
 enum class Cmd : uint32_t {

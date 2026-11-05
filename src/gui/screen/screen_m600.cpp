@@ -7,6 +7,7 @@
 #include <img_resources.hpp>
 #include <timing.h>
 #include <config_store/store_instance.hpp>
+#include <common/marlin_vars.hpp>
 #include <utils/string_builder.hpp>
 #include <gui/menu_item/menu_item_utils.hpp>
 
@@ -52,13 +53,13 @@ void MI_M600::click([[maybe_unused]] IWindowMenu &window_menu) {
             .allow_return = true,
         });
         if (tool.has_value() && inject(*tool)) {
-            Screens::Access()->Close();
+            Screens::Access()->close_screen();
         }
         return;
     }
 #endif
     match(
-        marlin_vars().active_extruder.get(),
+        VirtualToolIndex::currently_selected(),
         [](VirtualToolIndex virtual_tool) { inject(virtual_tool); },
         [](NoTool) { debug_assert(false); /* theoretically reachable edge case - do nothing */ });
 }

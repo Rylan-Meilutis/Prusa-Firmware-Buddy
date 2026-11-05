@@ -239,6 +239,8 @@ public:
      * - EEPROM says tool picked but no nozzle detected -> auto-correct to no tool
      *
      * @warning Must be called from the main (default) thread after puppies are ready.
+     * @warning Must not be called from marlin_server::cycle() because it potentially
+     *          deadlocks (creates FSM and blocks waiting for GUI response)
      */
     void check_nozzle_presence_vs_eeprom();
 
@@ -246,17 +248,12 @@ public:
      * @brief Periodically verify the picked tool's nozzle is still present during print.
      *
      * Compares the in-RAM active tool against the nozzle presence sensor. On mismatch,
-     * pauses the print and opens the NozzleMismatch FSM. EEPROM is intentionally not
-     * consulted here — it is invalidated during prints.
+     * when tool fell off, it triggers crash recovery if possible, or fatal error if not.
      *
      * Self-throttled to PRINT_NOZZLE_CHECK_PERIOD_MS; safe to call every cycle.
      * @warning Must be called from the main (default) thread, with block_tool_check clear.
      */
     void check_nozzle_presence_during_print();
-
-    /// @brief Disable nozzle presence checking (e.g. during dock calibration)
-    void set_nozzle_check_disabled(bool disabled) { nozzle_check_disabled = disabled; }
-    bool is_nozzle_check_disabled() const { return nozzle_check_disabled; }
 
     uint16_t get_pickup_fail_count() const { return pickup_fail_count; }
     uint16_t get_park_fail_count() const { return park_fail_count; }
@@ -295,7 +292,6 @@ private:
     std::atomic<ToolchangePhase> phase_ { ToolchangePhase::none };
 
     bool head_open = false; ///< True when head locking mechanism is known to be open
-    bool nozzle_check_disabled = false; ///< When true, skip nozzle presence vs EEPROM check (session-only, resets on reboot)
     std::atomic<uint16_t> pickup_fail_count = 0; ///< Number of failed pickup attempts since boot
     std::atomic<uint16_t> park_fail_count = 0; ///< Number of failed park attempts since boot
 

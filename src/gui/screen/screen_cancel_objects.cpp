@@ -1,6 +1,6 @@
 #include "screen_cancel_objects.hpp"
 
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <marlin_client.hpp>
 #include <feature/cancel_object/cancel_object.hpp>
 #include <screen_menu.hpp>
@@ -46,7 +46,7 @@ protected:
     }
 
     virtual void OnChange(size_t) final {
-        marlin_client::set_object_cancelled(object_, get_index());
+        marlin_client::set_object_cancelled(object_, current_item());
     }
 
     // Colorize the extension red/green to better visualise which objects are cancelled

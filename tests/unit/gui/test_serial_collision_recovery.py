@@ -141,12 +141,32 @@ int main() {
             "{ if(!replay_skip()) accept(p); return true; }")
         preamble = preamble.replace(
             "bool is_toolchange_event() { return false; } } crash_s;",
-            "bool is_toolchange_event() { return false; } int segments_finished=0; xyze_pos_t crash_machine_position{}; } crash_s;"
+            "bool is_toolchange_event() { return false; } xyze_pos_t crash_machine_position{}; } crash_s;"
         )
-        planner = (fixture.ROOT /
-                   "lib/Marlin/Marlin/src/module/planner.cpp").read_text()
+        preamble = preamble.replace(
+            "struct Crash_s {", "void replay_transition();\nstruct Crash_s {")
+        preamble = preamble.replace(
+            "void set_state(int s) { state=s; }",
+            "void set_state(int s) { if(state==REPLAY && s==PRINTING) replay_transition(); state=s; }"
+        )
+        preamble = preamble.replace(
+            "struct {\n bool processing_=",
+            "void set_machine_position_mm(xyze_pos_t);\nstruct {\n void set_machine_position_mm(xyze_pos_t p) { ::set_machine_position_mm(p); }\n bool processing_="
+        )
+        crash = (fixture.ROOT /
+                 "lib/Marlin/Marlin/src/feature/prusa/crash_recovery.cpp"
+                 ).read_text()
         replay = fixture.function(
-            planner, "if (crash_s.get_state() == Crash_s::REPLAY)")
+            crash[crash.index("bool Crash_s::register_planner_segment()"):],
+            "if (get_state() == Crash_s::REPLAY)")
+        # register_planner_segment returns false for dropped segments; this
+        # harness's replay_skip returns true for the same condition.
+        replay = replay.replace("get_state()", "crash_s.get_state()").replace(
+            "segments_finished", "crash_s.segments_finished").replace(
+                "set_state(",
+                "crash_s.set_state(").replace("return false;", "return true;")
+        transition = fixture.function(
+            crash[crash.index("    case PRINTING:"):], "if (state == REPLAY)")
         line = fixture.function(
             (fixture.ROOT /
              "lib/Marlin/Marlin/src/module/motion.cpp").read_text(),
@@ -159,6 +179,11 @@ int main() {
 void firmware_loop() {}
 xyze_pos_t restart{};
 void set_machine_position_mm(xyze_pos_t p) { restart=p; }
+void replay_transition() {
+ const int state=crash_s.state; constexpr int REPLAY=Crash_s::REPLAY;
+''' + transition.replace("crash_machine_position",
+                         "crash_s.crash_machine_position") + r'''
+}
 bool replay_skip() {
 ''' + replay + r'''
  return false;

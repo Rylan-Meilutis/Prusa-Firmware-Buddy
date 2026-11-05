@@ -44,7 +44,6 @@
 #include <module/signal2step.hpp>
 #include <feature/pressure_advance/pressure_advance_config.hpp>
 #include <feature/phase_stepping/phase_stepping.hpp>
-#include <feature/precise_stepping/manual.hpp>
 #include <signal_processing/analysis.hpp>
 #include <signal_processing/generators.hpp>
 #include <signal_processing/pipeline.hpp>
@@ -63,6 +62,7 @@
 #include <concepts>
 #include <type_traits>
 #include <utility>
+#include <optional>
 #include <sfl/segmented_vector.hpp>
 #include <option/has_indx_head.h>
 #include <option/tool_offset_sensor_geometry.h>
@@ -86,6 +86,29 @@ static constexpr size_t preprocess_edge_margin = 10;
 static constexpr uint8_t max_retries = 3;
 static constexpr float peak_width_mm = 0.6f;
 static constexpr float high_confidence_threshold = 0.9f;
+
+struct RawRecordedSample {
+    uint32_t timestamp_us;
+    float sensor_value;
+};
+
+using RawSamples = sfl::segmented_vector<RawRecordedSample, 128>;
+using PositionTable = sfl::segmented_vector<float, 256>;
+using SignalBuffer = sfl::segmented_vector<float, 256>;
+
+namespace {
+
+template <typename T>
+consteval std::size_t size_of_segment() {
+    return T::segment_capacity * sizeof(typename T::value_type);
+}
+
+// segments should be rather small so the fragmented heap is used more efficiently
+static_assert(size_of_segment<RawSamples>() <= 1024);
+static_assert(size_of_segment<PositionTable>() <= 1024);
+static_assert(size_of_segment<SignalBuffer>() <= 1024);
+
+} // namespace
 
 struct EnergyRegion {
     size_t start;
@@ -290,11 +313,6 @@ struct SweepSpeedProfile {
     }
 };
 
-struct RawRecordedSample {
-    uint32_t timestamp_us;
-    float sensor_value;
-};
-
 struct MotionExecutionResult {
     MotionExecutionResult() = default;
     MotionExecutionResult(const MotionExecutionResult &) = delete;
@@ -302,15 +320,16 @@ struct MotionExecutionResult {
     MotionExecutionResult(MotionExecutionResult &&) noexcept = default;
     MotionExecutionResult &operator=(MotionExecutionResult &&) noexcept = default;
 
-    sfl::segmented_vector<RawRecordedSample, 512> raw_samples;
-    abce_pos_t moved_by;
+    RawSamples raw_samples;
     float sensor_sampling_freq_hz;
     uint32_t motion_profile_start_us;
 
+#if TOOL_OFFSET_DEBUG()
     uint32_t convert_time_ms;
     uint32_t steps_time_ms;
     uint32_t expected_time_ms;
     uint32_t actual_time_ms;
+#endif
 };
 
 // We place the debug reporters into a separate file so we do not clutter
@@ -362,19 +381,6 @@ std::expected<MotionExecutionResult, const char *> execute_motion_with_recording
 
     MotionExecutionResult result = {};
 
-    // Get mm per step from planner
-    for (int ax = 0; ax < XYZE; ++ax) {
-        if (planner.settings.axis_steps_per_mm[ax] <= 0) {
-            result.raw_samples.clear();
-            return std::unexpected<const char *>("Invalid axis steps per mm");
-        }
-    }
-    abce_pos_t mm_per_step;
-    mm_per_step[0] = 1.0f / planner.settings.axis_steps_per_mm[X_AXIS];
-    mm_per_step[1] = 1.0f / planner.settings.axis_steps_per_mm[Y_AXIS];
-    mm_per_step[2] = 1.0f / planner.settings.axis_steps_per_mm[Z_AXIS];
-    mm_per_step[3] = 1.0f / planner.settings.axis_steps_per_mm[E_AXIS];
-
     LineSamplesDebugReporter samples_reporter(label);
     samples_reporter.start();
 
@@ -384,8 +390,6 @@ std::expected<MotionExecutionResult, const char *> execute_motion_with_recording
         return std::unexpected<const char *>("Failed to get first sensor sample");
     }
 
-    enable_all_steppers();
-
     auto receive_samples = [&]() {
         while (auto sample = sensor.get_sample()) {
             uint32_t now = ticks_us();
@@ -394,50 +398,29 @@ std::expected<MotionExecutionResult, const char *> execute_motion_with_recording
         }
     };
 
-    auto enqueue_step = [&, prev_ts = uint32_t { 0 }](uint32_t timestamp_us, AxisEnum axis, bool direction) mutable {
-        // Always drain sensor queue to prevent overflow — idle() can be slow during a print
+    auto on_event = [&](signal2step::Event event, uint32_t motion_start_us) {
+        if (event == signal2step::Event::motion_start) {
+            result.motion_profile_start_us = motion_start_us;
+        }
         receive_samples();
-
-        // Enqueue to precise stepping, polling sensor while waiting
-        while (precise_stepping::manual::is_full()) {
-            receive_samples();
-            idle(true);
-        }
-
-        // Calculate relative timestamp
-        uint32_t relative_ts = timestamp_us - prev_ts;
-        while (relative_ts > STEP_TIMER_MAX_TICKS_LIMIT) {
-            precise_stepping::manual::enqueue_step(STEP_TIMER_MAX_TICKS_LIMIT, false,
-                StepEventFlag::STEP_EVENT_FLAG_KEEP_ALIVE);
-            relative_ts -= STEP_TIMER_MAX_TICKS_LIMIT;
-        }
-
-        StepEventFlag_t flags = StepEventFlag::STEP_EVENT_FLAG_STEP_X << int(axis)
-            | StepEventFlag::STEP_EVENT_FLAG_X_ACTIVE << int(axis);
-        precise_stepping::manual::enqueue_step(relative_ts, !direction, flags);
-        prev_ts = timestamp_us;
+        idle(true);
     };
 
+#if TOOL_OFFSET_DEBUG()
     result.expected_time_ms = expected_duration_us / 1000;
+#endif
 
     {
         phase_stepping::EnsureDisabled _;
 
-        uint32_t motion_start_time_us = ticks_us();
+        signal2step::run_speed_profile(std::forward<MotionSignal>(motion_signal), on_event);
 
-        result.moved_by = signal2step::convert(std::forward<MotionSignal>(motion_signal), mm_per_step, enqueue_step);
+        const uint32_t motion_start_time_us = result.motion_profile_start_us;
 
-        result.motion_profile_start_us = motion_start_time_us;
-
+#if TOOL_OFFSET_DEBUG()
         result.convert_time_ms = (ticks_us() - motion_start_time_us) / 1000;
-
-        // Wait for all steps to complete while continuing to poll sensor
-        while (precise_stepping::manual::has_steps()) {
-            receive_samples();
-            idle(true);
-        }
-
         result.steps_time_ms = (ticks_us() - motion_start_time_us) / 1000;
+#endif
 
         // Continue polling sensor until expected motion duration has elapsed
         if (expected_duration_us > 0) {
@@ -447,14 +430,13 @@ std::expected<MotionExecutionResult, const char *> execute_motion_with_recording
             }
         }
 
+#if TOOL_OFFSET_DEBUG()
         result.actual_time_ms = (ticks_us() - motion_start_time_us) / 1000;
+#endif
 
-        // Update current position
-        xyze_pos_t new_pos = current_position + signal2step::from_machine_to_cartesian(result.moved_by);
-        current_position = new_pos;
-        destination = new_pos;
-        sync_plan_position();
-        PreciseStepping::reset_from_halt(false);
+        // The position has been taken back from the steppers, which also drops
+        // any fractional step left by the commanded trajectory.
+        destination = current_position;
     }
 
     // Get sampling frequency before stopping the sensor
@@ -493,11 +475,10 @@ static auto create_motion_signal(
     sp::SamplingFreq sampling_freq) {
 
     return signal2step::fuse_xyze(
-               sp::pipe::ref(speed_source_x) | sp::pipe::integrate(0.0f) | sp::pipe::transform([dir_x](float pos) { return pos * dir_x; }),
-               sp::pipe::ref(speed_source_y) | sp::pipe::integrate(0.0f) | sp::pipe::transform([dir_y](float pos) { return pos * dir_y; }),
-               sp::pipe::make_constant(0.0f, sampling_freq) | sp::pipe::take_samples(static_cast<int>(num_samples)),
-               sp::pipe::make_constant(0.0f, sampling_freq) | sp::pipe::take_samples(static_cast<int>(num_samples)))
-        | signal2step::cartesian_to_printer_kinematics();
+        sp::pipe::ref(speed_source_x) | sp::pipe::transform([dir_x](float speed) { return speed * dir_x; }),
+        sp::pipe::ref(speed_source_y) | sp::pipe::transform([dir_y](float speed) { return speed * dir_y; }),
+        sp::pipe::make_constant(0.0f, sampling_freq) | sp::pipe::take_samples(static_cast<int>(num_samples)),
+        sp::pipe::make_constant(0.0f, sampling_freq) | sp::pipe::take_samples(static_cast<int>(num_samples)));
 }
 
 namespace {
@@ -742,6 +723,7 @@ concept FsmDriver = requires(D drv, const D const_drv, FsmState target, bool alo
     { drv.retry_scan(target, axis) } -> std::same_as<FsmState>;
     { drv.hunt_step_y(target) } -> std::same_as<FsmState>;
     { const_drv.check_health() } -> std::same_as<bool>;
+    { const_drv.sensor_error_seen() } -> std::same_as<bool>;
     { drv.om_x } -> std::same_as<FsmScanOutcome &>;
     { drv.om_y } -> std::same_as<FsmScanOutcome &>;
     { D::max_iterations } -> std::convertible_to<unsigned>;
@@ -753,19 +735,31 @@ concept FsmDriver = requires(D drv, const D const_drv, FsmState target, bool alo
 // errors from the scan are logged at the source and surfaced as
 // FsmEvent::measurement_failed; the dispatcher just retries (or eventually
 // hits the iteration cap).
-// Returns nullptr on success, or an error string on failure.
+// Returns nullopt on success, or the reason to report on.
 template <FsmDriver Driver>
-const char *dispatch_fsm(Driver &drv) {
+std::optional<tool_offset::FailureReason> dispatch_fsm(Driver &drv) {
+    // Giving up says nothing on its own about why: a sensor that stopped
+    // answering and a nozzle the sweeps never found both end here. The driver
+    // remembers whether any sweep failed on the sensor itself, which separates
+    // "clean it and retry" from "the sensor needs service".
+    const auto gave_up = [&drv](const char *detail) {
+        log_error(ContactlessOffset, "%s", detail);
+        return drv.sensor_error_seen()
+            ? tool_offset::FailureReason::sensor_failure
+            : tool_offset::FailureReason::not_measured;
+    };
+
     FsmState state = FsmState::offset_measurement_x;
     for (unsigned i = 0; i < Driver::max_iterations; ++i) {
         if (state == FsmState::finished && drv.om_x.confidence > high_confidence_threshold && drv.om_y.confidence > high_confidence_threshold) {
-            return nullptr;
+            return std::nullopt;
         } else if (state == FsmState::finished) {
-            return "Tool offset FSM finished without high confidence in both axes";
+            return gave_up("Tool offset FSM finished without high confidence in both axes");
         }
 
         if (!drv.check_health()) {
-            return "Tool offset FSM aborted: hardware failure";
+            log_error(ContactlessOffset, "Tool offset FSM aborted: hardware failure");
+            return tool_offset::FailureReason::sensor_failure;
         }
 
         FsmScanOutcome outcome {};
@@ -784,7 +778,7 @@ const char *dispatch_fsm(Driver &drv) {
 
         state = next_state(state, outcome.event, drv);
     }
-    return "Tool offset FSM exceeded iteration limit";
+    return gave_up("Tool offset FSM exceeded iteration limit");
 }
 
 #if TOOL_OFFSET_SENSOR_GEOMETRY_IS_SINGLE_COIL()
@@ -808,6 +802,7 @@ struct SingleCoilDriver {
     xy_pos_t offset_for_measurement {};
     uint8_t generic_retry_count {};
     uint8_t scan_count_y {};
+    bool sensor_error_seen_ {};
     FsmScanOutcome om_x {};
     FsmScanOutcome om_y {};
 
@@ -829,6 +824,10 @@ struct SingleCoilDriver {
         const auto r = sweep_axis(config, sensor, sweep);
         if (!r.has_value()) {
             log_error(ContactlessOffset, "scan '%s' failed: %s", sweep_name(along_x), r.error().message);
+            if (r.error().kind == ScanError::Kind::sweep_failed
+                && sensor.get_last_error() != tool_offset::Sensor::Error::NONE) {
+                sensor_error_seen_ = true;
+            }
             outcome = {
                 ScanResult {},
                 r.error().kind == ScanError::Kind::out_of_range
@@ -891,12 +890,15 @@ struct SingleCoilDriver {
     #endif
         return true;
     }
+
+    /// Whether a sweep failed on the sensor rather than on the analysis.
+    bool sensor_error_seen() const { return sensor_error_seen_; }
 };
 
 // Run the XY-scan FSM. Assumes the carriage is already positioned at the
 // sensor XY at the desired probing Z. Returns the measured (x, y) offset in
 // the caller's frame (i.e. relative to the configured coil position).
-std::expected<xy_pos_t, const char *> measure_xy_via_fsm(
+std::expected<xy_pos_t, tool_offset::FailureReason> measure_xy_via_fsm(
     const tool_offset::ProbingConfig &config,
     tool_offset::Sensor &sensor,
     const tool_offset::ToolOffset &initial_measurement_offset) {
@@ -946,8 +948,8 @@ std::expected<xy_pos_t, const char *> measure_xy_via_fsm(
         } } },
     };
 
-    if (const char *err = dispatch_fsm(drv); err != nullptr) {
-        return std::unexpected(err);
+    if (const auto reason = dispatch_fsm(drv)) {
+        return std::unexpected(*reason);
     }
 
     // Undo the scan_center shift so the result is the true offset between the
@@ -1018,7 +1020,7 @@ public:
 // Probe down at `z_probe_pos` to find the sensor's true Z, leaving the carriage
 // at the probed Z. The caller picks the spot: it must be clear of the coil
 // area, because the inductive coil mustn't be touched.
-std::expected<float, const char *> probe_sensor_z(const tool_offset::ProbingConfig &config, const xyz_pos_t &z_probe_pos) {
+std::expected<float, tool_offset::FailureReason> probe_sensor_z(const tool_offset::ProbingConfig &config, const xyz_pos_t &z_probe_pos) {
     // Travel to the sensor at travel_z_height; only descend to safe_z_height right above it.
     do_z_clearance(z_probe_pos.z + config.travel_z_height);
     do_blocking_move_to_xy(z_probe_pos);
@@ -1026,7 +1028,8 @@ std::expected<float, const char *> probe_sensor_z(const tool_offset::ProbingConf
 
     const float sensor_z = measure_sensor_true_z(z_probe_pos);
     if (std::isnan(sensor_z)) {
-        return std::unexpected("Initial probing failed, sensor Z is NaN");
+        log_error(ContactlessOffset, "Initial probing failed, sensor Z is NaN");
+        return std::unexpected(tool_offset::FailureReason::sensor_not_found);
     }
     return sensor_z;
 }
@@ -1081,6 +1084,7 @@ struct DualCoilDriver {
     xy_pos_t offset_for_measurement {};
     uint8_t generic_retry_count {};
     unsigned hunt_step_count {};
+    bool sensor_error_seen_ {};
     FsmScanOutcome om_x {};
     FsmScanOutcome om_y {};
 
@@ -1117,9 +1121,14 @@ struct DualCoilDriver {
                     : xy_pos_t { .x = sweep.cross_pos, .y = sweep.center - sweep.half_width });
             do_blocking_move_to_z(sweep_z);
 
-            const auto r = sweep_axis(config, along_x ? sensor_x : sensor_y, sweep);
+            tool_offset::Sensor &swept_sensor = along_x ? sensor_x : sensor_y;
+            const auto r = sweep_axis(config, swept_sensor, sweep);
             if (!r.has_value()) {
                 log_error(ContactlessOffset, "scan '%s' failed: %s", sweep_name(along_x), r.error().message);
+                if (r.error().kind == ScanError::Kind::sweep_failed
+                    && swept_sensor.get_last_error() != tool_offset::Sensor::Error::NONE) {
+                    sensor_error_seen_ = true;
+                }
                 outcome = {
                     ScanResult {},
                     r.error().kind == ScanError::Kind::out_of_range
@@ -1185,13 +1194,16 @@ struct DualCoilDriver {
     bool check_health() const {
         return true;
     }
+
+    /// Whether a sweep failed on the sensor rather than on the analysis.
+    bool sensor_error_seen() const { return sensor_error_seen_; }
 };
 
 #endif // TOOL_OFFSET_SENSOR_GEOMETRY_IS_DUAL_COIL()
 
 } // namespace
 
-std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_current_tool_offset(
+std::expected<tool_offset::ToolOffset, tool_offset::FailureReason> tool_offset::measure_current_tool_offset(
     const tool_offset::ProbingConfig &config,
     const tool_offset::ToolOffset &initial_measurement_offset) {
 
@@ -1200,14 +1212,17 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     // Check nozzle temperature before probing
     const auto current_temp = hotend.nozzle_temp();
     if (!current_temp.has_value()) {
-        return std::unexpected("Nozzle has no valid temperature");
+        log_error(ContactlessOffset, "Nozzle has no valid temperature");
+        return std::unexpected(FailureReason::nozzle_too_hot);
     }
     if (current_temp.value() > config.max_safe_temp) {
-        return std::unexpected("Nozzle too hot for probing");
+        log_error(ContactlessOffset, "Nozzle too hot for probing");
+        return std::unexpected(FailureReason::nozzle_too_hot);
     }
 
     if (!GcodeSuite::G28_no_parser(true, true, true, G28Flags { .only_if_needed = true })) {
-        return std::unexpected("Homing failed");
+        log_error(ContactlessOffset, "Homing failed");
+        return std::unexpected(FailureReason::homing_failed);
     }
 
     // Sensor may be below soft endstop limits — disable them for the whole measurement
@@ -1264,7 +1279,8 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
     // Detachable sensor: a trigger well below the expected surface means the
     // probe fell past an absent sensor onto the bed/frame.
     if (*sensor_z < config.z_probe_position.z - sensor_presence_z_margin) {
-        return std::unexpected("Tool offset sensor not detected (Z probe too deep)");
+        log_error(ContactlessOffset, "Tool offset sensor not detected (Z probe too deep)");
+        return std::unexpected(FailureReason::sensor_not_found);
     }
     debug_report_probed_z(*sensor_z, *sensor_z - config.z_probe_position.z);
 
@@ -1284,8 +1300,8 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
         .offset_for_measurement = { { { initial_measurement_offset.x, initial_measurement_offset.y } } },
     };
 
-    if (const char *err = dispatch_fsm(drv); err != nullptr) {
-        return std::unexpected(err);
+    if (const auto reason = dispatch_fsm(drv)) {
+        return std::unexpected(*reason);
     }
 
     // Tool Z offset relative to the probed sensor surface. Only informational,
@@ -1301,11 +1317,11 @@ std::expected<tool_offset::ToolOffset, const char *> tool_offset::measure_curren
 // Signal preprocessing: median filter + normalize + zero-phase lowpass + detrend
 // Returns false if signal has no variance (flat).
 static bool preprocess_signal(
-    const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples,
+    const RawSamples &raw_samples,
     size_t chunk_start_idx,
     size_t chunk_size,
     float dt,
-    sfl::segmented_vector<float, 256> &signal_value) {
+    SignalBuffer &signal_value) {
 
     // Extend the processing range by a margin on each side to avoid
     // edge artifacts from the median and lowpass filters. The margin
@@ -1338,7 +1354,7 @@ static bool preprocess_signal(
 
     constexpr float signal_lowpass_cutoff_hz = 50.0f;
     auto lowpass_coeffs = sp::butterworth_lowpass_biquad_2nd(signal_lowpass_cutoff_hz, 1.0f / dt);
-    sp::zero_phase_biquad_padded<sfl::segmented_vector<float, 256>>(
+    sp::zero_phase_biquad_padded<SignalBuffer>(
         signal_value, lowpass_coeffs, 1.0f / dt, signal_lowpass_cutoff_hz);
 
     sp::linear_detrend(signal_value);
@@ -1355,8 +1371,8 @@ static bool preprocess_signal(
 
 // Compute finite differences and normalize to unit variance
 static void compute_signal_derivative(
-    const sfl::segmented_vector<float, 256> &signal_value,
-    sfl::segmented_vector<float, 256> &signal_deriv) {
+    const SignalBuffer &signal_value,
+    SignalBuffer &signal_deriv) {
 
     size_t n = signal_value.size();
     if (n < 2) {
@@ -1373,8 +1389,8 @@ static void compute_signal_derivative(
 
 // Evaluate normalized combined (value + derivative) correlation score at a lag.
 static float combined_correlation_score(
-    const sfl::segmented_vector<float, 256> &signal_value,
-    const sfl::segmented_vector<float, 256> &signal_deriv,
+    const SignalBuffer &signal_value,
+    const SignalBuffer &signal_deriv,
     int lag,
     float inv_val,
     float inv_der) {
@@ -1415,8 +1431,8 @@ static void find_best_correlation_lag(
 // Coarse-to-fine symmetry correlation search.
 // Returns the best lag (in samples) and combined correlation score.
 static int find_approx_symmetry_lag(
-    const sfl::segmented_vector<float, 256> &signal_value,
-    const sfl::segmented_vector<float, 256> &signal_deriv,
+    const SignalBuffer &signal_value,
+    const SignalBuffer &signal_deriv,
     size_t max_lag,
     float &out_best_combined,
     int &out_fine_min,
@@ -1431,7 +1447,7 @@ static int find_approx_symmetry_lag(
     constexpr size_t decimate_factor = 8;
 
     // Downsample with averaging for coarse search
-    sfl::segmented_vector<float, 256> val_ds, der_ds;
+    SignalBuffer val_ds, der_ds;
     sp::decimate_average(signal_value, val_ds, decimate_factor);
     sp::decimate_average(signal_deriv, der_ds, decimate_factor);
 
@@ -1463,8 +1479,8 @@ static int find_approx_symmetry_lag(
 
 // Sub-sample refinement of the symmetry lag via parabolic interpolation
 static float refine_lag_parabolic(
-    const sfl::segmented_vector<float, 256> &signal_value,
-    const sfl::segmented_vector<float, 256> &signal_deriv,
+    const SignalBuffer &signal_value,
+    const SignalBuffer &signal_deriv,
     int best_lag, size_t max_lag) {
 
     int lag_m1 = best_lag - 1;
@@ -1494,12 +1510,12 @@ static float refine_lag_parabolic(
 // into the original buffer where the trimmed region begins). Output buffers
 // are populated with trim_start..trim_start+n_kept-1 from the inputs.
 static size_t trim_around_symmetry_axis(
-    const sfl::segmented_vector<float, 256> &signal_value,
-    const sfl::segmented_vector<float, 256> &signal_deriv,
+    const SignalBuffer &signal_value,
+    const SignalBuffer &signal_deriv,
     int pass1_lag,
     float trim_fraction,
-    sfl::segmented_vector<float, 256> &out_value,
-    sfl::segmented_vector<float, 256> &out_deriv) {
+    SignalBuffer &out_value,
+    SignalBuffer &out_deriv) {
 
     const size_t n = signal_value.size();
     // Symmetry axis (sample index) under pass-1 lag
@@ -1550,8 +1566,8 @@ struct Pass2Result {
 // over a small window. Returns nullopt when trim_fraction is outside (0, 1) or
 // the trimmed window is too small to correlate.
 static std::optional<Pass2Result> refine_with_trimmed_window(
-    const sfl::segmented_vector<float, 256> &signal_value,
-    const sfl::segmented_vector<float, 256> &signal_deriv,
+    const SignalBuffer &signal_value,
+    const SignalBuffer &signal_deriv,
     int pass1_lag,
     float dt,
     float trim_fraction) {
@@ -1560,8 +1576,8 @@ static std::optional<Pass2Result> refine_with_trimmed_window(
         return std::nullopt;
     }
 
-    sfl::segmented_vector<float, 256> trimmed_value;
-    sfl::segmented_vector<float, 256> trimmed_deriv;
+    SignalBuffer trimmed_value;
+    SignalBuffer trimmed_deriv;
     const size_t trim_start = trim_around_symmetry_axis(
         signal_value, signal_deriv, pass1_lag,
         trim_fraction, trimmed_value, trimmed_deriv);
@@ -1606,7 +1622,7 @@ static std::optional<Pass2Result> refine_with_trimmed_window(
 
 // Detect symmetry peak using value + derivative correlations.
 static SymmetryPeakResult detect_symmetry_peak(
-    const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples,
+    const RawSamples &raw_samples,
     size_t chunk_start_idx,
     size_t chunk_size,
     float chunk_start_time_s,
@@ -1619,7 +1635,7 @@ static SymmetryPeakResult detect_symmetry_peak(
         return { chunk_start_time_s + (chunk_size / 2) * dt, 0.0f, 0.0f, 0.0f };
     }
 
-    sfl::segmented_vector<float, 256> signal_value;
+    SignalBuffer signal_value;
     if (!preprocess_signal(raw_samples, chunk_start_idx, chunk_size, dt, signal_value)) {
         return { chunk_start_time_s + (chunk_size / 2) * dt, 0.0f, 0.0f, 0.0f };
     }
@@ -1627,7 +1643,7 @@ static SymmetryPeakResult detect_symmetry_peak(
     debug_report_pass_raw_chunk(label, pass_num, chunk_start_idx, chunk_size, raw_samples);
     debug_report_pass_preprocessed(label, pass_num, chunk_start_idx, chunk_size, dt, signal_value);
 
-    sfl::segmented_vector<float, 256> signal_deriv;
+    SignalBuffer signal_deriv;
     compute_signal_derivative(signal_value, signal_deriv);
 
     debug_report_pass_derivative(label, pass_num, signal_deriv);
@@ -1676,7 +1692,7 @@ static constexpr int seconds_to_samples(float seconds, float dt) {
 // Find the time shift τ that maximises the sum of energy at the four
 // expected pass times — a 1-D matched filter against the motion profile.
 static std::optional<int> find_rough_time_alignment(
-    const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples,
+    const RawSamples &raw_samples,
     float dt,
     const SweepSpeedProfile &profile,
     const char *label) {
@@ -1694,7 +1710,7 @@ static std::optional<int> find_rough_time_alignment(
     const float dt_dec = dt * decimation;
     const size_t n_dec = n / decimation;
 
-    sfl::segmented_vector<float, 256> energy;
+    SignalBuffer energy;
     {
         sp::MedianFilter<float, 5> med;
         size_t dec_count = 0;
@@ -1809,7 +1825,7 @@ static std::optional<int> find_rough_time_alignment(
 
 // Detect peaks in 4 passes of two-speed sweep motion
 static FourPassPeaks detect_four_peaks(
-    const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples,
+    const RawSamples &raw_samples,
     float dt,
     const SweepSpeedProfile &profile,
     uint32_t motion_profile_start_us,
@@ -2109,11 +2125,10 @@ static TwoSpeedAnalysisResult estimate_position_from_peaks(
 }
 
 // Main entry point for two-speed sweep analysis
-static std::expected<TwoSpeedAnalysisResult, const char *> analyze_twospeed_sweep(
-    const sfl::segmented_vector<RawRecordedSample, 512> &raw_samples,
+static std::expected<FourPassPeaks, const char *> analyze_twospeed_sweep(
+    const RawSamples &raw_samples,
     float sensor_sampling_freq_hz,
     const SweepSpeedProfile &profile,
-    sp::SamplingFreq motion_sampling_freq,
     uint32_t motion_profile_start_us,
     float symmetry_trim_fraction,
     const char *label) {
@@ -2128,23 +2143,14 @@ static std::expected<TwoSpeedAnalysisResult, const char *> analyze_twospeed_swee
 
     float dt = 1.0f / sensor_sampling_freq_hz;
 
-    uint32_t analysis_start_us = ticks_us();
-
     uint32_t peaks_start_us = ticks_us();
     FourPassPeaks peaks = detect_four_peaks(raw_samples, dt, profile, motion_profile_start_us, symmetry_trim_fraction, label);
     uint32_t peaks_us = ticks_us() - peaks_start_us;
-
-    uint32_t final_result_start_us = ticks_us();
-    TwoSpeedAnalysisResult result = estimate_position_from_peaks(peaks, profile);
-    uint32_t final_result_us = ticks_us() - final_result_start_us;
-
-    log_info(ContactlessOffset, "analyze_twospeed: total %uus (detect_peaks=%uus compute_result=%uus) samples=%u",
-        static_cast<unsigned>(ticks_us() - analysis_start_us),
+    log_info(ContactlessOffset, "detect_four_peaks takes %uus (%u samples)",
         static_cast<unsigned>(peaks_us),
-        static_cast<unsigned>(final_result_us),
         static_cast<unsigned>(raw_samples.size()));
 
-    return result;
+    return peaks;
 }
 
 static std::expected<TwoSpeedAnalysisResult, const char *> execute_and_analyze_sweep(
@@ -2184,38 +2190,46 @@ static std::expected<TwoSpeedAnalysisResult, const char *> execute_and_analyze_s
     // Execute motion and record samples with extended wait for full profile duration
     uint32_t expected_duration_us = static_cast<uint32_t>(profile.total_time() * 1e6f);
 
-    auto result_exp = execute_motion_with_recording(std::move(motion_signal), sensor, label, expected_duration_us);
-    if (!result_exp.has_value()) {
-        debug_report_analysis_error(label, result_exp.error());
-        return std::unexpected(result_exp.error());
+    // scope ensures the vector of samples (returned from execute_motion_with_recording) is freed
+    // before computing the final position estimates, minimizing peak heap usage.
+    const auto peaks_result = [&]() -> std::expected<FourPassPeaks, const char *> {
+        auto result_exp = execute_motion_with_recording(std::move(motion_signal), sensor, label, expected_duration_us);
+        if (!result_exp.has_value()) {
+            return std::unexpected(result_exp.error());
+        }
+        auto &result = *result_exp;
+
+        uint32_t serial_output_start_us = ticks_us();
+        debug_report_motion_profile(profile, motion_sampling_freq, label);
+        debug_report_motion_timing(label, result);
+        uint32_t serial_output_us = ticks_us() - serial_output_start_us;
+        log_info(ContactlessOffset, "debug reporting takes %uus", static_cast<unsigned>(serial_output_us));
+
+        uint32_t analysis_start_us = ticks_us();
+        auto peaks_result = analyze_twospeed_sweep(
+            result.raw_samples,
+            result.sensor_sampling_freq_hz,
+            profile,
+            result.motion_profile_start_us,
+            config.symmetry_trim_fraction,
+            label);
+        uint32_t analysis_us = ticks_us() - analysis_start_us;
+        log_info(ContactlessOffset, "analyze_twospeed_sweep takes %uus", static_cast<unsigned>(analysis_us));
+        return peaks_result;
+    }();
+
+    if (!peaks_result.has_value()) {
+        debug_report_analysis_error(label, peaks_result.error());
+        return std::unexpected(peaks_result.error());
     }
-    auto &result = *result_exp;
+    auto &peaks = *peaks_result;
 
-    uint32_t serial_output_start_us = ticks_us();
-    debug_report_motion_profile(profile, motion_sampling_freq, label);
-    debug_report_motion_timing(label, result);
-    uint32_t serial_output_us = ticks_us() - serial_output_start_us;
+    uint32_t final_result_start_us = ticks_us();
+    TwoSpeedAnalysisResult analysis = estimate_position_from_peaks(peaks, profile);
+    uint32_t final_result_us = ticks_us() - final_result_start_us;
+    log_info(ContactlessOffset, "estimate_position_from_peaks takes %uus", static_cast<unsigned>(final_result_us));
 
-    uint32_t analysis_start_us = ticks_us();
-    auto analysis_result = analyze_twospeed_sweep(
-        result.raw_samples,
-        result.sensor_sampling_freq_hz,
-        profile,
-        motion_sampling_freq,
-        result.motion_profile_start_us,
-        config.symmetry_trim_fraction,
-        label);
-    uint32_t analysis_us = ticks_us() - analysis_start_us;
+    debug_report_twospeed_analysis(analysis, profile, label);
 
-    log_info(ContactlessOffset, "execute_and_analyze_sweep: serial_output=%uus analysis=%uus",
-        static_cast<unsigned>(serial_output_us), static_cast<unsigned>(analysis_us));
-
-    if (!analysis_result.has_value()) {
-        debug_report_analysis_error(label, analysis_result.error());
-        return std::unexpected(analysis_result.error());
-    }
-
-    debug_report_twospeed_analysis(analysis_result.value(), profile, label);
-
-    return analysis_result.value();
+    return analysis;
 }

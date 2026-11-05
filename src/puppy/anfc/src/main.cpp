@@ -1,5 +1,6 @@
 #include "main.hpp"
 #include "hal.hpp"
+#include "logging.hpp"
 #include "nfc.hpp"
 
 #include <FreeRTOS.h>
@@ -17,6 +18,7 @@
 #include <o1heap/o1heap.hpp>
 #include <openprinttag_nfcv/opt_nfcv.hpp>
 #include <option/nfc_st25r3919b_enabled_antennas.h>
+#include <random_sw/random_sw.h>
 #include <bsod/bsod.h>
 
 // This magical incantation is required for fw_descriptor integration in cmake to work.
@@ -25,17 +27,17 @@
 // Lowering CANARD_NODE_ID_MAX reduces RAM requirements. It is a change in the canard.h library -> make sure we don't accidentally remove it when we update
 static_assert(CANARD_NODE_ID_MAX == 15);
 
-LOG_COMPONENT_DEF(nfc);
+LOG_COMPONENT_DEF(nfc, logging::Severity::info);
 
 namespace {
 
 // CAN node app task, processes requests from the CAN. Implemented in can_node
-constexpr const size_t node_task_stack_size = 1024 / sizeof(StackType_t);
+constexpr const size_t node_task_stack_size = 1536 / sizeof(StackType_t);
 alignas(32) StackType_t node_task_stack[node_task_stack_size];
 StaticTask_t node_task_control_block;
 
 // High-priority task that is woken up when we need to receive/send over CAN and handles the request
-constexpr const size_t can_task_stack_size = 1024 / sizeof(StackType_t);
+constexpr const size_t can_task_stack_size = 1536 / sizeof(StackType_t);
 alignas(32) StackType_t can_task_stack[can_task_stack_size];
 StaticTask_t can_task_control_block;
 
@@ -103,7 +105,23 @@ static constexpr openprinttag::OPTBackend::Config ll_config {
 // !!! Buddy implementation cannot correctly track multiple tags per antenna, the implementation will need to be adjusted if this value changes
 static_assert(ll_config.max_known_tags_per_antenna == 1);
 
-static openprinttag::OPTBackend_NFCV ll_reader { nfc::reader_1, ll_config };
+// Adapters for the reader's platform hooks: freertos' size_t-based signatures are a different
+// type from uint32_t on the target even though both are 32 bits wide.
+static uint32_t millis_u32() {
+    return freertos::millis();
+}
+
+static void delay_u32(uint32_t delay_ms) {
+    freertos::delay(delay_ms);
+}
+
+static constexpr openprinttag::OPTBackend_NFCV::System ll_system {
+    .now_ms = millis_u32,
+    .delay_ms = delay_u32,
+    .random_u32 = rand_u_sw,
+};
+
+static openprinttag::OPTBackend_NFCV ll_reader { nfc::reader_1(), ll_system, ll_config };
 
 NFCTask nfc_task(
     ll_reader, [](prusa3d_nfc_event_Event_1_0 &event) { can_node.enqueue_event(event); }, nfc::reconfigure_readers);
@@ -111,8 +129,22 @@ NFCTask nfc_task(
 extern "C" int main() {
     hal::init();
 
+    // De-phase this board from its neighbours: the reader's collision-avoidance backoff and the
+    // discovery cadence would otherwise be identical on every board in the printer.
+    {
+        uint32_t seed = 0;
+        for (const uint8_t byte : get_uid()) {
+            seed = seed * 31 + byte;
+        }
+        rand_seed_sw(seed);
+    }
+
+    // Safe before the node is up - Record discards events until its instance exists
+    anfc::logging_init();
+
     // Set up Cyphal node and communication basics
     can_node.init();
+    log_info(nfc, "NFC firmware starting");
 
     [[maybe_unused]] TaskHandle_t can_task_handle = xTaskCreateStatic(
         can::cyphal::Task::task,

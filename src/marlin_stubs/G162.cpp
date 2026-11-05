@@ -19,24 +19,34 @@
     #include "loadcell.hpp"
 #endif
 
+#include <feature/print_status_message/print_status_message.hpp>
+#include <feature/print_status_message/print_status_message_guard.hpp>
+
 #include <option/has_toolchanger.h>
 #if HAS_TOOLCHANGER()
     #include <module/prusa/toolchanger.h>
 #endif
 
+#include <logging/log.hpp>
+
+LOG_COMPONENT_REF(Selftest);
+
 namespace {
 
-static constexpr feedRate_t align_axis_feedrate = 15.f; // mm/s
-static constexpr float extra_height = 5.f; // mm
+constexpr feedRate_t align_axis_feedrate = 15.f; // mm/s
+constexpr float extra_height = 5.f; // mm
 
 #if PRINTER_IS_PRUSA_XL()
 
 /// Feedrate of the final push into the top hard stop, on which the motors skip to align themselves
-static constexpr feedRate_t align_axis_slow_feedrate = 4.f; // mm/s
+constexpr feedRate_t align_axis_slow_feedrate = 4.f; // mm/s
 
 /// Nozzle clearance left behind, dock calibration crosses the bed right after this
-static constexpr float safe_clearance = 10.f; // mm
+constexpr float safe_clearance = 10.f; // mm
 
+#else
+/// For detecting, if we travel the whole Z axis distance, or if we crashed into an obstacle
+constexpr float z_axis_leeway = 10.f; // mm
 #endif
 
 }; // namespace
@@ -104,20 +114,14 @@ void selftest::calib_Z([[maybe_unused]] bool move_down_after) {
     config_store().selftest_result.set(result);
 }
 #else
-static constexpr float AFTER_Z_CALIB_Z_POS = 50;
+namespace {
+constexpr float AFTER_Z_CALIB_Z_POS = 50;
 
-static void safe_move_down() {
+void safe_move_down() {
     DEPLOY_PROBE();
 
     // Move to AFTER_Z_CALIB_Z_POS with Z endstop enabled
     float target_Z = AFTER_Z_CALIB_Z_POS - TERN0(HAS_HOTEND_OFFSET, hotend_currently_applied_offset.z);
-
-    Subscriber cb { marlin_server::idle_publisher,
-        [&]() {
-            // FSMAndPhase(ClientFSM::Load_unload, pause.getPhaseIndex())
-            ProgressPercent progress = ProgressSpan { 0, 100 }.map(to_normalized_progress(current_position.z, target_Z, marlin_vars().native_pos[MARLIN_VAR_INDEX_Z]));
-            marlin_server::fsm_change(FSMAndPhase(ClientFSM::Selftest, GetPhaseIndex(PhasesSelftest::CalibZ)), { progress });
-        } };
 
     if (do_homing_move(AxisEnum::Z_AXIS, target_Z - current_position.z, HOMING_FEEDRATE_INVERTED_Z)) {
         // endstop triggered, raise the nozzle
@@ -127,54 +131,81 @@ static void safe_move_down() {
     STOW_PROBE();
 }
 
-void selftest::calib_Z(bool move_down_after) {
+/// @brief Align the Z axis by forcing motors past endstops
+/// @param move_down_after move back after aligning
+/// @param prevent_collision REQUIRES Z AXIS TO BE HOMED. Measures the axis to prevent aligning being done against
+/// @return true - Z aligned, false - Z align didn't finish
+bool calib_Z_no_fsm(bool move_down_after, bool prevent_collision) {
+    // If we want to prevent collision, Z axis needs to be measured
+    // prevent_collision => Z homed
+    debug_assert(!prevent_collision || axes_home_level.is_homed(Z_AXIS, AxisHomeLevel::imprecise));
+
     // mark test as failed (so it will be failed after reset - disconnected cables can cause rsod)
     auto result = config_store().selftest_result.get();
     result.set_zalign(TestResult::failed);
     config_store().selftest_result.set(result);
 
     // backup original acceleration/feedrates and reset defaults for calibration
-    static constexpr float def_feedrate[] = DEFAULT_MAX_FEEDRATE;
-    static constexpr float def_accel[] = DEFAULT_MAX_ACCELERATION;
-    float orig_max_feedrate = planner.settings.max_feedrate_mm_s[Z_AXIS];
-    float orig_max_accel = planner.settings.max_acceleration_mm_per_s2[Z_AXIS];
-    planner.set_max_feedrate(Z_AXIS, def_feedrate[Z_AXIS]);
-    planner.set_max_acceleration(Z_AXIS, def_accel[Z_AXIS]);
+    Temporary_Reset_Motion_Parameters mp;
 
     // Z axis lift
-    marlin_server::fsm_change(PhasesSelftest::CalibZ);
     endstops.enable(true); // Stall endstops need to be enabled manually as in G28
-    if (!homeaxis(Z_AXIS, HOMING_FEEDRATE_INVERTED_Z, true)) {
+    if (!do_homing_move(Z_AXIS, 1.5f * max_length(Z_AXIS), HOMING_FEEDRATE_INVERTED_Z, false, false)) {
         fatal_error(ErrCode::ERR_ELECTRO_HOMING_ERROR_Z);
     }
     endstops.not_homing();
 
-    // push both Z axis few mm over HW limit to align motors
-    const float target_Z = Z_MAX_POS + extra_height;
-    current_position.z = Z_MAX_POS;
-    sync_plan_position();
-    do_blocking_move_to_z(target_Z, align_axis_feedrate);
-    current_position.z = Z_MAX_POS;
-    sync_plan_position();
+    const bool lift_blocked = prevent_collision && (current_position.z < (Z_MAX_POS - z_axis_leeway));
+    if (lift_blocked) {
+        log_warning(Selftest, "Z-align lift blocked at %.1f mm (expected at least %.1f mm)", (double)current_position.z, (double)(Z_MAX_POS - z_axis_leeway));
 
-    // move a little bit back to stabilize the motors
-    do_blocking_move_to_z(Z_MAX_POS - 1, align_axis_feedrate);
+        // We just pushed against a object, move, so that user can remove it.
+        do_blocking_move_to_z(current_position.z - 20, align_axis_feedrate);
+    } else {
+        current_position.z = Z_MAX_POS; // This position is fabricated and not reliable -> set as unhomed
+        sync_plan_position();
+        set_axis_is_not_at_home(Z_AXIS); // this is also needed to push past endstops
+
+        // push both Z axis few mm over HW limit to align motors
+        const float target_Z = Z_MAX_POS + (extra_height * 3);
+
+        do_blocking_move_to_z(target_Z, align_axis_feedrate);
+        current_position.z = Z_MAX_POS;
+        sync_plan_position();
+
+        // Store Z aligned
+        result.set_zalign(TestResult::passed);
+        config_store().selftest_result.set(result);
+
+        // move a little bit back to stabilize the motors
+        do_blocking_move_to_z(current_position.z - 1, align_axis_feedrate);
+    }
 
     if (move_down_after) {
         safe_move_down();
     }
 
-    // always set axis as unhomed (Z_MAX_POS is unreliable, Z_MIN_POS is not probed with homeaxis()!)
-    set_axis_is_not_at_home(Z_AXIS);
-
-    // restore original values
-    planner.set_max_feedrate(Z_AXIS, orig_max_feedrate);
-    planner.set_max_acceleration(Z_AXIS, orig_max_accel);
-
-    // Store Z aligned
-    result.set_zalign(TestResult::passed);
-    config_store().selftest_result.set(result);
+    return !lift_blocked;
 }
+} // namespace
+
+void selftest::calib_Z(bool move_down_after) {
+    marlin_server::fsm_change(PhasesSelftest::CalibZ);
+    std::ignore = calib_Z_no_fsm(move_down_after, false);
+}
+
+    #if HAS_UNEVEN_BED_DETECTION()
+bool selftest::auto_calib_Z(bool move_down_after) {
+    // ensure Z axis is homed
+
+    PrintStatusMessageGuard statusGuard;
+    statusGuard.update<PrintStatusMessage::bed_aligning>({});
+
+    GcodeSuite::G28_no_parser(false, false, true, { .only_if_needed = true, .precise = false });
+    return calib_Z_no_fsm(move_down_after, true);
+}
+    #endif // HAS_UNEVEN_BED_DETECTION()
+
 #endif
 
 /** \addtogroup G-Codes

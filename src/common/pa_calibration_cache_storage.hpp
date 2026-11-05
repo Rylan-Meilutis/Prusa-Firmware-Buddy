@@ -26,9 +26,9 @@ inline uint32_t checksum(const T &record) {
 }
 
 inline void path_for(char (&path)[48], uint8_t slot, bool temporary = false) {
-    // Keep the original path so a new-format record replaces the old one
-    // instead of accumulating obsolete files. Record::version gates reads.
-    snprintf(path, sizeof(path), "/internal/pa-cache-v1-%u.%s", unsigned(slot), temporary ? "tmp" : "bin");
+    // The firmware system filesystem moved from /internal to /system in 8.x.
+    // Record::version still gates reads of the existing per-slot record format.
+    snprintf(path, sizeof(path), "/system/pa-cache-v1-%u.%s", unsigned(slot), temporary ? "tmp" : "bin");
 }
 
 inline bool read_record(const char *path, Record &record, const char **reason = nullptr) {

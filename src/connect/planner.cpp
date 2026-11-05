@@ -53,7 +53,9 @@ using std::tuple;
 using std::unique_ptr;
 using std::visit;
 using transfers::ChangedPath;
+#if !WEBSOCKET()
 using transfers::Decryptor;
+#endif
 using transfers::Download;
 using transfers::Monitor;
 using transfers::Storage;
@@ -132,14 +134,6 @@ namespace {
         }
     }
 
-    bool path_allowed(const char *path) {
-        constexpr const char *const usb = "/usb/";
-        // Note: allow even "bare" /usb
-        const bool is_on_usb = strncmp(path, usb, strlen(usb)) == 0 || strcmp(path, "/usb") == 0;
-        const bool contains_upper = strstr(path, "/../") != nullptr;
-        return is_on_usb && !contains_upper;
-    }
-
     bool dir_exists(const char *path) {
         struct stat st = {};
         // This could give some false negatives, in practice rare (we don't have permissions, and such).
@@ -173,6 +167,7 @@ namespace {
         return nullptr;
     }
 
+#if !WEBSOCKET()
     tuple<const char *, uint16_t> host_and_port(const Printer::Config &config, optional<uint16_t> port_override) {
         uint16_t port = config.port;
         if (port == 443 && config.tls) {
@@ -205,6 +200,7 @@ namespace {
         buffer[enc_prefix_len + 2 * iv.size()] = '\0';
         strcat(buffer, enc_suffix);
     }
+#endif
 
     Transfer::BeginResult init_transfer(const StartInlineDownload &download) {
         const char *dpath = download.path.path();
@@ -221,6 +217,7 @@ namespace {
         return Transfer::begin(dpath, std::move(request));
     }
 
+#if !WEBSOCKET()
     Transfer::BeginResult init_transfer(const Printer::Config &config, const StartEncryptedDownload &download) {
         const char *dpath = download.path.path();
         if (!path_allowed(dpath)) {
@@ -242,6 +239,7 @@ namespace {
 
         return Transfer::begin(dpath, std::move(request));
     }
+#endif
 
     bool command_is_error_whitelisted(const Command &command) {
         return holds_alternative<SendInfo>(command.command_data) || holds_alternative<SetToken>(command.command_data) || holds_alternative<ResetPrinter>(command.command_data) || holds_alternative<SendStateInfo>(command.command_data);
@@ -864,6 +862,7 @@ void Planner::command(const Command &command, const StartInlineDownload &downloa
     handle_transfer_result(command, std::move(down_result));
 }
 
+#if !WEBSOCKET()
 void Planner::command(const Command &command, const StartEncryptedDownload &download) {
     // Get the config (we need it for the connection); don't reset the "changed" flag.
     auto [config, config_changed] = printer.config(false);
@@ -885,6 +884,7 @@ void Planner::command(const Command &command, const StartEncryptedDownload &down
 
     handle_transfer_result(command, std::move(down_result));
 }
+#endif
 
 void Planner::command(const Command &command, const DeleteFile &params) {
     const char *path = params.path.path();
@@ -987,14 +987,15 @@ void Planner::command(const Command &command, const SetValue &params) {
     const char *err = nullptr;
 
     auto adjust_nozzle = [&](size_t idx, auto cback) {
-        if (idx >= printer.params().slots.size()) {
+        if (idx >= PhysicalToolIndex::count) {
             err = "Tool index out of range";
             return;
         }
-        const auto vt = VirtualToolIndex::from_raw(idx);
-        auto slot = printer.params().slots[idx];
-        cback(slot);
-        printer.set_slot_info(vt, slot);
+        // idx is the physical tool of the 0-based "tools.<N>.*" key
+        const auto tool = PhysicalToolIndex::from_raw(idx);
+        auto info = printer.params().physical_tools[tool];
+        cback(info);
+        printer.set_physical_tool_info(tool, info);
     };
 
     switch (params.name) {
@@ -1003,7 +1004,7 @@ void Planner::command(const Command &command, const SetValue &params) {
         break;
 #if XL_ENCLOSURE_SUPPORT() && HAS_CHAMBER_FILTRATION_API()
     case connect_client::PropertyName::EnclosureEnabled:
-        xl_enclosure.setEnabled(get<bool>(params.value));
+        xl_enclosure.set_enabled(get<bool>(params.value));
         break;
     case connect_client::PropertyName::EnclosurePrintingFiltration:
         config_store().chamber_print_filtration_enable.set(get<bool>(params.value));
@@ -1026,18 +1027,18 @@ void Planner::command(const Command &command, const SetValue &params) {
     }
 #endif
     case connect_client::PropertyName::NozzleHighFlow:
-        adjust_nozzle(params.idx, [&](auto &slot) {
-            slot.high_flow = get<bool>(params.value);
+        adjust_nozzle(params.idx, [&](auto &info) {
+            info.high_flow = get<bool>(params.value);
         });
         break;
     case connect_client::PropertyName::NozzleHardened:
-        adjust_nozzle(params.idx, [&](auto &slot) {
-            slot.hardened = get<bool>(params.value);
+        adjust_nozzle(params.idx, [&](auto &info) {
+            info.hardened = get<bool>(params.value);
         });
         break;
     case connect_client::PropertyName::NozzleDiameter:
-        adjust_nozzle(params.idx, [&](auto &slot) {
-            slot.nozzle_diameter = get<float>(params.value);
+        adjust_nozzle(params.idx, [&](auto &info) {
+            info.nozzle_diameter = get<float>(params.value);
         });
         break;
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()

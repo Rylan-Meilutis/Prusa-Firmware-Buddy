@@ -3,6 +3,7 @@
 
 #include <config_store/store_instance.hpp>
 
+#include <option/allow_missing_otp.h>
 #include <support_utils.h>
 #include <version/version.hpp>
 #include <bsod/bsod.h>
@@ -26,12 +27,15 @@ Printer::Config load_eeprom_config() {
 }
 
 void init_info(Printer::PrinterInfo &info) {
-    info.firmware_version = version::project_version;
-    info.appendix = appendix_exist();
+    info.firmware_version = version::project_version_full;
     if (otp_get_serial_nr(info.serial_number) == 0) {
+#if ALLOW_MISSING_OTP()
+        info.serial_number = {};
+#else
         bsod("otp_get_serial_nr");
+#endif
     }
-    printerHash(info.fingerprint, sizeof(info.fingerprint) - 1, false);
+    printerHash(info.fingerprint, sizeof(info.fingerprint) - 1);
     info.fingerprint[sizeof(info.fingerprint) - 1] = '\0';
 }
 

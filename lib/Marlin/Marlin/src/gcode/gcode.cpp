@@ -78,7 +78,7 @@ GcodeSuite gcode;
 #include <option/has_pause.h>
 #include <option/has_phase_stepping.h>
 #include <option/has_phase_stepping_calibration.h>
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <utils/serial_logging_disabler.hpp>
 #include <feature/safety_timer/safety_timer.hpp>
 
@@ -363,8 +363,8 @@ void GcodeSuite::process_parsed_command_standard() {
           break;
       #endif
 
-      #if ENABLED(GCODE_MOTION_MODES) || HAS_GCODE_COMPATIBILITY()
-        case 80: G80(); break;                                    // G80: Reset the current motion mode
+      #if HAS_GCODE_COMPATIBILITY()
+        case 80: G80(); break;                                    // G80: Mesh Bed Leveling
       #endif
 
       case 90: set_relative_mode(false); break;                   // G90: Absolute Mode

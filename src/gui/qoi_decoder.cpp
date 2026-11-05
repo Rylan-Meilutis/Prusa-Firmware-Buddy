@@ -1,6 +1,4 @@
 #include "qoi_decoder.hpp"
-#include <raster_opfn_c.h>
-#include <display_math_helper.h>
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -120,7 +118,7 @@ Pixel Decoder::pull_pixel() {
     return px;
 }
 
-namespace transform {
+namespace {
 
     Pixel invert(Pixel pixel) {
         pixel.r = 255 - pixel.r;
@@ -130,6 +128,8 @@ namespace transform {
     }
 
     bool tolerance(Pixel pixel) {
+        constexpr uint8_t SWAPBW_TOLERANCE = 64;
+
         const uint8_t l = (pixel.r + pixel.g + pixel.b) / 3;
         const uint8_t l0 = (l >= SWAPBW_TOLERANCE) ? (l - SWAPBW_TOLERANCE) : 0;
         const uint8_t l1 = (l <= (255 - SWAPBW_TOLERANCE)) ? (l + SWAPBW_TOLERANCE) : 255;
@@ -141,14 +141,6 @@ namespace transform {
         if (tolerance(pixel)) {
             return invert(pixel);
         }
-        return pixel;
-    }
-
-    Pixel desaturate(Pixel pixel) {
-        uint8_t avg = (pixel.r + pixel.g + pixel.b) / 3;
-        pixel.r = avg;
-        pixel.g = avg;
-        pixel.b = avg;
         return pixel;
     }
 
@@ -185,7 +177,7 @@ namespace transform {
             && std::abs(normalized_b - expected_b) <= channel_tolerance;
     }
 
-    Pixel tint(Pixel pixel, Color tint_color) {
+    Pixel tint_marker(Pixel pixel, Color tint_color) {
         if (!is_theme_marker_indigo(pixel)) {
             return pixel;
         }
@@ -199,20 +191,20 @@ namespace transform {
         return pixel;
     }
 
-    Pixel apply_rop(Pixel pixel, uint8_t rop) {
-        if (rop & ROPFN_INVERT) {
-            pixel = invert(pixel);
-        }
+} // namespace
 
-        if (rop & ROPFN_SWAPBW) {
+namespace transform {
+
+    Pixel tint(Pixel pixel, Color tint_color) {
+        return tint_marker(pixel, tint_color);
+    }
+
+    Pixel apply_rop(Pixel pixel, ropfn rop) {
+        if (rop.swap_bw == has_swapped_bw::yes) {
             pixel = swapbw(pixel);
         }
 
-        if (rop & ROPFN_DESATURATE) {
-            pixel = desaturate(pixel);
-        }
-
-        if (rop & ROPFN_SHADOW) {
+        if (rop.shadow == is_shadowed::yes) {
             pixel = shadow(pixel);
         }
 

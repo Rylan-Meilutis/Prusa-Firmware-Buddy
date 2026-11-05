@@ -22,6 +22,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/tests/stubs/async_job/async_job.cpp
   missing_functions.c
   decryptor.cpp
+  identity_block.cpp
   )
 target_include_directories(
   decryptor_tests
@@ -52,8 +53,11 @@ target_link_libraries(
   base64
   )
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/encrypted_text
-          ${CMAKE_CURRENT_SOURCE_DIR}/20_bytes_encrypted_text
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-     )
+file(
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/encrypted_text
+       ${CMAKE_CURRENT_SOURCE_DIR}/20_bytes_encrypted_text
+       ${CMAKE_SOURCE_DIR}/tests/unit/common/gcode/reader/box_new_enc.bgcode
+       ${CMAKE_SOURCE_DIR}/tests/unit/common/gcode/reader/box_new_enc_multiple.bgcode
+  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )
 add_catch_test(decryptor_tests)

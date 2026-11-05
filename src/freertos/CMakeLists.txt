@@ -29,9 +29,14 @@ if(BOARD STREQUAL "XBUDDY_EXTENSION"
    OR BOARD STREQUAL "ANFC"
    OR BOARD STREQUAL "TOOL_OFFSET_SENSOR"
    OR BOARD STREQUAL "INDX_HEAD"
+   OR BOARD STREQUAL "HTCONTROLLER"
    )
   target_compile_definitions(freertos PUBLIC FREERTOS_INTERNAL_STORAGE_SIZE=72)
   target_sources(freertos PRIVATE stream_buffer.cpp)
 else()
   target_compile_definitions(freertos PUBLIC FREERTOS_INTERNAL_STORAGE_SIZE=80)
+endif()
+
+if(BOARD_IS_MASTER_BOARD)
+  target_sources(freertos PRIVATE event_group.cpp)
 endif()

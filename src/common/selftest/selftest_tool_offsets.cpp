@@ -115,8 +115,8 @@ LoopResult CSelftestPart_ToolOffsets::state_home_park() {
     // We need to be Z homed, so that we can find the pin
     marlin_server::enqueue_gcode("G28 Z O");
 
-    // Park the nozzle for easier sheet removal
-    marlin_server::enqueue_gcode_printf("T%d L0 D0", PrusaToolChanger::MARLIN_NO_TOOL_PICKED);
+    // Park the nozzle out of the way, the user is about to remove the steel sheet.
+    marlin_server::enqueue_gcode("P0 L0 D0");
 
     // Ensure tool will not hit calibration pin once installed
     marlin_server::enqueue_gcode("G1 Z30");
@@ -165,9 +165,9 @@ LoopResult CSelftestPart_ToolOffsets::state_finish_calibration() {
 
 LoopResult CSelftestPart_ToolOffsets::state_final_park() {
     IPartHandler::SetFsmPhase(PhasesSelftest::ToolOffsets_wait_move_away);
-    // Let user uninstall the pin
-    marlin_server::enqueue_gcode("P0 S1"); // Park tool
-    marlin_server::enqueue_gcode("G27"); // Park head
+    // Let user uninstall the pin and put the steel sheet back
+    marlin_server::enqueue_gcode("P0"); // Park tool
+    marlin_server::enqueue_gcode("G27 Z40 P1"); // Park head, high enough to get the sheet in
     marlin_server::enqueue_gcode("M18"); // Disable steppers
     return LoopResult::RunNext;
 }

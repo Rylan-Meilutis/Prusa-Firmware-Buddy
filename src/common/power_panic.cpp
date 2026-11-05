@@ -74,7 +74,7 @@
 #include <common/sys.hpp>
 #include "timing.h"
 #include "odometer.hpp"
-#include "marlin_vars.hpp"
+#include <common/marlin_vars.hpp>
 #include <mapi/motion.hpp>
 #include <mapi/feedrates/standard_feedrates.hpp>
 
@@ -473,7 +473,7 @@ void resume_loop() {
     case ResumeState::WaitForHeaters: {
         buddy::safety_timer().reset_restore_nonblocking();
 
-        if (!Temperature::are_all_temperatures_reached()) {
+        if (!Temperature::are_all_temperatures_reached(Temperature::RequireCooling::current_tool_only)) {
             break;
         }
 
@@ -604,7 +604,7 @@ bool is_power_panic_resuming() {
 }
 
 /// fully reset PP state for a new print
-void reset() {
+void reset_state() {
     // reset all internal state
     atomic_reset();
 

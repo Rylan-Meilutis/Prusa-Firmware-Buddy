@@ -10,6 +10,7 @@
 #include <radio_button.hpp>
 #include <window_colored_rect.hpp>
 #include <feature/compatibility_checks/gcode_compatibility.hpp>
+#include <feature/tool_mapping/tool_mapping_preset.hpp>
 #include <window_menu_bar.hpp>
 
 namespace screen_tool_mapping {
@@ -163,10 +164,34 @@ public:
     void update(const fsm::PhaseData &data);
 
 public:
-    ToolVariant focused_tool();
+    ToolVariant focused_tool() const;
     void focus_tool(ToolVariant tool);
 
-    void focus_first_unconnected_tool(ToolType tool_type);
+    /// Calls either suggest_gcode_tool_to_focus or suggest_virtual_tool_to_focus
+    void focus_suggested_tool(ToolType tool_type);
+
+    /// @returns preferably unassigned gcode tool
+    std::optional<GcodeToolIndex> suggest_gcode_tool_to_focus() const;
+
+    struct ToolMatchArgs {
+        /// If set, only items that are not mapped and are without fatal incompatibilities will be considered
+        bool compatible_only : 1;
+
+        /// If set, the algo will prefer matching colors
+        bool consider_colors : 1;
+    };
+
+    struct ToolMatchResult {
+        using Penalty = uint32_t;
+
+        VirtualToolIndex tool;
+        Penalty penalty;
+    };
+
+    /// @returns preferably unassigned virtual tool
+    /// Also prefers least incompatibilities with selected_tool_for_connecting_
+    /// If no tool matching the requirements is found, returns nullopt.
+    std::optional<ToolMatchResult> suggest_virtual_tool_to_focus(ToolMatchArgs args) const;
 
     static constexpr int invalid_tool_position = -1;
     struct ToolItemPosition {
@@ -222,6 +247,18 @@ private:
     /// Updates menu items.
     /// Necessary to call after each remapping
     void update_mapping();
+
+    /// Discards the current mapping and sets up the one described by \p preset
+    void apply_tool_mapping_preset(ToolMappingPreset preset);
+
+    /// Do smart tool mapping
+    /// !!! ONLY to be called from within apply_tool_mapping_preset
+    void smart_tool_mapping_impl(ToolMatchArgs args);
+
+    /// Called when a button in the bottom row is clicked
+    void on_button_click(Response response);
+
+    void show_details_menu();
 
 protected:
     virtual void windowEvent(window_t *sender, GUI_event_t event, void *const param) override;

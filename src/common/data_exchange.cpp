@@ -10,9 +10,6 @@
 #include <option/has_indx.h>
 #include <otp/types.hpp>
 
-// pin PA13 state
-static constexpr uint8_t APPENDIX_FLAG_MASK = 0x01;
-
 enum class FwAutoUpdate : uint8_t {
     on = 0xAA,
     off = 0x00,
@@ -30,7 +27,8 @@ struct __attribute__((packed)) DataExchange {
     uint8_t fw_signature;
     uint8_t bootloader_valid; //< Initialized by preboot to false; bootloader sets it to true
     char bbf_sfn[13];
-    uint8_t reserved__[3]; // aligned to N*4B (20B), set to 0 - so value is defined, in case we need ot gor versioning etc.
+    uint8_t heat_pulse_guard; // see set_heat_pulse_guard(); the bootloader leaves it alone
+    uint8_t reserved__[2]; // aligned to N*4B (20B), set to 0 - so value is defined, in case we need ot gor versioning etc.
     OtpStatus xlcd_status; // 8B
     XlcdEeprom xlcd_eeprom; // 32B
     OtpStatus loveboard_status; // 8B
@@ -172,10 +170,6 @@ const LoveBoardEeprom &get_loveboard_eeprom() {
 }
 #endif
 
-bool has_fw_signature() {
-    return ram_data_exchange.fw_signature != 0;
-}
-
 void fw_update_on_restart_enable() {
     ram_data_exchange.fw_update_flag = FwAutoUpdate::on;
 }
@@ -205,9 +199,26 @@ bool is_reflash_bbf_sfn(const char *sfn) {
         && strncmp(ram_data_exchange.bbf_sfn, sfn, sizeof(ram_data_exchange.bbf_sfn)) == 0;
 }
 
-bool has_apendix() {
-    return ram_data_exchange.appendix_status & APPENDIX_FLAG_MASK;
+#if HAS_HT_HOTEND()
+namespace {
+    // A magic rather than a flag: a cold power-up leaves the byte holding garbage. A false match
+    // only costs one skipped pulse and a dialog.
+    constexpr uint8_t heat_pulse_guard_magic = 0xA5;
+} // namespace
+
+bool is_heat_pulse_guard_set() {
+    return ram_data_exchange.heat_pulse_guard == heat_pulse_guard_magic;
 }
+
+void set_heat_pulse_guard() {
+    ram_data_exchange.heat_pulse_guard = heat_pulse_guard_magic;
+}
+
+void clear_heat_pulse_guard() {
+    ram_data_exchange.heat_pulse_guard = 0;
+}
+#endif
+
 } // namespace data_exchange
 
 bool running_in_tester_mode() {

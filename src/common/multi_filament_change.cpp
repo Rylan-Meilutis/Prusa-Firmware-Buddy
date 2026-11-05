@@ -26,7 +26,7 @@ namespace {
     constexpr size_t base64_data_length = base64::encoded_length(sizeof(Config));
 }
 
-Config config_from_current_print_setup() {
+Config Config::from_current_print_setup() {
     Config result;
 
     const auto &gcode_info = GCodeInfo::getInstance();
@@ -42,7 +42,7 @@ Config config_from_current_print_setup() {
 
         const auto &tool_info = gcode_info.get_extruder_info(*gcode_tool);
 
-        auto &item = result[virtual_tool];
+        auto &item = result.items[virtual_tool];
 
         debug_assert(tool_info.used()); // otherwise bug in mapping
         result.colors[virtual_tool] = tool_info.extruder_colour;
@@ -66,7 +66,7 @@ Config config_from_current_print_setup() {
     return result;
 }
 
-std::optional<Config> config_from_gcode(GCodeBasicParser &parser) {
+std::optional<Config> Config::from_gcode(GCodeBasicParser &parser) {
     // Bit of a hack - we are encoding the Config as Base64
     // Base64 has special characters '+', '/' and '='
     // These don't interfere with the G-Code special characters, which is handy for us
@@ -107,7 +107,7 @@ std::optional<Config> config_from_gcode(GCodeBasicParser &parser) {
     return config;
 }
 
-void config_to_gcode(const Config &config, StringBuilder &sb) {
+void Config::to_gcode(StringBuilder &sb) const {
     static_assert(gcode_command == GCodeCommand { .letter = 'M', .codenum = 9934 });
     // The space is necessary there in case the Base64 code would start with a digit
     constexpr const char *prefix = "M9934 ";
@@ -138,14 +138,22 @@ void config_to_gcode(const Config &config, StringBuilder &sb) {
 
     // mbedtls_base64_encode has this slightly annoying property that it also appends \0 at the end
     // We're technically going OOB here when passing base64_data_length + 1 (to account for the \0), but StringBuilder always keeps a space for a terminating \0, so this should be completely fine
-    mbedtls_base64_encode(reinterpret_cast<uint8_t *>(encode_buf), base64_data_length + 1, &olen, reinterpret_cast<const uint8_t *>(&config), sizeof(Config));
+    mbedtls_base64_encode(reinterpret_cast<uint8_t *>(encode_buf), base64_data_length + 1, &olen, reinterpret_cast<const uint8_t *>(this), sizeof(Config));
     static_assert(std::is_trivially_copyable_v<Config>);
     debug_assert(olen == base64_data_length);
 }
 
-void execute(const Config &tool_config) {
+void Config::set_all_loaded_to_unload() {
+    for (VirtualToolIndex tool : VirtualToolIndex::all().skip_all_disabled()) {
+        if (FilamentType::for_tool(tool)) {
+            items[tool].action = Action::unload;
+        }
+    }
+}
+
+void Config::execute() const {
     // If we have nothing to do, we can exit right now
-    if (std::all_of(tool_config.begin(), tool_config.end(), [](const auto &i) { return i.action == Action::keep; })) {
+    if (std::ranges::all_of(items, [](const auto &i) { return i.action == Action::keep; })) {
         return;
     }
 
@@ -159,12 +167,12 @@ void execute(const Config &tool_config) {
 #if HAS_TOOLCHANGER()
     // Start preheating all nozzles
     for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
-        const auto &config = tool_config[tool];
-        if (config.action == Action::keep) {
+        const auto &item = items[tool];
+        if (item.action == Action::keep) {
             continue;
         }
 
-        const uint16_t temperature = max(FilamentType { config.new_filament }.parameters().nozzle_temperature, old_filaments[tool].parameters().nozzle_temperature);
+        const uint16_t temperature = max(FilamentType { item.new_filament }.parameters().nozzle_temperature, old_filaments[tool].parameters().nozzle_temperature);
         thermalManager.setTargetHotend(temperature, tool.to_physical());
     }
 #endif
@@ -178,13 +186,12 @@ void execute(const Config &tool_config) {
         MMU should be in unloaded state right now (as every start of print)
         For all selected tools (in this case tool == MMU's filament slot) change filament
         This means MMU will go through selected tools and load to the slot (NOT load to extruder)
-        M704 for filament pre-load does not support color specification
     */
 
     // Carry out the changes
     for (auto tool : VirtualToolIndex::all().skip_all_disabled()) {
-        const auto &config = tool_config[tool];
-        switch (config.action) {
+        const auto &item = items[tool];
+        switch (item.action) {
 
         case Action::keep:
             break;
@@ -209,51 +216,52 @@ void execute(const Config &tool_config) {
         case Action::change: {
 #if HAS_MMU2()
             // preload the MMU slot
-            filament::set_type_to_load(FilamentType { config.new_filament });
-            filament::set_color_to_load(tool_config.colors[tool]);
-            filament::set_manufacturer_to_load(config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
+            filament::set_type_to_load(FilamentType { item.new_filament });
+            filament::set_color_to_load(colors[tool]);
+            filament::set_manufacturer_to_load(item.manufacturer ? std::optional<uint8_t> { item.manufacturer } : std::nullopt);
             filament_gcodes::mmu_load(tool.to_raw());
 
-            config_store().set_filament_type(tool, config.new_filament);
+            config_store().set_filament_type(tool, filament::apply_load_color(FilamentType { item.new_filament }, tool, colors[tool]));
             SerialPrinting::notify_configuration("filament", "loaded");
-            filament_color::set_loaded(tool.to_raw(), tool_config.colors[tool]);
-            filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
+            filament_color::set_loaded(tool.to_raw(), colors[tool]);
+            filament_manufacturer::set_loaded(tool.to_raw(), item.manufacturer ? std::optional<uint8_t> { item.manufacturer } : std::nullopt);
 #else
-            const FilamentType new_filament { config.new_filament };
+            const FilamentType new_filament { item.new_filament };
             if (old_filaments[tool] != FilamentType::none) {
                 filament_gcodes::M1600_change_filament(
                     new_filament,
                     tool,
                     RetAndCool_t::Return,
                     filament_gcodes::AskFilament_t::Never,
-                    tool_config.colors[tool]);
+                    colors[tool]);
             } else {
                 filament_gcodes::M701_load(filament_gcodes::M701LoadArgs {
                     .filament_to_be_loaded = new_filament,
                     .z_min_pos = Z_AXIS_LOAD_POS,
                     .op_preheat = RetAndCool_t::Return,
                     .virtual_tool = tool,
-                    .color_to_be_loaded = tool_config.colors[tool],
+                    .color_to_be_loaded = colors[tool],
                     .resume_print_request = false,
                 });
             }
 #endif
-            filament_manufacturer::set_loaded(tool.to_raw(), config.manufacturer ? std::optional<uint8_t> { config.manufacturer } : std::nullopt);
+            filament_manufacturer::set_loaded(tool.to_raw(), item.manufacturer ? std::optional<uint8_t> { item.manufacturer } : std::nullopt);
             break;
         }
         }
     }
 }
 
-bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant<VirtualToolIndex, AllTools> tools, Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) {
-    switch (config.action) {
+bool ConfigItem::gui_confirm_incompatibilities(std::variant<VirtualToolIndex, AllTools> tools, Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) const {
+    switch (action) {
+
     case Action::keep:
     case Action::unload:
         return true;
 
     case Action::change: {
         buddy::filament_compatibility::CompatibilityReportGenerateArgs args {
-            .filament = config.new_filament.decode().parameters(),
+            .filament = new_filament.decode().parameters(),
             .tools = stdext::to_variant(tools),
             .assume_filament_already_inserted = false,
         };
@@ -266,9 +274,9 @@ bool gui_config_confirm_incompatibilities(const ConfigItem &config, std::variant
     bsod_unreachable();
 }
 
-bool gui_config_confirm_incompatibilities(const Config &config, Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) {
+bool Config::gui_confirm_incompatibilities(Response abort_response, buddy::compatibility_checks::CompatibilityLevel skip_level) const {
     for (auto tool : VirtualToolIndex::all()) {
-        if (!gui_config_confirm_incompatibilities(config[tool], tool, abort_response, skip_level)) {
+        if (!items[tool].gui_confirm_incompatibilities(tool, abort_response, skip_level)) {
             return false;
         }
     }

@@ -16,6 +16,7 @@
 #include <freertos/mutex.hpp>
 #include <inc/MarlinConfig.h>
 #include <bsod/bsod.h>
+#include <str_utils.hpp>
 
 #if HAS_ANFC()
     #include <feature/openprinttag/tool_tag.hpp>
@@ -62,12 +63,31 @@ MutexAtomic<FilamentTypeParameters, freertos::Mutex> pending_adhoc_filament_para
 };
 
 std::optional<FilamentType> FilamentType::from_gcode_param(const std::string_view &value) {
-    if (const FilamentType r = from_name(value); r != FilamentType::none) {
-        return r;
+    if (value.length() == 0) {
+        return std::nullopt;
+    }
+
+    if (value.length() > 1 && value[0] == '#') {
+        uint8_t encoded;
+        const auto conv_r = from_chars_light(value.begin() + 1, value.end(), encoded);
+        if (conv_r.ec != std::errc {} || conv_r.ptr != value.end()) {
+            return std::nullopt;
+        }
+
+        const auto result = EncodedFilamentType::from_data(encoded).decode();
+        if (result == FilamentType::none) {
+            return std::nullopt;
+        }
+
+        return result;
     }
 
     if (value == adhoc_pending_gcode_code) {
         return PendingAdHocFilamentType {};
+    }
+
+    if (const FilamentType r = from_name(value); r != FilamentType::none) {
+        return r;
     }
 
     return std::nullopt;
@@ -78,15 +98,36 @@ bool FilamentType::matches(const std::string_view &name) const {
     return buddy::filament_material::matches(name, std::string_view(filament_material_name(params).data()));
 }
 
-void FilamentType::build_name_with_info(std::string_view filament_name, StringBuilder &builder) const {
-    builder.append_std_string_view(filament_name);
+BuildFilamentNameWithInfoParams::BuildFilamentNameWithInfoParams(FilamentType type, const FilamentTypeParameters &params)
+    : name { params.name }
+    , type { type }
+#if HAS_ANFC()
+    , opt_assigned { params.openprinttag_uid_hash != buddy::openprinttag::ToolTag::no_tag_hash }
+#endif
+{
+}
+
+void FilamentType::build_encoded_gcode_param(StringBuilder &builder) const {
+    builder.append_printf("%c%i", encoded_gcode_code_prefix, EncodedFilamentType(*this).data);
+}
+
+void FilamentType::build_name_with_info(const BuildFilamentNameWithInfoParams &params, StringBuilder &builder) {
+    builder.append_std_string_view(params.name);
 
     const char *suffix =
 #if HAS_MINI_DISPLAY()
         // The suffix doesn't fit on the mini display
         nullptr;
 #else
-        std::visit([&]<typename T>(const T &) -> const char * {
+        [&] -> const char * {
+    #if HAS_ANFC()
+        if (params.opt_assigned) {
+            // Indicates that the filament data has been loaded from the OpenPrintTag
+            return N_("Tag");
+        }
+    #endif
+
+        return std::visit([&]<typename T>(const T &) -> const char * {
             if constexpr (std::is_same_v<T, NoFilamentType>) {
                 return nullptr;
 
@@ -106,7 +147,8 @@ void FilamentType::build_name_with_info(std::string_view filament_name, StringBu
                 static_assert(false);
             }
         },
-            *this);
+            params.type);
+    }();
 #endif
 
     if (suffix) {
@@ -117,7 +159,7 @@ void FilamentType::build_name_with_info(std::string_view filament_name, StringBu
 }
 
 void FilamentType::build_name_with_info(StringBuilder &builder) const {
-    build_name_with_info(parameters().name, builder);
+    build_name_with_info(BuildFilamentNameWithInfoParams(*this, parameters()), builder);
 }
 
 FilamentTypeParameters FilamentType::parameters() const {
@@ -131,17 +173,23 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_INDX()
                                          const FilamentTypeParameters_EEPROM4 &e4,
 #endif
+                                         const FilamentTypeParameters_EEPROM5 &e5,
 #if HAS_ANFC()
                                          buddy::openprinttag::ToolTag::UIDHash openprinttag_uid_hash,
+                                         const FilamentTypeParameters_EEPROM6 &e6,
 #endif
                                          std::monostate) {
         return FilamentTypeParameters {
             .name = e1.name,
+            .color = e5.color(),
             .nozzle_temperature = static_cast<int16_t>(e1.nozzle_temperature),
             .nozzle_preheat_temperature = static_cast<int16_t>(e1.nozzle_preheat_temperature),
             .heatbed_temperature = e1.heatbed_temperature,
 #if HAS_ANFC()
             .openprinttag_uid_hash = openprinttag_uid_hash,
+            .material_uuid = e6.decode_uuid(e6.material_uuid),
+            .package_uuid = e6.decode_uuid(e6.package_uuid),
+            .instance_uuid = e6.decode_uuid(e6.instance_uuid),
 #endif
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
             .base_preset =
@@ -167,12 +215,12 @@ FilamentTypeParameters FilamentType::parameters() const {
         };
         static_assert(
             aggregate_arity<FilamentTypeParameters>()
-                == 6
+                == 7
                     + HAS_FILAMENT_HEATBREAK_PARAM() * 1
                     + HAS_CHAMBER_API() * 3
                     + HAS_CHAMBER_FILTRATION_API() * 1
                     + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1
-                    + HAS_ANFC() * 1
+                    + HAS_ANFC() * 4
                     + HAS_HT_HOTEND() * 1
             //
             ,
@@ -181,7 +229,7 @@ FilamentTypeParameters FilamentType::parameters() const {
 
     auto result = std::visit([]<typename T>(const T &v) -> FilamentTypeParameters {
         if constexpr (std::is_same_v<T, PresetFilamentType>) {
-            return preset_filament_parameters[v];
+            return preset_filament_parameters(v);
 
         } else if constexpr (std::is_same_v<T, UserFilamentType>) {
             return build_eeprom(
@@ -195,26 +243,41 @@ FilamentTypeParameters FilamentType::parameters() const {
 #if HAS_INDX()
                 config_store().user_filament_parameters_4.get(v.index),
 #endif
+                // EEPROM5 params (color) is adhoc-only
+                FilamentTypeParameters_EEPROM5 {},
 #if HAS_ANFC()
                 // It should only be possible to link OPT with AdHoc filaments
                 buddy::openprinttag::ToolTag::no_tag_hash,
+
+                // EEPROM6 (UUIDs) is adhoc-only
+                FilamentTypeParameters_EEPROM6 {},
 #endif
                 std::monostate());
 
         } else if constexpr (std::is_same_v<T, AdHocFilamentType>) {
+            const auto i = v.tool.to_raw();
+
+#if HAS_ANFC()
+            static_assert(decltype(config_store().adhoc_filament_parameters_6)::item_count == 1);
+#endif
+
             return build_eeprom(
-                config_store().adhoc_filament_parameters.get(v.tool),
+                config_store().adhoc_filament_parameters.get(i),
 #if HAS_CHAMBER_API()
-                config_store().adhoc_filament_parameters_2.get(v.tool),
+                config_store().adhoc_filament_parameters_2.get(i),
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
-                config_store().adhoc_filament_parameters_3.get(v.tool),
+                config_store().adhoc_filament_parameters_3.get(i),
 #endif
-#if HAS_INDX()
-                config_store().adhoc_filament_parameters_4.get(v.tool),
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+                config_store().adhoc_filament_parameters_4.get(i),
 #endif
+                config_store().adhoc_filament_parameters_5.get(i),
 #if HAS_ANFC()
-                config_store().adhoc_filament_assigned_openprinttag.get(v.tool),
+                config_store().adhoc_filament_assigned_openprinttag.get(i),
+
+                // Silently don't get for i > 0 - only first slot UUIDs are stored in EEPROM
+                i == 0 ? config_store().adhoc_filament_parameters_6.get(i) : FilamentTypeParameters_EEPROM6 {},
 #endif
                 std::monostate());
 
@@ -238,12 +301,12 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
     debug_assert(can_be_renamed_to(set.name));
     static_assert(
         aggregate_arity<FilamentTypeParameters>()
-            == 6
+            == 7
                 + HAS_FILAMENT_HEATBREAK_PARAM() * 1
                 + HAS_CHAMBER_API() * 3
                 + HAS_CHAMBER_FILTRATION_API() * 1
                 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1
-                + HAS_ANFC() * 1
+                + HAS_ANFC() * 4
                 + HAS_HT_HOTEND() * 1
         //
         ,
@@ -290,6 +353,19 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
     static_assert(aggregate_arity<FilamentTypeParameters_EEPROM4>() == 1, "Revise the initializer");
 #endif
 
+    const FilamentTypeParameters_EEPROM5 e5 {
+        .encoded_color = FilamentTypeParameters_EEPROM5::encode_color(set.color),
+    };
+    static_assert(aggregate_arity<FilamentTypeParameters_EEPROM5>() == 1, "Revise the initializer");
+
+#if HAS_ANFC()
+    const FilamentTypeParameters_EEPROM6 e6 {
+        .material_uuid = FilamentTypeParameters_EEPROM6::encode_uuid(set.material_uuid),
+        .package_uuid = FilamentTypeParameters_EEPROM6::encode_uuid(set.package_uuid),
+        .instance_uuid = FilamentTypeParameters_EEPROM6::encode_uuid(set.instance_uuid),
+    };
+#endif
+
     std::visit([&]<typename T>(const T &v) {
         if constexpr (std::is_same_v<T, PresetFilamentType>) {
             debug_assert(false);
@@ -305,24 +381,40 @@ void FilamentType::set_parameters(const FilamentTypeParameters &set) const {
 #if HAS_INDX()
             config_store().user_filament_parameters_4.set(v.index, e4);
 #endif
+            // EEPROM5 (color) is adhoc-only
+            debug_assert(set.color == std::nullopt);
 #if HAS_ANFC()
             // It should only be possible to link OPT with AdHoc filaments
             debug_assert(set.openprinttag_uid_hash == buddy::openprinttag::ToolTag::no_tag_hash);
+            debug_assert(set.instance_uuid == std::nullopt);
+            debug_assert(set.package_uuid == std::nullopt);
+            debug_assert(set.material_uuid == std::nullopt);
 #endif
 
         } else if constexpr (std::is_same_v<T, AdHocFilamentType>) {
-            config_store().adhoc_filament_parameters.set(v.tool, e1);
+            const auto i = v.tool.to_raw();
+
+            config_store().adhoc_filament_parameters.set(i, e1);
 #if HAS_CHAMBER_API()
-            config_store().adhoc_filament_parameters_2.set(v.tool, e2);
+            config_store().adhoc_filament_parameters_2.set(i, e2);
 #endif
 #if HAS_FILAMENT_HEATBREAK_PARAM()
-            config_store().adhoc_filament_parameters_3.set(v.tool, e3);
+            config_store().adhoc_filament_parameters_3.set(i, e3);
 #endif
-#if HAS_INDX()
-            config_store().adhoc_filament_parameters_4.set(v.tool, e4);
+#if HAS_FILAMENT_BASE_PRESET_PARAM()
+            config_store().adhoc_filament_parameters_4.set(i, e4);
 #endif
+            config_store().adhoc_filament_parameters_5.set(i, e5);
 #if HAS_ANFC()
-            config_store().adhoc_filament_assigned_openprinttag.set(v.tool, set.openprinttag_uid_hash);
+            config_store().adhoc_filament_assigned_openprinttag.set(i, set.openprinttag_uid_hash);
+
+            if (i == 0) {
+                static_assert(decltype(config_store().adhoc_filament_parameters_6)::item_count == 1);
+                config_store().adhoc_filament_parameters_6.set(i, e6);
+            } else {
+                // Silently don't store, we don't have space for it
+                debug_assert(false);
+            }
 #endif
 
         } else if constexpr (std::is_same_v<T, PendingAdHocFilamentType>) {

@@ -73,22 +73,22 @@ static void serialize_read_field(RequestID request_id, TagID tag_id, ToolTagFiel
     }
 }
 
-void ReadInt32FieldRequest::serialize(RequestID request_id, TagID tag_id, anfc::modbus::Request &request) {
+void ReadInt64FieldRequest::serialize(RequestID request_id, TagID tag_id, anfc::modbus::Request &request) {
     serialize_read_field(
         request_id,
         tag_id,
         tag_field(),
-        prusa3d_nfc_util_ValueType_1_0_INT32_,
+        prusa3d_nfc_util_ValueType_1_0_INT64_,
         request);
 }
 
-void ReadInt32FieldRequest::complete(Bytes event_data) {
+void ReadInt64FieldRequest::complete(Bytes event_data) {
     prusa3d_nfc_event_Event_1_0 event;
-    const auto value_or_error = deserialize_read_field_value(event_data, event, prusa3d_nfc_util_Value_1_0_is_int32__);
+    const auto value_or_error = deserialize_read_field_value(event_data, event, prusa3d_nfc_util_Value_1_0_is_int64__);
     if (!value_or_error) {
         return set_finished(std::unexpected(value_or_error.error()));
     }
-    result_ = value_or_error.value()->int32_;
+    result_ = value_or_error.value()->int64_;
     set_finished({});
 }
 
@@ -168,10 +168,71 @@ void ReadStringRequestBase::complete(Bytes event_data) {
         return set_finished(std::unexpected(value_or_error.error()));
     }
     const auto &str = value_or_error.value()->_string;
-    auto len = std::min(static_cast<size_t>(str.count), buffer_.size());
-    std::memcpy(buffer_.data(), str.elements, len);
-    result_ = { buffer_.data(), len };
+    if (str.count > buffer_.size()) {
+        return set_finished(std::unexpected(Error::data_too_big));
+    }
+
+    std::memcpy(buffer_.data(), str.elements, str.count);
+    result_ = { buffer_.data(), str.count };
     set_finished({});
+}
+
+void ReadColorFieldRequest::serialize(RequestID request_id, TagID tag_id, anfc::modbus::Request &request) {
+    serialize_read_field(
+        request_id,
+        tag_id,
+        tag_field(),
+        prusa3d_nfc_util_ValueType_1_0_BYTES,
+        request);
+}
+
+void ReadColorFieldRequest::complete(Bytes event_data) {
+    prusa3d_nfc_event_Event_1_0 event;
+    const auto value_or_error = deserialize_read_field_value(event_data, event, prusa3d_nfc_util_Value_1_0_is_bytes_);
+    if (!value_or_error) {
+        return set_finished(std::unexpected(value_or_error.error()));
+    }
+
+    const auto &bytes = value_or_error.value()->bytes;
+    if (bytes.count != 3 && bytes.count != 4) {
+        return set_finished(std::unexpected(Error::wrong_field_type));
+    }
+
+    static_assert((requires { Color()._unused; }), "Color got alpha -> gotta use it");
+
+    if (bytes.count == 4 && bytes.elements[3] < 16) {
+        // We don't support transparency, so mark too transparent colors as no colors
+        set_finished(std::unexpected(Error::field_not_present));
+        return;
+    }
+
+    result_ = Color::from_rgb(bytes.elements[0], bytes.elements[1], bytes.elements[2]);
+    set_finished({});
+}
+
+void ReadUUIDFieldRequest::serialize(RequestID request_id, TagID tag_id, anfc::modbus::Request &request) {
+    serialize_read_field(
+        request_id,
+        tag_id,
+        tag_field(),
+        prusa3d_nfc_util_ValueType_1_0_BYTES,
+        request);
+}
+
+void ReadUUIDFieldRequest::complete(Bytes event_data) {
+    prusa3d_nfc_event_Event_1_0 event;
+    const auto value_or_error = deserialize_read_field_value(event_data, event, prusa3d_nfc_util_Value_1_0_is_bytes_);
+    if (!value_or_error) {
+        return set_finished(std::unexpected(value_or_error.error()));
+    }
+
+    const auto &bytes = value_or_error.value()->bytes;
+    if (bytes.count != UUID::size_bytes) {
+        return set_finished(std::unexpected(Error::wrong_field_type));
+    }
+
+    result_ = UUID::from_bytes(std::as_bytes(std::span { bytes.elements }.first<UUID::size_bytes>()));
+    set_finished(finished_ok);
 }
 
 } // namespace buddy::openprinttag

@@ -13,7 +13,6 @@ target_sources(
           M591.cpp
           M862_1.cpp
           M862_4.cpp
-          M863.cpp
           M865.cpp
           M876.cpp
           M9140_M9150.cpp
@@ -81,6 +80,10 @@ if(HAS_TOOLCHANGER)
   target_sources(firmware PRIVATE P.cpp)
 endif()
 
+if(HAS_TOOL_MAPPING)
+  target_sources(firmware PRIVATE M863.cpp)
+endif()
+
 if(HAS_TOOL_OFFSET_PIN_CALIBRATION)
   target_sources(firmware PRIVATE G425.cpp)
 endif()
@@ -117,6 +120,10 @@ if(HAS_INDX)
   target_sources(firmware PRIVATE M1982.cpp M1983.cpp M1984.cpp)
 endif()
 
+if(HAS_GANTRY_SQUARENESS_CHECK)
+  target_sources(firmware PRIVATE M1988.cpp)
+endif()
+
 if(HAS_WASTEBIN_FILL_TRACKING)
   target_sources(firmware PRIVATE M1986.cpp)
 endif()
@@ -141,7 +148,7 @@ if(HAS_CHAMBER_VENTS)
   target_sources(firmware PRIVATE M870.cpp)
 endif()
 
-if(HAS_INDX)
+if(HAS_NOZZLE_CLEANER)
   target_sources(firmware PRIVATE G750.cpp)
 endif()
 

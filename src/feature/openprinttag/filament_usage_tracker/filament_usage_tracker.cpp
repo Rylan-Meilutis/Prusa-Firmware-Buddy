@@ -50,15 +50,21 @@ uint32_t FilamentUsageTracker::uncommited_consumption_mm_nolock(VirtualToolIndex
     return extruded_distance - std::min<uint32_t>(extruded_distance, tool_data_[tool].base_extruded_distance_mm);
 }
 
-std::optional<float> FilamentUsageTracker::remaining_filament_g(VirtualToolIndex tool) const {
+std::optional<FilamentUsageTracker::FilamentReport> FilamentUsageTracker::filament_report(VirtualToolIndex tool) const {
     std::lock_guard _lg(mutex_);
 
     const auto &tool_data = tool_data_[tool];
     if (std::isnan(tool_data.base_remaining_filament_g)) {
+        // All fields should be/not be NAN at the same time, it's okay to check just one
         return std::nullopt;
     }
 
-    return std::max<float>(0, tool_data.base_remaining_filament_g - uncommited_consumption_mm_nolock(tool) * tool_data.g_per_mm);
+    return FilamentReport {
+        .remaining_weight_g = std::max<float>(0, tool_data.base_remaining_filament_g - uncommited_consumption_mm_nolock(tool) * tool_data.g_per_mm),
+        .full_weight_g = tool_data.full_weight_g,
+        .g_per_mm = tool_data.g_per_mm,
+        .full_weight_is_nominal = tool_data.full_weight_is_nominal,
+    };
 }
 
 bool FilamentUsageTracker::is_tracking(VirtualToolIndex tool) const {
@@ -136,7 +142,7 @@ void FilamentUsageTracker::step() {
 
     if (ToolTag::for_tool_ephemeral(current_tool_) != tool_tag) {
         // Tag is not present, no point in trying to read/write anything
-        return;
+        return retry_finish_cb_impl(tool_data);
     }
 
     if (tool_data.init_pending) {
@@ -171,9 +177,7 @@ void FilamentUsageTracker::cannot_track_finish_cb(const AsyncJobFinishCallbackAr
     marlin_server::set_warning(WarningType::OpenPrintTagCannotTrack);
 }
 
-void FilamentUsageTracker::retry_finish_cb(const AsyncJobFinishCallbackArgs &args) {
-    auto &tool_data = args.tool_data;
-
+void FilamentUsageTracker::retry_finish_cb_impl(ToolData &tool_data) {
     // Show the warning even if this is not a write. If we fail init before write, it's also not good.
     if (tool_data.warn_if_next_write_fails) {
         marlin_server::set_warning(WarningType::OpenPrintTagUsageWriteFailed);
@@ -213,6 +217,7 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::tool_init_asy
             break;
 
         case Error::other:
+        case Error::field_collision:
             // Something kinda failed, retrying might help
             return retry_finish_cb;
 
@@ -233,12 +238,28 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::tool_init_asy
         return cannot_track_finish_cb;
     }
 
-    const float g_per_mm = *amounts.full_weight_g / *amounts.full_length_mm;
+    bool full_weight_is_nominal = false;
+    switch (amounts.full_weight_source) {
+
+    case AmountsInfo::ValueSource::nominal:
+    case AmountsInfo::ValueSource::heuristic: // Heuristic is worse than nominal, intentional
+        full_weight_is_nominal = true;
+        break;
+
+    case AmountsInfo::ValueSource::actual:
+    case AmountsInfo::ValueSource::no_value:
+        break;
+    }
+
+    const float full_weight_g = *amounts.full_weight_g;
+    const float g_per_mm = full_weight_g / *amounts.full_length_mm;
     const float remaining_g = *amounts.remaining_weight_g;
 
-    return [g_per_mm, remaining_g](const AsyncJobFinishCallbackArgs &args) {
+    return [full_weight_g, g_per_mm, remaining_g, full_weight_is_nominal](const AsyncJobFinishCallbackArgs &args) {
         auto &tool_data = args.tool_data;
 
+        tool_data.full_weight_is_nominal = full_weight_is_nominal;
+        tool_data.full_weight_g = full_weight_g;
         tool_data.g_per_mm = g_per_mm;
         tool_data.base_remaining_filament_g = remaining_g;
         tool_data.init_pending = false;
@@ -270,6 +291,7 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::write_consump
                 break;
 
             case Error::other:
+            case Error::field_collision:
                 // Something kinda failed, retrying might help
                 return retry_finish_cb;
 
@@ -310,6 +332,7 @@ FilamentUsageTracker::AsyncJobFinishCallback FilamentUsageTracker::write_consump
             switch (req.error()) {
 
             case Error::other:
+            case Error::field_collision:
                 // Something kinda failed, retrying might help
                 return retry_finish_cb;
 

@@ -12,7 +12,11 @@
 #include <utils/string/inplace_string.hpp>
 #include <utils/enum_array.hpp>
 #include <utils/compact_optional.hpp>
+#include <utils/color.hpp>
+#include <utils/algorithm_extensions.hpp>
+#include <utils/variant_utils.hpp>
 #include <tool_index.hpp>
+#include <uuid/uuid.hpp>
 
 #include <option/has_chamber_api.h>
 #include <option/has_chamber_filtration_api.h>
@@ -60,8 +64,12 @@ enum class PresetFilamentType : uint8_t {
     PPS = 10,
     PPA = 11,
 #endif
+    PVA = 12,
+    BVOH = 13,
 
-    _count
+    // !!! The PresetFilamentType enum is sparse
+    // !!! Do not use this for linear iteration
+    _count_sparse
 };
 
 // Used in config store, do not change
@@ -73,6 +81,10 @@ public:
     using Name = InplaceString<filament_name_buffer_size>;
     /// Name of the filament (zero terminated).
     Name name;
+
+    /// Color of the material, duh
+    /// Only for adhoc types, does not make sense for presets
+    OptionalColor color = std::nullopt;
 
     /// Nozzle temperature for the filament, in degrees Celsius
     int16_t nozzle_temperature = 215;
@@ -87,11 +99,25 @@ public:
     /// OpenPrintTag linked to the filament
     /// Note: not using ToolTag::UIDHash here to avoid dependency hell, static_asserted match in the cpp
     uint16_t openprinttag_uid_hash = 0;
+
+    using OptionalUUID = CompactOptional<UUID, UUID::nil()>;
+
+    /// Material::uuid according to the OpenPrintTag architecture
+    /// Identifies the material (for example PLA Prusa Galaxy Black)
+    OptionalUUID material_uuid = std::nullopt;
+
+    /// MaterialPackage::uuid according to the OpenPrintTag architecture
+    /// Identifies the package (for example 1kg spool of PLA Prusa Galaxy Black)
+    OptionalUUID package_uuid = std::nullopt;
+
+    /// MaterialPackageInstance::uuid according to the OpenPrintTag architecture
+    /// Identifies the package instance (individual spools)
+    OptionalUUID instance_uuid = std::nullopt;
 #endif
 
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     using BasePreset = CompactOptional<PresetFilamentType, static_cast<PresetFilamentType>(0xff)>;
-    static_assert(PresetFilamentType::_count < BasePreset::nullopt_value);
+    static_assert(PresetFilamentType::_count_sparse < BasePreset::nullopt_value);
 
     // Used in config store, do not change
     static_assert(sizeof(BasePreset) == 1);
@@ -140,18 +166,57 @@ public:
     constexpr bool operator!=(const FilamentTypeParameters &) const = default;
 };
 
-static constexpr size_t preset_filament_type_count = static_cast<size_t>(PresetFilamentType::_count);
+/// Preset filament types, in display order
+inline constexpr std::array preset_filament_types {
+    PresetFilamentType::PLA,
+        PresetFilamentType::PETG,
+        PresetFilamentType::ASA,
+        PresetFilamentType::PC,
+        PresetFilamentType::PVB,
+        PresetFilamentType::ABS,
+        PresetFilamentType::HIPS,
+        PresetFilamentType::PP,
+        PresetFilamentType::FLEX,
+        PresetFilamentType::PA,
+#if HAS_HT_HOTEND()
+        PresetFilamentType::PPS,
+        PresetFilamentType::PPA,
+#endif
+        PresetFilamentType::PVA,
+        PresetFilamentType::BVOH,
+};
 
-extern constinit const EnumArray<PresetFilamentType, FilamentTypeParameters, PresetFilamentType::_count> preset_filament_parameters;
+inline constexpr size_t preset_filament_type_count = preset_filament_types.size();
+
+constexpr size_t preset_filament_type_list_index(PresetFilamentType t) {
+    return stdext::index_of(preset_filament_types, t);
+}
+
+template <typename T>
+using PresetFilamentParametersT = EnumArray<
+    PresetFilamentType,
+    T,
+
+    // Sneaky half-hack:
+    // PresetFilamentParametersT stores items indexed in the display order (by preset_filament_types)
+    // This allows us to only store parameters for presets the printer actually uses, in linear order
+    // The index_f function maps PresetFilamentType enum to the reduced array through a linear search
+    // Safety is ensured by the strong indexing and EnumArray checks
+    preset_filament_types.size(),
+    enum_array::AllowWeakIndexing::no,
+    preset_filament_type_list_index //
+    >;
+
+FilamentTypeParameters preset_filament_parameters(PresetFilamentType type);
 
 /// Returns the polymer/material family independently of the selected profile.
 /// A user profile such as PLA-00D can inherit PLA through base_preset; external
 /// APIs that label a value as "material" must use this value, not params.name.
 inline FilamentTypeParameters::Name filament_material_name(const FilamentTypeParameters &params) {
-    std::string_view base_name;
+    FilamentTypeParameters::Name base_name;
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     if (params.base_preset.has_value()) {
-        base_name = preset_filament_parameters[*params.base_preset].name;
+        base_name = preset_filament_parameters(*params.base_preset).name;
     }
 #endif
     return { buddy::filament_material::authoritative_name(params.name, base_name) };
@@ -169,7 +234,7 @@ struct UserFilamentType {
 /// Not listed in all_filament_types.
 /// The parameters can be entered directly during preheat by selecting a special option in the preheat menu.
 struct AdHocFilamentType {
-    uint8_t tool = 0;
+    VirtualToolIndex tool;
 
     inline constexpr bool operator==(const AdHocFilamentType &) const = default;
     inline constexpr bool operator!=(const AdHocFilamentType &) const = default;
@@ -191,6 +256,8 @@ struct NoFilamentType {
 
 using FilamentType_ = std::variant<NoFilamentType, PresetFilamentType, UserFilamentType, AdHocFilamentType, PendingAdHocFilamentType>;
 
+struct BuildFilamentNameWithInfoParams;
+
 /// Count of all filament types
 constexpr size_t total_filament_type_count = preset_filament_type_count + user_filament_type_count;
 
@@ -200,6 +267,7 @@ public:
     static const FilamentType none;
     static const FilamentType pending_adhoc;
 
+    static constexpr const char encoded_gcode_code_prefix = '#';
     static constexpr const char *adhoc_pending_gcode_code = "#";
 
 public:
@@ -210,6 +278,13 @@ public:
 
     constexpr FilamentType()
         : variant(NoFilamentType {}) {}
+
+    template <typename T>
+    static constexpr FilamentType from_optional(std::optional<T> v)
+        requires(stdext::is_in_variant<T, FilamentType_>)
+    {
+        return v.has_value() ? FilamentType(*v) : none;
+    }
 
 public:
     // * Name/parameters
@@ -238,13 +313,17 @@ public:
     /// !!! This is because "loaded_filament" could be an ad-hoc filament, which is never returned from FilamentType::from_name.
     bool matches(const std::string_view &name) const;
 
+    /// Builds a string to be passed as gcode parameter that identifies the filament type
+    /// The format is internally encoded (so no issues with adhoc filaments and such)
+    void build_encoded_gcode_param(StringBuilder &builder) const;
+
     /// Appends name of the filament to the builder
     /// If the filament type is non-preset, it visually distincts it (for example by appending PLA (Custom))
     /// Pulls the filament name from FilamentTypeParameters
     void build_name_with_info(StringBuilder &builder) const;
 
     /// Overload that does not fetch from FilamentTypeParameters
-    void build_name_with_info(std::string_view filament_name, StringBuilder &builder) const;
+    static void build_name_with_info(const BuildFilamentNameWithInfoParams &params, StringBuilder &builder);
 
     /// \returns parameters of the filament type
     FilamentTypeParameters parameters() const;
@@ -262,16 +341,24 @@ public:
 
     /// \returns whether the filaments parameters can be adjusted by the user
     inline bool is_customizable() const {
-        // Revise if filament types are changed/Added
+        // Revise if filament types are changed/added
         static_assert(std::is_same_v<FilamentType_, std::variant<NoFilamentType, PresetFilamentType, UserFilamentType, AdHocFilamentType, PendingAdHocFilamentType>>);
-        return std::holds_alternative<UserFilamentType>(*this) || std::holds_alternative<AdHocFilamentType>(*this) || std::holds_alternative<PendingAdHocFilamentType>(*this);
+        return std::holds_alternative<UserFilamentType>(*this) || is_adhoc();
     }
 
     /// \returns whether the filament has a visibility parameter
     inline bool is_visibility_customizable() const {
-        // Revise if filament types are changed/Added
+        // Revise if filament types are changed/added
         static_assert(std::is_same_v<FilamentType_, std::variant<NoFilamentType, PresetFilamentType, UserFilamentType, AdHocFilamentType, PendingAdHocFilamentType>>);
-        return !std::holds_alternative<NoFilamentType>(*this) && !std::holds_alternative<AdHocFilamentType>(*this) && !std::holds_alternative<PendingAdHocFilamentType>(*this);
+        return std::holds_alternative<PresetFilamentType>(*this) || std::holds_alternative<UserFilamentType>(*this);
+    }
+
+    /// @returns whether the filament is adhoc
+    /// Some filament parameters, like Color and OPT linkage, are adhoc-only
+    inline bool is_adhoc() const {
+        // Revise if filament types are changed/added
+        static_assert(std::is_same_v<FilamentType_, std::variant<NoFilamentType, PresetFilamentType, UserFilamentType, AdHocFilamentType, PendingAdHocFilamentType>>);
+        return std::holds_alternative<AdHocFilamentType>(*this) || std::holds_alternative<PendingAdHocFilamentType>(*this);
     }
 
     /// \returns whether the filament name can be changed to \param new_name or a translatable error string.
@@ -296,3 +383,16 @@ public:
 
 constexpr FilamentType FilamentType::none = NoFilamentType {};
 constexpr FilamentType FilamentType::pending_adhoc = PendingAdHocFilamentType {};
+
+struct BuildFilamentNameWithInfoParams {
+    BuildFilamentNameWithInfoParams() = default;
+    BuildFilamentNameWithInfoParams(FilamentType type, const FilamentTypeParameters &params);
+
+    FilamentTypeParameters::Name name;
+    FilamentType type;
+#if HAS_ANFC()
+    bool opt_assigned = false;
+#endif
+
+    bool operator==(const BuildFilamentNameWithInfoParams &) const = default;
+};

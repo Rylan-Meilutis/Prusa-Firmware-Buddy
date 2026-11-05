@@ -9,6 +9,7 @@
 #include "window_dlg_quickpause.hpp"
 #include "window_dlg_wait.hpp"
 #include "window_dlg_warning.hpp"
+#include <common/marlin_vars.hpp>
 #include <option/has_crash_detection.h>
 #include <option/has_gearbox_alignment.h>
 #include <option/has_phase_stepping_calibration.h>
@@ -20,6 +21,7 @@
 #include <option/has_indx.h>
 #include <option/has_heaters_selftest_gcode.h>
 #include <option/has_tool_offset_sensor.h>
+#include <option/has_wastebin_fill_tracking.h>
 #include <gui/screen/screen_preheat.hpp>
 #include <gui/screen/dialog_safety_timer.hpp>
 
@@ -32,6 +34,13 @@
     #include <gui/screen/screen_nozzle_mismatch.hpp>
     #include <feature/indx_dock_calibration/screen_dock_calibration.hpp>
     #include <feature/indx_nozzle_cleaner_calibration/screen_nozzle_cleaner_calibration.hpp>
+#endif
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    #include <feature/indx_gantry_squareness/screen_gantry_squareness.hpp>
+#endif
+
+#if HAS_WASTEBIN_FILL_TRACKING()
+    #include <feature/wastebin_watcher/screen_wastebin_emptying.hpp>
 #endif
 
 #if HAS_TOOL_OFFSET_SENSOR()
@@ -129,7 +138,7 @@ struct FSMScreenDef : public FSMScreenDefBase {
 
     static void close() {
         debug_assert(Screens::Access()->IsScreenOnStack<Screen>());
-        Screens::Access()->Close<Screen>();
+        Screens::Access()->close_screen<Screen>();
     }
 
     [[nodiscard]] static bool change(fsm::BaseData data) {
@@ -326,6 +335,12 @@ using FSMDisplayConfig = FSMDisplayConfigDef<
     FSMScreenDef<ClientFSM::NozzleMismatch, ScreenNozzleMismatch>,
     FSMScreenDef<ClientFSM::DockCalibration, ScreenDockCalibration>,
     FSMScreenDef<ClientFSM::NozzleCleanerCalibration, ScreenNozzleCleanerCalibration>,
+#endif
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    FSMScreenDef<ClientFSM::GantrySquareness, ScreenGantrySquareness>,
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+    FSMScreenDef<ClientFSM::WastebinEmptying, ScreenWastebinEmptying>,
 #endif
 #if HAS_TOOL_OFFSET_SENSOR()
     FSMScreenDef<ClientFSM::ToolOffsetsCalibration, ScreenToolOffsetWizard>,

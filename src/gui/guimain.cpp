@@ -96,7 +96,7 @@ void open_end_filtration_prompt_on_door_open() {
     const bool filtering = buddy::chamber_filtration().post_print_remaining_s() > 0;
 
     if (prompt_current && (!door_open || !filtering)) {
-        Screens::Access()->Close<ScreenEndFiltration>();
+        Screens::Access()->close_screen<ScreenEndFiltration>();
         return;
     }
 
@@ -268,19 +268,15 @@ void gui_run(void) {
 #endif
     // Show bootstrap screen untill firmware initializes
     TaskDeps::provide(TaskDeps::Dependency::gui_display_ready);
-    while (!TaskDeps::check(TaskDeps::Tasks::bootstrap_done)) {
+    while (!TaskDeps::check(TaskDeps::Tasks::bootstrap_screen_done)) {
         ScreenSplash::check_bootstrap_progress();
         gui_bare_loop();
     }
 
     marlin_client::init();
 
-    DialogHandler::Access(); // to create class NOW, not at first call of one of callback
-
-    marlin_client::set_event_notify(marlin_server::EVENT_MSK_DEF);
-
     // Close bootstrap screen, open home screen
-    Screens::Access()->Close();
+    Screens::Access()->close_screen();
 
     sound::play(SoundType::start);
 

@@ -12,8 +12,12 @@
 
 #include <sys/stat.h>
 #include <cstring>
+#include <span>
 #include <unistd.h>
 #include <bsod/bsod.h>
+#include <logging/log.hpp>
+
+LOG_COMPONENT_REF(transfers);
 
 extern "C" {
 
@@ -148,6 +152,7 @@ GcodeUpload::UploadResult GcodeUpload::start(const RequestParser &parser, Upload
 
     auto preallocated = PartialFile::create(fname.begin(), *parser.content_length);
     if (const char **err = get_if<const char *>(&preallocated); err != nullptr) {
+        log_error(transfers, "create %s: %s", fname.begin(), *err);
         return StatusPage(Status::InsufficientStorage, StatusPage::CloseHandling::ErrorClose, json_errors, nullopt, *err);
     } else {
         return GcodeUpload(move(uploadParams), move(*slot), json_errors, *parser.content_length, file_idx, move(get<PartialFile::Ptr>(preallocated)), uploaded);
@@ -229,6 +234,7 @@ namespace {
         if (result != 0) {
             // Backup errno before calling other things
             int old_errno = errno;
+            log_error(transfers, "rename %s -> %s: errno %d", src, fn, old_errno);
             remove(src); // No check - no way to handle errors anyway.
             switch (old_errno) {
             case EISDIR:
@@ -241,7 +247,7 @@ namespace {
                 return make_tuple(Status::UnprocessableEntity, "Filename contains invalid characters");
             }
         } else {
-            return f(fn);
+            return f(std::span(fn));
         }
     }
 
@@ -281,9 +287,9 @@ namespace {
                 // Remove the "/usb/" prefix
                 // FIXME: Why? Relict of old / Post / multipart upload?
                 const char *final_filename = filepath.data() + USB_MOUNT_POINT_LENGTH;
-                error = try_rename(fname.begin(), final_filename, overwrite, [&](char *filename) -> GcodeUpload::Result {
+                error = try_rename(fname.begin(), final_filename, overwrite, [&](std::span<char> filename) -> GcodeUpload::Result {
                     monitor_slot->done(Monitor::Outcome::Finished);
-                    ChangedPath::instance.changed_path(filename, Type::File, Incident::Created);
+                    ChangedPath::instance.changed_path(filename.data(), Type::File, Incident::Created);
                     cleanup_temp_file = false;
                     if (uploaded_notify != nullptr) {
                         if (uploaded_notify(filename, print_after_upload)) {
@@ -374,8 +380,8 @@ GcodeUpload::Result GcodeUpload::check_filename(const char *filename) const {
         return make_tuple(Status::InternalServerError, "Failed to create a check temp file");
     }
     fclose(tmp);
-    return try_rename(CHECK_FILENAME, filename, false, [](const char *fname) -> GcodeUpload::Result {
-        remove(fname);
+    return try_rename(CHECK_FILENAME, filename, false, [](std::span<const char> fname) -> GcodeUpload::Result {
+        remove(fname.data());
         return make_tuple(Status::Ok, nullptr);
     });
 }

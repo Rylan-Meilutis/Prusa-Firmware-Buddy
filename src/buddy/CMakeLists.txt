@@ -7,14 +7,14 @@ target_sources(
           filesystem.cpp
           filesystem_fatfs.cpp
           filesystem_littlefs.cpp
-          filesystem_littlefs_internal.cpp
+          filesystem_littlefs_posix.cpp
           filesystem_root.cpp
           filesystem_semihosting.cpp
           libsysbase_syscalls.cpp
-          littlefs_internal.cpp
           logging.cpp
           lwip.cpp
           main.cpp
+          storage.cpp
           timing_sys.cpp
           usb_device.cpp
           usb_device_cdc.cpp

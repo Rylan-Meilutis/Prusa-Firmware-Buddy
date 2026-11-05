@@ -281,7 +281,10 @@ PuppyBootstrap::AddressAssignmentResult PuppyBootstrap::run_address_assignment()
             }
 
             // Wait for puppy to boot up
-            osDelay(5);
+            // 2ms is typical start of HSE, but it may be longer so 10x to be safe
+            // other puppy startup delays like PLL start, peripherals init and memory init
+            // compared to this one are negligible
+            osDelay(20);
 
             if (is_dynamicly_addressable(puppy_type)) {
                 // assign address to all of them
@@ -486,7 +489,7 @@ PuppyBootstrap::DiscoverResult PuppyBootstrap::discover_once(PuppyType type, Boo
             log_info(Puppies, "discover_once: read_otp -> no/garbled answer after protocol_version");
             return DiscoverResult::contested;
         }
-        auto puppy_datamatrix = otp_parse_datamatrix(otp, sizeof(otp));
+        auto puppy_datamatrix = otp_parse_datamatrix(trivial_as_bytes(otp));
         if (puppy_datamatrix) {
             log_info(Puppies, "Puppy's hardware ID is %d with revision %d", puppy_datamatrix->product_id, puppy_datamatrix->revision);
         } else {

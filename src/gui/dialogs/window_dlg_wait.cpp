@@ -3,7 +3,7 @@
 #include "ScreenHandler.hpp"
 #include <DialogHandler.hpp>
 #include <client_response.hpp>
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <feature/print_status_message/print_status_message_mgr.hpp>
 #include <feature/print_status_message/print_status_message_formatter_buddy.hpp>
 #include <utils/string_builder.hpp>
@@ -51,10 +51,14 @@ void window_dlg_wait_t::wait_for_gcodes_to_finish() {
 }
 
 void window_dlg_wait_t::wait_until(const string_view_utf8 &second_string, const stdext::inplace_function<bool()> &until_f) {
-    window_dlg_wait_t dlg(second_string);
+    wait_until(second_string, [&](window_dlg_wait_t &) { return until_f(); });
+}
+
+void window_dlg_wait_t::wait_until(const string_view_utf8 &initial_text, const stdext::inplace_function<bool(window_dlg_wait_t &)> &until_f) {
+    window_dlg_wait_t dlg(initial_text);
     Screens::Access()->gui_loop_until_dialog_closed([&] {
-        if (until_f()) {
-            Screens::Access()->Close();
+        if (until_f(dlg)) {
+            dlg.close_dialog();
         }
     });
 }
@@ -73,9 +77,7 @@ void window_dlg_wait_t::windowEvent(window_t *sender, GUI_event_t event, void *c
             if (strcmp(print_status_message_.data(), new_msg.data())) {
                 print_status_message_ = new_msg;
 
-                // Force invalidation - we're recycling the same pointer, so the auto invalidate does not pick up
-                frame.set_text(string_view_utf8 {});
-                frame.set_text(string_view_utf8::MakeRAM(print_status_message_.data()));
+                set_text(string_view_utf8::MakeRAM(print_status_message_.data()));
             }
             break;
         }

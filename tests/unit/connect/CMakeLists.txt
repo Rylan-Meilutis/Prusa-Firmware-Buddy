@@ -43,10 +43,11 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/connect/printer.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/hostname.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/sleep.cpp
-  ${CMAKE_SOURCE_DIR}/src/transfers/decrypt.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/download.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/monitor.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/files.cpp
+  ${CMAKE_SOURCE_DIR}/src/connect/tools.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/utils/string_builder.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/changed_path.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/transfer.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/transfer_file_check.cpp
@@ -73,6 +74,7 @@ add_executable(
   # See reason why we do it this way in
   # tests/unit/lib/WUI/nhttp/CMakeLists.txt
   ${CMAKE_SOURCE_DIR}/tests/unit/lib/WUI/nhttp/missing_functions.c
+  ${CMAKE_SOURCE_DIR}/tests/unit/lib/WUI/nhttp/get_sfn_path_stub.cpp
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/altcp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/altcp_tcp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/def.c
@@ -133,6 +135,7 @@ target_link_libraries(
   random
   random_sw
   base64
+  uuid
   )
 
 file(GLOB AUTOMATA_GENERATORS ${PROJECT_ROOT_DIR}/utils/gen-automata/*.py)
@@ -150,6 +153,10 @@ add_custom_target(
                                                 ${CMAKE_CURRENT_BINARY_DIR}/http_resp_automaton.h
   )
 add_dependencies(connect_tests generate-httpc-automata-tests-connect)
+
+if(NOT WEBSOCKET)
+  target_sources(connect_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/transfers/decrypt.cpp)
+endif()
 
 # Planner tests are separate. They mock time and don't want to poison that for others.
 add_executable(
@@ -171,13 +178,13 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/stat_retry.cpp
   ${CMAKE_SOURCE_DIR}/src/common/random_sw.cpp
   ${CMAKE_SOURCE_DIR}/src/common/general_response.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/path_utils.cpp
   ${CMAKE_SOURCE_DIR}/src/common/utils/string_builder.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/background.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/planner.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/command.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/printer.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/sleep.cpp
-  ${CMAKE_SOURCE_DIR}/src/transfers/decrypt.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/monitor.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/download.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/files.cpp
@@ -202,6 +209,7 @@ add_executable(
   # See reason why we do it this way in
   # tests/unit/lib/WUI/nhttp/CMakeLists.txt
   ${CMAKE_SOURCE_DIR}/tests/unit/lib/WUI/nhttp/missing_functions.c
+  ${CMAKE_SOURCE_DIR}/tests/unit/lib/WUI/nhttp/get_sfn_path_stub.cpp
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/altcp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/altcp_tcp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/def.c
@@ -252,7 +260,19 @@ target_include_directories(
   )
 add_dependencies(connect_planner_tests generate-httpc-automata-tests-connect)
 
-target_link_libraries(connect_planner_tests raii xbuddy_extension otp random random_sw)
+target_link_libraries(
+  connect_planner_tests
+  raii
+  xbuddy_extension
+  otp
+  random
+  random_sw
+  uuid
+  )
+
+if(NOT WEBSOCKET)
+  target_sources(connect_planner_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/transfers/decrypt.cpp)
+endif()
 
 add_executable(
   connect_registration_tests
@@ -274,6 +294,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/common/stat_retry.cpp
   ${CMAKE_SOURCE_DIR}/src/common/segmented_json.cpp
   ${CMAKE_SOURCE_DIR}/src/common/random_sw.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/path_utils.cpp
   ${CMAKE_SOURCE_DIR}/src/common/utils/string_builder.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/background.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/json_out.cpp
@@ -282,7 +303,6 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/src/connect/registrator.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/sleep.cpp
   ${CMAKE_SOURCE_DIR}/src/connect/status.cpp
-  ${CMAKE_SOURCE_DIR}/src/transfers/decrypt.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/download.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/files.cpp
   ${CMAKE_SOURCE_DIR}/src/transfers/monitor.cpp
@@ -295,6 +315,7 @@ add_executable(
   ${CMAKE_SOURCE_DIR}/tests/unit/common/printer_state_mock.cpp
   missing_functions.cpp
   ${CMAKE_SOURCE_DIR}/tests/unit/lib/WUI/nhttp/missing_functions.c
+  ${CMAKE_SOURCE_DIR}/tests/unit/lib/WUI/nhttp/get_sfn_path_stub.cpp
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/altcp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/altcp_tcp.c
   ${CMAKE_SOURCE_DIR}/lib/Middlewares/Third_Party/LwIP/src/core/def.c
@@ -348,7 +369,19 @@ target_include_directories(
   )
 add_dependencies(connect_registration_tests generate-httpc-automata-tests-connect)
 
-target_link_libraries(connect_registration_tests raii xbuddy_extension otp random random_sw)
+target_link_libraries(
+  connect_registration_tests
+  raii
+  xbuddy_extension
+  otp
+  random
+  random_sw
+  uuid
+  )
+
+if(NOT WEBSOCKET)
+  target_sources(connect_registration_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/transfers/decrypt.cpp)
+endif()
 
 add_catch_test(connect_tests)
 add_catch_test(connect_planner_tests)

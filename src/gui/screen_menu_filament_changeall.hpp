@@ -32,7 +32,7 @@ public:
     void set_config(const ConfigItem &set, CompactOptional<Color, COLOR_NONE> set_color = {});
 
     int item_count() const final;
-    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
+    string_view_utf8 build_item_text(int index, StringViewUtf8ParamBase &params) const final;
     void set_selected_color(std::optional<Color> selected_color) { color = selected_color; }
     CompactOptional<Color, COLOR_NONE> selected_color() const { return color; }
     void set_selected_manufacturer(std::optional<uint8_t> selected) { manufacturer = selected.value_or(0); }

@@ -17,14 +17,14 @@
 #include <option/has_human_interactions.h>
 #include <option/has_anfc.h>
 #include <option/has_tool_offset_pin_calibration.h>
-#include <option/has_tool_offset_sensor.h>
 #include <option/has_indx.h>
 #include <option/has_wastebin_fill_tracking.h>
 #include <option/has_ht_hotend.h>
 #include <option/has_ceiling_clearance.h>
 #include <option/has_chamber_api.h>
 #include <option/has_emergency_stop.h>
-#include <option/has_uneven_bed_prompt.h>
+#include <option/has_uneven_bed_detection.h>
+#include <option/has_side_fsensor.h>
 #include <option/xl_enclosure_support.h>
 
 enum class WarningType : uint32_t {
@@ -46,6 +46,10 @@ enum class WarningType : uint32_t {
     HotendTempDiscrepancy,
     NozzleTimeout,
     FilamentLoadingTimeout,
+#if HAS_SIDE_FSENSOR()
+    /// Load stopped because the extruder filament sensor is disabled or not calibrated
+    ExtruderFSensorNotReady,
+#endif
     FilamentSensorStuckHelp,
 #if HAS_MMU2()
     FilamentSensorStuckHelpMMU,
@@ -98,7 +102,7 @@ enum class WarningType : uint32_t {
     OpenChamberVents,
     CloseChamberVents,
 #endif
-#if HAS_UNEVEN_BED_PROMPT()
+#if HAS_UNEVEN_BED_DETECTION()
     BedUnevenAlignmentPrompt,
 #endif
 #if HAS_CHAMBER_API()
@@ -120,12 +124,6 @@ enum class WarningType : uint32_t {
     HomingCalibrationFromMenuNeeded,
 #endif
     AccelerometerCommunicationFailed,
-#if HAS_TOOL_OFFSET_SENSOR()
-    ToolOffsetCalibrationFailed,
-    HotendOffsetUnsafeZDeviation,
-    HotendOffsetUnsafeXyDeviation,
-    HotendOffsetUnsafeSensorXY,
-#endif
 #if HAS_ANFC()
     /// Filament tracking unrecoverably failed for any reason
     OpenPrintTagCannotTrack,
@@ -135,12 +133,8 @@ enum class WarningType : uint32_t {
 #endif
 
 #if HAS_WASTEBIN_FILL_TRACKING()
-    /// The INDX nozzle-cleaner wastebin is full; the print is paused so the user can empty it (Ignore / Done).
-    NozzleCleanerFull,
     /// The wastebin is full but auto-pause is off: informational only, the print keeps running (single dismiss).
     NozzleCleanerFullInfo,
-    /// Manual "Empty Wastebin" (M1986): the print is parked, prompting the user to empty the bin and confirm.
-    NozzleCleanerManualEmpty,
 #endif
 
 #if PRINTER_IS_PRUSA_XL()

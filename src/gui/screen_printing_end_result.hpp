@@ -6,9 +6,9 @@
 #include <window_icon.hpp>
 #include <window_print_progress.hpp>
 #include <gcode_info.hpp>
-#include <marlin_vars.hpp>
 #include <guiconfig/guiconfig.h>
 #include <fonts.hpp>
+#include <common/marlin_vars.hpp>
 
 /**
  * @brief Just the body, not the actual screen. However, this is the file where the screen should eventually be.

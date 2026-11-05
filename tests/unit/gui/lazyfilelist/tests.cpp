@@ -35,7 +35,7 @@ StringList ldv_files(const LDV &ldv) {
     StringList r;
     r.reserve(ldv.VisibleFilesCount());
     for (int i = 0, e = ldv.VisibleFilesCount(); i < e; i++) {
-        r.push_back(ldv.LongFileNameAt(i).first);
+        r.push_back(ldv.display_name_at(i).first);
     }
     return r;
 }
@@ -45,8 +45,8 @@ static char txt_old[] = "old"; // cannot be const char
 TEST_CASE("LazyDirView::Entries test", "[LazyDirView]") {
     using LDV = LazyDirView<9>;
     {
-        LDV::Entry e = { .time = LONG_MAX, .type = FileSort::EntryType::DIR, .lfn = "\xff\xff\xff\xff\xff", .sfn = "" };
-        LDV::Entry e1 = { .time = 1, .type = FileSort::EntryType::DIR, .lfn = "nold", .sfn = "" };
+        LDV::Entry e = { .time = LONG_MAX, .type = FileSort::EntryType::DIR, .name = Filename("", "\xff\xff\xff\xff\xff") };
+        LDV::Entry e1 = { .time = 1, .type = FileSort::EntryType::DIR, .name = Filename("", "nold") };
         dirent f = { DT_DIR, "old", txt_old, 1 };
         LDV::EntryRef dwp(f, "we/dont/care/about/transfer/here");
 

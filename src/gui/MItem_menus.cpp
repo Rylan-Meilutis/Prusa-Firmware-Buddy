@@ -12,7 +12,6 @@
 #include "screen_menu_metrics.hpp"
 #include "screen_menu_network_status.hpp"
 #include "screen_menu_network_settings.hpp"
-#include "screen_menu_footer_settings.hpp"
 #include "screen_prusa_link.hpp"
 #include "screen_menu_connect.hpp"
 #include "screen_menu_experimental_settings.hpp"
@@ -30,13 +29,15 @@
 #include "screen_menu_lang_and_time.hpp"
 #include "screen_menu_hardware.hpp"
 #include "screen_menu_hardware_tune.hpp"
-#include "screen_menu_gcode_checks.hpp"
 #include "screen_help_fw_update.hpp"
 #include <option/has_wastebin_fill_tracking.h>
 #if HAS_WASTEBIN_FILL_TRACKING()
     #include "screen_menu_wastebin.hpp"
 #endif
 #include "screen_menu_system.hpp"
+#if HAS_INTERNAL_STORAGE_FLASH()
+    #include "screen/screen_menu_internal_storage.hpp"
+#endif
 #include "screen_menu_input_shaper.hpp"
 #include <screen_menu_languages.hpp>
 #include <screen_menu_info.hpp>
@@ -68,10 +69,6 @@
 
 #if HAS_FILAMENT_SENSORS_MENU()
     #include "screen_menu_filament_sensors.hpp"
-#endif
-
-#if HAS_SHEET_PROFILES()
-    #include <screen_menu_steel_sheets.hpp>
 #endif
 
 #if HAS_CHAMBER_FILTRATION_API()
@@ -166,7 +163,6 @@ template struct MI_SCREEN_CTOR<ScreenMenuWifiSettings>;
 template struct MI_SCREEN_CTOR<screen_messages_data_t>;
 template struct MI_SCREEN_CTOR<ScreenMenuConnect>;
 template struct MI_SCREEN_CTOR<ScreenMenuPrusaLink>;
-template struct MI_SCREEN_CTOR<ScreenMenuFooterSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuExperimentalSettings>;
 template struct MI_SCREEN_CTOR<ScreenMenuUserInterface>;
 template struct MI_SCREEN_CTOR<ScreenMenuLangAndTime>;
@@ -174,12 +170,14 @@ template struct MI_SCREEN_CTOR<ScreenMenuNetwork>;
 template struct MI_SCREEN_CTOR<ScreenMenuNetworkStatus>;
 template struct MI_SCREEN_CTOR<ScreenMenuHardware>;
 template struct MI_SCREEN_CTOR<ScreenMenuHardwareTune>;
-template struct MI_SCREEN_CTOR<ScreenMenuGcodeChecks>;
 template struct MI_SCREEN_CTOR<ScreenHelpFWUpdate>;
 #if HAS_WASTEBIN_FILL_TRACKING()
 template struct MI_SCREEN_CTOR<ScreenMenuWastebin>;
 #endif
 template struct MI_SCREEN_CTOR<ScreenMenuSystem>;
+#if HAS_INTERNAL_STORAGE_FLASH()
+template struct MI_SCREEN_CTOR<ScreenMenuInternalStorage>;
+#endif
 template struct MI_SCREEN_CTOR<ScreenMenuInfo>;
 template struct MI_SCREEN_CTOR<ScreenFactoryReset>;
 template struct MI_SCREEN_CTOR<ScreenMenuInputShaper>;
@@ -198,10 +196,6 @@ template struct MI_SCREEN_CTOR<ScreenMenuLanguages>;
 
 #if HAS_PHASE_STEPPING()
 template struct MI_SCREEN_CTOR<ScreenMenuPhaseStepping>;
-#endif
-
-#if HAS_SHEET_PROFILES()
-template struct MI_SCREEN_CTOR<ScreenMenuSteelSheets>;
 #endif
 
 #if HAS_FILAMENT_SENSORS_MENU()
@@ -267,7 +261,7 @@ void MI_TOOLHEAD_SETTINGS::click(IWindowMenu &) {
     ScreenFactory::Creator screen = ScreenFactory::Screen<ScreenToolheadDetail>;
 
 #if HAS_TOOLCHANGER()
-    screen = ScreenFactory::Screen<ScreenToolheadSettingsList>;
+    screen = screen_toolhead_settings_list_creator();
 #endif
 
 #if PRINTER_IS_PRUSA_XL()

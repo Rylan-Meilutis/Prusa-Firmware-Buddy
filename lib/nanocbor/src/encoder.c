@@ -12,15 +12,13 @@
  * @}
  */
 
+#include <endian.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "nanocbor/config.h"
 #include "nanocbor/nanocbor.h"
-
-#include NANOCBOR_BYTEORDER_HEADER
 
 /* memarray functions */
 static bool _encoder_mem_fits(nanocbor_encoder_t *enc, void *ctx, size_t len)
@@ -128,7 +126,7 @@ static int _fmt_uint64(nanocbor_encoder_t *enc, uint64_t num, uint8_t type)
         _append(enc, &type, 1);
 
         /* NOLINTNEXTLINE: user supplied function */
-        uint64_t benum = NANOCBOR_HTOBE64_FUNC(num);
+        uint64_t benum = htobe64(num);
 
 
         _append(enc, (uint8_t *)&benum + sizeof(benum) - extrabytes,
@@ -155,6 +153,15 @@ int nanocbor_fmt_int(nanocbor_encoder_t *enc, int64_t num)
         return _fmt_uint64(enc, (uint64_t)num, NANOCBOR_MASK_NINT);
     }
     return nanocbor_fmt_uint(enc, (uint64_t)num);
+}
+
+int nanocbor_fmt_simple(nanocbor_encoder_t *enc, uint8_t value)
+{
+    /* Exclude assigned or reserved simple values between 20 and 31 */
+    if (value >= NANOCBOR_SIMPLE_FALSE && value <= NANOCBOR_SIZE_INDEFINITE) {
+        return NANOCBOR_ERR_INVALID_TYPE;
+    }
+    return _fmt_uint64(enc, value, NANOCBOR_MASK_FLOAT);
 }
 
 int nanocbor_fmt_bstr(nanocbor_encoder_t *enc, size_t len)
@@ -228,6 +235,11 @@ int nanocbor_fmt_end_indefinite(nanocbor_encoder_t *enc)
 int nanocbor_fmt_null(nanocbor_encoder_t *enc)
 {
     return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_NULL);
+}
+
+int nanocbor_fmt_undefined(nanocbor_encoder_t *enc)
+{
+    return _fmt_single(enc, NANOCBOR_MASK_FLOAT | NANOCBOR_SIMPLE_UNDEF);
 }
 
 /* Double bit mask related defines */
@@ -354,7 +366,7 @@ int nanocbor_fmt_float(nanocbor_encoder_t *enc, float num)
         const uint8_t tmp = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_WORD;
         _append(enc, &tmp, sizeof(tmp));
         /* NOLINTNEXTLINE: user supplied function */
-        uint32_t bnum = NANOCBOR_HTOBE32_FUNC(*unum);
+        uint32_t bnum = htobe32(*unum);
         _append(enc, (uint8_t*)&bnum, sizeof(bnum));
     }
     return res;
@@ -387,7 +399,7 @@ int nanocbor_fmt_double(nanocbor_encoder_t *enc, double num)
         const uint8_t tmp = NANOCBOR_MASK_FLOAT | NANOCBOR_SIZE_LONG;
         _append(enc, &tmp, 1);
         /* NOLINTNEXTLINE: user supplied function */
-        uint64_t bnum = NANOCBOR_HTOBE64_FUNC(*unum);
+        uint64_t bnum = htobe64(*unum);
         _append(enc, (uint8_t*)&bnum, sizeof(bnum));
     }
     return res;

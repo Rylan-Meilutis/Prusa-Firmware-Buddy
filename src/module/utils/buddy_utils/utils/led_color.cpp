@@ -4,24 +4,25 @@
 
 namespace leds {
 
-ColorRGBW ColorRGBW::from_hsv(ColorHSV hsv) {
-    if (hsv.h > 360 || hsv.h < 0 || hsv.s > 100 || hsv.s < 0 || hsv.v > 100 || hsv.v < 0) {
-        return ColorRGBW();
+namespace {
+
+    // operator== reads the union's data member, which is not allowed in
+    // constant expressions when the channels were the ones initialized
+    constexpr bool channels_equal(ColorRGBW a, ColorRGBW b) {
+        return a.r == b.r && a.g == b.g && a.b == b.b && a.w == b.w;
     }
 
-    const float h = hsv.h;
-    const float s = hsv.s / 100.0f;
-    const float v = hsv.v / 100.0f;
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 0, 100, 100 }), ColorRGBW(255, 0, 0)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 120, 100, 100 }), ColorRGBW(0, 255, 0)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 240, 100, 100 }), ColorRGBW(0, 0, 255)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 360, 100, 100 }), ColorRGBW(255, 0, 0)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 0, 0, 100 }), ColorRGBW(255, 255, 255)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 0, 100, 0 }), ColorRGBW(0, 0, 0)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 361, 100, 100 }), ColorRGBW(0, 0, 0)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 0, 101, 100 }), ColorRGBW(0, 0, 0)));
+    static_assert(channels_equal(ColorRGBW::from_hsv({ 0, 100, -1 }), ColorRGBW(0, 0, 0)));
 
-    const auto convert = [&](uint8_t n) -> uint8_t {
-        float k = std::fmod(n + h / 60, 6.f);
-        float intermediate = (v * s * std::max(0.f, std::min(std::min(k, 4 - k), 1.f)));
-        float e = (v - intermediate);
-        return static_cast<uint8_t>(255 * e);
-    };
-
-    return ColorRGBW(convert(5), convert(3), convert(1), 0);
-}
+} // namespace
 
 ColorRGBW ColorRGBW::fade(float brightness) const {
     uint8_t nr = static_cast<uint8_t>(r * brightness);

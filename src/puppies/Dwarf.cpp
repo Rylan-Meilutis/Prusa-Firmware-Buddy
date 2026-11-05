@@ -58,7 +58,7 @@ Dwarf::Dwarf(const uint8_t dwarf_number, uint8_t modbus_address)
     , loadcell_samplerate {} {
 
     // Atomic mirrors initial values — must not trigger min-temp faults.
-    hotend_temp.store(HEATER_0_MINTEMP + 1);
+    hotend_temp.store(Hotend::for_tool(tool_index()).config().min_nozzle_temp + 1);
     heatbreak_temp.store(HEATBREAK_MINTEMP + 1);
     heatbreak_target_temp_desired.store(DEFAULT_HEATBREAK_TEMPERATURE);
 
@@ -747,13 +747,12 @@ uint16_t Dwarf::get_fan_state(uint8_t fan_nr) const {
     return fan_state[fan_nr].load();
 }
 
-StrongIndexArray<Dwarf, DWARF_MAX_COUNT, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarfs {
+StrongIndexArray<Dwarf, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> dwarfs {
     Dwarf { 0, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_1) },
     Dwarf { 1, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_2) },
     Dwarf { 2, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_3) },
     Dwarf { 3, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_4) },
     Dwarf { 4, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_5) },
-    Dwarf { 5, PuppyBootstrap::get_modbus_address_for_dock(Dock::DWARF_6) },
 };
 
 } // namespace buddy::puppies

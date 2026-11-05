@@ -50,14 +50,14 @@ void report_loaded_filaments() {
  */
 
 /**
- *### M865: Manage filament parameters
+ *### M865/M865.1: Manage filament parameters
  *
  * Utility G-Code that allows managing filament types and their parameters.
  * Allows changing filament parameters and force-setting the currently loaded filament.
  * Also print selected filament parameters to the serial.
  *
- *#### Parameters
- * - `S"<name>"` - Select filament with the specified name
+ *#### Parameters (Common)
+ * - `S"<short_name>"` - Select filament with the specified name
  * - `I<ix>` - Select filament currently loaded to the specified tool (indexed from 0)
  * - `U<ix>` - Select User filament (indexed from 0)
  * - `X` - Select (pending) Custom filament type that will be loaded using `M600 F"#"` (or similar filament change gcode)
@@ -67,7 +67,10 @@ void report_loaded_filaments() {
  * - `L<ix>` - Set currently loaded filament for the given tool to the selected filament
  * - `O<color>` - Set the loaded color together with `L` (`#RRGGBB`, palette name, or RGB integer)
  *
- * - `R` - Reset parameters not specified in this gcode to defaults
+ * - `R` - Reset ALL parameters not specified in this gcode to defaults
+ *
+ *#### Parameters (M865)
+ *
  *
  * - `T<val>` - Set nozzle temperature
  * - `P<val>` - Set nozzle preheat temperature
@@ -83,8 +86,13 @@ void report_loaded_filaments() {
  *
  * - `J"<preset>"` - Set base preset (empty "" = no base preset)
  *
- * - `N"<name>"` - Set name
+ * - `N"<short_name>"` - Set short name
+ * - `O"#<hex>"` - Set color
  *
+ *#### Parameters (M865.1)
+ * - `A"<uuid>"` - Set material UUID
+ * - `B"<uuid>"` - Set package UUID
+ * - `C"<uuid>"` - Set instance UUID
  */
 void PrusaGcodeSuite::M865() {
     GCodeParser2 p;
@@ -154,54 +162,96 @@ void PrusaGcodeSuite::M865() {
         params = {};
     }
 
-    p.store_option_if_present('T', params.nozzle_temperature);
-    p.store_option_if_present('P', params.nozzle_preheat_temperature);
-    p.store_option_if_present('B', params.heatbed_temperature);
+    switch (p.command().subcode.value_or(0)) {
 
-    p.store_option_if_present('A', params.is_abrasive);
-    p.store_option_if_present('G', params.is_flexible);
+    case 0: {
+
+        p.store_option_if_present('T', params.nozzle_temperature);
+        p.store_option_if_present('P', params.nozzle_preheat_temperature);
+        p.store_option_if_present('B', params.heatbed_temperature);
+
+        p.store_option_if_present('A', params.is_abrasive);
+        p.store_option_if_present('G', params.is_flexible);
 
 #if HAS_FILAMENT_HEATBREAK_PARAM()
-    p.store_option_if_present('H', params.heatbreak_temperature);
+        p.store_option_if_present('H', params.heatbreak_temperature);
 #endif
 
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
-    if (!buddy::m865_material::apply_base_option(p, params)) {
-        return;
-    }
+        if (!buddy::m865_material::apply_base_option(p, params)) {
+            return;
+        }
 #endif
 
+        if (auto c = p.option<Color>('O')) {
+            params.color = *c;
+        }
+
 #if HAS_CHAMBER_API()
-    p.store_option_if_present('C', params.chamber_target_temperature);
-    p.store_option_if_present('D', params.chamber_min_temperature);
-    p.store_option_if_present('E', params.chamber_max_temperature);
+        p.store_option_if_present('C', params.chamber_target_temperature);
+        p.store_option_if_present('D', params.chamber_min_temperature);
+        p.store_option_if_present('E', params.chamber_max_temperature);
 #endif
 #if HAS_CHAMBER_FILTRATION_API()
-    p.store_option_if_present('F', params.requires_filtration);
+        p.store_option_if_present('F', params.requires_filtration);
 #endif
+
+        std::array<char, filament_name_buffer_size - 1> name_buf;
+        if (const auto opt = p.option<std::string_view>('N', name_buf)) {
+            if (const auto r = filament_type.can_be_renamed_to(*opt); !r) {
+                SERIAL_ERROR_START();
+                SERIAL_ECHOLN(r.error());
+                return;
+            }
+            params.name = *opt;
+        }
+
+        break;
+    }
+
+    case 1: {
+#if HAS_ANFC()
+        constexpr auto parse_uuid = [](GCodeParser2 &p2, char key, FilamentTypeParameters::OptionalUUID &target) {
+            std::array<char, UUID::string_length> buf;
+            std::string_view str;
+            if (!p2.store_option_if_present(key, str, buf)) {
+                return;
+            }
+
+            if (str.empty()) {
+                target = std::nullopt;
+                return;
+            }
+
+            const auto uuid = UUID::from_string(str);
+            if (!uuid.has_value()) {
+                p2.report_option_error(key, "Invalid UUID");
+                return;
+            }
+
+            // Silently interpret UUID::nil as nullopt
+            target = FilamentTypeParameters::OptionalUUID { *uuid, FilamentTypeParameters::OptionalUUID::NulloptCheck::no };
+        };
+
+        parse_uuid(p, 'A', params.material_uuid);
+        parse_uuid(p, 'B', params.package_uuid);
+        parse_uuid(p, 'C', params.instance_uuid);
+#endif
+    } break;
+    }
 
     static_assert(
         aggregate_arity<FilamentTypeParameters>()
-            == 6
+            == 7
                 + HAS_FILAMENT_HEATBREAK_PARAM() * 1
                 + HAS_CHAMBER_API() * 3
                 + HAS_CHAMBER_FILTRATION_API() * 1
                 + HAS_FILAMENT_MATERIAL_FAMILY_PARAM() * 1
-                + HAS_ANFC() * 1 // OpenPrintTag Hash ID not configurable from the gcode, it's an internal thing
+                + HAS_ANFC() * 4 // OpenPrintTag hash and three UUIDs
                 + HAS_HT_HOTEND() * 1 // requires_ht_idler_door is preset-only, not a gcode parameter
         //
         ,
         "Revise M865 parameters");
-
-    std::array<char, filament_name_buffer_size - 1> name_buf;
-    if (const auto opt = p.option<std::string_view>('N', name_buf)) {
-        if (const auto r = filament_type.can_be_renamed_to(*opt); !r) {
-            SERIAL_ERROR_START();
-            SERIAL_ECHOLN(r.error());
-            return;
-        }
-        params.name = *opt;
-    }
 
     if (filament_type.is_customizable()) {
         filament_type.set_parameters(params);
@@ -211,6 +261,7 @@ void PrusaGcodeSuite::M865() {
         filament_type.set_visible(*visible);
     }
 
+    /// MUST be after set_parameters. In case of pendingadhoc -> adhoc loading, the data is copied
     if (auto load = p.option<uint8_t, uint8_t, uint8_t>('L', 0, VirtualToolIndex::count - 1)) {
         config_store().set_filament_type(VirtualToolIndex::from_raw(*load), filament_type);
         if (requested_color) {

@@ -7,12 +7,17 @@
 #include <feature/openprinttag/tool_tag.hpp>
 #include <modbus/traits.hpp>
 #include <mutex>
+#include <shared_mutex>
 #include <prusa3d/nfc/command/AcceptEvent_1_0.h>
 #include <prusa3d/nfc/command/Request_1_0.h>
 #include <prusa3d/nfc/event/Event_1_0.h>
+#include <puppies/cyphal_node_table_host.hpp>
 #include <logging/log.hpp>
 #include <timing.h>
 #include <utils/byte_utils.hpp>
+#include <option/has_anfc_for_multiple_tools.h>
+#include <option/has_indx.h>
+#include <option/has_mmu2.h>
 
 LOG_COMPONENT_REF(OpenPrintTag);
 
@@ -50,14 +55,6 @@ static void serialize_accept_event(uint16_t event_id, anfc::modbus::AcceptEvent 
 
 namespace buddy::openprinttag {
 
-ToolTag::UIDHash Manager::TagUID::hash() const {
-    uint16_t h = (data[0] << 8 | data[1])
-        ^ (data[2] << 8 | data[3])
-        ^ (data[4] << 8 | data[5])
-        ^ (data[6] << 8 | data[7]);
-    return h | 1; // make sure to never return no_tag_hash
-}
-
 Manager::Manager() {
     for (auto &device : devices) {
         device.manager = this;
@@ -74,19 +71,47 @@ Manager::~Manager() {
     }
 }
 
-bool Manager::step(anfc::modbus::Client &client) {
-    std::lock_guard lock { mutex };
+puppies::CommunicationStatus Manager::step(anfc::modbus::Client &client) {
+    puppies::CommunicationStatus result = puppies::CommunicationStatus::SKIPPED;
+    bool should_poll = false;
 
-    check_timeouts();
+    {
+        std::lock_guard lock { mutex };
 
-    return std::ranges::all_of(devices, [&client](DeviceState &device_state) {
-        return device_state.step(client);
-    });
+        check_timeouts();
+
+        if (puppies::cyphal_node_table().get_node_state(xbuddy_extension::NodeName::cz_prusa3d_honeybee_nfc) != xbuddy_extension::NodeState::ready) {
+            return result;
+        }
+
+        for (DeviceState &device_state : devices) {
+            result = puppies::aggregate_communication_status({ result, device_state.step(client) });
+            if (result == puppies::CommunicationStatus::ERROR) {
+                return result;
+            }
+        }
+
+        // Rate-limit the event polling when no active request
+        // the polling is expensive (7 ms) and we don't need to block that often
+        // Order is important - check the limiter even if there are no active requests
+        should_poll = event_poll_limiter_ms.check(ticks_ms()) || std::ranges::any_of(active_requests, &ActiveRequestEntry::is_valid);
+    }
+
+    if (should_poll) {
+        for (DeviceState &device_state : devices) {
+            result = puppies::aggregate_communication_status({ result, device_state.poll_events_unlocked(client) });
+            if (result == puppies::CommunicationStatus::ERROR) {
+                return result;
+            }
+        }
+    }
+
+    return result;
 }
 
 void Manager::on_request_done(RequestID request_id, Bytes raw_event_data) {
     for (auto &entry : active_requests) {
-        if (entry.request && entry.request_id == request_id) {
+        if (entry.is_valid() && entry.request_id == request_id) {
             entry.request->complete(raw_event_data);
             entry.request = nullptr;
             return;
@@ -127,25 +152,31 @@ void Manager::DeviceState::on_tag_lost(TagID tag_id) {
     }
 }
 
-void Manager::DeviceState::forget_lost_tag(anfc::modbus::Client &client) {
+puppies::CommunicationStatus Manager::DeviceState::forget_lost_tag(anfc::modbus::Client &client) {
     if (!device) {
-        return;
+        return puppies::CommunicationStatus::SKIPPED;
     }
-    if (auto *lost = std::get_if<TagLost>(&tag)) {
-        const auto req_id = manager->make_request_id();
-        anfc::modbus::Request request;
-        serialize_forget_tag(req_id.to_underlying(), lost->tag_id, request);
-        if (client.write(*device, request)) {
-            tag = TagForgetting { req_id };
-        } else {
-            // will be forgotten next time
-        }
+
+    auto *lost = std::get_if<TagLost>(&tag);
+    if (!lost) {
+        return puppies::CommunicationStatus::SKIPPED;
     }
+
+    const auto req_id = manager->make_request_id();
+    anfc::modbus::Request request;
+    serialize_forget_tag(req_id.to_underlying(), lost->tag_id, request);
+    if (!client.write(*device, request)) {
+        // will be forgotten next time
+        return puppies::CommunicationStatus::ERROR;
+    }
+
+    tag = TagForgetting { req_id };
+    return puppies::CommunicationStatus::OK;
 }
 
-void Manager::handle_pending_request(anfc::modbus::Client &client) {
+puppies::CommunicationStatus Manager::handle_pending_request(anfc::modbus::Client &client) {
     if (pending_requests.empty()) {
-        return;
+        return puppies::CommunicationStatus::SKIPPED;
     }
     buddy::openprinttag::Request &pending_request = pending_requests.back();
 
@@ -153,13 +184,13 @@ void Manager::handle_pending_request(anfc::modbus::Client &client) {
     // Discard the request in that case
     if (pending_request.finished()) {
         pending_requests.remove(pending_request);
-        return;
+        return puppies::CommunicationStatus::SKIPPED;
     }
 
-    const auto active_entry = std::ranges::find_if(active_requests, [](const auto &e) { return e.request == nullptr; });
+    const auto active_entry = std::ranges::find_if(active_requests, [](const auto &e) { return !e.is_valid(); });
     if (active_entry == active_requests.end()) {
         // No free slot, try again later
-        return;
+        return puppies::CommunicationStatus::SKIPPED;
     }
 
     const RequestID request_id = make_request_id();
@@ -168,13 +199,15 @@ void Manager::handle_pending_request(anfc::modbus::Client &client) {
     const auto target_device = pending_request.serialize(ManagerNoLockBadge {}, request_id, modbus_request);
 
     if (!target_device.has_value()) {
-        return;
+        return puppies::CommunicationStatus::SKIPPED;
     }
 
     if (!client.write(*target_device, modbus_request)) {
         log_warning(OpenPrintTag, "failed to write request");
         // keep pending request at its position in queue and try later
-        return;
+        // ERROR would result in the whole puppy modbus being reset
+        // client.write can return false when the request queue is full on the xbe for example
+        return puppies::CommunicationStatus::SKIPPED;
     }
 
     pending_requests.remove(pending_request);
@@ -183,46 +216,89 @@ void Manager::handle_pending_request(anfc::modbus::Client &client) {
         .request_id = request_id,
         .sent_at = ticks_ms(),
     };
+
+    return puppies::CommunicationStatus::OK;
 }
 
-bool Manager::DeviceState::step(anfc::modbus::Client &client) {
+puppies::CommunicationStatus Manager::DeviceState::poll_events_unlocked(anfc::modbus::Client &client) {
     if (!device) {
-        return true;
+        return puppies::CommunicationStatus::SKIPPED;
     }
 
-    if (!radio_enabled) {
+    std::optional<uint16_t> accept_event_id;
+
+    // modbus_event, reduce scope
+    {
+        anfc::modbus::Event modbus_event;
+        modbus_event.size = 0;
+
+        if (!client.read(*device, modbus_event)) {
+            return puppies::CommunicationStatus::ERROR;
+        }
+
+        if (modbus_event.size != 0) {
+            std::lock_guard lock { manager->mutex };
+            accept_event_id = handle_event(modbus_event);
+        }
+    }
+
+    if (accept_event_id.has_value()) {
+        anfc::modbus::AcceptEvent accept_event;
+        serialize_accept_event(*accept_event_id, accept_event);
+        if (!client.write(*device, accept_event)) {
+            return puppies::CommunicationStatus::ERROR;
+        }
+    }
+
+    // We've definitely done client.read -> we've worked
+    return puppies::CommunicationStatus::OK;
+}
+
+puppies::CommunicationStatus Manager::DeviceState::step(anfc::modbus::Client &client) {
+    if (!device) {
+        return puppies::CommunicationStatus::SKIPPED;
+    }
+
+    static_assert(!HAS_INDX(), "Revisit all HAS_ANFC_FOR_MULTIPLE_TOOLS block (especially code below) when implementing NFC for 'multi-tool' printers.");
+#if (HAS_MMU2() && !HAS_ANFC_FOR_MULTIPLE_TOOLS())
+    // Turn NFC antenna off if MMU is active
+    // !!This code should be temporary!!
+    const bool want_radio = !config_store().mmu2_enabled.get();
+#else
+    const bool want_radio = true;
+#endif
+
+    if (radio_enabled != want_radio) {
         if (!enable_radio_request.has_value()) {
             // Enable radio request has not been issued yed - issue
-            enable_radio_request.emplace(*device, true);
+            enable_radio_request.emplace(*device, want_radio);
             manager->add_request_nolock(*enable_radio_request);
 
         } else if (!enable_radio_request->finished()) {
             // Wait for the request to finish
 
         } else if (enable_radio_request->has_error()) {
-            // Error - reset the request, re-issue
+            // Error - re-issue
             manager->add_request_nolock(*enable_radio_request);
-
+        } else if (enable_radio_request->enable() != want_radio) {
+            // Target changed - re-issue
+            enable_radio_request->set_enable(want_radio);
+            manager->add_request_nolock(*enable_radio_request);
         } else {
             // Done!
-            radio_enabled = true;
+            radio_enabled = want_radio;
         }
     }
 
-    anfc::modbus::Event modbus_event;
-    if (!client.read(*device, modbus_event)) {
-        return false;
-    }
-
-    manager->handle_pending_request(client);
-    forget_lost_tag(client);
-
-    return handle_event(client, modbus_event);
+    return puppies::aggregate_communication_status({
+        manager->handle_pending_request(client),
+        forget_lost_tag(client),
+    });
 }
 
-bool Manager::DeviceState::handle_event(anfc::modbus::Client &client, const anfc::modbus::Event &modbus_event) {
+std::optional<uint16_t> Manager::DeviceState::handle_event(const anfc::modbus::Event &modbus_event) {
     if (modbus_event.size == 0) {
-        return true;
+        return std::nullopt;
     }
 
     // Deserialize event from modbus data
@@ -231,7 +307,7 @@ bool Manager::DeviceState::handle_event(anfc::modbus::Client &client, const anfc
     prusa3d_nfc_event_Event_1_0 event;
     size_t event_size = raw_event_data.size();
     if (prusa3d_nfc_event_Event_1_0_deserialize_(&event, reinterpret_cast<const uint8_t *>(raw_event_data.data()), &event_size) != 0) {
-        return true; // Ignore malformed events
+        return std::nullopt; // Ignore malformed events
     }
 
     // dispatch event to correct handler
@@ -253,7 +329,7 @@ bool Manager::DeviceState::handle_event(anfc::modbus::Client &client, const anfc
             const TagID tag_id = tag_detected.tag.value;
             TagUID tag_uid = {};
             static_assert(sizeof(tag_uid.data) == sizeof(tag_detected.uid));
-            std::memcpy(tag_uid.data, tag_detected.uid, sizeof(tag_uid.data));
+            std::memcpy(tag_uid.data.data(), tag_detected.uid, tag_uid.data.size());
 
             // handle the event
             return on_tag_detected(tag_id, tag_uid);
@@ -276,9 +352,7 @@ bool Manager::DeviceState::handle_event(anfc::modbus::Client &client, const anfc
     };
 
     on_event(event.data);
-    anfc::modbus::AcceptEvent accept_event;
-    serialize_accept_event(event.event_id.value, accept_event);
-    return client.write(*device, accept_event);
+    return event.event_id.value;
 }
 
 RequestID Manager::make_request_id() {
@@ -320,7 +394,7 @@ void Manager::remove_request_nolock(Request &request) {
 void Manager::check_timeouts() {
     const auto now = ticks_ms();
     for (auto &entry : active_requests) {
-        if (entry.request && ticks_diff(now, entry.sent_at) > request_timeout_ms) {
+        if (entry.is_valid() && ticks_diff(now, entry.sent_at) > request_timeout_ms) {
             log_warning(OpenPrintTag, "request %d timed out", entry.request_id.to_underlying());
             entry.request->set_finished(std::unexpected(Request::Error::other));
             entry.request = nullptr;
@@ -328,8 +402,8 @@ void Manager::check_timeouts() {
     }
 }
 
-std::optional<Manager::TagUID> Manager::get_tag_uid_for_tool(VirtualToolIndex tool) {
-    std::lock_guard lock { mutex };
+std::optional<TagUID> Manager::get_tag_uid_for_tool(VirtualToolIndex tool) const {
+    std::shared_lock lock { mutex };
 
     const auto &device = devices[tool];
     if (auto *d = std::get_if<TagDetected>(&device.tag)) {
@@ -338,12 +412,21 @@ std::optional<Manager::TagUID> Manager::get_tag_uid_for_tool(VirtualToolIndex to
     return std::nullopt;
 }
 
-std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info(ToolTag tool_tag) {
-    std::lock_guard lock { mutex };
+std::optional<TagUID> Manager::get_tag_uid(ToolTag tool_tag) const {
+    const auto uid = get_tag_uid_for_tool(tool_tag.tool());
+    if (uid.has_value() && uid->hash() == tool_tag.uid_hash()) {
+        return uid;
+    } else {
+        return std::nullopt;
+    }
+}
+
+std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info(ToolTag tool_tag) const {
+    std::shared_lock lock { mutex };
     return get_tag_device_info_nolock({}, tool_tag);
 }
 
-std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info_nolock(ManagerNoLockBadge, ToolTag tool_tag) {
+std::optional<Manager::TagDeviceInfo> Manager::get_tag_device_info_nolock(ManagerNoLockBadge, ToolTag tool_tag) const {
     const DeviceState &device = devices[tool_tag.tool()];
     auto *d = std::get_if<TagDetected>(&device.tag);
     if (d && d->tag_uid.hash() == tool_tag.uid_hash() && device.device) {
@@ -360,4 +443,5 @@ Manager &manager() {
     static Manager instance;
     return instance;
 }
+
 } // namespace buddy::openprinttag

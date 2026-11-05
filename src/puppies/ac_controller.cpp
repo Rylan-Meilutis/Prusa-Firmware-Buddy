@@ -2,10 +2,10 @@
 #include <puppies/ac_controller.hpp>
 
 #include <modbus/server_address.hpp>
+#include <puppies/cyphal_node_table_host.hpp>
 #include <utils/led_color.hpp>
 
 using Lock = std::unique_lock<freertos::Mutex>;
-using xbuddy_extension::NodeState;
 
 static constexpr uint8_t unit = std::to_underlying(modbus::ServerAddress::ac_controller);
 
@@ -73,12 +73,6 @@ std::optional<ac_controller::Faults> AcController::get_faults() const {
     }
 
     return ac_controller::Faults { faults.load() };
-}
-
-NodeState AcController::get_node_state() const {
-    // Intentionally not using all_valid() — that would never return a state
-    // other than ready (chicken-and-egg with NodeState::ready).
-    return valid.load() ? static_cast<NodeState>(node_state.load()) : NodeState::unknown;
 }
 
 void AcController::set_bed_target_temp(float target_temp) {
@@ -153,7 +147,6 @@ CommunicationStatus AcController::refresh_input(PuppyModbus &bus, uint32_t max_a
         bed_fan_rpm[1].store(block.value.bed_fan_rpm[1]);
         psu_fan_rpm.store(block.value.psu_fan_rpm);
         faults.store(static_cast<uint32_t>(block.value.faults_lo) | (static_cast<uint32_t>(block.value.faults_hi) << 16));
-        node_state.store(block.value.node_state);
         // Only after all status fields are published, so readers never see valid=true
         // with stale cached values.
         valid.store(true);
@@ -192,7 +185,15 @@ CommunicationStatus AcController::refresh(PuppyModbus &bus) {
     led_block.value.progress_percent = led_progress_percent;
     led_block.dirty = led_was_dirty;
 
-    const auto input = refresh_input(bus, 250);
+    using xbuddy_extension::NodeName;
+    using xbuddy_extension::NodeState;
+    const bool node_ready = cyphal_node_table().get_node_state(NodeName::cz_prusa3d_honeybee_ac_controller) == NodeState::ready;
+    CommunicationStatus input = CommunicationStatus::SKIPPED;
+    if (node_ready) {
+        input = refresh_input(bus, valid ? 250 : 0);
+    } else {
+        valid.store(false);
+    }
     const auto holding_config = bus.write(unit, config_block);
     const auto holding_led_config = bus.write(unit, led_block);
 
@@ -219,7 +220,7 @@ CommunicationStatus AcController::initial_scan(PuppyModbus &bus) {
 }
 
 bool AcController::all_valid() const {
-    return valid.load() && static_cast<NodeState>(node_state.load()) == NodeState::ready;
+    return valid.load();
 }
 
 AcController ac_controller;

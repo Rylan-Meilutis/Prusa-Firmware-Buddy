@@ -537,10 +537,10 @@ bool parse_manual_temperatures(const char *command, std::array<int, buddy::extru
     return true;
 }
 
-std::string_view base_material_name(const FilamentTypeParameters &params) {
+FilamentTypeParameters::Name base_material_name(const FilamentTypeParameters &params) {
 #if HAS_FILAMENT_MATERIAL_FAMILY_PARAM()
     if (params.base_preset.has_value()) {
-        return preset_filament_parameters[*params.base_preset].name.data();
+        return preset_filament_parameters(*params.base_preset).name;
     }
 #else
     (void)params;
@@ -558,15 +558,19 @@ bool validate_batch(const std::array<BatchEntry, buddy::extrusion_calibration::m
     uint8_t physical_mask = 0;
     for (size_t i = 0; i < count; ++i) {
         const auto &entry = entries[i];
+        if (entry.physical_tool >= PhysicalToolIndex::count) {
+            return false;
+        }
+        const int max_temperature = Hotend::for_tool(PhysicalToolIndex::from_raw(entry.physical_tool)).config().max_nozzle_temp - HEATER_MAXTEMP_SAFETY_MARGIN;
         for (size_t point = 0; point < entry.temperature_count; ++point) {
             if (entry.temperatures[point] < thermalManager.extrude_min_temp
-                || entry.temperatures[point] > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN) {
+                || entry.temperatures[point] > max_temperature) {
                 return false;
             }
         }
         if (entry.physical_tool >= EXTRUDERS || entry.logical_filament >= buddy::extrusion_calibration::max_logical_filaments
             || entry.physical_tool >= PhysicalToolIndex::count || entry.logical_filament >= VirtualToolIndex::count
-            || entry.temperature < thermalManager.extrude_min_temp || entry.temperature > HEATER_0_MAXTEMP - HEATER_MAXTEMP_SAFETY_MARGIN
+            || entry.temperature < thermalManager.extrude_min_temp || entry.temperature > max_temperature
             || (logical_mask & (1u << entry.logical_filament))) {
             return false;
         }
@@ -653,7 +657,7 @@ buddy::pa_cache::Key cache_key(uint8_t tool, uint8_t slot, int16_t temperature) 
     key.color_valid = (config_store().loaded_filament_color_valid.get() >> slot) & 1;
     key.manufacturer = config_store().loaded_filament_manufacturer.get(slot);
     key.physical_tool = tool;
-    key.nozzle = config_store().get_nozzle_diameter(tool);
+    key.nozzle = config_store().get_nozzle_diameter(PhysicalToolIndex::from_raw(tool));
     key.temperature = temperature;
     key.profile_temperature = params.nozzle_temperature;
     key.confidence_floor = config_store().pa_confidence_floor_percent.get();
@@ -1445,7 +1449,8 @@ void PrusaGcodeSuite::M976() {
                 entry.temperature = tool_temperature
                     ? std::clamp(tool_temperature, std::max(170, profile_temperature - 15), std::min(300, profile_temperature + 15))
                     : profile_temperature;
-                const auto material = buddy::m976_material::authoritative_name(params.name.data(), base_material_name(params));
+                const auto base_material = base_material_name(params);
+                const auto material = buddy::m976_material::authoritative_name(params.name.data(), base_material);
                 strncpy(entry.material.data(), material.data(), entry.material.size() - 1);
             }
         }

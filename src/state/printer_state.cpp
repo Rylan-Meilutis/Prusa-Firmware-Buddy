@@ -10,7 +10,7 @@
 
 #include <fsm_states.hpp>
 #include <client_response.hpp>
-#include <marlin_vars.hpp>
+#include <common/marlin_vars.hpp>
 #include <fsm/safety_timer_phases.hpp>
 #include <fsm/filament_change_phases.hpp>
 #include <fsm/print_preview_phases.hpp>
@@ -24,7 +24,7 @@
 #include <option/has_input_shaper_calibration.h>
 #include <option/has_phase_stepping_calibration.h>
 #include <option/xl_enclosure_support.h>
-#include <option/has_uneven_bed_prompt.h>
+#include <option/has_uneven_bed_detection.h>
 #include <config_store/store_instance.hpp>
 #include <option/has_remote_bed.h>
 #include <option/has_chamber_filtration_api.h>
@@ -62,6 +62,13 @@
     #include <fsm/nozzle_mismatch_phases.hpp>
     #include <fsm/nozzle_mismatch_mapper.hpp>
 #endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+    #include <fsm/wastebin_emptying_phases.hpp>
+    #include <fsm/wastebin_emptying_mapper.hpp>
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    #include <fsm/tool_offsets_calibration_mapper.hpp>
+#endif
 
 using namespace marlin_server;
 using namespace printer_state;
@@ -77,8 +84,8 @@ namespace {
 // harm in having it in both places? Maybe couple more bytes of flash will
 // be used, so should we just remove it and let the get_print_state handle
 // this one, or is this better, because it's more robust?
-optional<ErrCode> crash_recovery_attention(const PhasesCrashRecovery &phase) {
-    switch (phase) {
+optional<ErrCode> crash_recovery_attention(const FSMAndPhase crash_recovery_phase) {
+    switch (static_cast<PhasesCrashRecovery>(crash_recovery_phase.phase)) {
     case PhasesCrashRecovery::axis_long:
         return ErrCode::CONNECT_CRASH_RECOVERY_AXIS_LONG;
     case PhasesCrashRecovery::axis_short:
@@ -324,8 +331,8 @@ DeviceState get_state(bool ready) {
     case ClientFSM::DockCalibration:
     case ClientFSM::NozzleCleanerCalibration:
 #endif
-#if HAS_TOOL_OFFSET_SENSOR()
-    case ClientFSM::ToolOffsetsCalibration:
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    case ClientFSM::GantrySquareness:
 #endif
 #if HAS_SERIAL_PRINT()
     case ClientFSM::Serial_printing:
@@ -346,6 +353,14 @@ DeviceState get_state(bool ready) {
 #if HAS_INDX()
     case ClientFSM::NozzleMismatch:
         return DeviceState::Attention;
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+    case ClientFSM::WastebinEmptying:
+        return wastebin_emptying_is_phase_attention.test(data.GetPhase()) ? DeviceState::Attention : busy_state;
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    case ClientFSM::ToolOffsetsCalibration:
+        return tool_offsets_calibration_phase_error_code_mapper(FSMAndPhase(ClientFSM::ToolOffsetsCalibration, data.GetPhase())).has_value() ? DeviceState::Attention : busy_state;
 #endif
 
     case ClientFSM::SafetyTimer:
@@ -483,6 +498,18 @@ StateWithDialog get_state_with_dialog(bool ready) {
 
     const bool print_job_active = is_printing || state_has_print_job(state);
     const auto &data = top->data;
+
+    // A phase with an attention error code becomes a dialog carrying the phase's responses; other
+    // phases produce no dialog.
+    const auto attention_phase_dialog = [&](optional<ErrCode> (*mapper)(FSMAndPhase)) -> optional<StateWithDialog> {
+        const FSMAndPhase fsm_phase(top->fsm_type, data.GetPhase());
+        const auto attention_code = mapper(fsm_phase);
+        if (!attention_code.has_value()) {
+            return nullopt;
+        }
+        return StateWithDialog(state, attention_code, fsm_gen, ClientResponses::get_available_responses(fsm_phase).data());
+    };
+
     switch (top->fsm_type) {
     case ClientFSM::Load_unload:
         if (print_job_active) {
@@ -499,9 +526,8 @@ StateWithDialog get_state_with_dialog(bool ready) {
     }
 #if HAS_CRASH_DETECTION()
     case ClientFSM::CrashRecovery:
-        if (auto attention_code = crash_recovery_attention(GetEnumFromPhaseIndex<PhasesCrashRecovery>(data.GetPhase())); attention_code.has_value()) {
-            const Response *available_responses = ClientResponses::get_available_responses(GetEnumFromPhaseIndex<PhasesCrashRecovery>(data.GetPhase())).data();
-            return { state, attention_code, fsm_gen, available_responses };
+        if (auto dialog = attention_phase_dialog(crash_recovery_attention)) {
+            return *dialog;
         }
         break;
 #endif
@@ -509,33 +535,38 @@ StateWithDialog get_state_with_dialog(bool ready) {
         auto [code, response] = warning_dialog(data);
         return { state, code, fsm_gen, response };
     }
-    case ClientFSM::PrintPreview: {
-        auto phase = GetEnumFromPhaseIndex<PhasesPrintPreview>(data.GetPhase());
-        if (auto attention_code = attention_while_printpreview(phase); attention_code.has_value()) {
-            const Response *available_responses = ClientResponses::get_available_responses(phase).data();
-            return { state, attention_code, fsm_gen, available_responses };
+    case ClientFSM::PrintPreview:
+        if (auto dialog = attention_phase_dialog(map_print_preview_phase_to_error_code)) {
+            return *dialog;
         }
         break;
-    }
 #if HAS_LOADCELL()
-    case ClientFSM::NozzleCleaningFailed: {
-        auto phase = GetEnumFromPhaseIndex<PhaseNozzleCleaningFailed>(data.GetPhase());
-        if (auto attention_code = nozzle_cleaning_failed_phase_error_code_mapper(phase); attention_code.has_value()) {
-            const Response *available_responses = ClientResponses::get_available_responses(phase).data();
-            return { state, attention_code, fsm_gen, available_responses };
+    case ClientFSM::NozzleCleaningFailed:
+        if (auto dialog = attention_phase_dialog(nozzle_cleaning_failed_phase_error_code_mapper)) {
+            return *dialog;
         }
         break;
-    }
 #endif
 #if HAS_INDX()
-    case ClientFSM::NozzleMismatch: {
-        auto phase = GetEnumFromPhaseIndex<PhaseNozzleMismatch>(data.GetPhase());
-        if (auto attention_code = nozzle_mismatch_phase_error_code_mapper(phase); attention_code.has_value()) {
-            const Response *available_responses = ClientResponses::get_available_responses(phase).data();
-            return { state, attention_code, fsm_gen, available_responses };
+    case ClientFSM::NozzleMismatch:
+        if (auto dialog = attention_phase_dialog(nozzle_mismatch_phase_error_code_mapper)) {
+            return *dialog;
         }
         break;
-    }
+#endif
+#if HAS_TOOL_OFFSET_SENSOR()
+    case ClientFSM::ToolOffsetsCalibration:
+        if (auto dialog = attention_phase_dialog(tool_offsets_calibration_phase_error_code_mapper)) {
+            return *dialog;
+        }
+        break;
+#endif
+#if HAS_WASTEBIN_FILL_TRACKING()
+    case ClientFSM::WastebinEmptying:
+        if (auto dialog = attention_phase_dialog(wastebin_emptying_phase_error_code_mapper)) {
+            return *dialog;
+        }
+        break;
 #endif
 
     // These have no buttons or phase
@@ -582,8 +613,8 @@ StateWithDialog get_state_with_dialog(bool ready) {
     case ClientFSM::DockCalibration:
     case ClientFSM::NozzleCleanerCalibration:
 #endif
-#if HAS_TOOL_OFFSET_SENSOR()
-    case ClientFSM::ToolOffsetsCalibration:
+#if HAS_GANTRY_SQUARENESS_CHECK()
+    case ClientFSM::GantrySquareness:
 #endif
     case ClientFSM::Preheat:
     case ClientFSM::SafetyTimer:
@@ -743,11 +774,8 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::CONNECT_ENCLOSURE_FILTER_EXPIRATION;
 #endif
 #if HAS_WASTEBIN_FILL_TRACKING()
-    case WarningType::NozzleCleanerFull:
     case WarningType::NozzleCleanerFullInfo:
         return ErrCode::CONNECT_NOZZLE_CLEANER_FULL;
-    case WarningType::NozzleCleanerManualEmpty:
-        return ErrCode::CONNECT_NOZZLE_CLEANER_EMPTY;
 #endif
 
 #if HAS_PRINT_SHEET_DETECTION()
@@ -766,6 +794,10 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::ERR_ELECTRO_ACCELEROMETER_COMMUNICATION_FAILED;
     case WarningType::FilamentLoadingTimeout:
         return ErrCode::CONNECT_FILAMENT_LOADING_TIMEOUT;
+#if HAS_SIDE_FSENSOR()
+    case WarningType::ExtruderFSensorNotReady:
+        return ErrCode::ERR_MECHANICAL_EXTRUDER_FSENSOR_NOT_READY;
+#endif
 
 #if HAS_EMERGENCY_STOP()
     case WarningType::DoorOpen:
@@ -780,7 +812,7 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
         return ErrCode::ERR_TEMPERATURE_CHAMBER_FAILED_TO_REACH_TEMP;
 #endif
 
-#if HAS_UNEVEN_BED_PROMPT()
+#if HAS_UNEVEN_BED_DETECTION()
     case WarningType::BedUnevenAlignmentPrompt:
         return ErrCode::ERR_MECHANICAL_UNEVEN_BED_ALIGN_PROMPT;
 #endif
@@ -822,19 +854,6 @@ ErrCode warning_type_to_error_code(WarningType wtype) {
 
     case WarningType::HomingCalibrationFromMenuNeeded:
         return ErrCode::ERR_MECHANICAL_HOMING_CALIBRATION_FROM_MENU_NEEDED;
-#endif
-
-#if HAS_TOOL_OFFSET_SENSOR()
-    case WarningType::ToolOffsetCalibrationFailed:
-        return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_CALIBRATION_FAILED;
-
-    case WarningType::HotendOffsetUnsafeZDeviation:
-        return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_UNSAFE_Z_DEVIATION;
-
-    case WarningType::HotendOffsetUnsafeXyDeviation:
-        return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_UNSAFE_XY;
-    case WarningType::HotendOffsetUnsafeSensorXY:
-        return ErrCode::ERR_MECHANICAL_TOOL_OFFSET_UNSAFE_SENSOR_XY;
 #endif
 
 #if HAS_SELFTEST()

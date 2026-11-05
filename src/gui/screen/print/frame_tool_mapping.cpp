@@ -20,6 +20,9 @@
 #include <filament_color.hpp>
 #include <option/has_mmu2.h>
 #include <bsod/bsod.h>
+#include <gui/dialogs/dialog_menu_virtual.hpp>
+#include <gui_utils.hpp>
+#include <algorithm_scale.hpp>
 
 namespace screen_tool_mapping {
 
@@ -119,8 +122,8 @@ void ColumnItem::click(IWindowMenu &) {
         // The tool is of the same type as the current one -> change the selection to this tool
         frame_.select_tool_for_connecting(this_tool);
 
-        // Move focus to the first unconnected item on the other menu to streamline routing
-        frame_.focus_first_unconnected_tool(other_tool_type);
+        // Move focus to an item on the other menu to streamline routing
+        frame_.focus_suggested_tool(other_tool_type);
 
         // Guide the user to continue connecting
         frame_.update_status_text(ShowGuide::yes);
@@ -138,7 +141,7 @@ void ColumnItem::click(IWindowMenu &) {
             frame_.select_tool_for_connecting(NoTool {});
 
             // Move focus to the first unconnected item on the gcode side to streamline routing
-            frame_.focus_first_unconnected_tool(ToolType::gcode_tool);
+            frame_.focus_suggested_tool(ToolType::gcode_tool);
 
             // Hide the guide, show possible errors
             frame_.update_status_text(ShowGuide::no);
@@ -207,9 +210,9 @@ void ColumnItem::printExtension(Rect16 extension_rect, Color color_text, Color c
         string_view_utf8 tool_name;
         CompactOptional<float, NAN> nozzle_diameter;
         FilamentTypeParameters::Name filament_name;
-        CompactOptional<Color, COLOR_NONE> color;
+        OptionalColor color;
     } data;
-    StringViewUtf8Parameters<3> tool_name_buf;
+    VirtualToolIndex::CompactDisplayName tool_name;
 
     // Determine the data to display
     switch (type_) {
@@ -221,9 +224,10 @@ void ColumnItem::printExtension(Rect16 extension_rect, Color color_text, Color c
         }
 
         const auto &ei = GCodeInfo::getInstance().get_extruder_info(*gcode_tool);
+        tool_name = gcode_tool->compact_display_name();
 
         data = Data {
-            .tool_name = gcode_tool->compact_display_name(tool_name_buf),
+            .tool_name = string_view_utf8::MakeRAM(tool_name),
             .nozzle_diameter = ei.nozzle_diameter,
             .filament_name = ei.filament_name,
             .color = ei.extruder_colour,
@@ -238,9 +242,11 @@ void ColumnItem::printExtension(Rect16 extension_rect, Color color_text, Color c
         }
 
         const auto physical_tool = virtual_tool->to_physical();
+        tool_name = virtual_tool->compact_display_name();
+        const auto filament_params = config_store().get_filament_type(*virtual_tool).parameters();
 
         data = Data {
-            .tool_name = virtual_tool->compact_display_name(tool_name_buf),
+            .tool_name = string_view_utf8::MakeRAM(tool_name),
             .nozzle_diameter = CompactOptional<float, NAN> { config_store().get_nozzle_diameter(physical_tool) },
             .filament_name = filament_material_name(config_store().get_filament_type(*virtual_tool).parameters()),
             .color = filament_color::loaded(virtual_tool->to_raw()),
@@ -277,15 +283,10 @@ void ColumnItem::printExtension(Rect16 extension_rect, Color color_text, Color c
     // Draw filament color
     if (data.color.has_value()) {
         constexpr auto margin = 6;
-        constexpr auto padding = 1;
-
-        const auto outer_size = extension_rect.Height() - margin * 2;
-        const Rect16 outer_rect = Rect16::fromLTWH(extension_rect.Right() - outer_size, extension_rect.Top() + margin, outer_size, outer_size);
-        display::draw_rounded_rect(outer_rect, color_back, COLOR_WHITE, GuiDefaults::MenuItemCornerRadius, MIC_ALL_CORNERS);
-
-        const auto inner_size = outer_size - padding * 2;
-        const Rect16 inner_rect = Rect16::fromLTWH(outer_rect.Left() + padding, outer_rect.Top() + padding, inner_size, inner_size);
-        display::draw_rounded_rect(inner_rect, COLOR_WHITE, *data.color, GuiDefaults::MenuItemCornerRadius, MIC_ALL_CORNERS);
+        draw_color_swatch(
+            Rect16::CutPadding(extension_rect, padding_ui8_t { .top = margin, .bottom = margin }),
+            Align_t::RightCenter(),
+            *data.color, color_back);
     }
 }
 
@@ -408,26 +409,14 @@ FrameToolMapping::FrameToolMapping(window_frame_t *parent)
     bottom_status_.set_font(Font::normal);
     bottom_status_.SetAlignment(Align_t::Center());
 
-    bottom_buttons_.Change(PhaseResponses { Response::Abort, Response::Filament, Response::Remap, Response::Print });
+    bottom_buttons_.Change(PhaseResponses { Response::Abort, Response::Details, Response::Remap, Response::Print });
+    bottom_buttons_.set_callback([this](Response r) { on_button_click(r); });
     bottom_buttons_.SetFocus();
     bottom_buttons_.SetBtnIndex(3); // Pre-select the print button
 
     if (!tool_mapper.is_enabled()) {
         // The mapper has not been set up -> set up the default config
-        // resets 1-1, 2-2 etc
-        tool_mapper.reset();
-
-        // And disable all unused/invalid tools
-        for (auto gcode_tool : GcodeToolIndex::all()) {
-            auto virtual_tool = stdext::get_optional<VirtualToolIndex>(tool_mapper.to_virtual(gcode_tool));
-            if (
-                !GCodeInfo::getInstance().get_extruder_info(gcode_tool).used()
-                || (virtual_tool.has_value() && !virtual_tool->is_enabled()) //
-            ) {
-                tool_mapper.set_unassigned(gcode_tool);
-            }
-        }
-        tool_mapper.set_enable(true);
+        apply_tool_mapping_preset(default_tool_mapping_preset());
     }
 
     update_config();
@@ -452,7 +441,7 @@ void FrameToolMapping::update(const fsm::PhaseData &data) {
     }
 }
 
-ToolVariant FrameToolMapping::focused_tool() {
+ToolVariant FrameToolMapping::focused_tool() const {
     if (auto index = gcode_tools_menu_.focused_item_index()) {
         if (auto tool = items_[*index].gcode_tool) {
             return *tool;
@@ -478,54 +467,215 @@ void FrameToolMapping::focus_tool(ToolVariant tool) {
     }
 }
 
-void FrameToolMapping::focus_first_unconnected_tool(ToolType tool_type) {
-    ToolVariant tool_to_focus;
+void FrameToolMapping::focus_suggested_tool(ToolType tool_type) {
+    ToolVariant tool_to_focus = NoTool {};
+
     switch (tool_type) {
 
-    case ToolType::virtual_tool: {
-        for (const auto &item : items_) {
-            if (auto tool = item.virtual_tool) {
-                tool_to_focus = *tool;
-
-                // Break on first unconnected. Otherwise continue so that we have at least something to select
-                switch (item.connection) {
-
-                case MappingDisplayItem::Connection::none:
-                    goto break_loop_virtual;
-
-                case MappingDisplayItem::Connection::spool_join:
-                case MappingDisplayItem::Connection::main_tool:
-                    break;
-                }
-            }
+    case ToolType::virtual_tool:
+        static constexpr ToolMatchArgs args {
+            .compatible_only = false,
+            .consider_colors = true,
+        };
+        if (auto r = suggest_virtual_tool_to_focus(args)) {
+            tool_to_focus = r->tool;
         }
-    break_loop_virtual:
         break;
-    }
 
-    case ToolType::gcode_tool: {
-        for (const auto &item : items_) {
-            if (auto tool = item.gcode_tool) {
-                tool_to_focus = *tool;
-
-                // Break on first unconnected. Otherwise continue so that we have at least something to select
-                switch (item.connection) {
-
-                case MappingDisplayItem::Connection::none:
-                case MappingDisplayItem::Connection::spool_join: // gcode_tool is not connected in the spool_join connection
-                    goto break_loop_gcode;
-
-                case MappingDisplayItem::Connection::main_tool:
-                    break;
-                }
-            }
+    case ToolType::gcode_tool:
+        if (auto tool = suggest_gcode_tool_to_focus()) {
+            tool_to_focus = *tool;
         }
-    break_loop_gcode:
         break;
-    }
     }
 
     focus_tool(tool_to_focus);
+}
+
+std::optional<GcodeToolIndex> FrameToolMapping::suggest_gcode_tool_to_focus() const {
+    std::optional<GcodeToolIndex> result;
+
+    for (const auto &item : items_) {
+        if (!item.gcode_tool.has_value()) {
+            continue;
+        }
+
+        result = *item.gcode_tool;
+
+        // Return first unconnected. Otherwise continue so that we have at least something to select
+        switch (item.connection) {
+
+        case MappingDisplayItem::Connection::none:
+        case MappingDisplayItem::Connection::spool_join:
+            return result;
+
+        case MappingDisplayItem::Connection::main_tool:
+            break;
+        }
+    }
+
+    return result;
+}
+
+std::optional<FrameToolMapping::ToolMatchResult> FrameToolMapping::suggest_virtual_tool_to_focus(ToolMatchArgs args) const {
+    // The lower the better
+    using Penalty = ToolMatchResult::Penalty;
+
+    constexpr Penalty penalty_color_mismatch_max = 255;
+
+    struct PenaltyBuilder {
+        uint8_t nonfatal_incompatibility_count;
+        uint8_t color_mismatch;
+
+        bool fatal_incompatibility : 1;
+        bool already_mapped : 1;
+        bool indirect_candidate : 1;
+
+        /// Packs the fields into a number so that comparing penalties turns into a simple int comparison.
+        /// The append order defines the priority, most significant first.
+        constexpr Penalty build() const {
+            Penalty result = 0;
+            const auto append = [&result](Penalty value, int bits) {
+                result = (result << bits) | value;
+            };
+            append(fatal_incompatibility, 1);
+
+            // Lower priority than fatal incompatibility - rather suggest a mapped tool than incompatible tool
+            append(already_mapped, 1);
+
+            append(nonfatal_incompatibility_count, 8);
+            append(color_mismatch, 8);
+            append(indirect_candidate, 1);
+            return result;
+        }
+    };
+
+    static constexpr PenaltyBuilder default_penalty_builder {
+        .nonfatal_incompatibility_count = 0,
+        .color_mismatch = penalty_color_mismatch_max,
+        .fatal_incompatibility = false,
+        .already_mapped = false,
+        .indirect_candidate = true,
+    };
+
+    static constexpr PenaltyBuilder incompatible_penalty_builder {
+        .nonfatal_incompatibility_count = 0,
+        .color_mismatch = 0,
+        .fatal_incompatibility = true,
+        .already_mapped = true,
+        .indirect_candidate = false,
+    };
+    static constexpr Penalty incompatible_penalty_mask = incompatible_penalty_builder.build();
+
+    std::optional<ToolMatchResult> result;
+
+    for (const auto &item : items_) {
+        if (!item.virtual_tool.has_value()) {
+            continue;
+        }
+
+        const VirtualToolIndex virtual_tool = *item.virtual_tool;
+        const OptionalColor virtual_color = FilamentType::for_tool(virtual_tool).parameters().color;
+
+        PenaltyBuilder penalty_builder = default_penalty_builder;
+
+        switch (item.connection) {
+
+        case MappingDisplayItem::Connection::none:
+            break;
+
+        case MappingDisplayItem::Connection::spool_join:
+        case MappingDisplayItem::Connection::main_tool:
+            penalty_builder.already_mapped = true;
+            break;
+        }
+
+        if (const auto *gcode_tool = std::get_if<GcodeToolIndex>(&selected_tool_for_connecting_)) {
+            // Prefer direct mapping (G2 -> T2) if it would not come with a penalty
+            // For people who pre-map in the slicer (through GCodeTools) and expect things to match
+            // See BFW-9403
+            penalty_builder.indirect_candidate = (gcode_tool->to_raw() != virtual_tool.to_raw());
+
+            // Consider color match
+            if (args.consider_colors) {
+                const OptionalColor gcode_color = GCodeInfo::getInstance().get_extruder_info(*gcode_tool).extruder_colour;
+
+                if (virtual_color.has_value() && gcode_color.has_value()) {
+                    const float perceptual_distance = Color::perceptual_distance(*virtual_color, *gcode_color);
+
+                    /// Color mismatch smaller than this value gets no penalty
+                    constexpr float no_penalty_perceptual_distance = 0.1f;
+
+                    /// Color mismatch bigger than this value gets clamped to maximum penalty
+                    constexpr float max_penalty_perceptual_distance = 0.8f;
+
+                    penalty_builder.color_mismatch = (uint8_t)scale<float>(
+                        perceptual_distance,
+                        no_penalty_perceptual_distance, max_penalty_perceptual_distance,
+                        0, penalty_color_mismatch_max //
+                    );
+
+                } else {
+                    penalty_builder.color_mismatch = penalty_color_mismatch_max;
+                }
+            }
+
+            // See how many GCode incompatibilities would the tool generate
+            ToolMapper speculative_mapper;
+            speculative_mapper = tool_mapper;
+            speculative_mapper.set_mapping(*gcode_tool, virtual_tool);
+
+            // Empty spool join, we don't care about it
+            SpoolJoin speculative_spool_join;
+
+            buddy::gcode_compatibility::CompatibilityReport speculative_report;
+            speculative_report.generate_toolmapping_only({
+                .tool_mapper = speculative_mapper,
+                .spool_join = speculative_spool_join,
+            });
+
+            // Increase item penalty based on how many checks it has failed
+            speculative_report.visit_failed_checks([virtual_tool, &penalty_builder](const auto &failed_check) {
+                // Only consider checks specific to the virtual tool
+                if (stdext::holds_value(failed_check.tool, virtual_tool)) {
+                    using CompatibilityLevel = buddy::gcode_compatibility::CompatibilityLevel;
+
+                    switch (failed_check.meta->evaluate_compatibility()) {
+
+                    case CompatibilityLevel::fully_compatible:
+                    case CompatibilityLevel::compatible_with_reminder:
+                        // No score increase
+                        break;
+
+                    case CompatibilityLevel::needs_user_approval:
+                        penalty_builder.nonfatal_incompatibility_count++;
+                        break;
+
+                    case CompatibilityLevel::fatal_incompatibility:
+                        penalty_builder.fatal_incompatibility = true;
+                        break;
+                    }
+                }
+                return true;
+            },
+                buddy::gcode_compatibility::CompatibilityReport::AggregateTools::no);
+        }
+
+        const auto item_penalty = penalty_builder.build();
+
+        if (!result.has_value() || item_penalty < result->penalty) {
+            result = ToolMatchResult {
+                .tool = virtual_tool,
+                .penalty = item_penalty,
+            };
+        }
+    }
+
+    if (args.compatible_only && result.has_value() && (result->penalty & incompatible_penalty_mask)) {
+        return std::nullopt;
+    }
+
+    return result;
 }
 
 FrameToolMapping::ToolItemPosition FrameToolMapping::tool_item_position(ToolVariant tool) {
@@ -626,6 +776,7 @@ void FrameToolMapping::update_config() {
 }
 
 void FrameToolMapping::update_mapping() {
+    mapping_update_scheduled_ = false;
     items_.clear();
 
     const auto original_focused_tool = this->focused_tool();
@@ -788,8 +939,7 @@ void FrameToolMapping::update_status_text(ShowGuide show_guide) {
                 failed_check->tool, //
                 [](NoTool) {}, //
                 [&](auto tool) {
-                    StringViewUtf8Parameters<4> params;
-                    sb.append_string_view(tool.compact_display_name(params)); //
+                    sb.append_std_string_view(tool.compact_display_name()); //
                 });
 
             sb.append_string(": ");
@@ -812,8 +962,7 @@ void FrameToolMapping::update_scroll() {
     virtual_tools_menu_.set_scroll_offset(scroll_offset);
     gcode_tools_menu_.set_scroll_offset(scroll_offset);
 
-    // Update the scrollbar with everything else, don't wait for the loop
-    scrollbar_.WindowEvent(nullptr, GUI_event_t::LOOP, nullptr);
+    scrollbar_.update();
 
     // Routing board needs to be redrawn when scroll changes
     routing_board_.Invalidate();
@@ -821,62 +970,214 @@ void FrameToolMapping::update_scroll() {
 
 void FrameToolMapping::windowEvent(window_t *sender, GUI_event_t event, void *const param) {
     if (mapping_update_scheduled_) {
-        mapping_update_scheduled_ = false;
         update_mapping();
     }
 
-    switch (event) {
+    window_frame_t::windowEvent(sender, event, param);
+}
 
-    case GUI_event_t::CHILD_CLICK: {
-        const auto response = event_conversion_union { .pvoid = param }.response;
-        switch (response) {
+void FrameToolMapping::on_button_click(Response response) {
+    switch (response) {
 
-        case Response::Print:
-            if (!compat_report_.gui_confirm_all_incompatibilities(Response::Cancel, buddy::compatibility_checks::CompatibilityLevel::fully_compatible, buddy::gcode_compatibility::CompatibilityReport::AggregateTools::yes)) {
-                return;
-            }
-
-            // Don't redraw tools mapping screen since we're leaving
-            Screens::Access()->Get()->Validate();
-
-            marlin_client::FSM_response(PhasesPrintPreview::tools_mapping, response);
-            return;
-
-        case Response::Abort:
-            if (MsgBoxQuestion(_("Do you really want to abort print?"), { Response::Abort, Response::No }) != Response::Abort) {
-                return;
-            }
-
-            // Don't redraw tools mapping screen since we're leaving
-            Screens::Access()->Get()->Validate();
-
-            marlin_client::FSM_response(PhasesPrintPreview::tools_mapping, response);
-            return;
-
-        case Response::Remap:
-            // Just a helper button to help people realize that they can change the mapping on this screen
-            // We've seen some github/social media posts where people thought the tool mapping is just for display and you cannot change it
-            focus_first_unconnected_tool(ToolType::gcode_tool);
-            update_status_text(ShowGuide::yes);
-            return;
-
-        case Response::Filament: {
-            // The ChangeAll screen will pop out, this screen will get re-initialized afterwards
-            Screens::Access()->Open<ScreenChangeAllFilaments, ScreenChangeAllFilaments::SetupForPrint {}>();
+    case Response::Print:
+        if (!compat_report_.gui_confirm_all_incompatibilities(Response::Cancel, buddy::compatibility_checks::CompatibilityLevel::fully_compatible, buddy::gcode_compatibility::CompatibilityReport::AggregateTools::yes)) {
             return;
         }
 
-        default:
-            bsod_unreachable();
+        // Don't redraw tools mapping screen since we're leaving
+        Screens::Access()->Get()->Validate();
+
+        marlin_client::FSM_response(PhasesPrintPreview::tools_mapping, response);
+        return;
+
+    case Response::Abort:
+        if (MsgBoxQuestion(_("Do you really want to abort print?"), { Response::Abort, Response::No }) != Response::Abort) {
+            return;
         }
-        break;
+
+        // Don't redraw tools mapping screen since we're leaving
+        Screens::Access()->Get()->Validate();
+
+        marlin_client::FSM_response(PhasesPrintPreview::tools_mapping, response);
+        return;
+
+    case Response::Remap:
+        // Just a helper button to help people realize that they can change the mapping on this screen
+        // We've seen some github/social media posts where people thought the tool mapping is just for display and you cannot change it
+        focus_suggested_tool(ToolType::gcode_tool);
+        update_status_text(ShowGuide::yes);
+        return;
+
+    case Response::Details: {
+        show_details_menu();
+        return;
     }
 
     default:
-        break;
+        bsod_unreachable();
+    }
+}
+
+void FrameToolMapping::show_details_menu() {
+    enum class Item : uint8_t {
+        return_,
+        change_filaments,
+        smart_mapping_without_colors,
+        smart_mapping_with_colors,
+        direct_mapping,
+        clear_mapping,
+        _cnt
+    };
+
+    const dialog_menu_virtual::Config config {
+        .title = _("TOOL MAPPING"),
+        .item_count = std::to_underlying(Item::_cnt),
+        .setup_f = [](int index, dialog_menu_virtual::ItemVariant &variant) {
+            if (static_cast<Item>(index) == Item::return_) {
+                variant.emplace<MI_RETURN>();
+                return;
+            }
+
+            auto &item = variant.emplace<dialog_menu_virtual::MenuItem>();
+            const char *label = nullptr;
+
+            switch (static_cast<Item>(index)) {
+
+            case Item::change_filaments:
+                item.SetIconId(&img::spool_16x16);
+                label = N_("Change Filaments");
+                break;
+
+            case Item::direct_mapping:
+                label = N_("Direct Mapping");
+                break;
+
+            case Item::clear_mapping:
+                label = N_("Clear Mapping");
+                break;
+
+            case Item::smart_mapping_without_colors:
+                label = N_("Smart Mapping");
+                break;
+
+            case Item::smart_mapping_with_colors:
+                label = N_("Color Mapping");
+                break;
+
+            case Item::return_:
+            case Item::_cnt:
+                bsod_unreachable();
+            }
+
+            item.SetLabel(_(label));
+        }
+    };
+
+    // Whatever the user had selected, drop it
+    select_tool_for_connecting(NoTool {});
+    update_status_text(ShowGuide::no);
+
+    const auto result = dialog_menu_virtual::execute(config);
+
+    // Fix broken focus
+    bottom_buttons_.SetFocus();
+    bottom_buttons_.SetBtn(Response::Details);
+
+    if (!result.has_value()) {
+        return;
     }
 
-    window_frame_t::windowEvent(sender, event, param);
+    switch (static_cast<Item>(*result)) {
+
+    case Item::return_:
+        break;
+
+    case Item::change_filaments:
+        // The ChangeAll screen will pop out, this screen will get re-initialized afterwards
+        Screens::Access()->Open<ScreenChangeAllFilaments, ScreenChangeAllFilaments::SetupForPrint {}>();
+        break;
+
+    case Item::direct_mapping:
+        apply_tool_mapping_preset(ToolMappingPreset::direct);
+        break;
+
+    case Item::clear_mapping:
+        apply_tool_mapping_preset(ToolMappingPreset::empty);
+        break;
+
+    case Item::smart_mapping_without_colors:
+        apply_tool_mapping_preset(ToolMappingPreset::smart_without_colors);
+        break;
+
+    case Item::smart_mapping_with_colors:
+        apply_tool_mapping_preset(ToolMappingPreset::smart_with_colors);
+        break;
+
+    case Item::_cnt:
+        bsod_unreachable();
+    }
+}
+
+void FrameToolMapping::apply_tool_mapping_preset(ToolMappingPreset preset) {
+    spool_join.reset();
+    tool_mapper = ToolMapper::empty_mapping;
+
+    switch (preset) {
+
+    case ToolMappingPreset::smart_without_colors:
+        smart_tool_mapping_impl(ToolMatchArgs {
+            .compatible_only = true,
+            .consider_colors = false,
+        });
+        break;
+
+    case ToolMappingPreset::smart_with_colors:
+        smart_tool_mapping_impl(ToolMatchArgs {
+            .compatible_only = true,
+            .consider_colors = true,
+        });
+        break;
+
+    case ToolMappingPreset::direct:
+        for (auto gcode_tool : GcodeToolIndex::all()) {
+            static_assert(VirtualToolIndex::count == GcodeToolIndex::count);
+            auto virtual_tool = VirtualToolIndex::from_raw(gcode_tool.to_raw());
+            if (
+                GCodeInfo::getInstance().get_extruder_info(gcode_tool).used()
+                && virtual_tool.is_enabled() //
+            ) {
+                tool_mapper.set_mapping(gcode_tool, virtual_tool);
+            }
+        }
+        break;
+
+    case ToolMappingPreset::empty:
+        break;
+
+    case ToolMappingPreset::_cnt:
+        bsod_unreachable();
+    }
+
+    update_mapping();
+}
+
+void FrameToolMapping::smart_tool_mapping_impl(ToolMatchArgs args) {
+    // We need to update mapping every step, the suggest_virtual_tool_to_focus is counting for it to be up to date
+    update_mapping();
+
+    for (const auto gcode_tool : GcodeToolIndex::all()) {
+        if (!GCodeInfo::getInstance().get_extruder_info(gcode_tool).used()) {
+            continue;
+        }
+
+        selected_tool_for_connecting_ = gcode_tool;
+        if (auto r = suggest_virtual_tool_to_focus(args)) {
+            tool_mapper.set_mapping(gcode_tool, r->tool);
+            update_mapping();
+        }
+    }
+
+    select_tool_for_connecting(NoTool {});
 }
 
 } // namespace screen_tool_mapping

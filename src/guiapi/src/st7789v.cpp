@@ -7,7 +7,6 @@
 #include <device/peripherals.hpp>
 #include <hwio_pindef.h>
 #include "qoi_decoder.hpp"
-#include "raster_opfn_c.h"
 #include <buddy/ccm_thread.hpp>
 #include <device/hal.h>
 #include <span>
@@ -358,24 +357,6 @@ bool st7789v_is_reset_required() {
     return false;
 }
 
-/*void st7789v_test_miso(void)
-{
-//	uint16_t data_out[8] = {CLR565_WHITE, CLR565_WHITE, CLR565_RED, CLR565_RED, CLR565_GREEN, CLR565_GREEN, CLR565_BLUE, CLR565_BLUE};
-    uint8_t data_out[16] = {0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    uint8_t data_in[32];
-    memset(data_in, 0, sizeof(data_in));
-    st7789v_clr_cs();
-    st7789v_cmd_caset(0, ST7789V_COLS - 1);
-    st7789v_cmd_raset(0, ST7789V_ROWS - 1);
-    st7789v_cmd_ramwr((uint8_t*)data_out, 16);
-    st7789v_set_cs();
-    st7789v_clr_cs();
-    st7789v_cmd_caset(0, ST7789V_COLS - 1);
-    st7789v_cmd_raset(0, ST7789V_ROWS - 1);
-    st7789v_cmd_ramrd(data_in, 32);
-    st7789v_set_cs();
-}*/
-
 void st7789v_init_ctl_pins(void) {
     st7789v_flg &= ~(FLG_CS | FLG_RS | FLG_RST);
     st7789v_set_rst();
@@ -426,7 +407,6 @@ void st7789v_clear(uint16_t clr565) {
         st7789v_wr(st7789v_buff, 2 * ST7789V_COLS * 16);
     }
     st7789v_set_cs();
-    //	st7789v_test_miso();
 }
 
 /// Turns the specified pixel to the specified color
@@ -434,47 +414,6 @@ void st7789v_set_pixel(uint16_t point_x, uint16_t point_y, uint16_t clr565) {
     st7789v_cmd_caset(point_x, 1);
     st7789v_cmd_raset(point_y, 1);
     st7789v_cmd_ramwr((uint8_t *)(&clr565), 2);
-}
-
-// 1 == 0000 0001, 5 == 0001 1111
-static uint16_t set_num_of_ones(uint8_t num_of_ones) {
-    return ~((uint16_t)(-1) << num_of_ones);
-}
-
-// BYTEs 0 and 1 are empty
-// bit0 -> bit5 BYTE2
-// bit1 -> bit6 BYTE2
-// bit2 -> bit7 BYTE2
-
-// bit3 -> bit3 BYTE4
-// bit4 -> bit4 BYTE4
-// bit5 -> bit5 BYTE4
-// bit6 -> bit6 BYTE4
-// bit7 -> bit7 BYTE4
-
-// bit8 -> bit3 BYTE3
-// bit9 -> bit4 BYTE3
-// bit10-> bit5 BYTE3
-// bit11-> bit6 BYTE3
-// bit12-> bit7 BYTE3
-
-// bit13-> bit2 BYTE3
-// bit14-> bit3 BYTE3
-// bit15-> bit4 BYTE2
-
-// since BYTE0 and BYTE1 are empty, buff[0] == BYTE2
-static uint16_t rd18bit_to_16bit(uint8_t *buff) {
-    return ((uint16_t)(buff[0] >> 5) & set_num_of_ones(3)) | (((uint16_t)(buff[2] >> 3) & set_num_of_ones(5)) << 3) | (((uint16_t)(buff[1] >> 3) & set_num_of_ones(5)) << 8) | (((uint16_t)(buff[0] >> 2) & set_num_of_ones(3)) << 13);
-}
-
-uint16_t st7789v_get_pixel_colorFormat565(uint16_t point_x, uint16_t point_y) {
-    enum { buff_sz = 5 };
-    uint8_t buff[buff_sz];
-    st7789v_cmd_caset(point_x, 1);
-    st7789v_cmd_raset(point_y, 1);
-    st7789v_cmd_ramrd(buff, buff_sz);
-    uint16_t ret = rd18bit_to_16bit(buff + 2);
-    return ret; // directColor;
 }
 
 uint8_t *st7789v_get_block(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y) {
@@ -631,11 +570,11 @@ void st7789v_ctrl_set(uint8_t ctrl) {
     st7789v_cmd(CMD_WRCTRLD, &st7789v_config.control, sizeof(st7789v_config.control));
 }
 
-static void st7789v_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color, bool tinted) {
+static void st7789v_draw_qoi_ex_impl(Rect16 subrect, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color, bool tinted) {
     debug_assert(!st7789v_buff_borrowed && "Buffer lent to someone");
 
     // Current pixel position starts top-left where the image is placed
-    point_i16_t pos = { static_cast<int16_t>(pt.x), static_cast<int16_t>(pt.y) };
+    point_i16_t pos = subrect.TopLeft();
 
     // Prepare input buffer
     WritableBytes i_buf { reinterpret_cast<std::byte *>(st7789v_buff), 512 }; ///< Input file buffer
@@ -656,13 +595,11 @@ static void st7789v_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader
     } image_timing;
 #endif /*0*/
 
-    // Read header and image size to tweak drawn subrect
-    auto header = reader.read(i_buf.subspan(0, qoi::Decoder::HEADER_SIZE));
-    if (header.size() != qoi::Decoder::HEADER_SIZE) {
-        return; // Header couldn't be read
+    const int16_t image_right = subrect.Right(); // Decoder emits full image rows regardless of clipping
+    subrect = subrect.Intersection(Rect16(0, 0, ST7789V_COLS, ST7789V_ROWS)); // Clip drawn subrect to display size
+    if (subrect.IsEmpty()) {
+        return; // Image is completely off-screen
     }
-    Rect16 subrect = Rect16(pos, qoi::Decoder::get_image_size(std::span<const std::byte, qoi::Decoder::HEADER_SIZE>(header)));
-    subrect.Intersection(Rect16(0, 0, ST7789V_COLS, ST7789V_ROWS)); // Clip drawn subrect to display size
 
     // Prepare output
     // Set write rectangle
@@ -692,7 +629,7 @@ static void st7789v_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader
                 // Keep track of pixel position
                 auto orig_pos = pos;
                 pos.x++;
-                if (pos.x > subrect.Right()) {
+                if (pos.x > image_right) {
                     pos.x = subrect.Left();
                     pos.y++;
                 }
@@ -734,12 +671,12 @@ static void st7789v_draw_qoi_ex_impl(point_ui16_t pt, AbstractByteReader &reader
     st7789v_set_cs();
 }
 
-void st7789v_draw_qoi_ex(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop) {
-    st7789v_draw_qoi_ex_impl(pt, reader, back_color, rop, COLOR_WHITE, false);
+void st7789v_draw_qoi_ex(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop) {
+    st7789v_draw_qoi_ex_impl(rect, reader, back_color, rop, COLOR_WHITE, false);
 }
 
-void st7789v_draw_qoi_ex_tinted(point_ui16_t pt, AbstractByteReader &reader, Color back_color, uint8_t rop, Color tint_color) {
-    st7789v_draw_qoi_ex_impl(pt, reader, back_color, rop, tint_color, true);
+void st7789v_draw_qoi_ex_tinted(Rect16 rect, AbstractByteReader &reader, Color back_color, ropfn rop, Color tint_color) {
+    st7789v_draw_qoi_ex_impl(rect, reader, back_color, rop, tint_color, true);
 }
 
 // measured delay from low to hi in reset cycle

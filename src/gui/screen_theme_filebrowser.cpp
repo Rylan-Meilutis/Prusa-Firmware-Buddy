@@ -45,15 +45,15 @@ void ScreenThemeFileBrowser::windowEvent([[maybe_unused]] window_t *sender, GUI_
 }
 
 void ScreenThemeFileBrowser::check_missing_media(MediaState_t media_state) {
-    if (media_state == MediaState_t::removed || media_state == MediaState_t::error) {
-        browser().clear_first_visible_sfn();
+    if (media_state == MediaState_t::removed) {
+        browser().clear_first_visible_canonical();
         Screens::Access()->Get()->Validate();
-        Screens::Access()->Close();
+        Screens::Access()->close_screen_or_dialog();
     }
 }
 
 void ScreenThemeFileBrowser::load_selected_file() {
-    browser().SaveTopSFN();
+    browser().save_top_canonical();
 
     std::array<char, filename_defs::path_buffer_size> path {};
     const auto written = browser().WriteNameToPrint(path.data(), path.size());
@@ -70,13 +70,13 @@ void ScreenThemeFileBrowser::load_selected_file() {
 
     if (ui_theme_menu::load_usb_theme_file(path.data())) {
         MsgBoxInfo(_("Theme loaded."), Responses_Ok);
-        Screens::Access()->Close();
+        Screens::Access()->close_screen_or_dialog();
     } else {
         MsgBoxError(_("Invalid theme JSON."), Responses_Ok);
     }
 }
 
 void ScreenThemeFileBrowser::go_home() {
-    browser().clear_first_visible_sfn();
-    Screens::Access()->Close();
+    browser().clear_first_visible_canonical();
+    Screens::Access()->close_screen_or_dialog();
 }

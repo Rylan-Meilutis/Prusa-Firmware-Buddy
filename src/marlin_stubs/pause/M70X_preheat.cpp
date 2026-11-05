@@ -16,6 +16,7 @@
 #include <fsm/preheat_phases.hpp>
 #include <utils/variant_utils.hpp>
 #include <feature/gcode_exception/gcode_exception.hpp>
+#include <feature/compatibility_checks/filament_compatibility.hpp>
 
 #if HAS_CHAMBER_API()
     #include <feature/chamber/chamber.hpp>
@@ -32,6 +33,7 @@
     #include <feature/openprinttag/tool_tag.hpp>
     #include <feature/openprinttag/data_utils.hpp>
     #include <feature/openprinttag/requests_read_multi.hpp>
+    #include <feature/openprinttag/request_manager.hpp>
 #endif
 
 #if HAS_ANFC()
@@ -122,34 +124,19 @@ static FSMResponseVariant determine_filament_for_operation(const filament_gcodes
     if (can_use_openprinttag(preheat_data.mode) && tag.has_value()) {
         namespace opt = buddy::openprinttag;
 
-        Tristate load_tag = config_store().opt_auto_read_on_load.get();
+        bool load_tag = (preheat_data.openprinttag_uid_hash == tag->uid_hash());
 
-        if (preheat_data.openprinttag_uid_hash == tag->uid_hash()) {
-            load_tag = Tristate::yes;
-        }
-
-        if (load_tag == Tristate::other) {
+        if (!load_tag) {
             // Ask the user if they want to load the data
             fsm.change(PhasesPreheat::ask_load_openprinttag, serialized_data);
             while (true) {
                 switch (marlin_server::get_response_from_phase(PhasesPreheat::ask_load_openprinttag)) {
 
                 case Response::Yes:
-                    load_tag = Tristate::yes;
+                    load_tag = true;
                     goto break_ask_load_opt_loop;
 
                 case Response::No:
-                    load_tag = Tristate::no;
-                    goto break_ask_load_opt_loop;
-
-                case Response::Always:
-                    load_tag = Tristate::yes;
-                    config_store().opt_auto_read_on_load.set(true);
-                    goto break_ask_load_opt_loop;
-
-                case Response::Never:
-                    load_tag = Tristate::no;
-                    config_store().opt_auto_read_on_load.set(false);
                     goto break_ask_load_opt_loop;
 
                 case Response::_none:
@@ -168,7 +155,10 @@ static FSMResponseVariant determine_filament_for_operation(const filament_gcodes
         break_ask_load_opt_loop:
         }
 
-        if (load_tag == Tristate::yes) {
+        if (load_tag) {
+            fsm.change(PhasesPreheat::loading_openprinttag, serialized_data);
+
+            const auto tag_uid = buddy::openprinttag::manager().get_tag_uid(*tag);
             opt::MultiReadFieldRequest<opt::FilamentParametersInfo::Requirements {}> req { *tag };
             req.issue();
 
@@ -180,18 +170,30 @@ static FSMResponseVariant determine_filament_for_operation(const filament_gcodes
                 idle(true);
             }
 
-            opt::FilamentParametersInfo params { req };
+            opt::FilamentParametersInfo params { req, tag_uid.value_or(buddy::openprinttag::TagUID {}) };
 
-            if (params.data_safe_to_use) {
+            const auto compatibility_level = [&] {
+                buddy::filament_compatibility::CompatibilityReport compat_report;
+                compat_report.generate_noclear({
+                    .filament = params.parameters,
+                    .tools = *tool,
+                    .assume_filament_already_inserted = preheat_mode_assume_filament_already_inserted(preheat_data.mode),
+                });
+                return compat_report.compatibility_level();
+            };
+
+            if (tag_uid.has_value()
+                && params.data_safe_to_use
+                && compatibility_level() == buddy::compatibility_checks::CompatibilityLevel::fully_compatible //
+            ) {
                 // Everything derived perfectly from the tag -> apply the parameters and be happy
                 const FilamentType ft = PendingAdHocFilamentType {};
                 ft.set_parameters(params.parameters);
                 return FSMResponseVariant::make(ft);
 
             } else {
-                // The printer was not able to derive all the necessary fields
-                // -> pop up ScreenOPTFilamentDetail and let the user tweak the settings
-                // unknown fields will be highlighted
+                // Pop up ScreenOPTFilamentDetail and let the user tweak the settings
+                // unknown fields will be highlighted (if there are any)
                 // (the screen loads the OPT data again on the GUI thread)
 
                 fsm.change(PhasesPreheat::openprinttag_parameters, serialized_data);

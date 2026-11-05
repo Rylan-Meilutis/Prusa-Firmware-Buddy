@@ -1,9 +1,4 @@
-/**
- * @file screen_menu_filament_mmu.hpp
- * @brief filament menu for MMU
- * it will not open if MMU is disabled, so no need to check it
- */
-
+/// @file
 #pragma once
 
 #include "screen_menu.hpp"

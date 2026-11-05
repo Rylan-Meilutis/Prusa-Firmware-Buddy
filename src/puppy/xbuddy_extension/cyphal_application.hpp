@@ -21,15 +21,7 @@ namespace cyphal {
 
 using TimePoint = freertos::TimePoint;
 
-/// Represents compressed, parsed node name.
-/// No need to store and compare strings all the time.
-/// We wouldn't know what to do with unknown nodes anyway.
-enum class NodeName : uint8_t {
-    none = 0,
-    cz_prusa3d_honeybee_ac_controller,
-    cz_prusa3d_honeybee_nfc,
-    cz_prusa3d_honeybee_tool_offset_sensor,
-};
+using NodeName = xbuddy_extension::NodeName;
 
 /// Parse raw node name.
 NodeName parse_node_name(Bytes);
@@ -85,8 +77,8 @@ public:
     [[nodiscard]] virtual bool receive(const ac_controller::LedConfig &) = 0;
     [[nodiscard]] virtual bool receive(const tool_offset_sensor::Config &) = 0;
     virtual const ModbusRequest &request() = 0;
-    virtual void request_ac_controller(xbuddy_extension::NodeState &, ac_controller::Status &) = 0;
-    virtual void request_tool_offset_sensor(xbuddy_extension::NodeState &, tool_offset_sensor::Status &) = 0;
+    virtual void request_ac_controller(ac_controller::Status &) = 0;
+    virtual void request_tool_offset_sensor(tool_offset_sensor::Status &) = 0;
 
     [[nodiscard]] virtual NfcNode &get_nfc(anfc::Device) = 0;
 
@@ -99,6 +91,8 @@ public:
         Bytes text;
     };
     virtual LogData get_log() const = 0;
+
+    virtual const xbuddy_extension::modbus::CyphalNodeTable &get_cyphal_node_table() const = 0;
 };
 
 /// Run the cyphal application for a while.

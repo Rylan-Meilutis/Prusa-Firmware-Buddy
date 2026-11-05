@@ -96,7 +96,7 @@ void Chamber::step() {
     std::lock_guard _lg(mutex_);
 
 #if XL_ENCLOSURE_SUPPORT()
-    thermistor_temperature_ = xl_enclosure.getEnclosureTemperature();
+    thermistor_temperature_ = xl_enclosure.get_enclosure_temperature();
 
 #elif HAS_XBUDDY_EXTENSION()
     // Dummy, untested implementation.
@@ -218,7 +218,7 @@ Chamber::Capabilities Chamber::capabilities() const {
 
 Chamber::Backend Chamber::backend() const {
 #if XL_ENCLOSURE_SUPPORT()
-    if (xl_enclosure.isEnabled()) {
+    if (xl_enclosure.is_enabled()) {
         return Backend::xl_enclosure;
     }
 #endif
@@ -263,6 +263,11 @@ std::optional<Temperature> Chamber::thermistor_temperature() const {
 std::optional<Temperature> Chamber::target_temperature() const {
     std::lock_guard _lg(mutex_);
     return target_temperature_;
+}
+
+std::optional<Temperature> Chamber::effective_target_temperature() const {
+    std::lock_guard _lg(mutex_);
+    return capabilities_nolock().temperature_control_at_this_moment() ? target_temperature_ : std::nullopt;
 }
 
 std::optional<Temperature> Chamber::set_target_temperature(std::optional<Temperature> target) {

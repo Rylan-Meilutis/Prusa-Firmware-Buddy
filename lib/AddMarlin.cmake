@@ -38,9 +38,9 @@ if(HAS_PLANNER)
     )
 endif()
 
-target_compile_options(
-  Marlin PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wno-psabi> $<$<COMPILE_LANGUAGE:CXX>:-Werror=switch>
-  )
+target_compile_options(Marlin PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Werror=switch>)
+
+target_compile_options(Marlin PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-psabi>)
 
 if(BOARD_IS_MASTER_BOARD)
   # Full Marlin configuration for printing (*BUDDY boards)
@@ -195,7 +195,7 @@ if(BOARD_IS_MASTER_BOARD)
         )
     else()
       target_sources(
-        Marlin PRIVATE Marlin/Marlin/src/module/prusa/toolchanger_utils.cpp
+        Marlin PRIVATE Marlin/Marlin/src/module/prusa/toolchanger_utils_xl.cpp
                        Marlin/Marlin/src/module/prusa/toolchanger_xl.cpp
         )
     endif()
@@ -270,6 +270,7 @@ target_link_libraries(
          raii
          otp # burst_stepper
          accelerometer
+         uuid
   )
 target_link_libraries(Marlin PRIVATE CppStdExtensions logging freertos)
 

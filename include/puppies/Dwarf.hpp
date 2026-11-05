@@ -318,9 +318,6 @@ void ToolsMappingBody::windowEvent([[maybe_unused]] window_t *sender, GUI_event_
     float get_heatbreak_temp();
     uint16_t get_heatbreak_fan_pwr();
 
-    inline uint8_t dwarf_index() const {
-        return dwarf_number;
-    }
     PhysicalToolIndex tool_index() const {
         return PhysicalToolIndex::from_raw(dwarf_number);
     }
@@ -545,6 +542,6 @@ protected:
 };
 
 // we keep old array size instead of PhysicalToolIndex::count because of weak indexing (see definition of PhysicalToolIndex::count)
-extern StrongIndexArray<Dwarf, DWARF_MAX_COUNT, PhysicalToolIndex, PhysicalToolIndex::to_raw_static, strong_index_array::AllowWeakIndexing::yes> dwarfs;
+extern StrongIndexArray<Dwarf, PhysicalToolIndex::count, PhysicalToolIndex, PhysicalToolIndex::to_raw_static> dwarfs;
 
 } // namespace buddy::puppies

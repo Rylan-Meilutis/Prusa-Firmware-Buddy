@@ -6,6 +6,7 @@
 #include "../../../lib/Marlin/Marlin/src/module/temperature.h"
 
 #include "marlin_server.hpp"
+#include <common/marlin_vars.hpp>
 #include "pause_stubbed.hpp"
 #include <atomic>
 #include <functional> // std::invoke
@@ -19,7 +20,6 @@
 #include <mapi/parking.hpp>
 #include <raii/auto_restore.hpp>
 
-#include <option/has_bowden.h>
 #include <option/has_human_interactions.h>
 #include <option/has_wastebin.h>
 #include <option/has_auto_retract.h>
@@ -31,10 +31,7 @@
     #include <feature/extrusion_calibration.hpp>
 #endif
 
-#include <raii/scope_guard.hpp>
-
 #include <option/has_indx.h>
-#include <bsod/bsod.h>
 #if HAS_INDX()
     #include <Marlin/src/module/tool_change.h>
     #include <nozzle_cleaner.hpp>
@@ -63,10 +60,10 @@ using namespace filament_gcodes;
  */
 static bool load_unload(Pause::LoadType load_type, pause::Settings &rSettings) {
     float disp_temp = marlin_vars().active_hotend().display_nozzle;
-    float targ_temp = Temperature::degTargetHotend(rSettings.GetExtruder());
+    float targ_temp = Temperature::degTargetHotend(rSettings.physical_tool());
 
     if (disp_temp > targ_temp) {
-        thermalManager.setTargetHotend(static_cast<int16_t>(disp_temp), rSettings.GetExtruder());
+        thermalManager.setTargetHotend(static_cast<int16_t>(disp_temp), rSettings.physical_tool());
     }
 
     // Load/Unload filament
@@ -120,14 +117,16 @@ void filament_gcodes::M701_load(const M701LoadArgs &args) {
             preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::for_filament_load(false));
         }
     }
+
+    filament_to_be_loaded = filament::apply_load_color(filament_to_be_loaded, virtual_tool, args.color_to_be_loaded);
+
     filament::set_type_to_load(filament_to_be_loaded);
-    filament::set_color_to_load(color_to_be_loaded);
+    filament::set_color_to_load(args.color_to_be_loaded);
 
     pause::Settings settings;
     settings.SetExtruder(virtual_tool);
     settings.SetFastLoadLength(args.fast_load_length);
     settings.SetRetractLength(0.f);
-    settings.SetMmuFilamentToLoad(args.mmu_slot.value_or(-1));
 
     mapi::ParkingPosition park_position = mapi::get_parking_position(do_purge_only ? mapi::ParkPosition::purge : mapi::ParkPosition::load);
     park_position.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = args.z_min_pos };
@@ -264,118 +263,6 @@ void filament_gcodes::M70X_process_user_response(PreheatStatus::Result res, Virt
     PreheatStatus::SetResult(res);
 }
 
-void filament_gcodes::M1701_autoload(const std::optional<float> &fast_load_length, float z_min_pos, uint8_t target_extruder) {
-    const auto virtual_tool = VirtualToolIndex::from_raw(target_extruder);
-
-    filament::set_type_to_load(FilamentType::none);
-    filament::set_color_to_load(std::nullopt);
-
-    InProgress progress;
-    ScopeGuard autoload_clr = [&] {
-        FSensors_instance().ClrAutoloadSent();
-    };
-
-    if constexpr (option::has_bowden) {
-        config_store().set_filament_type(virtual_tool, FilamentType::none);
-        M701_load(M701LoadArgs {
-            .fast_load_length = fast_load_length,
-            .z_min_pos = z_min_pos,
-            .op_preheat = RetAndCool_t::Return,
-            .virtual_tool = virtual_tool,
-            .mmu_slot = 0,
-        });
-        return;
-    }
-
-#if HAS_INDX()
-    // Park the tool back to its dock after autoload (covers all early-return paths)
-    ScopeGuard park_after_autoload = [&] {
-        tool_change(NoTool {}, tool_return_t::dock_backoff);
-    };
-#endif
-
-    pause::Settings settings;
-    settings.SetExtruder(target_extruder);
-    settings.SetFastLoadLength(fast_load_length);
-    settings.SetRetractLength(0.f);
-    float e_pos_to_restore = current_position.e;
-    mapi::ParkingPosition pos = mapi::get_parking_position(mapi::ParkPosition::load);
-    pos.z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos };
-    settings.SetParkPoint(pos);
-
-    auto active_tool = stdext::get_optional<PhysicalToolIndex>(PhysicalToolIndex::currently_selected());
-    if (!active_tool.has_value()) {
-        bsod("Autoload to notool");
-    }
-
-    const uint16_t orig_temp = Temperature::degTargetHotend(*active_tool);
-
-    ScopeGuard fail_guard = [&] {
-        thermalManager.setTargetHotend(orig_temp, *active_tool);
-        PreheatStatus::SetResult(PreheatStatus::Result::DoneNoFilament);
-    };
-
-    auto unload_filament = [&](Pause::LoadType unload_type) {
-        Pause::Instance().perform(unload_type, settings);
-    };
-
-    if (orig_temp < EXTRUDE_MINTEMP) {
-        thermalManager.setTargetHotend(EXTRUDE_MINTEMP, *active_tool);
-    }
-
-    const auto no_filament_in_extruder = [&]() {
-        return FSensors_instance().no_filament_surely(LogicalFilamentSensor::extruder)
-            || (!FSensors_instance().sensor(LogicalFilamentSensor::extruder) && FSensors_instance().no_filament_surely(LogicalFilamentSensor::side));
-    };
-
-    // catch filament in gear and then ask for temp
-    if (!Pause::Instance().perform(Pause::LoadType::load_to_gears, settings) && !no_filament_in_extruder()) {
-        // Unload when user said stop and filament was already loaded
-        unload_filament(Pause::LoadType::unload_from_gears);
-        return;
-    }
-    // check if filament is in gears before continuing to preheat
-    if (no_filament_in_extruder()) {
-        return;
-    }
-
-    if constexpr (option::has_human_interactions) {
-        const FilamentSelectionArgs data {
-            .mode = PreheatMode::autoload,
-            .tool = virtual_tool,
-            .ret_cool = RetAndCool_t::Return,
-        };
-        auto preheat_ret = preheat(data, PreheatBehavior::for_filament_load());
-
-        if (preheat_ret.first) {
-            // canceled
-            unload_filament(Pause::LoadType::unload_from_gears);
-            return;
-        }
-
-        const FilamentType filament = preheat_ret.second;
-        filament::set_type_to_load(filament);
-        filament::set_color_to_load(std::nullopt);
-
-        mapi::ParkingPosition park_position = { .z = mapi::ParkingPosition::AtLeast { .above_print = Z_NOZZLE_PARK_RISE, .absolute = z_min_pos } };
-        // Returning to previous position is unwanted outside of printing (M1701 should be used only outside of printing)
-        settings.SetParkPoint(park_position);
-
-        if (!Pause::Instance().perform(Pause::LoadType::autoload, settings)) {
-            // This is a bit problematic, since we dont know how far the autoload has gotten (if only waiting for preheat or already loading to nozzle) -> therefore we have to always do the full unload even if it was stoped during wait_temp (where only unload from gears would suffice)
-            // This could possibly be solved if we move preheating and the whole autoload process into pause (so that is wouldn't be seperated to two operations (load_to_gears and autoload)) and then we could tell apart when the autoload was stopped
-            unload_filament(Pause::LoadType::unload);
-            return;
-        }
-    }
-    sync_e_position_to(e_pos_to_restore);
-    destination.e = e_pos_to_restore;
-
-    // at this point autoload is considered successful so fail guard is not to be triggered and we report DoneHasFilament as status
-    fail_guard.disarm();
-    PreheatStatus::SetResult(PreheatStatus::Result::DoneHasFilament);
-}
-
 void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, VirtualToolIndex virtual_tool, RetAndCool_t preheat, AskFilament_t ask_filament, std::optional<Color> color_to_be_loaded) {
     InProgress progress;
 
@@ -421,7 +308,7 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
 
     pause::Settings settings;
     settings.SetParkPoint(mapi::get_parking_position(mapi::ParkPosition::unload));
-    settings.SetExtruder(virtual_tool.to_raw());
+    settings.SetExtruder(virtual_tool);
     settings.SetRetractLength(0.f);
 
     // Pick the right tool
@@ -456,8 +343,10 @@ void filament_gcodes::M1600_change_filament(FilamentType filament_to_be_loaded, 
     } else {
         preheat_to(filament_to_be_loaded, virtual_tool.to_physical(), PreheatBehavior::for_filament_load(false));
     }
+
+    filament_to_be_loaded = filament::apply_load_color(filament_to_be_loaded, virtual_tool, color_to_be_loaded);
+
     filament::set_type_to_load(filament_to_be_loaded);
-    filament::set_color_to_load(color_to_be_loaded);
 
     // Update park position for load phase (move to front/load position instead of staying at unload/waste bin position)
     settings.SetParkPoint(mapi::get_parking_position(mapi::ParkPosition::load));

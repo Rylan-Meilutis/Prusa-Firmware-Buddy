@@ -15,11 +15,6 @@ public:
         return items_.size();
     }
 
-    [[deprecated("Use MenuItemSelectMenu::current_item")]]
-    inline size_t get_index() const {
-        return current_item();
-    }
-
 protected:
     void set_items(std::span<const char *const> items) {
         items_ = items;
@@ -32,7 +27,7 @@ protected:
 
     bool on_item_selected(const OnItemSelectedArgs &args) override;
 
-    string_view_utf8 build_item_text(int index, ItemTextParams &params) const final;
+    string_view_utf8 build_item_text(int index, StringViewUtf8ParamBase &params) const final;
 
 private:
     std::span<const char *const> items_;
