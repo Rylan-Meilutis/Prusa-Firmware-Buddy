@@ -3,6 +3,7 @@
 #include <timing.h>
 #include <serial_printing.hpp>
 #include <strings.h>
+#include <cstdio>
 
 PrintStatusMessageManager print_status_message_instance;
 
@@ -40,6 +41,23 @@ static int serial_progress_percent(float current, float target) {
     }
     return static_cast<int>(percent + 0.5f);
 }
+
+#if !PRINTER_IS_PRUSA_MINI()
+static const char *serial_probe_progress_label(const char *label, float current, float target) {
+    if (!(current >= 0 && current <= target && target > 0 && target <= UINT16_MAX)) {
+        return nullptr;
+    }
+    const auto point = static_cast<uint16_t>(current);
+    const auto points = static_cast<uint16_t>(target);
+    if (current != point || target != points) {
+        return nullptr;
+    }
+    // notify_status retains the label pointer. Never hand it a stack buffer.
+    static char text[64];
+    snprintf(text, sizeof(text), "%s %u/%u points", label, unsigned(point), unsigned(points));
+    return text;
+}
+#endif
 
 void report_print_status_to_serial_host(const PrintStatusMessage &message) {
     if (suppressed_cleaning_message(message.type) || message.is_temperature_wait()) {
@@ -116,6 +134,14 @@ void report_print_status_to_serial_host(const PrintStatusMessage &message) {
     int progress = -1;
     if (const auto data = std::get_if<PrintStatusMessageDataProgress>(&message.data)) {
         progress = serial_progress_percent(data->current, message.type == PrintStatusMessage::absorbing_heat ? 100.0f : data->target);
+        if (message.type == PrintStatusMessage::probing_bed || message.type == PrintStatusMessage::additional_probing) {
+            if (const auto points = serial_probe_progress_label(label, data->current, data->target)) {
+                // A large/adaptive mesh can advance by less than five percent
+                // per point; do not let generic status throttling hide points.
+                SerialPrinting::notify_status(points, progress, true);
+                return;
+            }
+        }
     } else if (const auto data = std::get_if<PrintStatusMessageDataToolProgress>(&message.data)) {
         progress = serial_progress_percent(data->progress.current, data->progress.target);
     } else if (const auto data = std::get_if<PrintStatusMessageDataAxisProgress>(&message.data)) {
