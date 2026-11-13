@@ -449,6 +449,11 @@ void SerialPrinting::print_loop() {
     }
 }
 
+void SerialPrinting::start_inactivity_window() {
+    const uint32_t now = ticks_ms();
+    last_serial_indicator_ms = now ? now : UINT32_MAX;
+}
+
 void SerialPrinting::abort() {
     host_action("cancel");
 }
@@ -483,7 +488,7 @@ bool SerialPrinting::has_serial_timeouted() {
         return false;
     }
 
-    if (last_serial_indicator_ms != 0 && last_serial_indicator_ms <= curr_time && curr_time <= last_serial_indicator_ms + serial_printing_screen_timeout_ms()) {
+    if (last_serial_indicator_ms != 0 && uint32_t(curr_time - last_serial_indicator_ms) <= serial_printing_screen_timeout_ms()) {
         return false;
     } else {
         return true;

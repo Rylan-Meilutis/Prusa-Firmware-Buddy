@@ -18,6 +18,10 @@ public:
     /// periodically called when in state "printing"
     static void print_loop();
 
+    /// Start a fresh command-inactivity window after an authorized preparation
+    /// handoff. Passive session/status traffic must not renew this timer.
+    static void start_inactivity_window();
+
     /// Notify host about print abort
     static void abort();
 

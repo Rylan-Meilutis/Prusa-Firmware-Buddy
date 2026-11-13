@@ -1776,6 +1776,9 @@ bool serial_print_release_preparation(uint32_t id, bool cancel) {
     if (cancel) {
         print_abort();
     } else {
+        // Validation can outlast the previous job's command timeout. RELEASE
+        // is the authorized handoff, not evidence that the new job is idle.
+        SerialPrinting::start_inactivity_window();
         serial_preparation_id = 0;
     }
     return true;
