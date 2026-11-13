@@ -20,6 +20,7 @@
 #include <config_store/store_instance.hpp>
 #include <tasks.hpp>
 #include <algorithm>
+#include <warning_type.hpp>
 
 #if HAS_SIDE_LEDS()
     #include "leds/side_strip_handler.hpp"
@@ -174,8 +175,27 @@ namespace leds {
 
 #if !HAS_SIDE_LEDS()
 static bool guided_activity_active() {
-    return marlin_vars().peek_fsm_states([](const fsm::States &states) {
-        return states.get_top().has_value();
+    const auto state = marlin_vars().print_state.get();
+    const bool result_screen = state == marlin_server::State::Finished
+        || state == marlin_server::State::Aborted
+        || state == marlin_server::State::Idle
+        || state == marlin_server::State::Exit;
+    return marlin_vars().peek_fsm_states([result_screen](const fsm::States &states) {
+        for (size_t index = 0; index < static_cast<size_t>(ClientFSM::_count); ++index) {
+            const auto type = static_cast<ClientFSM>(index);
+            const auto &data = states[type];
+            if (!data || (result_screen && (type == ClientFSM::Printing || type == ClientFSM::Serial_printing))) {
+                continue;
+            }
+            if (type == ClientFSM::Warning) {
+                const auto warning = static_cast<WarningType>(data->GetData()[0]);
+                if (warning == WarningType::NozzleTimeout || warning == WarningType::HeatersTimeout) {
+                    continue;
+                }
+            }
+            return true;
+        }
+        return false;
     });
 }
 #endif
@@ -348,7 +368,7 @@ void LEDManager::update_lcd_brightness() {
         ? leds::LightState::printing
         : (startup_activity_active || guided_activity
                 ? leds::LightState::active
-                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
     const bool terminal_print_state = printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Exit;
@@ -357,7 +377,7 @@ void LEDManager::update_lcd_brightness() {
         lcd_brightness_wake_until_ms = 0;
         lcd_brightness_wake_from_print_override = false;
         print_override_session_active = true;
-    } else if (!print_active && terminal_print_state) {
+    } else if (!print_active && terminal_print_state && print_override_session_active) {
         print_screen_brightness_overridden = false;
         lcd_brightness_wake_until_ms = 0;
         lcd_brightness_wake_from_print_override = false;
@@ -415,7 +435,7 @@ bool LEDManager::wake_lcd_from_dim_idle() {
         ? leds::LightState::printing
         : (guided_activity
                 ? leds::LightState::active
-                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Exit
+                : printer_state == marlin_server::State::Idle || printer_state == marlin_server::State::Finished || printer_state == marlin_server::State::Aborted || printer_state == marlin_server::State::Exit
                 ? leds::LightState::idle
                 : leds::LightState::active);
     const uint8_t brightness = print_active && print_screen_brightness_overridden
