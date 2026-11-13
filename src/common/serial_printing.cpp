@@ -271,7 +271,7 @@ const char *classify_workflow(const char *message) {
     if (strstr(message, "Pressure") || strstr(message, "PA calibration")) {
         return "pressure_advance";
     }
-    if (strstr(message, "Probing") || strstr(message, "probe")) {
+    if (strstr(message, "Probing") || strstr(message, "probing") || strstr(message, "probe")) {
         return "probing";
     }
     if (strstr(message, "Heating") || strstr(message, "heat soaking")) {
