@@ -90,8 +90,10 @@ static LightState light_state_for_strip_state(SideStripState state) {
     return LightState::deep_idle;
 }
 
-static LightState screen_light_state_for_strip_state(SideStripState state, bool print_active) {
-    return state == SideStripState::unknown && print_active ? LightState::printing : light_state_for_strip_state(state);
+static LightState screen_light_state_for_strip_state(SideStripState state, bool print_active, LightState resolved) {
+    // A UI/settings refresh invalidates the requested state, not the rendered
+    // brightness. Keep the LCD stable until the lighting task resolves it.
+    return state == SideStripState::unknown ? (print_active ? LightState::printing : resolved) : light_state_for_strip_state(state);
 }
 
 static uint8_t packed_screen_brightness(uint32_t values, LightState state) {
@@ -219,7 +221,7 @@ void SideStripHandler::set_door_open(bool open, uint16_t raw_data) {
         }
         host_idle_override = false;
         active_timestamp_ms = ticks_ms();
-        const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds());
+        const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds(), resolved_light_state);
         const uint8_t brightness = light_state == LightState::printing && print_screen_brightness_overridden
             ? print_screen_brightness_override
             : packed_screen_brightness(config_store().screen_brightness_by_state.get(), light_state);
@@ -604,7 +606,7 @@ uint8_t SideStripHandler::current_screen_brightness() const {
     if (screen_brightness_wake_until_ms && ticks_diff(ticks_ms(), screen_brightness_wake_until_ms) < 0) {
         return screen_brightness_wake_percent;
     }
-    const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds());
+    const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds(), resolved_light_state);
     if (light_state == LightState::printing && print_active_for_leds() && print_screen_brightness_overridden) {
         return print_screen_brightness_override;
     }
@@ -626,7 +628,7 @@ bool SideStripHandler::wake_screen_from_dim_idle() {
         || (screen_brightness_wake_until_ms && ticks_diff(ticks_ms(), screen_brightness_wake_until_ms) < 0)) {
         return false;
     }
-    const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds());
+    const LightState light_state = screen_light_state_for_strip_state(state, print_active_for_leds(), resolved_light_state);
     const uint8_t brightness = light_state == LightState::printing && print_screen_brightness_overridden
         ? print_screen_brightness_override
         : packed_screen_brightness(config_store().screen_brightness_by_state.get(), light_state);

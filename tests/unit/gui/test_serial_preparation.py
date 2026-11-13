@@ -6,6 +6,63 @@ import test_serial_pause_recovery as fixture
 class SerialPreparation(unittest.TestCase):
     run_cpp = fixture.SerialPauseRecovery.run_cpp
 
+    def test_release_gets_fresh_timeout_without_disabling_idle_detection(self):
+        server_source = (fixture.ROOT /
+                         "src/common/marlin_server.cpp").read_text()
+        serial_source = (fixture.ROOT /
+                         "src/common/serial_printing.cpp").read_text()
+        self.run_cpp(
+            r'''
+#include <cassert>
+#include <cstdint>
+uint32_t now=180000;
+uint32_t ticks_ms() {return now;}
+struct GCodeQueue {static bool has_commands_queued() {return false;}};
+struct {bool processing() {return false;}} planner;
+struct SerialPrinting {
+ static uint32_t last_serial_indicator_ms;
+ static uint32_t serial_printing_screen_timeout_ms() {return 20000;}
+ static void start_inactivity_window();
+ static bool has_serial_timeouted();
+};
+uint32_t SerialPrinting::last_serial_indicator_ms=1000;
+uint32_t serial_preparation_id=42;
+bool preparing=true;
+bool serial_print_preparing() {return preparing;}
+void print_abort() {preparing=false;serial_preparation_id=0;}
+''' + fixture.function(serial_source,
+                       "void SerialPrinting::start_inactivity_window()") +
+            fixture.function(serial_source,
+                             "bool SerialPrinting::has_serial_timeouted()") +
+            fixture.function(server_source,
+                             "bool serial_print_release_preparation(") + r'''
+int main() {
+ assert(SerialPrinting::has_serial_timeouted()); // Long validation, old timer.
+ assert(!serial_print_release_preparation(41,false));
+ assert(SerialPrinting::last_serial_indicator_ms==1000);
+ assert(serial_print_release_preparation(42,false));
+ assert(!SerialPrinting::has_serial_timeouted());
+ assert(serial_preparation_id==0);
+ now+=19999; assert(!SerialPrinting::has_serial_timeouted());
+ now+=2; assert(SerialPrinting::has_serial_timeouted());
+ // Cancel and rejected/stale release cannot renew another job's timer.
+ serial_preparation_id=43; preparing=true;
+ auto previous=SerialPrinting::last_serial_indicator_ms;
+ assert(serial_print_release_preparation(43,true));
+ assert(SerialPrinting::last_serial_indicator_ms==previous);
+ assert(!serial_print_release_preparation(43,false));
+ assert(SerialPrinting::last_serial_indicator_ms==previous);
+ // Crossing the millisecond counter wrap must not finish the new print.
+ preparing=true; serial_preparation_id=44; now=UINT32_MAX-10000;
+ assert(serial_print_release_preparation(44,false));
+ now+=19999; assert(!SerialPrinting::has_serial_timeouted());
+ now+=2; assert(SerialPrinting::has_serial_timeouted());
+ preparing=true; serial_preparation_id=45; now=0;
+ assert(serial_print_release_preparation(45,false));
+ assert(!SerialPrinting::has_serial_timeouted());
+}
+''')
+
     def test_new_review_replaces_only_terminal_print_results(self):
         source = (fixture.ROOT / "src/common/marlin_server.cpp").read_text()
         method = fixture.function(source, "bool dismiss_print_result()")
@@ -80,6 +137,7 @@ enum class PhasesSerialPrinting { active };
 struct { State print_state = State::Idle; bool print_is_serial = false; } server;
 bool lease = true, locked = false, processing = false, screen = false;
 int timer_starts = 0, print_starts = 0, creates = 0, host_cancels = 0;
+struct SerialPrinting { static void start_inactivity_window() {} };
 namespace serial_remote_control { bool session_active() {return lease;} }
 namespace printer_lock { bool locked() {return ::locked;} }
 bool is_processing() {return processing;}
