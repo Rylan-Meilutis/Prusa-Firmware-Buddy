@@ -19,12 +19,18 @@ uses file byte position, not percent completion. These are queued-file counts,
 not a claim to track executed motion, manual interventions or fallback changes.
 
 The serial progress carousel uses remaining time, end time, elapsed time, then
-Tool changes left (remaining / total). The fourth item is available only when
-fresh accepted counts have remaining > 0. Optional next-pause time remains
+Tool changes done ((total - remaining) / total). The fourth item is available
+whenever accepted counts are fresh, including 0/0 and the final total/total.
+The existing fourth-item index is unchanged. Optional next-pause time remains
 available after it. Counts are not scaled or marked uncertain by print speed.
 
 The companion Dashboard uses a native-style three-quarter circular gauge. Its
-ring represents remaining/total; a known print with no transitions displays 0/0
+ring represents completed/total, filling from 0/total to total/total; a known
+print with no transitions displays 0/0
 and a full ring. Unknown counts remain unknown. Firmware and companion plugin
 updates are both required for the new LCD item; older firmware still supports
 the plugin-only Dashboard gauge.
+
+The wire fields keep their original remaining/total meaning. Only presentation
+converts remaining to completed, so older hosts and telemetry consumers remain
+compatible. Neither display invents execution counts from elapsed time.

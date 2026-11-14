@@ -45,7 +45,7 @@ private:
         remaining_time,
         end_time,
         time_since_start,
-        remaining_tool_changes,
+        completed_tool_changes,
         time_to_change,
         _count,
     };
