@@ -1,24 +1,13 @@
 #pragma once
 
-#include "screen.hpp"
-#include "window_filebrowser.hpp"
-#include "window_header.hpp"
+#include "screen_filebrowser.hpp"
 
-class ScreenThemeFileBrowser final : public screen_t {
-    window_header_t header;
-    WindowExtendedMenu<WindowFileBrowser> file_browser;
-
-    WindowFileBrowser &browser() {
-        return file_browser.menu;
-    }
-
-    void load_selected_file();
-    void go_home();
-    void check_missing_media(MediaState_t media_state);
+class ScreenThemeFileBrowser final : public FileBrowserScreen {
+    static const FileBrowserConfiguration configuration_;
+    static void load_selected_file(const char *path);
+    static void on_media_removed();
+    static void close_browser();
 
 public:
     ScreenThemeFileBrowser();
-
-protected:
-    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 };

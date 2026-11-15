@@ -150,8 +150,10 @@ using MI_NETWORK_STATUS
 using MI_HARDWARE
     = MI_SCREEN<N_("Hardware"), class ScreenMenuHardware>;
 
-using MI_HELP_FW_UPDATE
-    = MI_SCREEN<N_("Firmware Update"), class ScreenHelpFWUpdate, &img::question_16x16>;
+class MI_HELP_FW_UPDATE final : public MI_SCREEN_BASE {
+public:
+    MI_HELP_FW_UPDATE();
+};
 
 #if HAS_WASTEBIN_FILL_TRACKING()
 using MI_WASTEBIN

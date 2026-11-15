@@ -118,22 +118,15 @@ constexpr std::array<const ThemeColors *, 5> built_in_themes {
 };
 
 bool same_theme(const ThemeColors &lhs, const ThemeColors &rhs) {
-    return lhs.primary == rhs.primary
-        && lhs.progress == rhs.progress
-        && lhs.warning == rhs.warning
-        && lhs.error == rhs.error
-        && lhs.image == rhs.image
-        && lhs.led_idle == rhs.led_idle
-        && lhs.led_printing == rhs.led_printing
-        && lhs.led_finished == rhs.led_finished
-        && lhs.led_warning == rhs.led_warning
-        && lhs.led_error == rhs.led_error;
+    // Every byte is a uint32_t color, with no padding to affect equality.
+    static_assert(sizeof(ThemeColors) == 10 * sizeof(uint32_t));
+    return std::memcmp(&lhs, &rhs, sizeof(ThemeColors)) == 0;
 }
 
-bool edit_color(const string_view_utf8 &prompt, auto &store_item) {
+bool edit_color_value(const string_view_utf8 &prompt, uint32_t &value) {
     std::array<char, 8> buffer {};
     StringBuilder sb(buffer);
-    sb.append_printf("%06lx", static_cast<unsigned long>(store_item.get() & 0xffffff));
+    sb.append_printf("%06lx", static_cast<unsigned long>(value & 0xffffff));
     if (!DialogTextInput::exec(prompt, buffer)) {
         return false;
     }
@@ -151,7 +144,18 @@ bool edit_color(const string_view_utf8 &prompt, auto &store_item) {
         return false;
     }
 
-    store_item.set(raw);
+    value = raw;
+    return true;
+}
+
+// Store entries have distinct types. Keep the dialog/parser out of their
+// template instantiations so every color control shares one implementation.
+bool edit_color(const string_view_utf8 &prompt, auto &store_item) {
+    uint32_t value = store_item.get();
+    if (!edit_color_value(prompt, value)) {
+        return false;
+    }
+    store_item.set(value);
     return true;
 }
 
@@ -248,12 +252,7 @@ bool parse_hex_color_token(const char *json, const jsmntok_t &token, uint32_t &o
     if (len != 6) {
         return false;
     }
-    for (size_t i = 0; i < len; ++i) {
-        if (!std::isxdigit(static_cast<unsigned char>(begin[i]))) {
-            return false;
-        }
-    }
-
+    // from_chars plus the exact-end check below validates every hex digit.
     uint32_t raw = 0;
     const char *end = begin + len;
     const auto result = std::from_chars(begin, end, raw, 16);

@@ -1,43 +1,19 @@
 #pragma once
 
 #include "screen_menu.hpp"
-#include "window_filebrowser.hpp"
+#include "MItem_menus.hpp"
+#include <gui/screen/screen_menu_virtual.hpp>
+#include "screen_filebrowser.hpp"
 #include <window_header.hpp>
 
-class MI_FIRMWARE_SELECT_USB final : public IWindowMenuItem {
-public:
-    MI_FIRMWARE_SELECT_USB();
+using MI_FIRMWARE_SELECT_USB = MI_SCREEN<N_("Select BBF from USB"), class ScreenFirmwareFileBrowser>;
+using MI_FIRMWARE_UPDATE_HELP = MI_SCREEN<N_("Update Instructions"), class ScreenHelpFWUpdate>;
 
-protected:
-    void click(IWindowMenu &) override;
-};
-
-class MI_FIRMWARE_UPDATE_HELP final : public IWindowMenuItem {
-public:
-    MI_FIRMWARE_UPDATE_HELP();
-
-protected:
-    void click(IWindowMenu &) override;
-};
-
-using ScreenMenuFirmwareUpdate_ = ScreenMenu<GuiDefaults::MenuFooter, MI_RETURN,
-    MI_FIRMWARE_SELECT_USB, MI_FIRMWARE_UPDATE_HELP>;
-
-class ScreenMenuFirmwareUpdate final : public ScreenMenuFirmwareUpdate_ {
-public:
-    ScreenMenuFirmwareUpdate();
-};
-
-class ScreenFirmwareFileBrowser final : public screen_t {
-    window_header_t header;
-    WindowExtendedMenu<WindowFileBrowser> file_browser;
-
-    WindowFileBrowser &browser() { return file_browser.menu; }
-    void check_missing_media(MediaState_t media_state);
-    void select_file();
-    void go_home();
+class ScreenFirmwareFileBrowser final : public FileBrowserScreen {
+    static const FileBrowserConfiguration configuration_;
+    static void select_file(const char *path);
+    static void close_browser();
 
 public:
     ScreenFirmwareFileBrowser();
-    void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 };
