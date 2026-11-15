@@ -8,6 +8,34 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class RmeMenuParity(unittest.TestCase):
 
+    def test_firmware_update_opens_selector_and_retains_instructions(self):
+        menus = (ROOT / "src/gui/MItem_menus.hpp").read_text()
+        self.assertIn('class MI_HELP_FW_UPDATE final : public MI_SCREEN_BASE',
+                      menus)
+        constructors = (ROOT / "src/gui/MItem_menus.cpp").read_text()
+        self.assertIn('#include "screen_firmware_update.hpp"', constructors)
+        self.assertIn(
+            "template struct MI_SCREEN_CTOR<ScreenFirmwareFileBrowser>;",
+            constructors)
+        picker = (ROOT / "src/gui/screen_firmware_update.cpp").read_text()
+        header = (ROOT / "src/gui/screen_firmware_update.hpp").read_text()
+        self.assertIn("MI_FIRMWARE_SELECT_USB", header)
+        self.assertIn("MI_FIRMWARE_UPDATE_HELP", header)
+        self.assertIn(
+            'MI_SCREEN<N_("Select BBF from USB"), class ScreenFirmwareFileBrowser>',
+            header)
+        self.assertIn(
+            'MI_SCREEN<N_("Update Instructions"), class ScreenHelpFWUpdate>',
+            header)
+        self.assertIn("item.emplace<MI_FIRMWARE_SELECT_USB>()", picker)
+        self.assertIn("item.emplace<MI_FIRMWARE_UPDATE_HELP>()", picker)
+        self.assertIn("MI_HELP_FW_UPDATE::MI_HELP_FW_UPDATE()", picker)
+        self.assertIn(
+            "ScreenFactory::ScreenWithArg<ScreenMenuVirtual>(&firmware_update_menu)",
+            picker)
+        info = (ROOT / "src/gui/screen_menu_info.hpp").read_text()
+        self.assertIn("MI_HELP_FW_UPDATE", info)
+
     def test_control_filtration_shortcuts_remain_hardware_guarded(self):
         source = (ROOT / "src/gui/screen_menu_control.hpp").read_text()
         self.assertRegex(
