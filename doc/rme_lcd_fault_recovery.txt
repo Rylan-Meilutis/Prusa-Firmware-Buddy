@@ -1,0 +1,40 @@
+RME 8.x intermittent LCD blank/white screen investigation -- 2026-11-14
+
+Reported target: COREONEINDX, M115 8.0.0-RME. User confirms display-only
+loss; printer operation continues. Serial light state shows LCD commanded on.
+This is not evidence of a whole-printer reset or proof of an electrical cause.
+
+Reproduced software behavior in published 8.0.0:
+- One invalid MADCTL register read immediately requests a full LCD reset,
+  even when the next read is healthy. LCD initialization clears the panel.
+- bare_communication_check resets the panel without updating the repeated
+  display-error counter, so modal/error loops can bypass the low-speed fallback.
+- Recovery initialization unconditionally sets brightness to 255, although
+  the brightness policy caches its last output and may not reapply it.
+
+Changes:
+- Read display status at the conservative pixel-read prescaler, with a bounded
+  20 ms HAL timeout; explicitly reject bytes returned by a failed HAL operation.
+- Retry one invalid/failed read before requesting recovery. Two failures still
+  recover immediately in the current periodic check, not on a later timer tick.
+- Skip checks for an intentionally sleeping/suppressed panel.
+- Share error counting/rate limiting/low-speed fallback between normal and bare
+  GUI paths. Keep touchscreen callbacks out of bare loops, retain normal touch
+  recovery and its existing disable policy.
+- Preserve requested brightness on recovery and invalidate both the active
+  screen and global GUI redraw flag. Log the LCD-versus-touch recovery cause.
+
+Validation:
+Production-code host tests inject transient errors, persistent errors, failed
+HAL transfers with plausible bytes, sleeping displays and repeated bare-loop
+faults. Test touch-only recovery, shared rate limiting, missing active screen,
+brightness preservation, full redraw and retained fallback warnings.
+Host fixtures run under ASan/UBSan. The published single-read reset behavior
+was separately reproduced from its actual source.
+
+Physical panel/SPI/cable behavior is not emulated. These changes repair
+reproduced software weaknesses, not a confirmed diagnosis of the user's exact
+electrical failure. A signed COREONEINDX test image and an on-device stability
+check are required before claiming the reported blackout fully resolved.
+If it recurs, collect Save Logs To File output around the incident; look for
+"Recovering LCD: display_check=... touch=..." and touch read-error messages.
