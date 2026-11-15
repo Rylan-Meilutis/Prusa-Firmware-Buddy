@@ -243,17 +243,18 @@ void ili9488_cmd_1_data(uint8_t cmd, uint8_t data) {
     ili9488_cmd(cmd, &data, 1);
 }
 
-void ili9488_cmd_rd(uint8_t cmd, uint8_t *pdata) {
-    // reading is even more reliable at 10MHz
-    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_8 };
+static bool ili9488_cmd_rd(uint8_t cmd, uint8_t *pdata) {
+    // Register reads need the same conservative clock as pixel reads.
+    SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_16 };
 
     ili9488_clr_cs(); // CS = L
     ili9488_clr_rs(); // RS = L
     uint8_t data_to_write[ILI9488_MAX_COMMAND_READ_LENGHT] = { 0x00 };
     data_to_write[0] = cmd;
     data_to_write[1] = 0x00;
-    HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ILI9488_MAX_COMMAND_READ_LENGHT, HAL_MAX_DELAY);
+    const auto result = HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ILI9488_MAX_COMMAND_READ_LENGHT, 20);
     ili9488_set_cs();
+    return result == HAL_OK;
 }
 
 void ili9488_wr(uint8_t *pdata, uint16_t size) {
@@ -342,16 +343,24 @@ void ili9488_cmd_ramrd(uint8_t *pdata, uint16_t size) {
 }
 
 bool ili9488_is_reset_required() {
+    // Do not wake an intentionally sleeping panel from a bare/modal GUI loop.
+    if (display_writes_suppressed) {
+        return false;
+    }
     // REMOVEME: This is a bit of hack to reduce config_store locks.
     // This function is called in lcd::communication_check every 2 s.
     reduce_display_baudrate = config_store().reduce_display_baudrate.get();
 
-    uint8_t pdata[ILI9488_MAX_COMMAND_READ_LENGHT] = { 0x00 };
-    ili9488_cmd_rd(CMD_MADCTLRD, pdata);
-    if ((pdata[1] != 0xE0 && pdata[1] != 0xF0 && pdata[1] != 0xF8)) {
-        return true;
+    // Confirm a bad read before clearing the whole LCD. Persistent failures
+    // still request recovery during this check, not several seconds later.
+    for (unsigned attempt = 0; attempt < 2; ++attempt) {
+        uint8_t pdata[ILI9488_MAX_COMMAND_READ_LENGHT] = { 0x00 };
+        if (ili9488_cmd_rd(CMD_MADCTLRD, pdata)
+            && (pdata[1] == 0xE0 || pdata[1] == 0xF0 || pdata[1] == 0xF8)) {
+            return false;
+        }
     }
-    return false;
+    return true;
 }
 
 void ili9488_reset(void) {
@@ -454,6 +463,7 @@ static void startup_new_manufacturer() {
 }
 
 void ili9488_init(void) {
+    const uint8_t brightness = do_complete_lcd_reinit ? ili9488_config.brightness : 0xFF;
     displayCs.write(Pin::State::low);
     ili9488_task_handle = osThreadGetId();
     debug_assert_correct_task();
@@ -491,7 +501,7 @@ void ili9488_init(void) {
         ili9488_cmd(CMD_CABCCTRL2, &pwm_inverted, sizeof(pwm_inverted));
     }
 
-    ili9488_brightness_set(0xFF); // set backlight to maximum
+    ili9488_brightness_set(brightness); // preserve policy brightness on recovery
 
     do_complete_lcd_reinit = false;
 }
