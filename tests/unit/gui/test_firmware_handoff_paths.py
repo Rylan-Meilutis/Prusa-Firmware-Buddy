@@ -249,11 +249,11 @@ size_t strlcpy(char *d,const char *s,size_t n) {
 #define stat(p,s) stat_usb(p,s)
 '''
         tests = r'''
-void put(const char *p,const char *v="image") {
+void put(const char *p,const char *v="image", unsigned char major=6) {
  FILE *f=fopen(p,"wb"); assert(f);
  if(std::string(v)=="image") {
   std::array<unsigned char,115> header{};
-  header[100]=6; header[101]=9; header[102]=2;
+  header[100]=major; header[101]=9; header[102]=2;
   header[111]=7; header[112]=10;
   fwrite(header.data(),1,header.size(),f);
  } else fwrite(v,1,strlen(v),f);
@@ -274,6 +274,13 @@ bool flash(const char *name) {
 }
 int main(int argc,char **argv) {
  assert(argc==2); base=argv[1];
+ // Future firmware major versions must reach the bootloader handoff. The
+ // bootloader remains responsible for final signature/board compatibility.
+ for (unsigned char major : {8, 9, 42}) {
+  fresh(); put("/usb/FWUPD.RME", "image", major);
+  assert(flash("FWUPD.RME"));
+  assert(armed && selected=="FWUPD.RME");
+ }
  // Plugin staged image and LCD picker use the same explicit M997 handoff.
  // Legacy M998's completed FWUPD.BBF uses the rename compatibility route.
  for (const char *route : {"plugin", "picker", "legacy", "direct"}) {
