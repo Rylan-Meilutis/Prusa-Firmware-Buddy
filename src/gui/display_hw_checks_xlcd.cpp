@@ -5,6 +5,7 @@
 #include <option/has_touch.h>
 #include <device/peripherals.hpp>
 #include <logging/log.hpp>
+#include <gui_invalidate.hpp>
 #include <utils/timing/rate_limiter.hpp>
 #include <marlin_client.hpp>
 #include <option/has_human_interactions.h>
@@ -19,47 +20,29 @@ LOG_COMPONENT_REF(GUI);
     #include <utils/timing/combo_counter.hpp>
 #endif
 
-static bool check_rate_limit(uint32_t now) {
+namespace {
+void check_display([[maybe_unused]] bool check_touch) {
     static RateLimiter<uint32_t> check_limiter { 2048 };
-    return check_limiter.check(now);
-}
-
-static void reinit_lcd_and_redraw() {
-    display::complete_reinit();
-    display::init();
-    if (auto *screen = Screens::Access()->Get()) {
-        screen->Invalidate();
-    }
-}
-
-void lcd::bare_communication_check() {
-    if (!check_rate_limit(ticks_ms())) {
-        return;
-    }
-
-    if (display::is_reset_required()) {
-        reinit_lcd_and_redraw();
-    }
-}
-
-void lcd::communication_check() {
     const auto now = ticks_ms();
-    if (!check_rate_limit(now)) {
+    if (!check_limiter.check(now)) {
         return;
     }
 
-    bool do_reset = display::is_reset_required();
+    const bool display_reset = display::is_reset_required();
+    bool do_reset = display_reset;
+    [[maybe_unused]] bool touch_reset = false;
 
 #if HAS_HUMAN_INTERACTIONS()
     // Track consecutive display errors
     static ComboCounter<uint32_t, uint8_t> error_combo_counter { 10'000 };
-    error_combo_counter.step(now, do_reset);
+    error_combo_counter.step(now, display_reset);
 #endif
 
 #if HAS_TOUCH()
-    if (touchscreen.is_enabled()) {
+    if (check_touch && touchscreen.is_enabled()) {
         touchscreen.perform_check();
-        do_reset |= (touchscreen.required_recovery_action() == Touchscreen_GT911::RecoveryAction::restart_display);
+        touch_reset = touchscreen.required_recovery_action() == Touchscreen_GT911::RecoveryAction::restart_display;
+        do_reset |= touch_reset;
     }
 #endif
 
@@ -80,5 +63,22 @@ void lcd::communication_check() {
     }
 #endif
 
-    reinit_lcd_and_redraw();
+    log_warning(GUI, "Recovering LCD: display_check=%u touch=%u", static_cast<unsigned>(display_reset), static_cast<unsigned>(touch_reset));
+    display::complete_reinit();
+    display::init();
+    if (auto *screen = Screens::Access()->Get()) {
+        screen->Invalidate();
+    }
+    gui_invalidate();
+}
+} // namespace
+
+void lcd::communication_check() {
+    check_display(true);
+}
+
+void lcd::bare_communication_check() {
+    // Modal/error loops need the same error accounting and lower-speed
+    // fallback, without running touchscreen callbacks.
+    check_display(false);
 }
