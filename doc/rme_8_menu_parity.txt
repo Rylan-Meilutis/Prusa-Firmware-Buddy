@@ -1,0 +1,37 @@
+RME 6.9.2 to 8.x menu parity audit -- 2026-11-14
+
+Compared baseline rme-v6.9.2 with published v8.0.0-RME (1c9c5b9d4)
+and v8.0.1-RME (141b1765b), including menu declarations, hardware
+guards, dedicated RME screens and runtime visibility changes.
+
+Regression found and repaired in source:
+Control lost MI_CHAMBER_FILTER_CYCLE and MI_CHAMBER_FILTRATION.
+Both shortcuts are restored under HAS_CHAMBER_FILTRATION_API(),
+matching 6.9.2. Their underlying implementations already existed.
+
+Preserved RME Settings entry points:
+Serial Printing, Printer Lock, Heater Safety, PID, Export RME Settings,
+custom filament colors/manufacturers, Toolhead Settings, Lights,
+Wastebin and Chamber Filtration. User Interface still exposes UI Theme.
+Tune and serial remote-control menu entry points remain present.
+Dedicated lock/heater safety/toolhead/lighting menu declarations and
+serial remote-control implementation have no differences from 6.9.2.
+PID and serial printing settings have upstream API spelling adaptations,
+not removed options. Auto PA's menu switch uses current_item() in 8.x.
+
+Intentional differences:
+Upstream converted Footer settings to a virtual menu. Return and Reset
+are still instantiated in its item constructor in the .cpp file.
+MINI's existing custom filament metadata UI exclusion remains unchanged.
+Auto PA and light channels retain the existing hardware capability guards.
+No unsupported hardware controls were exposed merely to equalize menus.
+
+Validation:
+test_rme_menu_parity.py checks Settings entry points and guarded Control
+shortcuts in main and both 8.x source worktrees.
+Restored screen_menu_control.cpp compiled successfully for 8.0.0 COREONE,
+COREONEINDX, COREONEL, MK4 and MK3.5; 8.0.1 XL and MINI.
+These are object compilations, not newly packaged release images.
+Physical menu visibility and bootloader flashing were not tested.
+Published assets/tags are unchanged by this audit; replacements require
+the normal complete release-build and checksum-verification workflow.
