@@ -5,26 +5,36 @@
 #include "screen.hpp"
 #include "window_dlg_wait.hpp"
 
-class screen_filebrowser_data_t : public screen_t {
+struct FileBrowserConfiguration {
+    const char *path;
+    const char *title;
+    FileSort::FileFilter filter;
+    bool save_top = true;
+    void (*on_file_selected)(const char *);
+    void (*on_media_removed)() = nullptr;
+    void (*close)() = nullptr;
+};
+
+// One navigation implementation, with separate immutable selection policies.
+class FileBrowserScreen : public screen_t {
+    const FileBrowserConfiguration &configuration_;
     window_header_t header;
     WindowExtendedMenu<WindowFileBrowser> file_browser;
-
-    inline WindowFileBrowser &browser() {
-        return file_browser.menu;
-    }
-
-    void printTheFile();
+    WindowFileBrowser &browser() { return file_browser.menu; }
+    void select_file();
     void goHome();
-
-    /**
-     * @brief Check if media is removed and close filebrowser.
-     * @param media_state media state from event or from global state
-     */
     void checkMissingMedia(MediaState_t media_state);
+    void close_browser();
+
+protected:
+    FileBrowserScreen(const FileBrowserConfiguration &configuration, const char *path = nullptr);
+    void windowEvent(window_t *sender, GUI_event_t event, void *param) final;
+};
+
+class screen_filebrowser_data_t : public FileBrowserScreen {
+    static const FileBrowserConfiguration configuration_;
+    static void printTheFile(const char *path);
 
 public:
     screen_filebrowser_data_t();
-
-protected:
-    virtual void windowEvent(window_t *sender, GUI_event_t event, void *param) override;
 };

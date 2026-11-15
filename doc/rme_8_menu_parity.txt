@@ -35,3 +35,19 @@ These are object compilations, not newly packaged release images.
 Physical menu visibility and bootloader flashing were not tested.
 Published assets/tags are unchanged by this audit; replacements require
 the normal complete release-build and checksum-verification workflow.
+
+Follow-up navigation regression found after the menu refresh:
+Info > Firmware Update still targeted ScreenHelpFWUpdate in both 6.9.2
+and 8.x. The USB chooser existed but had no reachable menu entry. Point
+MI_HELP_FW_UPDATE to the shared virtual-menu screen with a firmware-update
+configuration. Keep Update Instructions inside that menu. Entry-name parity
+alone cannot detect a wrong target; the new regression checks the target,
+constructor registration, picker and instructions links as well.
+Reachability verification: INDX links and retains the minimum heap budget.
+Japanese MINI initially overflowed flash by 1844 bytes after the previously
+unreachable selector became linked. Share file-browser event/path dispatch
+and the color-editor dialog/parser, use padding-checked theme equality, and
+remove duplicate hex-digit validation (exact from_chars consumption retained).
+The selector now links within MINI's unchanged 895 KiB region. No controls,
+languages or hardware checks were removed. Full matrix packaging and public
+download verification are recorded separately in the release bundle.

@@ -74,76 +74,47 @@ bool stage_firmware_for_bootloader(const char *source_path) {
 }
 } // namespace
 
-MI_FIRMWARE_SELECT_USB::MI_FIRMWARE_SELECT_USB()
-    : IWindowMenuItem(_("Select BBF from USB"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
-
-void MI_FIRMWARE_SELECT_USB::click(IWindowMenu &) {
-    Screens::Access()->Open<ScreenFirmwareFileBrowser>();
+namespace {
+constexpr screen_menu_virtual::Configuration firmware_update_menu {
+    .item_count = []() -> int { return 3; },
+    .item_constructor = [](WindowMenuVirtual::ItemVariant &item, int index) {
+        switch (index) {
+        case 0: item.emplace<MI_RETURN>(); break;
+        case 1: item.emplace<MI_FIRMWARE_SELECT_USB>(); break;
+        case 2: item.emplace<MI_FIRMWARE_UPDATE_HELP>(); break;
+        } },
+    .title = N_("FIRMWARE UPDATE"),
+    .footer = GuiDefaults::MenuFooter,
+};
 }
 
-MI_FIRMWARE_UPDATE_HELP::MI_FIRMWARE_UPDATE_HELP()
-    : IWindowMenuItem(_("Update Instructions"), nullptr, is_enabled_t::yes, is_hidden_t::no, expands_t::yes) {}
+MI_HELP_FW_UPDATE::MI_HELP_FW_UPDATE()
+    : MI_SCREEN_BASE(ScreenFactory::ScreenWithArg<ScreenMenuVirtual>(&firmware_update_menu), N_("Firmware Update"), &img::question_16x16) {}
 
-void MI_FIRMWARE_UPDATE_HELP::click(IWindowMenu &) {
-    Screens::Access()->Open<ScreenHelpFWUpdate>();
-}
-
-ScreenMenuFirmwareUpdate::ScreenMenuFirmwareUpdate()
-    : ScreenMenuFirmwareUpdate_(_("FIRMWARE UPDATE")) {}
+const FileBrowserConfiguration ScreenFirmwareFileBrowser::configuration_ {
+    .path = "/usb/firmware.bbf",
+    .title = N_("SELECT FIRMWARE"),
+    .filter = FileSort::FileFilter::FIRMWARE,
+    .save_top = false,
+    .on_file_selected = &ScreenFirmwareFileBrowser::select_file,
+    .close = &ScreenFirmwareFileBrowser::close_browser,
+};
 
 ScreenFirmwareFileBrowser::ScreenFirmwareFileBrowser()
-    : screen_t()
-    , header(this)
-    , file_browser(this, GuiDefaults::RectScreenNoHeader, "/usb/firmware.bbf", FileSort::FileFilter::FIRMWARE) {
-    header.SetIcon(&img::folder_full_16x16);
-    header.SetText(_("SELECT FIRMWARE"));
-    CaptureNormalWindow(file_browser);
-}
+    : FileBrowserScreen(configuration_) {}
 
-void ScreenFirmwareFileBrowser::windowEvent([[maybe_unused]] window_t *sender, GUI_event_t event, void *param) {
-    switch (event) {
-    case GUI_event_t::MEDIA:
-        check_missing_media(MediaState_t(reinterpret_cast<int>(param)));
-        break;
-    case GUI_event_t::LOOP:
-        check_missing_media(GuiMediaEventsHandler::Get());
-        break;
-    case GUI_event_t::CHILD_CLICK: {
-        WindowFileBrowser::event_conversion_union action;
-        action.pvoid = param;
-        if (action.action == WindowFileBrowser::event_conversion_union::Action::go_home) {
-            go_home();
-        } else if (action.action == WindowFileBrowser::event_conversion_union::Action::file_selected) {
-            select_file();
-        }
-        return;
-    }
-    default:
-        break;
-    }
-}
-
-void ScreenFirmwareFileBrowser::check_missing_media(MediaState_t media_state) {
-    if (media_state == MediaState_t::removed || media_state == MediaState_t::error) {
-        browser().clear_first_visible_sfn();
-        Screens::Access()->Close();
-    }
-}
-
-void ScreenFirmwareFileBrowser::select_file() {
-    std::array<char, filename_defs::path_buffer_size> path {};
-    const int written = browser().WriteNameToPrint(path.data(), path.size());
-    if (written < 0 || static_cast<size_t>(written) >= path.size()) {
+void ScreenFirmwareFileBrowser::select_file(const char *path) {
+    if (!path) {
         MsgBoxError(_("Firmware path is too long."), Responses_Ok);
         return;
     }
 
     static constexpr char usb_prefix[] = "/usb/";
-    const char *filename = strrchr(path.data(), '/');
-    filename = filename ? filename + 1 : path.data();
+    const char *filename = strrchr(path, '/');
+    filename = filename ? filename + 1 : path;
     const char *extension = strrchr(filename, '.');
-    if (strncmp(path.data(), usb_prefix, 5) != 0
-        || strstr(path.data(), "/../") != nullptr
+    if (strncmp(path, usb_prefix, 5) != 0
+        || strstr(path, "/../") != nullptr
         || !extension
         || strcasecmp(extension, ".bbf") != 0) {
         MsgBoxWarning(_("Select a completed .bbf file from the USB drive."), Responses_Ok);
@@ -154,7 +125,7 @@ void ScreenFirmwareFileBrowser::select_file() {
         return;
     }
 
-    if (!stage_firmware_for_bootloader(path.data())) {
+    if (!stage_firmware_for_bootloader(path)) {
         MsgBoxError(_("Could not stage the selected firmware for installation."), Responses_Ok);
         return;
     }
@@ -165,7 +136,6 @@ void ScreenFirmwareFileBrowser::select_file() {
     marlin_client::gcode("M997 /usb/FWUPD.RME");
 }
 
-void ScreenFirmwareFileBrowser::go_home() {
-    browser().clear_first_visible_sfn();
+void ScreenFirmwareFileBrowser::close_browser() {
     Screens::Access()->Close();
 }

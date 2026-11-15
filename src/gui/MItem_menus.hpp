@@ -155,8 +155,10 @@ using MI_HARDWARE
 using MI_GCODE_CHECKS
     = MI_SCREEN<N_("G-Code Checks"), class ScreenMenuGcodeChecks>;
 
-using MI_HELP_FW_UPDATE
-    = MI_SCREEN<N_("Firmware Update"), class ScreenHelpFWUpdate, &img::question_16x16>;
+class MI_HELP_FW_UPDATE final : public MI_SCREEN_BASE {
+public:
+    MI_HELP_FW_UPDATE();
+};
 
 #if HAS_WASTEBIN_FILL_TRACKING()
 using MI_WASTEBIN
