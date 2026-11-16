@@ -67,7 +67,7 @@ int main() {
  namespace cooling=buddy::dock_cooldown;
  // Default/manual mode must preserve legacy dock fan operation on park.
  Fans::dock.pwm=64; Fans::print.pwm=110; Fans::heatbreak.pwm=200;
- cooling::before_park(0); cooling::parked(0);
+ cooling::before_park(0,220,0,0); cooling::parked(0);
  assert(Fans::dock.pwm==64);
  parser.values={{'S',1},{'C',180}}; PrusaGcodeSuite::M979();
  assert(Fans::dock.pwm==255);
@@ -80,21 +80,28 @@ int main() {
  serial_output.str(""); cooling::report();
  assert(serial_output.str().find("remaining=0 pending_mask=0 mode=timed pwm=0")!=std::string::npos);
  // Park another nozzle: full minimum restarts from latest actual park.
- now_ms=200000; cooling::before_park(1); now_ms+=5000; cooling::parked(1);
+ now_ms=200000; cooling::before_park(1,220,0,0); now_ms+=5000; cooling::parked(1);
  serial_output.str(""); cooling::report();
  assert(serial_output.str().find("remaining=180 pending_mask=2 mode=timed pwm=255")!=std::string::npos);
  // Finishing/cancel Off and calibration restoration are only requests.
  cooling::request_pwm(0); cooling::request_pwm(40);
  assert(Fans::dock.pwm==255);
  // A newer park extends the deadline past the previous park's expiry.
- now_ms=300000; cooling::before_park(0); cooling::parked(0);
+ now_ms=300000; cooling::before_park(0,220,0,0); cooling::parked(0);
  now_ms=385000; cooling::step(); assert(Fans::dock.pwm==255);
  // Picking nozzles does not shorten the elapsed-time cooldown.
  cooling::picked(1); cooling::step(); assert(Fans::dock.pwm==255);
  cooling::picked(0); cooling::step(); assert(Fans::dock.pwm==255);
  now_ms=479999; cooling::step(); assert(Fans::dock.pwm==255);
  now_ms=480000; cooling::step(); assert(Fans::dock.pwm==0);
- cooling::before_park(2); assert(Fans::dock.pwm==255);
+ // Cold startup/pick/park does not start a fan or extend a hot timer.
+ cooling::before_park(3,23,0,0); cooling::parked(3); assert(Fans::dock.pwm==0);
+ cooling::before_park(3,NAN,0,0); cooling::parked(3); assert(Fans::dock.pwm==0); // retry after stop_heating
+ cooling::before_park(2,220,0,0); assert(Fans::dock.pwm==255);
+ now_ms+=10000; cooling::before_park(3,24,0,0); cooling::parked(3);
+ now_ms+=170000; cooling::step(); assert(Fans::dock.pwm==0); // cold park didn't restart interval
+ // New pickup discards prior cold classification; unknown remains safe.
+ cooling::picked(3); cooling::before_park(3,NAN,0,0); assert(Fans::dock.pwm==255);
  cooling::request_pwm(0);
  parser.values={{'S',0}}; PrusaGcodeSuite::M979(); assert(Fans::dock.pwm==0);
  cooling::request_pwm(92); cooling::step(); assert(Fans::dock.pwm==92);
@@ -122,6 +129,20 @@ int main() {
  policy.configure(true,5,t+180001u); policy.hot_park(1,t+180001u);
  policy.step(t+185000u); assert(policy.pwm()==255);
  policy.step(t+185001u); assert(policy.pwm()==0);
+ // Boundary, invalid data, heating command and output are conservative.
+ for (float temp : {50.f,200.f,NAN,-1.f,INFINITY}) {
+  cooling::Policy p; p.configure(true,5,0);
+  p.before_park(0,temp,0,0,0); assert(p.pwm()==255);
+ }
+ for (auto heating : {std::pair<int16_t,uint8_t>{120,0},{0,1}}) {
+  cooling::Policy p; p.configure(true,5,0);
+  p.before_park(0,23,heating.first,heating.second,0); assert(p.pwm()==255);
+ }
+ cooling::Policy cold; cold.configure(true,5,0);
+ cold.before_park(0,49.99f,0,0,0); cold.parked(0,20); assert(cold.pwm()==0);
+ cold.before_park(0,NAN,120,0,30); assert(cold.pwm()==255); // target overrides prior cold
+ cold.step(5030); assert(cold.pwm()==0);
+ cold.before_park(8,200,0,0,5040); cold.parked(8,5040); assert(cold.pwm()==0);
 }
 '''
             (path / 'test.cpp').write_text(code)
@@ -148,6 +169,9 @@ int main() {
         procedure = function(park, 'bool PrusaToolChanger::park_procedure(')
         self.assertLess(procedure.index('dock_cooldown::before_park('),
                         procedure.index('stop_heating()'))
+        self.assertIn('hotend.nozzle_temp().value_or(NAN)', procedure)
+        self.assertIn('hotend.nozzle_target_temp()', procedure)
+        self.assertIn('hotend.nozzle_heater_pwm().value', procedure)
         self.assertIn('dock_cooldown::parked(',
                       function(park, 'void PrusaToolChanger::commit_park('))
         self.assertIn('dock_cooldown::picked(',

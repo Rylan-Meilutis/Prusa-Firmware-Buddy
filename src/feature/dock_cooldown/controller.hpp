@@ -7,7 +7,7 @@ namespace buddy::dock_cooldown {
 void configure(bool enabled, uint32_t seconds);
 void request_pwm(uint16_t pwm);
 uint8_t requested_pwm();
-void before_park(uint8_t tool);
+void before_park(uint8_t tool, float temperature, int16_t target, uint8_t heater_pwm);
 void parked(uint8_t tool);
 void picked(uint8_t tool);
 void step();

@@ -36,10 +36,9 @@ uint8_t requested_pwm() {
     return policy.enabled() ? policy.requested_pwm() : Fans::dock_fan().get_pwm();
 }
 
-void before_park(uint8_t tool) {
-    // INDX cannot measure a parked nozzle. Until a cold classification is
-    // validated, every physical park is potentially hot, including failures.
-    policy.hot_park(tool, ticks_ms());
+void before_park(uint8_t tool, float temperature, int16_t target, uint8_t heater_pwm) {
+    // Classify while still on the head: stop_heating clears live telemetry.
+    policy.before_park(tool, temperature, target, heater_pwm, ticks_ms());
     if (policy.enabled()) {
         apply(); // Before motion into the dock or nozzle release.
     }
@@ -47,7 +46,7 @@ void before_park(uint8_t tool) {
 
 void parked(uint8_t tool) {
     // Start the minimum interval at completed release, not at queued T time.
-    policy.hot_park(tool, ticks_ms());
+    policy.parked(tool, ticks_ms());
     if (policy.enabled()) {
         apply();
     }
