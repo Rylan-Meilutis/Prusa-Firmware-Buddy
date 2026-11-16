@@ -33,7 +33,7 @@ struct SerialPrinting {
  static void notify_workflow(const char*w,const char*s,const char*m){events.push_back({w,s,m});}
  static void notify_progress(const char*w,const char*s,const char*,const char*m,int){events.push_back({w,s,m});}
 };
-uint32_t now=0;uint32_t ticks_ms(){return now;}
+uint32_t now=0,tick_step=1000;uint32_t ticks_ms(){return now;}
 int32_t ticks_diff(uint32_t a,uint32_t b){return int32_t(a-b);}
 enum class Response{Ok,Skip,None};
 enum class WarningType{FailedToReachChamberTemperature};
@@ -52,7 +52,7 @@ struct Planner {bool draining(){return ::draining;}} planner;
 struct Chamber {
  bool supported=true,wait=false;float target=0;
  std::optional<float> current=20;
- struct Caps {bool supported;bool temperature_control(){return supported;}};
+ struct Caps {bool supported;bool temperature_control(){return supported;} bool temperature_control_at_this_moment(){return supported;}};
  Caps capabilities(){return {supported};}
  std::optional<float> set_target_temperature(std::optional<float> t){target=t.value_or(0);return t;}
  void set_heating_wait_active(bool active){wait=active;}
@@ -64,7 +64,7 @@ struct Progress {float current,target;};
 struct PrintStatusMessageGuard {template<auto> void update(Progress){}};
 #define SERIAL_ERROR_MSG(x) ((void)0)
 void idle(bool){
- ++idles;now+=1000;
+ ++idles;now+=tick_step;
  if(mode==1){skip=true;return;}
  if(mode==2){draining=true;return;}
  if(mode==3){now+=1800000;return;}
@@ -75,7 +75,7 @@ void idle(bool){
  assert(idles<50);
 }
 ''' + body + r'''
-void reset(){events.clear();now=0;skip=draining=warning=false;mode=idles=0;chamber_instance=Chamber{};}
+void reset(){events.clear();now=0;tick_step=1000;skip=draining=warning=false;mode=idles=0;chamber_instance=Chamber{};}
 void terminal(const char *state){assert(events.front().state=="open");assert(events.back().state==state);assert(!chamber().wait);for(auto&e:events)assert(e.workflow=="chamber_temperature");}
 int main(){
  reset();PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");
@@ -91,6 +91,8 @@ int main(){
  reset();PrusaGcodeSuite::M141_no_parser({50,false,false});assert(events.empty()&&idles==0);
  reset();PrusaGcodeSuite::M141_no_parser({0,true,false});assert(events.empty()&&idles==0);
  reset();draining=true;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("cancelled");
+ reset();tick_step=100;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");assert(events.size()==3);
+ reset();now=0xfffffff0u;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");assert(events.size()==6);
 }
 '''
         with tempfile.TemporaryDirectory() as temp:
