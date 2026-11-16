@@ -50,14 +50,14 @@ void m591_no_parser(std::optional<bool> opt_enable_stuck, std::optional<bool> op
         if (is_permanent == IsPermanent::yes) {
             config_store().stuck_filament_detection.set(*opt_enable_stuck);
         }
-        log_info(MarlinServer, "Filament stuck detection %s%s", *opt_enable_stuck ? "on" : "off", is_permanent == IsPermanent::yes ? " permanent" : nullptr);
+        log_info(MarlinServer, "Filament stuck detection %s%s", *opt_enable_stuck ? "on" : "off", is_permanent == IsPermanent::yes ? " permanent" : "");
     }
 
     if (opt_enable_movement) {
         if (is_permanent == IsPermanent::yes) {
             config_store().filament_movement_detection.set(*opt_enable_movement);
         }
-        log_info(MarlinServer, "Filament movement detection %s%s", *opt_enable_movement ? "on" : "off", is_permanent == IsPermanent::yes ? " permanent" : nullptr);
+        log_info(MarlinServer, "Filament movement detection %s%s", *opt_enable_movement ? "on" : "off", is_permanent == IsPermanent::yes ? " permanent" : "");
     }
 
     if (ignore.has_value()) {

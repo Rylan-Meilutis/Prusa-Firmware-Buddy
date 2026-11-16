@@ -134,7 +134,7 @@ public:
     /// Checks loadcell sample freshness during a probe/homing session; stops Z (failed probe) if samples stop arriving.
     void HomingSafetyCheck();
 
-    /// Wait until a sample no older than max_age_us has arrived, or timeout_us elapses.
+    /// Wait until a valid sample no older than max_age_us has arrived, or timeout_us elapses.
     /// Bails early on planner draining / stepper stopping / a tripped probe-safety (@see probe_should_abort()).
     /// @return true iff a fresh sample is currently streaming.
     bool wait_for_fresh_sample(uint32_t timeout_us, uint32_t max_age_us = MAX_LOADCELL_DATA_AGE_US);
