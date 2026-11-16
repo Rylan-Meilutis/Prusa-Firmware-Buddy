@@ -1,0 +1,23 @@
+INDX dock fan: cold park classification
+======================================
+
+Timed dock cooldown previously marked every park as hot, even a cold tool
+that had never been heated. This started/restarted the fan on cold startup
+and tool-change moves when M979 timed cooldown was enabled.
+
+Classify on-head temperature before stop_heating clears it. A finite reading
+from 0 C to below 50 C, with target zero and heater PWM zero, proves a cold
+park. Such parks do not start or extend timed cooldown. Keep this decision
+through park completion/retry; clear it on pickup. A positive target, heater
+output or reading >=50 C overrides a previous cold classification.
+
+Unknown/invalid temperature remains potentially hot unless it is a retry of
+the same already proven cold park. Park completion without a prior cold
+classification also remains conservative. Existing hot cooling intervals are
+never shortened or cancelled by a cold park, job completion or cancellation.
+Manual dock fan requests, calibration fan guards, thermal protections and
+heatbreak fans are unchanged. The threshold is not a cooled-nozzle guarantee.
+
+Native production controller/parser tests cover cold startup, retries, pickup,
+hot/unknown/invalid readings, heating requests/output, deadline preservation,
+manual mode, cancellation and clock wrap. No hardware fan test is claimed.

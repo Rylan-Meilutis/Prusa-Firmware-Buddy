@@ -544,7 +544,8 @@ xy_pos_t PrusaToolChanger::tool_park_position(PhysicalToolIndex tool) {
 }
 
 bool PrusaToolChanger::park_procedure(PhysicalToolIndex tool) {
-    buddy::dock_cooldown::before_park(tool.to_raw());
+    const auto &hotend = IndxHotend::indx_tool(tool).hotend();
+    buddy::dock_cooldown::before_park(tool.to_raw(), hotend.nozzle_temp().value_or(NAN), hotend.nozzle_target_temp(), hotend.nozzle_heater_pwm().value);
     // Invalidate nozzle presence data during park — the physical state is changing,
     // so the last reported result is stale until a fresh modbus read arrives.
     buddy::puppies::indx.invalidate_nozzle_data();
