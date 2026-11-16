@@ -12,6 +12,9 @@
 #include <gcode/gcode.h>
 #include <feature/print_status_message/print_status_message_guard.hpp>
 #include <feature/safety_timer/safety_timer.hpp>
+#include <serial_printing.hpp>
+#include <cmath>
+#include <cstdio>
 
 using namespace buddy;
 
@@ -104,9 +107,16 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
     SkippableGCode::Guard skippable_operation;
 
     PrintStatusMessageGuard statusGuard;
+    SerialPrinting::notify_workflow("chamber_temperature", "open", "Waiting for chamber temperature");
+    uint32_t last_report = ticks_ms();
+    bool first_report = true;
+    const char *wait_result = "closed";
+    const char *wait_message = "Chamber temperature ready";
     while (true) {
         if (planner.draining()) {
             // We're aborting -> stop waiting
+            wait_result = "cancelled";
+            wait_message = "Chamber temperature wait cancelled";
             break;
         }
 
@@ -116,6 +126,17 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
         statusGuard.update<PrintStatusMessage::waiting_for_chamber_temp>({ .current = current.value_or(0), .target = target });
 
         const auto now = ticks_ms();
+        if (first_report || ticks_diff(now, last_report) >= 1000) {
+            char message[96];
+            if (current && std::isfinite(*current) && *current > -100 && *current < 500) {
+                snprintf(message, sizeof(message), "Waiting for chamber: %d/%d C", int(std::lround(*current)), int(std::lround(target)));
+            } else {
+                snprintf(message, sizeof(message), "Waiting for chamber: unknown/%d C", int(std::lround(target)));
+            }
+            SerialPrinting::notify_progress("chamber_temperature", "active", "temperature_wait", message, -1);
+            last_report = now;
+            first_report = false;
+        }
 
         // Show a heat failure warning if we're waiting for too long
         if (ticks_diff(now, warning_timeout_start) >= warning_timeout_ms && !marlin_server::is_warning_active(WarningType::FailedToReachChamberTemperature)) {
@@ -141,6 +162,8 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
 
         if (skippable_operation.is_skip_requested()) {
             // Skip requested -> exit
+            wait_result = "skipped";
+            wait_message = "Chamber temperature wait skipped";
             break;
 
         } else if (!current.has_value()) {
@@ -164,4 +187,5 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
 
     marlin_server::clear_warning(WarningType::FailedToReachChamberTemperature);
     chamber().set_heating_wait_active(false);
+    SerialPrinting::notify_workflow("chamber_temperature", wait_result, wait_message);
 }

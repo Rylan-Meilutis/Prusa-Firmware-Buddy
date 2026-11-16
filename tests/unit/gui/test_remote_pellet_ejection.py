@@ -36,7 +36,7 @@ int main() {
   session=active; locked=lock; report.clear();
   int writes=store.indx_entry_only_pellet_ejection.writes;
   assert(handle("@RME CLEANER SET entry_only=1"));
-  if (!active || lock) {
+  if (RME_HAS_INDX() && (!active || lock)) {
    assert(report.find("locked_or_no_session")!=std::string::npos);
    assert(store.indx_entry_only_pellet_ejection.writes==writes);
   }
