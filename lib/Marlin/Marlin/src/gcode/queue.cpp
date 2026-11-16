@@ -1609,6 +1609,23 @@ static void rme_report_sensor_state() {
 }
 
 static bool handle_remote_tune_service(const std::string_view command) {
+  if (command.starts_with("@RME CLEANER SET")) {
+    if (!serial_remote_control::session_active() || printer_lock::locked()) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=cleaner code=locked_or_no_session");
+      return true;
+    }
+    #if RME_HAS_INDX()
+    if (command != "@RME CLEANER SET entry_only=0" && command != "@RME CLEANER SET entry_only=1") {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=cleaner code=invalid_argument");
+      return true;
+    }
+    config_store().indx_entry_only_pellet_ejection.set(command.back() == '1');
+    SERIAL_ECHOLNPGM("RME_CLEANER accepted=1");
+    #else
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=cleaner code=unsupported");
+    #endif
+    return true;
+  }
   if (command.starts_with("@RME CHAMBER JOB ")) {
     #if HAS_XBUDDY_EXTENSION()
     if (!serial_remote_control::session_active() || printer_lock::locked()
@@ -1679,6 +1696,9 @@ static bool handle_remote_tune_service(const std::string_view command) {
   rme_tune_field("host_percent", -1);
   #endif
   rme_tune_field("stealth", config_store().stealth_mode.get() ? 1 : 0);
+  #if RME_HAS_INDX()
+  rme_tune_field("pellet_ejection_entry_only", config_store().indx_entry_only_pellet_ejection.get() ? 1 : 0);
+  #endif
   #if PRINTER_IS_PRUSA_MK4() || PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
   rme_tune_field("auto_pa", config_store().auto_pa_mode.get());
   #endif

@@ -1,0 +1,20 @@
+RME remote INDX pellet-ejection setting
+======================================
+
+@RME TUNE QUERY reports pellet_ejection_entry_only=0 (Entry + Exit, default)
+or 1 (Entry Only), only on INDX. Full/delta readback uses the same persistent
+setting as Settings > Hardware > Pellet Ejection, including LCD changes.
+
+@RME CLEANER SET entry_only=0 or entry_only=1 changes that saved setting.
+Exact syntax is required; extra/malformed arguments do not mutate settings.
+An active RME session and unlocked printer are required. Non-INDX firmware
+reports unsupported and omits the capability/readback field. The RME service
+frame dispatcher handles this guarded setter out of band during serial jobs.
+
+OctoPrint RME Settings exposes Pellet ejection (INDX) only when the field is
+reported; zero is valid support, not a false/missing capability. It sends the
+setter followed by a fresh TUNE query, without optimistic local state writes.
+This controls redundant exit pellet ejection, not purge extrusion amounts.
+Calibration, force-ejection G12 S30 F1 and thermal safeguards are unchanged.
+Firmware policy and slicer-template switches remain independent; a template
+which explicitly forces exit ejection overrides Entry Only as documented.
