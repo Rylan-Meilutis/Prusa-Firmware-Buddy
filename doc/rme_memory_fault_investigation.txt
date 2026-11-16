@@ -32,3 +32,28 @@ They are NOT a confirmed fix for the reported mid-print crash. No on-printer
 stability test or induced hardware fault was performed. Do not describe this
 release as resolving the mid-print crash. Preserve prior LCD fixes, model and
 signature checks, canonical 8.x version tags, and all hardware-specific menus.
+
+2026-11-15 update: dump-confirmed M591 null-string logging fault
+
+New user dump DUMP_B1 (4).BIN (SHA256
+c89709c6463c4590b63cd6ad024d6564839b9112b71649f704b5eb02c6885bc4)
+identifies release commit 9c42a273281726ed8d4d126780843ebe6ac61355.
+This supplies evidence missing when the earlier release scope was written.
+The running log_task faults at PC 0x08121db8 in the embedded formatter's
+string-length loop; CFSR=0x82 and MMFAR=0 indicate a null data access.
+The queued event is from MarlinServer with format
+"Filament stuck detection %s%s" and arguments "off", nullptr.
+
+M591 S0/S1 and U0/U1 without P use nullptr for the optional " permanent"
+suffix. The embedded formatter dereferences it; this is not safely handled
+like glibc's optional "(null)" display. G-code in the workspace contains
+M591 S0, matching the captured event and explaining this captured print fault.
+Fix both M591 log calls to use an empty string for the temporary suffix.
+Do not change protection settings, disable detection, or suppress commands.
+
+A regression runs the actual M591 handler with lib/printf/printf.c for INDX
+and non-INDX configurations. Both fail with SIGSEGV before the fix and pass
+after it. Cover S/U on/off, temporary/permanent settings, combined changes,
+query and restore, and verify effective/persisted monitoring semantics.
+The loadcell-readiness change is independent; do not present it as the cause
+or fix of this dump-confirmed M591 logging fault.
