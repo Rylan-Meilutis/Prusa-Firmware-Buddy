@@ -823,7 +823,10 @@ static void report_remote_filaments() {
   constexpr size_t total = preset_filament_type_count + user_filament_type_count;
   for (size_t i = 0; i < total; ++i) {
     const bool user = i >= preset_filament_type_count;
-    const size_t slot = user ? i - preset_filament_type_count : i;
+    // Preset IDs are sparse (10/11 are absent without an HT hotend).
+    // Query real IDs, not display-order indexes: an enum hole cannot safely
+    // index the compact parameter table. Keep user profile IDs unchanged.
+    const size_t slot = user ? i - preset_filament_type_count : std::to_underlying(preset_filament_types[i]);
     const FilamentType type = user
       ? FilamentType { UserFilamentType { static_cast<uint8_t>(slot) } }
       : FilamentType { static_cast<PresetFilamentType>(slot) };
