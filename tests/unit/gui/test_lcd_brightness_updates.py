@@ -30,6 +30,7 @@ class LcdBrightnessUpdates(unittest.TestCase):
 #include <cassert>
 #include <array>
 #include <string>
+#include <utility>
 #define HAS_MINI_DISPLAY() 0
 namespace time_tools {
  bool changed=false;
@@ -61,6 +62,9 @@ struct screen_printing_serial_data_t {
   void SetText(const char *value) { if (title!=value) ++changes; title=value; }
  } header;
  std::array<int,3> icons{-1,-1,-1}, labels{-1,-1,-1}; int changes=0;
+ struct Button { void SetFocus() {} };
+ std::array<Button,3> buttons{};
+ bool initial_tune_focus_pending=true;
  void SetButtonIconAndLabel(BtnSocket s, BtnRes i, LabelRes l) {
   auto n=int(s);
   if (icons[n]!=int(i) || labels[n]!=int(l)) ++changes;
@@ -94,7 +98,7 @@ int main() {
             cpp, binary = Path(directory) / "test.cpp", Path(
                 directory) / "test"
             cpp.write_text(code + clock + actions + main)
-            subprocess.run(["c++", "-std=c++17",
+            subprocess.run(["c++", "-std=c++23",
                             str(cpp), "-o",
                             str(binary)],
                            check=True)

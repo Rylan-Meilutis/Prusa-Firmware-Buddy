@@ -534,6 +534,17 @@ void screen_printing_serial_data_t::update_action_buttons(marlin_server::State s
         DisableButton(BtnSocket::Middle);
         break;
     }
+
+    if (state == marlin_server::State::SerialPrintInit || is_print_result(state)) {
+        initial_tune_focus_pending = true;
+    } else if (initial_tune_focus_pending
+        && (state == marlin_server::State::Printing || state == marlin_server::State::Paused)) {
+        // Preparation disables Tune and Pause, moving focus to Cancel. Once
+        // controls become usable, default to Tune without stealing later user
+        // selections during refresh, pause/resume, or a lock/unlock update.
+        buttons[std::to_underlying(BtnSocket::Left)].SetFocus();
+        initial_tune_focus_pending = false;
+    }
 }
 
 void screen_printing_serial_data_t::update_progress() {
