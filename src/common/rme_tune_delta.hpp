@@ -42,7 +42,7 @@ private:
         "head_mcu", "head_board", "head_ambient", "chamber_temp", "progress_percent", "progress_remaining",
         "host_percent", "stealth", "auto_pa", "printing", "light", "lcd", "screen_print", "chamber_print",
         "status_print", "material_cooling", "print_filter", "post_filter", "F0", "F1", "F2", "F3", "F4",
-        "F5", "F6", "F7", "toolmap"
+        "F5", "F6", "F7", "toolmap", "pellet_ejection_entry_only"
     };
     std::array<int64_t, keys.size()> values {};
     std::bitset<keys.size()> valid;
