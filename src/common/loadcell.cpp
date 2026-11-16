@@ -437,7 +437,10 @@ bool Loadcell::wait_for_fresh_sample(uint32_t timeout_us, uint32_t max_age_us) {
             return false;
         }
         const int32_t age = ticks_diff(ticks_us(), last_sample_time_us.load());
-        if (age >= 0 && age <= static_cast<int32_t>(max_age_us)) {
+        // ProcessSample also publishes timestamps for undefined samples. A
+        // recently received packet is not proof that usable probe data exists,
+        // especially on the first attempt after enabling the sensor stream.
+        if (undefinedCnt == 0 && age >= 0 && age <= static_cast<int32_t>(max_age_us)) {
             return true;
         }
         if (ticks_diff(ticks_us(), start) > static_cast<int32_t>(timeout_us)) {
