@@ -1,0 +1,22 @@
+RME chamber temperature waiting status
+======================================
+
+The actual M191 / M141_no_parser blocking chamber wait now emits a native
+chamber_temperature workflow: open at entry, active with current/target in
+the message on the first sample and at most once per second, and terminal
+closed when ready, skipped on Skip, or cancelled on cancellation/planner drain.
+Unknown temperature is labelled unknown, not zero. No misleading percent is
+derived from absolute temperatures, particularly during a cooling wait.
+
+M141 without waiting, zero-target commands and unsupported temperature-control
+machines do not emit a fake wait. Existing target clamping, 3 C tolerance,
+heating/cooling direction selection, indefinite unknown-data waiting, 30-minute
+warning, Skip and cancellation behavior are unchanged. Reporting adds no wait
+and no heater or fan commands. Existing RME session/event filtering applies.
+
+OctoPrint b165 names and shows this workflow using the existing native workflow
+UI. Active updates carry temperature_wait code and do not expire as a legacy
+15-second notification. Completion/skip/cancellation close the card normally.
+Production-wait simulation covers heating, cooling, already-hot heating-only,
+unknown samples, Skip, cancellation, warning/Skip, no-wait and unsupported cases.
+No hardware chamber soak test was performed.

@@ -1625,11 +1625,11 @@ static void rme_report_sensor_state() {
 
 static bool handle_remote_tune_service(const std::string_view command) {
   if (command.starts_with("@RME CLEANER SET")) {
+    #if RME_HAS_INDX()
     if (!serial_remote_control::session_active() || printer_lock::locked()) {
       SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=cleaner code=locked_or_no_session");
       return true;
     }
-    #if RME_HAS_INDX()
     if (command != "@RME CLEANER SET entry_only=0" && command != "@RME CLEANER SET entry_only=1") {
       SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=cleaner code=invalid_argument");
       return true;
@@ -1637,7 +1637,8 @@ static bool handle_remote_tune_service(const std::string_view command) {
     config_store().indx_entry_only_pellet_ejection.set(command.back() == '1');
     SERIAL_ECHOLNPGM("RME_CLEANER accepted=1");
     #else
-    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=cleaner code=unsupported");
+    // Share the existing INDX-unsupported record on flash-constrained MINI.
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=indx code=unsupported feature=indx");
     #endif
     return true;
   }
