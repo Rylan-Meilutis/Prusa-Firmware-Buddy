@@ -1,0 +1,34 @@
+RME memory-fault investigation and release scope -- 2026-11-15
+
+The user reports MemManage_Handler during an active print, not only startup.
+Retained Buddy dump export returned no_crash_dump. The provided serial trace
+identifies application c963df6a277339812362ca6b711276a1f6c94aa9b71d822143f02b8747a79861,
+the saved 8.0.0 selector build preceding the LCD recovery refresh. That trace
+also shows a later host start/pause sequence while firmware remains IDLE;
+it does not contain the faulting instruction or establish the crash cause.
+
+Confirmed 8.x defect:
+The RME filament query cast display-order positions to sparse preset IDs.
+On non-HT machines this queried absent IDs 10/11 through the unchecked compact
+parameter table, returning bogus parameters, and omitted actual PVA/BVOH IDs
+12/13. Enumerate preset_filament_types instead, retaining actual preset IDs
+and unchanged user profile IDs 0..7. These IDs are material profiles, not
+physical tool slots. A production-selector regression fails before the fix
+on non-HT presets and passes after it with HT disabled and enabled.
+
+Fault capture hardening:
+MemManage/BusFault/UsageFault previously called ordinary BSOD formatting on
+the existing stack, then triggered a secondary exception for CrashCatcher.
+Naked tail branches now preserve the original exception frame, registers,
+and EXC_RETURN and let CrashCatcher switch to its dedicated stack before C++.
+ARM disassembly tests at O0/Os/O2 require an immediate unconditional branch
+to HardFault_Handler with no stack prologue or function call. Existing safe
+state and storage handling remain in CrashCatcher. This does not guarantee
+capture if hardware flash access fails or explain this particular missing dump.
+
+Release limitations:
+These changes fix a confirmed invalid query and improve hardware-fault capture.
+They are NOT a confirmed fix for the reported mid-print crash. No on-printer
+stability test or induced hardware fault was performed. Do not describe this
+release as resolving the mid-print crash. Preserve prior LCD fixes, model and
+signature checks, canonical 8.x version tags, and all hardware-specific menus.
