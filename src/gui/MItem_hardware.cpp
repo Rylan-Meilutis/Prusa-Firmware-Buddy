@@ -13,6 +13,20 @@
 #include <common/extended_printer_type.hpp>
 #include <option/has_print_fan_type.h>
 
+#if HAS_INDX()
+static constexpr const char *indx_pellet_ejection_items[] = {
+    N_("Entry + Exit"),
+    N_("Entry Only"),
+};
+
+MI_INDX_PELLET_EJECTION::MI_INDX_PELLET_EJECTION()
+    : MenuItemSwitch(_("Pellet Ejection"), indx_pellet_ejection_items, config_store().indx_entry_only_pellet_ejection.get() ? 1 : 0) {}
+
+void MI_INDX_PELLET_EJECTION::OnChange([[maybe_unused]] size_t old_index) {
+    config_store().indx_entry_only_pellet_ejection.set(get_index() == 1);
+}
+#endif
+
 #if HAS_CHAMBER_VENTS()
     #include <feature/chamber/chamber_enums.hpp>
 #endif
