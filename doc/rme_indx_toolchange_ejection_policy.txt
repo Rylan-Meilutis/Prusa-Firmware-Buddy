@@ -1,0 +1,45 @@
+INDX print tool-change pellet ejection policy
+===========================================
+
+Settings > Hardware > Pellet Ejection offers Entry + Exit (default, unchanged)
+and Entry Only. The boolean is journaled under INDX entry only pellet eject;
+existing installations without that key keep Entry + Exit. Other machines do
+not acquire this menu item or configuration key.
+
+The native INDX tool_change() does not eject pellets. Current slicer G-code
+explicitly enters the cleaner with G12 S90, wipes, ejects the leftover pellet
+with G12 S30, purges/retracts/wipes, ejects the newly purged pellet with another
+G12 S30, then leaves with G12 S91. Entry Only suppresses only that second S30
+inside a successful explicit print visit on the same selected physical tool,
+while still inside the bin. It leaves the new pellet for the next entry eject.
+It does not remove the preceding wipe, extrusion, retract, any tool lock motion,
+homing, thermal wait, or safe cleaner exit. The native exit sequence contains
+only its existing safe Y then X moves; it does not implicitly eject or test a
+pellet sensor. No mechanical route or speed is changed.
+
+Only a completed first ejection qualifies. A failed entry/ejection/wipe, lost
+bin-purge scope, draining planner, changed/missing tool, maintenance sequence,
+or non-print invocation fails safe to the normal ejection path. The third and
+later S30 requests are not suppressed, to preserve recovery requests. G12 S30
+F1 forces ejection even for a qualifying second request. A skipped exit emits
+RME_CLEANER_EJECTION policy=entry_only phase=exit skipped=1 and does not increment
+the wastebin pellet counter; actual ejections retain normal accounting.
+
+Direct cleaner calls used by automatic PA, load/unload, nozzle cleaning,
+tool-offset calibration, and power-panic preparation are unchanged. Standalone
+G12 S30 remains unconditional. Slicers without the explicit S90/S91 and two-S30
+pattern retain their existing behavior; this is not a blanket G12 replacement.
+
+The requested 8-10 second target needs hardware timing and print qualification.
+Only one complete exit ejection sequence is omitted, not the core tool-change
+or purge routine. This alone cannot guarantee a reduction from 20-30 seconds.
+Time the whole slicer tool-change block separately from native tool_change().
+Confirm with each material that leaving a pellet until the next entry does not
+cause a collision, curled material, dirty nozzle or purge contamination. Keep
+Entry + Exit when that behavior has not been qualified or if the cleaner is
+customized. A final explicit standalone S30 can clear the remaining pellet.
+
+Host tests compile the production G12 implementation against control stubs and
+exercise default/entry-only behavior, force, failures, cancel, maintenance,
+lost context, bin bounds, changed tools and accounting. They do not simulate
+the physical wiper, melt behavior, or validate an 8-10 second tool-change time.

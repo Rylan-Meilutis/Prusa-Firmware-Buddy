@@ -13,12 +13,23 @@
 #include <option/has_nozzle_cleaner_lite.h>
 #include <option/has_15gt_belts.h>
 #include <option/has_switchable_homing_calibration.h>
+#include <option/has_indx.h>
 #include <common/extended_printer_type.hpp>
 #include <common/printer_variant/printer_variant.hpp>
 #include <dynamic_index_mapping.hpp>
 #include <gui/menu_item/menu_item_select_menu.hpp>
 #include <gui/menu_item/menu_item_virtual_submenu.hpp>
 #include <common/hw_check.hpp>
+
+#if HAS_INDX()
+class MI_INDX_PELLET_EJECTION : public MenuItemSwitch {
+public:
+    MI_INDX_PELLET_EJECTION();
+
+protected:
+    void OnChange(size_t old_index) override;
+};
+#endif
 
 class MI_HARDWARE_CHECK : public MenuItemSwitch {
 public:

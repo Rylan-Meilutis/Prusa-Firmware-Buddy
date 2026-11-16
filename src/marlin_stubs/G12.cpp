@@ -17,8 +17,11 @@
 
 #include <option/has_indx.h>
 #if HAS_INDX()
+    #include <config_store/store_instance.hpp>
     #include <feature/extrusion_calibration.hpp>
+    #include <indx_toolchange_ejection_policy.hpp>
     #include <module/planner.h>
+    #include <tool_index.hpp>
 #endif
 #include <option/has_wastebin_fill_tracking.h>
 #if HAS_WASTEBIN_FILL_TRACKING()
@@ -60,6 +63,7 @@ LOG_COMPONENT_REF(PRUSA_GCODE);
  *         21 = power_panic_purge, 30 = eject_blob, 90 = enter_cleaner, 91 = exit_cleaner
  * - `C` - (nozzle cleaner lite only) Cool down on the touchpoint after cleaning
  *         (default: 1). `C0` leaves as soon as the rub is done.
+ * - `F` - (INDX S30 only) Force the ejection even if Entry Only is selected.
  *
  */
 
@@ -125,11 +129,45 @@ void PrusaGcodeSuite::G12() {
             return;
         }
 
+    #if HAS_INDX()
+        static buddy::indx_toolchange_ejection_policy::Visit ejection_visit;
+        const auto selected_tool = PhysicalToolIndex::currently_selected_opt();
+        const uint8_t tool = selected_tool ? selected_tool->to_raw() : UINT8_MAX;
+        const bool print_visit = marlin_server::is_printing() && selected_tool.has_value()
+            && !buddy::extrusion_calibration::calibration_command_active();
+
+        if (s_param != 1 && s_param != 30) {
+            // New entry, exit and non-toolchange cleaning requests invalidate
+            // the previous visit before any movement can fail or be aborted.
+            ejection_visit.reset();
+        }
+        if (s_param == 30) {
+            const bool in_print_bin = print_visit
+                && buddy::extrusion_calibration::pressure_monitor_purge_context()
+                && !planner.draining()
+                && current_position.x > X_WASTEBIN_SAFE_POINT
+                && current_position.y > Y_WASTEBIN_SAFE_POINT;
+            if (ejection_visit.skip_exit(config_store().indx_entry_only_pellet_ejection.get(),
+                    in_print_bin, tool, parser.option<bool>('F').value_or(false))) {
+                SERIAL_ECHOLNPGM("RME_CLEANER_EJECTION policy=entry_only phase=exit skipped=1");
+                return;
+            }
+        }
+    #endif
+
         [[maybe_unused]] const bool executed = nozzle_cleaner::load_and_execute(it->second);
     #if HAS_INDX()
+        if (!executed) {
+            ejection_visit.reset();
+        } else if (s_param == 30) {
+            ejection_visit.ejection_finished(true);
+        }
         if (s_param == 90 || (s_param == 91 && executed)) {
             planner.synchronize();
             buddy::extrusion_calibration::set_pressure_monitor_purge_context(s_param == 90 && executed);
+            if (s_param == 90) {
+                ejection_visit.begin(executed && print_visit && !planner.draining(), tool);
+            }
         }
     #endif
     #if HAS_WASTEBIN_FILL_TRACKING()

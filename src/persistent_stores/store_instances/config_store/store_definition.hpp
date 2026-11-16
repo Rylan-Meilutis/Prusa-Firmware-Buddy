@@ -1115,6 +1115,10 @@ struct CurrentStore
 #endif
 
 #if HAS_INDX()
+    /// False preserves entry + exit pellet ejection; true omits only the second
+    /// slicer G12 S30 in an explicit print-time cleaner visit.
+    StoreItem<bool, false, ItemFlag::features, journal::hash("INDX entry only pellet eject")> indx_entry_only_pellet_ejection;
+
     static_assert(PhysicalToolIndex::count <= 16, "Increase bits in default value");
     StoreItem<std::bitset<PhysicalToolIndex::count>, defaults::bitset_u16_ones, ItemFlag::hw_config, journal::hash("INDX enabled tools mask")> indx_enabled_tools;
     void set_indx_tool_enabled(PhysicalToolIndex tool, bool enabled);
