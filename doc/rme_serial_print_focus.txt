@@ -1,0 +1,22 @@
+Serial-print initial button focus
+================================
+
+SerialPrintInit disables the Tune and Pause buttons. Shared DisableButton()
+navigation moves focus to the next available control, leaving Cancel selected.
+Merely enabling Tune again when Printing starts does not restore focus.
+
+The serial-print screen now selects its left Tune/Settings button once when
+controls first become usable in Printing or Paused. It rearms this one-shot
+default for a new preparation or after a print result. Later updates preserve
+the user's selected control, including pause/resume and lock/unlock refreshes.
+Locked mode continues to expose only Unlock through the existing code path;
+preparation, result actions, cancel confirmation, and the media-print screen
+are unchanged. The implementation is shared by MINI and larger LCD layouts.
+
+Host regression tests compile the actual update_action_buttons() function
+with faithful button enable/disable/focus stubs. They cover preparation's
+Cancel fallback, Printing and Paused initial focus, user navigation after the
+first focus, repeat state updates, pause/resume, subsequent prints, and result
+actions. Source guards keep the one-shot initialization and locked routing.
+Native firmware builds validate both MINI and larger screen compilation.
+No printer LCD was physically exercised as part of these software tests.

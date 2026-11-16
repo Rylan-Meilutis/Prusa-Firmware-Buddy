@@ -110,4 +110,5 @@ private:
     bool serial_data_seen = false;
     marlin_server::State last_state;
     bool lock_buttons_applied = false;
+    bool initial_tune_focus_pending = true;
 };
