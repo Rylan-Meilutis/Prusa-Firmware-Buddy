@@ -56,7 +56,9 @@ public:
     }
 
 private:
-    bool finish(SPI_HandleTypeDef *spi, bool ok) {
+    // Share the abort/quarantine tail across command, pixel and DMA paths.
+    // Duplicating it at every inlined call site wastes scarce MINI flash.
+    [[gnu::noinline]] bool finish(SPI_HandleTypeDef *spi, bool ok) {
         if (!ok) {
             HAL_SPI_Abort(spi);
             failed_ = true;
