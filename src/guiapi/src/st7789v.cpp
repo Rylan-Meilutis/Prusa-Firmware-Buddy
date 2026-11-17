@@ -244,8 +244,9 @@ void st7789v_cmd(uint8_t cmd, uint8_t *pdata, uint16_t size) {
     }
 }
 
-#pragma GCC push_options
-#pragma GCC optimize("O3")
+// This four-byte periodic health probe is not a pixel-transfer hot path.
+// Use the normal size-optimized firmware flags rather than locally forcing
+// O3; language-pair MINI images have very little flash headroom.
 bool st7789v_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     uint16_t tmp_flg = st7789v_flg; // save flags
     if (st7789v_flg & FLG_CS) {
@@ -266,7 +267,6 @@ bool st7789v_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     }
     return result == HAL_OK;
 }
-#pragma GCC pop_options
 
 void st7789v_wr(uint8_t *pdata, uint16_t size) {
     if (!(pdata && size)) {
