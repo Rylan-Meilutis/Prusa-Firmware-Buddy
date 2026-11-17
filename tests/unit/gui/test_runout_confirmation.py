@@ -10,6 +10,18 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class RunoutConfirmation(unittest.TestCase):
 
+    def test_automatic_m600_closes_its_runout_parent(self):
+        text = (ROOT / "src/marlin_stubs/pause/M600.cpp").read_text()
+        handler = text.split("void GcodeSuite::M600()",
+                             1)[1].split("/** @}*/", 1)[0]
+        self.assertEqual(
+            1, handler.count('notify_workflow("filament_runout", "open"'))
+        terminal = handler.split("FSensors_instance().ClrM600Sent();", 1)[1]
+        self.assertIn('notify_workflow("filament_runout",', terminal)
+        self.assertIn('aborting_or_aborted() ? "canceled" : "closed"',
+                      terminal)
+        self.assertIn('#if !PRINTER_IS_PRUSA_MINI()', terminal)
+
     def test_recovery_emits_terminal_parent_event(self):
         text = (ROOT / "src/marlin_stubs/pause/M600.cpp").read_text()
         handler = text.split("void PrusaGcodeSuite::M1601()", 1)[1]

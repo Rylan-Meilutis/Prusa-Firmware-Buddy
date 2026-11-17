@@ -154,6 +154,12 @@ void GcodeSuite::M600() {
 
     if (is_auto_m600) {
         FSensors_instance().ClrM600Sent(); // reset filament sensor M600 sent flag
+#if !PRINTER_IS_PRUSA_MINI()
+        // Match the parent opened above. Nested unload/load progress and a
+        // resumed action do not close this workflow on remote hosts.
+        SerialPrinting::notify_workflow("filament_runout",
+            marlin_server::aborting_or_aborted() ? "canceled" : "closed", "Filament runout recovery ended");
+#endif
     }
 }
 
