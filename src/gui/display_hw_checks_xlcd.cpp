@@ -28,6 +28,7 @@ void check_display([[maybe_unused]] bool check_touch) {
         return;
     }
 
+    const bool transfer_error = display::take_transfer_error();
     const bool display_reset = display::is_reset_required();
     bool do_reset = display_reset;
     [[maybe_unused]] bool touch_reset = false;
@@ -46,7 +47,7 @@ void check_display([[maybe_unused]] bool check_touch) {
     }
 #endif
 
-    if (!do_reset) {
+    if (!do_reset && !transfer_error) {
         return;
     }
 
@@ -63,9 +64,13 @@ void check_display([[maybe_unused]] bool check_touch) {
     }
 #endif
 
-    log_warning(GUI, "Recovering LCD: display_check=%u touch=%u", static_cast<unsigned>(display_reset), static_cast<unsigned>(touch_reset));
-    display::complete_reinit();
-    display::init();
+    log_warning(GUI, "LCD recovery: controller_reset=%u touch_reset=%u", static_cast<unsigned>(display_reset), static_cast<unsigned>(touch_reset));
+    // A lost pixel transfer with intact controller state only needs repainting.
+    // A hard reset blanks the panel and also resets the shared touch controller.
+    if (do_reset) {
+        display::complete_reinit();
+        display::init();
+    }
     if (auto *screen = Screens::Access()->Get()) {
         screen->Invalidate();
     }

@@ -83,3 +83,4 @@ extern void ili9488_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_
 
 extern void ili9488_spi_tx_complete(void);
 extern bool ili9488_is_reset_required();
+extern bool ili9488_take_transfer_error();

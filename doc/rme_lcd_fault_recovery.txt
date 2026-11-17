@@ -37,4 +37,78 @@ reproduced software weaknesses, not a confirmed diagnosis of the user's exact
 electrical failure. A signed COREONEINDX test image and an on-device stability
 check are required before claiming the reported blackout fully resolved.
 If it recurs, collect Save Logs To File output around the incident; look for
-"Recovering LCD: display_check=... touch=..." and touch read-error messages.
+"LCD recovery: controller_reset=... touch_reset=..." and touch read-error messages.
+
+Follow-up full display-path audit -- 2026-11-17
+
+Scope: panel SPI writes/reads/DMA completion, status checks, shared LCD/touch
+RESET, touchscreen I2C recovery, LED/backlight sleep/wake, RME GUI refresh.
+No printer flash, serial control, OctoPrint restart or runtime setting change.
+
+Additional defects and repairs:
+- xBuddy's ordinary LCD CS helpers intentionally do nothing because CS also
+  selects the status LEDs. Register health reads now explicitly frame each
+  attempt with the physical CS pin, matching the existing pixel-read path.
+  Send NOP first so MOSI is low before selecting the clock-independent LEDs.
+  Restore the mux to LCD afterward. Failed HAL reads explicitly abort SPI.
+- Both panel drivers ignored failed DMA starts and waited indefinitely for a
+  completion that would never arrive. All pixel/command reads/writes now have
+  finite waits; DMA success also requires matching notification, READY state,
+  and no HAL error. Nonblocking CMSIS wait drains stale completion signals
+  (this port declares but does not implement osSignalClear).
+- Quarantine further transfers after one failure so a damaged frame does not
+  accumulate one timeout per command. Abort before reusing its DMA buffer.
+  The periodic health check consumes the failure; if registers are healthy,
+  repaint WITHOUT pulsing RESET or clearing the panel. A failed readback still
+  triggers normal hard recovery. Failed pixel reads zero the output buffer.
+- Apply the reduced display clock immediately when initializing recovery,
+  rather than waiting for the next health check to refresh the cached setting.
+- Touch I2C reads/writes now hold the same bus mutex used by peripheral recovery,
+  releasing it before the error handler can reacquire it. Re-probe queued
+  transient touch-read failures before resetting the shared LCD/touch RESET.
+  Persistent faults and explicit operator re-enable retain hard recovery and
+  the original disable/retry policy.
+- MINI health reads are bounded, reject failed HAL results, retry once, and
+  accept C0 (the orientation its own initialization programs). Sleeping panels
+  are not probed. Avoid pulsing RESET twice during MINI reinitialization.
+
+Paths checked without further changes:
+- RME TUNE/LIGHT polling is read-only and does not queue GUI reinitialization.
+- Explicit configuration refresh is consumed once on the GUI task.
+- Existing brightness deduplication prevents repeated clears/sleep commands.
+- Hard recovery is still available; no safety warning or fault recovery was
+  disabled to conceal flicker. Power-panic safe mode remains blocking-only.
+
+Host fault injection (production functions/header, ASan and UBSan):
+- actual physical CS boundaries with no-op xBuddy helper functions;
+- transient/persistent invalid reads and HAL errors with plausible data;
+- sleeping panels, recovery brightness and normal/bare fallback counting;
+- DMA start BUSY, missing/wrong/stale completion, HAL error flags, failed
+  blocking transfers, quarantine, output initialization and recovery;
+- MINI orientation/timeout/retry; touch recovery probe and mutex ownership,
+  including releasing the mutex before reentrant recovery.
+
+These are software fault reproductions, not a physical screen soak test.
+On-device validation remains necessary before claiming this specific printer's
+reported flicker is eliminated. A controller_reset=0 touch_reset=0 recovery
+means a dropped transfer was repainted without hardware reset; other values
+identify which health check still required a shared hard reset.
+
+Validation results for this follow-up:
+- All 150 tests in tests/unit/gui pass, including six display fault tests.
+- The new physical-CS assertion fails against unchanged HEAD's ILI9488 read
+  implementation and passes against the repaired implementation.
+- User clarified that incidents usually coincide with opening menus/changing
+  screens. ScreenHandler navigation does not reset the LCD: it replaces the
+  active screen and schedules drawing. Regression now alternates active
+  screens/menus with healthy and dropped transfers, verifying recovery targets
+  the newly active screen and never hard-resets a controller with valid state.
+- COREONE_INDX Release firmware and firmware.bbf packaging pass.
+- XL Release firmware links successfully (the other shared-LCD board).
+- MINI driver translation units compile, but full firmware linking exceeds
+  FLASH by 10,748 bytes in mini_release_boot and 11,220 bytes in the existing
+  mini-en-cs_release_boot configuration. No unrelated features were removed
+  to force these builds to fit. MINI is not a validated flashable artifact.
+- clang-format checks and git diff --check pass for the modified C++ paths.
+- Test/build logs: /tmp/rme-display-audit-{gui-tests,indx-build,indx-package,
+  xl-build,mini-build,mini-cs-build}.log.

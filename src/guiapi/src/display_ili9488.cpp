@@ -33,6 +33,10 @@ bool is_reset_required() {
     return ili9488_is_reset_required();
 }
 
+bool take_transfer_error() {
+    return ili9488_take_transfer_error();
+}
+
 void complete_reinit() {
     ili9488_set_complete_lcd_reinit();
 }

@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <bsod/bsod.h>
+#include <display_spi_transfer.hpp>
 
 #define FLG_CS           0x01 // current CS pin state
 #define FLG_RS           0x02 // current RS pin state
@@ -113,6 +114,7 @@ static constexpr uint8_t ST7789V_MAX_COMMAND_READ_LENGHT = 4;
 uint8_t st7789v_buff[ST7789V_BUFFER_SIZE]; // display buffer
 bool st7789v_buff_borrowed = false; ///< True if buffer is borrowed by someone else
 static bool display_writes_suppressed = false;
+static display::SpiTransfer spi_transfer;
 
 uint8_t *st7789v_borrow_buffer() {
     debug_assert(!st7789v_buff_borrowed && "Already lent");
@@ -208,24 +210,21 @@ void st7789v_delay_ms(uint32_t ms) {
 }
 
 void st7789v_spi_wr_byte(uint8_t b) {
-    HAL_SPI_Transmit(spi_handle_lcd, &b, 1, HAL_MAX_DELAY);
+    spi_transfer.transmit(spi_handle_lcd, st7789v_task_handle, ST7789V_SIG_SPI_TX, &b, 1, false);
 }
 
 void st7789v_spi_wr_bytes(uint8_t *pb, uint16_t size) {
     if ((st7789v_flg & (uint8_t)ST7789V_FLG_DMA) && !(st7789v_flg & (uint8_t)ST7789V_FLG_SAFE) && (size > 4)) {
         debug_assert_correct_task();
-        osSignalSet(st7789v_task_handle, ST7789V_SIG_SPI_TX);
-        osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
         debug_assert(can_be_used_by_dma(pb));
-        HAL_SPI_Transmit_DMA(spi_handle_lcd, pb, size);
-        osSignalWait(ST7789V_SIG_SPI_TX, osWaitForever);
+        spi_transfer.transmit(spi_handle_lcd, st7789v_task_handle, ST7789V_SIG_SPI_TX, pb, size, true);
     } else {
-        HAL_SPI_Transmit(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
+        spi_transfer.transmit(spi_handle_lcd, st7789v_task_handle, ST7789V_SIG_SPI_TX, pb, size, false);
     }
 }
 
 void st7789v_spi_rd_bytes(uint8_t *pb, uint16_t size) {
-    HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
+    spi_transfer.receive(spi_handle_lcd, pb, size);
 }
 
 void st7789v_cmd(uint8_t cmd, uint8_t *pdata, uint16_t size) {
@@ -248,7 +247,7 @@ void st7789v_cmd(uint8_t cmd, uint8_t *pdata, uint16_t size) {
 
 #pragma GCC push_options
 #pragma GCC optimize("O3")
-void st7789v_cmd_rd(uint8_t cmd, uint8_t *pdata) {
+bool st7789v_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     uint16_t tmp_flg = st7789v_flg; // save flags
     if (st7789v_flg & FLG_CS) {
         st7789v_clr_cs(); // CS = L
@@ -259,10 +258,14 @@ void st7789v_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     uint8_t data_to_write[ST7789V_MAX_COMMAND_READ_LENGHT] = { 0x00 };
     data_to_write[0] = cmd;
     data_to_write[1] = 0x00;
-    HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ST7789V_MAX_COMMAND_READ_LENGHT, HAL_MAX_DELAY);
+    const auto result = HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ST7789V_MAX_COMMAND_READ_LENGHT, 20);
+    if (result != HAL_OK) {
+        HAL_SPI_Abort(spi_handle_lcd);
+    }
     if (tmp_flg & FLG_CS) {
         st7789v_set_cs();
     }
+    return result == HAL_OK;
 }
 #pragma GCC pop_options
 
@@ -350,12 +353,21 @@ void st7789v_cmd_ramrd(uint8_t *pdata, uint16_t size) {
 }
 
 bool st7789v_is_reset_required() {
-    uint8_t pdata[ST7789V_MAX_COMMAND_READ_LENGHT] = { 0x00 };
-    st7789v_cmd_rd(CMD_MADCTLRD, pdata);
-    if ((pdata[1] != 0xE0 && pdata[1] != 0xF0 && pdata[1] != 0xF8)) {
-        return true;
+    if (display_writes_suppressed) {
+        return false;
     }
-    return false;
+    for (unsigned attempt = 0; attempt < 2; ++attempt) {
+        uint8_t pdata[ST7789V_MAX_COMMAND_READ_LENGHT] = { 0x00 };
+        if (st7789v_cmd_rd(CMD_MADCTLRD, pdata)
+            && (pdata[1] == ST7789V_DEF_MADCTL || pdata[1] == 0xE0 || pdata[1] == 0xF0 || pdata[1] == 0xF8)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool st7789v_take_transfer_error() {
+    return spi_transfer.take_error();
 }
 
 /*void st7789v_test_miso(void)
@@ -388,6 +400,7 @@ void st7789v_init_ctl_pins(void) {
  * delay to detect Jogwheel revision.
  */
 void st7789v_init(void) {
+    spi_transfer.reset_error();
     st7789v_task_handle = osThreadGetId();
     debug_assert_correct_task();
     if (st7789v_flg & (uint8_t)ST7789V_FLG_SAFE) {
@@ -747,6 +760,7 @@ uint16_t st7789v_reset_delay = 0;
 
 //! @brief enable safe mode (direct access + safe delay)
 void st7789v_enable_safe_mode(void) {
+    spi_transfer.reset_error();
     st7789v_flg |= (uint8_t)ST7789V_FLG_SAFE;
 }
 

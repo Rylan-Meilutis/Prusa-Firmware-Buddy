@@ -21,6 +21,7 @@ void Touchscreen_GT911::set_enabled(bool set) {
 
     // Force full setup on re-enabling touchscreen
     if (set) {
+        read_error_recovery_queued_ = false;
         required_recovery_action_ = RecoveryAction::restart_display;
     }
 
@@ -113,8 +114,25 @@ void Touchscreen_GT911::perform_check() {
             break;
 
         case RecoveryAction::restart_display:
-            // Has to be handled externally
-            return;
+            // Touch and LCD share RESET. Before blanking a healthy LCD for a
+            // transient I2C fault, retry the touch config on the GUI task.
+            // This raw probe must not call read_data(): the pending recovery
+            // intentionally blocks normal reads, and a failed probe must not
+            // recursively queue another recovery or erase the retry budget.
+            if (read_error_recovery_queued_) {
+                uint8_t config_version = 0;
+                i2c::ChannelMutex lock(*i2c_handle_touch);
+                const auto result = HAL_I2C_Mem_Read(i2c_handle_touch, i2c_device_address,
+                    register_config_begin, I2C_MEMADD_SIZE_16BIT, &config_version, 1, read_write_timeout_ms);
+                if (result == HAL_OK && config_version == touchscreen_gt911_config[0]) {
+                    read_error_recovery_queued_ = false;
+                    required_recovery_action_ = RecoveryAction::none;
+                    consecutive_read_error_count_ = 0;
+                    log_info(Touch, "Touch recovered without resetting LCD");
+                    return;
+                }
+            }
+            return; // A persistent fault/manual re-enable still needs RESET.
 
         case RecoveryAction::disable_touch:
             metric_record_string(metric_touch_event(), "disable_touch");
@@ -173,6 +191,7 @@ void Touchscreen_GT911::reset_chip(ResetClrFunc reset_clr_func) {
     }
 
     required_recovery_action_ = RecoveryAction::none;
+    read_error_recovery_queued_ = false;
 }
 
 bool Touchscreen_GT911::read_data(uint16_t address, void *dest, uint8_t bytes, uint8_t attempts) {
@@ -181,7 +200,12 @@ bool Touchscreen_GT911::read_data(uint16_t address, void *dest, uint8_t bytes, u
     }
 
     for (uint8_t attempt = 0; attempt < attempts; attempt++) {
-        if (HAL_I2C_Mem_Read(i2c_handle_touch, i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(dest), bytes, read_write_timeout_ms) == HAL_StatusTypeDef::HAL_OK) {
+        HAL_StatusTypeDef result;
+        {
+            i2c::ChannelMutex lock(*i2c_handle_touch);
+            result = HAL_I2C_Mem_Read(i2c_handle_touch, i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(dest), bytes, read_write_timeout_ms);
+        }
+        if (result == HAL_StatusTypeDef::HAL_OK) {
             return true;
         }
 
@@ -199,7 +223,12 @@ bool Touchscreen_GT911::write_data(uint16_t address, const void *data, uint8_t b
     }
 
     for (uint8_t attempt = 0; attempt < attempts; attempt++) {
-        if (HAL_I2C_Mem_Write(i2c_handle_touch, i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(const_cast<void *>(data)), bytes, read_write_timeout_ms) == HAL_StatusTypeDef::HAL_OK) {
+        HAL_StatusTypeDef result;
+        {
+            i2c::ChannelMutex lock(*i2c_handle_touch);
+            result = HAL_I2C_Mem_Write(i2c_handle_touch, i2c_device_address, address, I2C_MEMADD_SIZE_16BIT, reinterpret_cast<uint8_t *>(const_cast<void *>(data)), bytes, read_write_timeout_ms);
+        }
+        if (result == HAL_StatusTypeDef::HAL_OK) {
             return true;
         }
 
@@ -341,6 +370,7 @@ bool Touchscreen_GT911::handle_read_error() {
     else if ((consecutive_read_error_count_ % retries_before_reset) == 0) {
         log_warning(Touch, "Touch error, requesting display restarts");
         metric_record_string(metric_touch_event(), "request_restart_display");
+        read_error_recovery_queued_ = true;
         required_recovery_action_ = RecoveryAction::restart_display;
     }
 
