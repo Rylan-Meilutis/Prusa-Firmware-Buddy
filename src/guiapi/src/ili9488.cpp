@@ -18,6 +18,7 @@
 #include "cmsis_os.h"
 
 #include "hw_configuration.hpp"
+#include <display_spi_transfer.hpp>
 
 #include <option/bootloader.h>
 #include <option/has_touch.h>
@@ -100,6 +101,7 @@ static constexpr uint8_t ILI9488_MAX_COMMAND_READ_LENGHT = 4;
 namespace {
 bool do_complete_lcd_reinit = false;
 bool display_writes_suppressed = false;
+display::SpiTransfer spi_transfer;
 } // namespace
 
 static bool reduce_display_baudrate = false;
@@ -191,19 +193,16 @@ void ili9488_delay_ms(uint32_t ms) {
 }
 
 void ili9488_spi_wr_byte(uint8_t b) {
-    HAL_SPI_Transmit(spi_handle_lcd, &b, 1, HAL_MAX_DELAY);
+    spi_transfer.transmit(spi_handle_lcd, ili9488_task_handle, ILI9488_SIG_SPI_TX, &b, 1, false);
 }
 
 void ili9488_spi_wr_bytes(const uint8_t *pb, uint16_t size) {
     if ((ili9488_flg & ILI9488_FLG_DMA) && !(ili9488_flg & ILI9488_FLG_SAFE) && (size > 4)) {
         debug_assert_correct_task();
-        osSignalSet(ili9488_task_handle, ILI9488_SIG_SPI_TX);
-        osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
         debug_assert(can_be_used_by_dma(pb));
-        HAL_SPI_Transmit_DMA(spi_handle_lcd, const_cast<uint8_t *>(pb), size);
-        osSignalWait(ILI9488_SIG_SPI_TX, osWaitForever);
+        spi_transfer.transmit(spi_handle_lcd, ili9488_task_handle, ILI9488_SIG_SPI_TX, pb, size, true);
     } else {
-        HAL_SPI_Transmit(spi_handle_lcd, const_cast<uint8_t *>(pb), size, HAL_MAX_DELAY);
+        spi_transfer.transmit(spi_handle_lcd, ili9488_task_handle, ILI9488_SIG_SPI_TX, pb, size, false);
     }
 }
 
@@ -212,7 +211,7 @@ void ili9488_spi_rd_bytes(uint8_t *pb, uint16_t size) {
     // At faster clocks the data arrives late and gets sampled shifted.
     SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_16 };
 
-    HAL_SPI_Receive(spi_handle_lcd, pb, size, HAL_MAX_DELAY);
+    spi_transfer.receive(spi_handle_lcd, pb, size);
 }
 
 void ili9488_cmd(uint8_t cmd, const uint8_t *pdata, uint16_t size) {
@@ -246,13 +245,35 @@ static bool ili9488_cmd_rd(uint8_t cmd, uint8_t *pdata) {
     // Register reads need the same conservative clock as pixel reads.
     SPIBaudRatePrescalerGuard guard { spi_handle_lcd, SPI_BAUDRATEPRESCALER_16 };
 
-    ili9488_clr_cs(); // CS = L
+    // On xBuddy the normal CS helpers are deliberately no-ops: CS also
+    // selects the LED strip. Reads still need a real transaction boundary,
+    // just like ili9488_rd(). Without it a retry can continue the previous
+    // read instead of issuing a new command, causing spurious full resets.
+    // The muxed LEDs ignore SCK: make MOSI low BEFORE selecting them, exactly
+    // as GuiLedsWriter does. Do not rely on the last pixel's final bit.
+    ili9488_clr_rs();
+    uint8_t nop = CMD_NOP;
+    if (HAL_SPI_Transmit(spi_handle_lcd, &nop, 1, 20) != HAL_OK) {
+        HAL_SPI_Abort(spi_handle_lcd);
+        return false;
+    }
+    displayCs.write(Pin::State::high);
+    ili9488_delay_ms(1);
+    displayCs.write(Pin::State::low);
     ili9488_clr_rs(); // RS = L
     uint8_t data_to_write[ILI9488_MAX_COMMAND_READ_LENGHT] = { 0x00 };
     data_to_write[0] = cmd;
     data_to_write[1] = 0x00;
     const auto result = HAL_SPI_TransmitReceive(spi_handle_lcd, data_to_write, pdata, ILI9488_MAX_COMMAND_READ_LENGHT, 20);
-    ili9488_set_cs();
+    if (result != HAL_OK) {
+        HAL_SPI_Abort(spi_handle_lcd);
+    }
+    displayCs.write(Pin::State::high);
+    ili9488_delay_ms(1);
+#if !BOARD_IS_BUDDY()
+    // Leave the shared mux on the LCD; no SPI clocks while LEDs are selected.
+    displayCs.write(Pin::State::low);
+#endif
     return result == HAL_OK;
 }
 
@@ -362,6 +383,10 @@ bool ili9488_is_reset_required() {
     return true;
 }
 
+bool ili9488_take_transfer_error() {
+    return spi_transfer.take_error();
+}
+
 void ili9488_reset(void) {
     // some extra step based on new manufacturer recommendation
     if (Configuration::Instance().has_display_backlight_control()) {
@@ -462,6 +487,8 @@ static void startup_new_manufacturer() {
 }
 
 void ili9488_init(void) {
+    spi_transfer.reset_error();
+    reduce_display_baudrate = config_store().reduce_display_baudrate.get();
     const uint8_t brightness = do_complete_lcd_reinit ? ili9488_config.brightness : 0xFF;
     displayCs.write(Pin::State::low);
     ili9488_task_handle = osThreadGetId();
@@ -837,6 +864,7 @@ void ili9488_ctrl_set(uint8_t ctrl) {
 
 //! @brief enable safe mode (direct acces + safe delay)
 void ili9488_enable_safe_mode(void) {
+    spi_transfer.reset_error();
     ili9488_flg |= ILI9488_FLG_SAFE;
 }
 

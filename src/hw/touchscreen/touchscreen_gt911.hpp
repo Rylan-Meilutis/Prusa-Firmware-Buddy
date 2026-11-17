@@ -80,4 +80,5 @@ private:
     uint32_t touch_event_update_count_ = 0;
 
     RecoveryAction required_recovery_action_ = RecoveryAction::none;
+    bool read_error_recovery_queued_ = false;
 };

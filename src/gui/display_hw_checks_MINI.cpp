@@ -16,8 +16,13 @@ void reinit_lcd_and_redraw() {
 }
 
 void check_lcd() {
+    const bool transfer_error = display::take_transfer_error();
     if (display::is_reset_required()) {
         reinit_lcd_and_redraw();
+    } else if (transfer_error) {
+        if (auto *screen = Screens::Access()->Get()) {
+            screen->Invalidate();
+        }
     }
 }
 } // anonymous namespace

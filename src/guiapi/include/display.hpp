@@ -29,6 +29,9 @@ uint8_t *get_block(point_ui16_t start, point_ui16_t end);
 void enable_safe_mode();
 void init();
 bool is_reset_required();
+/// Consume a failed pixel/LED transfer so the GUI can redraw without resetting
+/// an otherwise healthy panel. Call only from the GUI task.
+bool take_transfer_error();
 void complete_reinit();
 void spi_tx_complete();
 

@@ -89,4 +89,5 @@ void st7789v_draw_from_buffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 extern void st7789v_spi_tx_complete(void);
 extern bool st7789v_is_reset_required();
+extern bool st7789v_take_transfer_error();
 extern void st7789v_reset(void);

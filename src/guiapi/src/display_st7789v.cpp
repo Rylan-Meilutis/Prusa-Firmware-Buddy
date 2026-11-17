@@ -32,8 +32,12 @@ bool is_reset_required() {
     return st7789v_is_reset_required();
 }
 
+bool take_transfer_error() {
+    return st7789v_take_transfer_error();
+}
+
 void complete_reinit() {
-    st7789v_reset();
+    // st7789v_init() always resets the controller. Do not pulse RESET twice.
 }
 
 void spi_tx_complete() {
