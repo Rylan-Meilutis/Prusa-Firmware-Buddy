@@ -251,7 +251,7 @@ namespace {
             { StateAnimation::Printing, { { 0, 150, 255 }, 1000, 0, 400, solid } },
             { StateAnimation::Finishing, { { 0, 255, 0 }, 1000, 0, 400, solid } },
 #endif
-            { StateAnimation::Filtering, { { 0, 255, 0 }, 2000, 0, 2000, pulsing } },
+            { StateAnimation::Filtering, { { 0, 255, 0 }, 1000, 0, 400, solid } },
             { StateAnimation::Aborting, { { 0, 0, 0 }, 1000, 0, 400, solid } },
 #if PRINTER_IS_PRUSA_iX()
             { StateAnimation::Warning, { { 128, 32, 0 }, 1000, 0, 1000, pulsing } },
@@ -458,12 +458,9 @@ void StatusLedsHandler::acknowledge_finished() {
 }
 
 void StatusLedsHandler::activity_ping() {
-    std::lock_guard lock(mutex);
-    if (!finished_pending || finished_acknowledged || print_active_for_status_override()) {
-        return;
-    }
-    const uint32_t hold_s = config_store().status_led_finished_hold_s.get();
-    finished_hold_until_ms = hold_s > 0 ? ticks_ms() + hold_s * 1000 : 0;
+    // Activity wakes the LCD/chamber through their own policies, but must not
+    // renew the completion indication. Repeated host commands or local input
+    // otherwise keep extending green indefinitely, even after its first expiry.
 }
 
 void StatusLedsHandler::acknowledge_finished_on_door_open() {
@@ -521,6 +518,10 @@ void StatusLedsHandler::update() {
     }
     filtering_prev = filtering;
     finished_prev = finished;
+    if (finished_pending && !filtering && (config_store().status_led_finished_hold_s.get() == 0 || (finished_hold_until_ms != 0 && ticks_diff(now_ms, finished_hold_until_ms) >= 0))) {
+        finished_pending = false;
+        finished_hold_until_ms = 0;
+    }
     const bool timed_finished_hold_active = finished_hold_until_ms != 0 && ticks_diff(now_ms, finished_hold_until_ms) < 0;
 
     if (print_active) {
@@ -547,8 +548,7 @@ void StatusLedsHandler::update() {
     } else if (timed_finished_hold_active && !finished_acknowledged) {
         state = StateAnimation::Finishing;
     } else if (finished) {
-        // Expiring the indication does not acknowledge the finished print.
-        // Activity can renew the hold until the door/result screen clears it.
+        // Keep the result screen, but completion color has a fixed deadline.
         state = StateAnimation::Idle;
     } else {
         state = marlin_to_anim_state();

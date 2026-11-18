@@ -1,10 +1,25 @@
 """Execute the production count receiver and LCD item selection under sanitizers."""
 import unittest
+import re
 import test_serial_pause_recovery as fixture
 
 
 class SerialToolChanges(unittest.TestCase):
     run_cpp = fixture.SerialPauseRecovery.run_cpp
+
+    def test_tool_counter_label_has_room_before_the_percentage(self):
+        lcd = (fixture.ROOT / 'src/gui/screen_printing_serial.cpp').read_text()
+        large = lcd.split('#elif HAS_LARGE_DISPLAY()')[1].split('#endif')[0]
+        match = re.search(
+            r'etime_label_rect\s*\{\s*(\d+),\s*get_row\(0\),\s*(\d+),\s*20\s*\}',
+            large)
+        self.assertIsNotNone(match)
+        left, label_width = map(int, match.groups())
+        # Actual small-font width on the large display is 9 pixels. Leave
+        # padding for the whole English label, not just its first 16 letters.
+        self.assertGreaterEqual(label_width, len('Tool changes done') * 9 + 8)
+        self.assertLessEqual(left + label_width, 300)
+        self.assertIn('static_assert(etime_label_rect.Width()', lcd)
 
     def test_wire_counts_expiry_reset_and_fourth_lcd_item(self):
         source = (fixture.ROOT / 'src/common/serial_printing.cpp').read_text()
@@ -51,7 +66,7 @@ namespace marlin_server {
 constexpr uint32_t TIME_TO_END_INVALID = 0xffffffff;
 bool serial_print_active() {return job;}
 }
-struct Value {uint32_t get() const {return 100;}};
+struct Value {uint32_t value=100; uint32_t get() const {return value;}};
 struct {Value time_to_end, time_to_pause;} vars;
 auto &marlin_vars() {return vars;}
 static rme_tool_change_progress::State tool_change_progress;
@@ -114,8 +129,8 @@ int main() {
     assert(!strcmp(lcd.w_etime_label.text,"Tool changes done"));
     send("tools_remaining=0 tools_total=0");
     assert(SerialPrinting::host_tool_changes(left, total, clock_ms) && left==0 && total==0);
-    assert(lcd.time_item_available(Item::completed_tool_changes));
-    lcd.render_count(); assert(!strcmp(lcd.w_etime_value_buffer.data(),"0 / 0"));
+    assert(!lcd.time_item_available(Item::completed_tool_changes));
+    assert(!lcd.time_item_available(Item::time_to_change));
     for (auto remaining : {54u,53u,27u,0u}) {
         send("tools_remaining="+std::to_string(remaining)+" tools_total=54");
         lcd.render_count();
@@ -129,6 +144,11 @@ int main() {
     lcd.render_count(); assert(!strcmp(lcd.w_etime_value_buffer.data(),"0 / 200000"));
     send("tools_remaining=unknown tools_total=unknown");
     assert(!SerialPrinting::host_tool_changes(left, total, clock_ms));
+    assert(lcd.time_item_available(Item::time_to_change));
+    vars.time_to_pause.value=0;
+    assert(!lcd.time_item_available(Item::time_to_change));
+    vars.time_to_pause.value=marlin_server::TIME_TO_END_INVALID;
+    assert(!lcd.time_item_available(Item::time_to_change));
     lcd.render_count(); assert(!strcmp(lcd.w_etime_value_buffer.data(),"--"));
     // Normal old-host progress packets do not invent a tool-change count.
     send(""); assert(!lcd.time_item_available(Item::completed_tool_changes));

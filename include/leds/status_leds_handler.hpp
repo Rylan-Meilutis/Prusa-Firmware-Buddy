@@ -104,7 +104,7 @@ private:
     bool custom_animation_active { false };
     bool is_error_state { false };
     bool finished_acknowledged { false };
-    // Survives the hold timeout and serial PRINTING -> IDLE transition.
+    // Tracks completion across serial PRINTING -> IDLE until its fixed timeout.
     bool finished_pending { false };
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     bool aborted_acknowledged { false };

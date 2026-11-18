@@ -91,7 +91,7 @@ constexpr size_t get_row(size_t idx) {
     return row_0 + idx * row_height;
 }
 const Rect16 progress_txt_rect { EndResultBody::get_progress_txt_rect(row_0) };
-constexpr Rect16 etime_label_rect { 30, get_row(0), 150, 20 };
+constexpr Rect16 etime_label_rect { 30, get_row(0), 200, 20 };
 constexpr Rect16 etime_value_rect { 30, get_row(1), 200, 23 };
 constexpr Rect16 time_label_rect { 0, 0, 0, 0 };
 constexpr Rect16 time_value_rect { 0, 0, 0, 0 };
@@ -103,6 +103,7 @@ constexpr Rect16 result_value_rect { 30, 116, 420, 56 };
 constexpr Rect16 time_dots_rect { 30, get_row(1) + height(Font::normal) + 5, 44, 6 };
 constexpr Rect16 page_dots_rect { 30, 174, 44, 6 };
 #endif
+static_assert(etime_label_rect.Width() >= (sizeof("Tool changes done") - 1) * width(Font::small) + 8);
 constexpr int32_t page_rotation_s = 4;
 
 float percent_from_progress(const PrintStatusMessageDataProgress &progress) {
@@ -611,13 +612,16 @@ bool screen_printing_serial_data_t::time_item_available(TimeItem item) const {
     case TimeItem::remaining_time:
     case TimeItem::end_time:
         return end_time_valid;
-    case TimeItem::time_to_change:
-        return time_to_change != marlin_server::TIME_TO_END_INVALID;
+    case TimeItem::time_to_change: {
+        uint32_t remaining = 0, total = 0;
+        return time_to_change != marlin_server::TIME_TO_END_INVALID && time_to_change > 0
+            && (!SerialPrinting::host_tool_changes(remaining, total, ticks_ms()) || total > 0);
+    }
     case TimeItem::time_since_start:
         return true;
     case TimeItem::completed_tool_changes: {
         uint32_t remaining = 0, total = 0;
-        return SerialPrinting::host_tool_changes(remaining, total, ticks_ms());
+        return SerialPrinting::host_tool_changes(remaining, total, ticks_ms()) && total > 0;
     }
     case TimeItem::_count:
         return false;
