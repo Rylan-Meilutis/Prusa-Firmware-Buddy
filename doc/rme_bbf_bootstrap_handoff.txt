@@ -1,0 +1,29 @@
+RME BBF resource-bootstrap handoff fix
+====================================
+
+An RME-uploaded image was stored as /usb/FWUPD.RME and explicitly selected
+for the bootloader. Application flashing could succeed, but the new
+application's resource installer scanned only .bbf names. When resources
+changed, startup stayed at Looking for BBF before Marlin/serial became ready.
+
+Keep unconfirmed uploads neutral. During confirmed M997 installation, publish
+the managed candidate as FWUPD.BBF after durable cleanup authorization, under
+the transfer latch. Do not overwrite an existing FWUPD.BBF. Preserve the RAM
+guard for both old and new names until reset. The application starts resource
+bootstrap before creating Marlin, so cleanup cannot remove its payload early.
+
+Also accept exactly FWUPD.RME as a resource source for upgrades initiated by
+older RME firmware. This does not change generic firmware detection or permit
+arbitrary .rme files. Required resource/bootloader revision digests and the
+extracted payload hash remain mandatory.
+
+Recovery for an already stuck 8.0.2: place the exact matching original .bbf
+at the USB root while the printer remains on. Bootstrap retries every second;
+it can load the missing resources without another application flash. Do not
+remove the drive while resources are copying.
+
+Validation: execute production M997/LCD/legacy/FILE handoff paths with host
+filesystem faults and cleanup scheduling; execute production resource lookup
+and revision matching for confirmed BBF and old neutral handoffs. GUI suite
+passes 153 tests on the maintained source. Physical USB/bootloader power-loss
+qualification is not implied by these software tests.

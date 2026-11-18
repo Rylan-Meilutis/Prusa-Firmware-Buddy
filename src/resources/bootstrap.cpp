@@ -35,7 +35,15 @@ LOG_COMPONENT_DEF(Resources, logging::Severity::debug);
 using buddy::BootstrapStage;
 
 static bool has_bbf_suffix(const char *fname) {
-    char *dot = strrchr(fname, '.');
+    // Older RME applications handed this verified image to the bootloader
+    // under a neutral extension. Accept exactly that staging name as a
+    // resource source too, so upgrading from them can finish bootstrap.
+    // The resource-revision digest checks below still apply; this does not
+    // make arbitrary .rme files firmware-picker/bootloader candidates.
+    if (strcasecmp(fname, "FWUPD.RME") == 0) {
+        return true;
+    }
+    const char *dot = strrchr(fname, '.');
 
     if (dot == nullptr) {
         return 0;

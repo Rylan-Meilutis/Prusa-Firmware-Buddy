@@ -193,7 +193,7 @@ std::optional<std::array<char, rme_path_buffer_size>> path_value(const std::stri
     // completed, discoverable BBF under that name: the bootloader may select
     // it on an unrelated reboot before the user or host explicitly requests
     // a flash. Keep wire compatibility while storing it under a neutral
-    // extension that is only opened through the retained M997 request.
+    // extension until confirmed M997 publishes the final FWUPD.BBF.
     if (strcasecmp(path.data(), "/usb/FWUPD.BBF") == 0) {
         strlcpy(path.data(), "/usb/FWUPD.RME", path.size());
     }
@@ -206,7 +206,7 @@ bool parse_sha256(const std::string_view text, std::array<uint8_t, 32> &result) 
 
 bool firmware_armed() {
     struct stat marker {};
-    return data_exchange::is_reflash_bbf_sfn("FWUPD.RME")
+    return (data_exchange::is_reflash_bbf_sfn("FWUPD.RME") || data_exchange::is_reflash_bbf_sfn("FWUPD.BBF"))
         && ((stat(firmware_marker_path, &marker) == 0 && S_ISREG(marker.st_mode))
             || firmware_update_handoff::cleanup_receipt_state() == firmware_update_handoff::ReceiptState::valid);
 }
