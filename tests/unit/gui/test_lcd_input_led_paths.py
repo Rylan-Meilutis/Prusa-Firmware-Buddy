@@ -49,6 +49,7 @@ struct Config {
  Setting<uint32_t> status_led_idle_color{0},status_led_printing_color{0x0096ff},
   status_led_finished_color{0x00ff00},status_led_warning_color{0xffff00},status_led_error_color{0xff0000};
  Setting<uint32_t> status_led_finished_hold_s{30};
+ Setting<uint32_t> chamber_post_print_filtration_duration_min{2};
 } config;
 Config &config_store() {return config;}
 #include <leds/status_leds_handler.hpp>
@@ -66,6 +67,15 @@ struct PrintState {
 };
 struct Vars {PrintState print_state;} vars;
 Vars &marlin_vars() {return vars;}
+namespace buddy {
+struct Filter {
+ unsigned remaining=120;
+ struct Pwm {unsigned value=0;} pwm;
+ Pwm output_pwm() const {return pwm;}
+ unsigned post_print_remaining_s() const {return remaining;}
+} filter;
+Filter &chamber_filtration() {return filter;}
+}
 namespace leds {
 using namespace marlin_server;
 ''' + '\n'.join(
@@ -74,7 +84,8 @@ using namespace marlin_server;
                               'static bool print_active_for_status_override()',
                               'static uint8_t packed_brightness(',
                               'static ColorRGBW raw_to_color(')
-        ) + r'''
+        ) + '\n#if HAS_CHAMBER_FILTRATION_API()\n' + function(
+            status, 'static ColorRGBW filtration_tint()') + '\n#endif\n' + r'''
 // The LCD input handlers cannot mutate the mocked steady Printing FSM.
 StateAnimation marlin_to_anim_state() {
  switch(marlin_vars().print_state.get()) {
@@ -85,27 +96,28 @@ StateAnimation marlin_to_anim_state() {
 }
 namespace {
 ''' + status[animation_start:animation_end] + '\n}\n' + '\n'.join(
-            function(status, signature) for signature in
-            ('StateAnimationController &controller_instance()',
-             'StatusLedsHandler &StatusLedsHandler::instance()',
-             'void StatusLedsHandler::update()',
-             'std::span<const ColorRGBW, 3> StatusLedsHandler::led_data()',
-             'void StatusLedsHandler::set_idle_light_state(',
-             'void StatusLedsHandler::reload_colors()',
-             'void StatusLedsHandler::set_print_status_brightness(',
-             'void StatusLedsHandler::acknowledge_finished()',
-             'void StatusLedsHandler::acknowledge_finished_on_door_open()',
-             'void StatusLedsHandler::activity_ping()') if signature in status
-        ) + r'''
+                function(status, signature) for signature in
+                ('StateAnimationController &controller_instance()',
+                 'StatusLedsHandler &StatusLedsHandler::instance()',
+                 'void StatusLedsHandler::update()',
+                 'std::span<const ColorRGBW, 3> StatusLedsHandler::led_data()',
+                 'void StatusLedsHandler::set_idle_light_state(',
+                 'void StatusLedsHandler::reload_colors()',
+                 'void StatusLedsHandler::set_print_status_brightness(',
+                 'void StatusLedsHandler::acknowledge_finished()',
+                 'void StatusLedsHandler::acknowledge_finished_on_door_open()',
+                 'void StatusLedsHandler::activity_ping()')
+                if signature in status) + r'''
 enum class SideStripState {unknown,printing,active,custom_color,dimmed,idle,off};
 constexpr uint32_t screen_brightness_wake_ms=30000;
 bool print_active_for_leds() {return true;}
 uint8_t active_screen_brightness() {return 100;}
 ''' + '\n'.join(
-            function(side, signature) for signature in
-            ('static LightState light_state_for_strip_state(',
-             'static LightState screen_light_state_for_strip_state(',
-             'static uint8_t packed_screen_brightness(')) + r'''
+                    function(side, signature) for signature in
+                    ('static LightState light_state_for_strip_state(',
+                     'static LightState screen_light_state_for_strip_state(',
+                     'static uint8_t packed_screen_brightness(')
+                ) + r'''
 struct SideStripHandler {
  mutable std::mutex mutex;
  SideStripState state=SideStripState::printing;
@@ -121,11 +133,11 @@ struct SideStripHandler {
  LightState current_light_state() const;
 };
 ''' + '\n'.join(
-                 function(side, signature) for signature in
-                 ('void SideStripHandler::activity_ping()',
-                  'bool SideStripHandler::wake_screen_from_dim_idle()',
-                  'LightState SideStripHandler::current_light_state() const'
-                  )) + r'''
+                    function(side, signature) for signature in
+                    ('void SideStripHandler::activity_ping()',
+                     'bool SideStripHandler::wake_screen_from_dim_idle()',
+                     'LightState SideStripHandler::current_light_state() const'
+                     )) + r'''
 }
 enum class BtnState_t {Pressed,Released,Held,HeldAndRight,HeldAndLeft,HeldAndReleased};
 enum class GUI_event_t {TOUCH_CLICK,TOUCH_MOVE,BTN_DN,BTN_UP,CLICK,KNOB,HELD_RELEASED};
@@ -164,7 +176,7 @@ bool EventEncoder(int); bool EventClick(BtnState_t);
 }
 using namespace gui::knob;
 ''' + function(knob, 'bool gui::knob::EventEncoder(') + '\n' + function(
-                      knob, 'bool gui::knob::EventClick(') + r'''
+                         knob, 'bool gui::knob::EventClick(') + r'''
 struct Jogwheel {
  int diff=0; bool pending=false; BtnState_t button=BtnState_t::Released;
  bool ConsumeButtonEvent(BtnState_t &out) {out=button;bool r=pending;pending=false;return r;}
@@ -217,15 +229,17 @@ int main() {
  }
  assert(marlin_client::clicks>500 && marlin_client::moves>500);
  assert(Screens::Access()->Get()->window.events>1500);
- // An expired completion indication is not an acknowledged print. Exercise
- // the actual input -> side activity -> status timer path, including serial
- // printers which report IDLE while their finished screen remains visible.
+ // Local input and host activity cannot indefinitely extend or resurrect
+ // completion green, even if the result screen remains visible.
  marlin_server::serial_printing=false;
  vars.print_state.value=marlin_server::State::Finished;
  // The completion timeout must turn green off even before deep idle begins.
  status.set_idle_light_state(leds::LightState::active);
  status.update();
- clock_ms+=31000; status.update();
+ for(int ping=0;ping<6;++ping) {
+  clock_ms+=5000; side.activity_ping(); status.update();
+ }
+ clock_ms+=1000; status.update();
  clock_ms+=1000; status.update(); // Allow the native fade to Idle to complete.
  assert(status.led_data()[1].g==0);
  status.set_idle_light_state(leds::LightState::deep_idle);
@@ -234,7 +248,7 @@ int main() {
  for(int wake=0;wake<2;++wake) {
   side.activity_ping(); status.update();
   clock_ms+=1000; status.update();
-  assert(status.led_data()[1].g==255 && status.led_data()[1].b==0);
+  assert(status.led_data()[1].g==0);
   clock_ms+=31000; status.update();
   assert(status.led_data()[1].g==0);
  }
@@ -261,7 +275,7 @@ int main() {
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
- // The timer remains wrap-safe; configuring zero disables timed reactivation.
+ // The fixed completion deadline remains wrap-safe.
  vars.print_state.value=marlin_server::State::Printing; status.update();
  clock_ms=0xfffff000;
  vars.print_state.value=marlin_server::State::Finished; status.update();
@@ -269,11 +283,42 @@ int main() {
  clock_ms+=31000; status.update();
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
- assert(status.led_data()[1].g==255);
+ assert(status.led_data()[1].g==0);
+ // Zero disables the indication even during a live completion hold.
+ vars.print_state.value=marlin_server::State::Printing; status.update();
+ vars.print_state.value=marlin_server::State::Finished; status.update();
  config.status_led_finished_hold_s.value=0;
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
+#if HAS_CHAMBER_FILTRATION_API()
+ // Filtering stays steadily lit: only the progress tint changes, with no
+ // periodic black frames. Exercise the real animation and pixel renderer.
+ config.status_led_finished_hold_s.value=30;
+ vars.print_state.value=marlin_server::State::Printing; status.update();
+ vars.print_state.value=marlin_server::State::Finished;
+ buddy::filter.pwm.value=100; buddy::filter.remaining=120;
+ status.set_idle_light_state(leds::LightState::active);
+ status.update(); clock_ms+=1000; status.update();
+ uint8_t previous_blue=0;
+ for(unsigned step=0;step<=2400;++step) {
+  clock_ms+=50; buddy::filter.remaining=120-step/20;
+  status.update();
+  auto pixel=status.led_data()[1];
+  assert(pixel.r>=254 && pixel.g>=254); // no pulsing/off frames (float rounding: 1 LSB)
+  assert(pixel.b>=previous_blue); previous_blue=pixel.b;
+ }
+ assert(previous_blue==255);
+ assert(leds::animations[leds::StateAnimation::Filtering].frames.size()==1);
+ assert(leds::animations[leds::StateAnimation::Warning].frames.size()==2);
+ assert(leds::animations[leds::StateAnimation::Error].frames.size()==2);
+ buddy::filter.pwm.value=0; status.update();
+ for(int ping=0;ping<7;++ping) {
+  clock_ms+=5000; side.activity_ping(); status.update();
+ }
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==0);
+#endif
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
@@ -285,25 +330,33 @@ int main() {
             (path / 'freertos/timing.hpp').write_text(
                 '#pragma once\n#include <cstdint>\nextern uint32_t clock_ms;\nnamespace freertos {inline uint32_t millis() {return clock_ms;}}\n'
             )
-            (path / 'test.cpp').write_text(code)
-            binary = path / 'test'
-            subprocess.run([
-                'c++', '-std=c++23', '-fsanitize=address,undefined',
-                '-fno-pie', '-no-pie', '-I' + str(path),
-                '-I' + str(ROOT / 'include'),
-                '-I' + str(ROOT / 'src/module/utils/buddy_utils'), '-I' +
-                str(ROOT / 'src/module/leds/led_animation_controller/include'),
-                str(path / 'test.cpp'),
-                str(ROOT / 'src/module/utils/buddy_utils/utils/led_color.cpp'),
-                '-o',
-                str(binary)
-            ],
-                           check=True)
-            subprocess.run([str(binary)],
-                           check=True,
-                           env={
-                               **os.environ, 'ASAN_OPTIONS': 'detect_leaks=0'
-                           })
+            for filtration_supported in (0, 1):
+                (path / 'test.cpp').write_text(
+                    code.replace(
+                        '#define HAS_CHAMBER_FILTRATION_API() 0',
+                        '#define HAS_CHAMBER_FILTRATION_API() ' +
+                        str(filtration_supported)))
+                binary = path / 'test'
+                subprocess.run([
+                    'c++', '-std=c++23', '-fsanitize=address,undefined',
+                    '-fno-pie', '-no-pie', '-I' + str(path),
+                    '-I' + str(ROOT / 'include'),
+                    '-I' + str(ROOT / 'src/module/utils/buddy_utils'), '-I' +
+                    str(ROOT /
+                        'src/module/leds/led_animation_controller/include'),
+                    str(path / 'test.cpp'),
+                    str(ROOT /
+                        'src/module/utils/buddy_utils/utils/led_color.cpp'),
+                    '-o',
+                    str(binary)
+                ],
+                               check=True)
+                subprocess.run([str(binary)],
+                               check=True,
+                               env={
+                                   **os.environ, 'ASAN_OPTIONS':
+                                   'detect_leaks=0'
+                               })
 
 
 if __name__ == '__main__':
