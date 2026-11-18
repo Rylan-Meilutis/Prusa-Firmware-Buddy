@@ -18,7 +18,7 @@
 
 namespace {
 // A neutral extension prevents bootloader auto-discovery. Installation is
-// authorized only by the retained M997 request created after confirmation.
+// authorized only by M997, which publishes the final BBF after confirmation.
 constexpr const char *staged_firmware_path = "/usb/FWUPD.RME";
 
 bool stage_firmware_for_bootloader(const char *source_path) {

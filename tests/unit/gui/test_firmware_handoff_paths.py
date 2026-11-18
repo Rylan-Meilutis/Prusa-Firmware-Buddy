@@ -165,7 +165,10 @@ int rename_usb(const char *a,const char *b) {
     if (fail(std::string("rename:")+b)) return -1;
     return rename(mapped(a).c_str(),mapped(b).c_str());
 }
-int stat_usb(const char *p, struct stat *s) { return stat(mapped(p).c_str(),s); }
+int stat_usb(const char *p, struct stat *s) {
+ if(fail(std::string("stat:")+p)) return -1;
+ return stat(mapped(p).c_str(),s);
+}
 int sync_usb(int fd) {
  ++sync_count;
  if(fail("sync") || (sync_count==2 && fail("receipt-sync"))) return -1;
@@ -204,7 +207,7 @@ unsigned ticks_ms() { return now_ms; }
 namespace data_exchange {
  void set_reflash_bbf_sfn(const char *p) { armed=true; selected=p; }
  void clear_reflash_bbf_sfn() { armed=false; selected.clear(); }
- bool is_reflash_bbf_sfn(const char*) { return armed; }
+ bool is_reflash_bbf_sfn(const char *p) { return armed && selected==p; }
  void fw_update_older_on_restart_enable() {}
  void fw_update_on_restart_enable() {}
 }
@@ -279,7 +282,8 @@ int main(int argc,char **argv) {
  for (unsigned char major : {8, 9, 42}) {
   fresh(); put("/usb/FWUPD.RME", "image", major);
   assert(flash("FWUPD.RME"));
-  assert(armed && selected=="FWUPD.RME");
+  assert(armed && selected=="FWUPD.BBF");
+  assert(exists("/usb/FWUPD.BBF") && !exists("/usb/FWUPD.RME"));
  }
  // Plugin staged image and LCD picker use the same explicit M997 handoff.
  // Legacy M998's completed FWUPD.BBF uses the rename compatibility route.
@@ -297,13 +301,13 @@ int main(int argc,char **argv) {
     assert(queued=="M997 /usb/FWUPD.RME" && error.empty());
     name=queued.c_str()+10;
    }
-   assert(flash(name)); assert(armed && selected=="FWUPD.RME");
-   assert(exists("/usb/FWUPD.RME"));
+   assert(flash(name)); assert(armed && selected=="FWUPD.BBF");
+   assert(exists("/usb/FWUPD.BBF") && !exists("/usb/FWUPD.RME"));
    assert(exists("/usb/FWUPD.UI") && exists("/usb/FWUPD.CLN"));
    if(std::string(lost)=="primary") remove("/usb/FWUPD.UI");
    if(std::string(lost)=="receipt") remove("/usb/FWUPD.CLN");
    armed=false; now_ms+=40000; poll();
-   assert(!exists("/usb/FWUPD.RME") && !exists("/usb/FWUPD.CLN") && !exists("/usb/FWUPD.UI"));
+   assert(!exists("/usb/FWUPD.RME") && !exists("/usb/FWUPD.BBF") && !exists("/usb/FWUPD.CLN") && !exists("/usb/FWUPD.UI"));
    assert(exists("/usb/ORIGINAL.BBF"));
   }
  }
@@ -315,7 +319,7 @@ int main(int argc,char **argv) {
  fresh(); put("/usb/FWUPD.RME"); assert(flash("FWUPD.RME"));
  remove("/usb/FWUPD.UI"); remove("/usb/FWUPD.CLN");
  armed=false; now_ms+=40000; poll();
- assert(exists("/usb/FWUPD.RME")); // No proof of handoff: fail safely.
+ assert(exists("/usb/FWUPD.BBF")); // No proof of handoff: fail safely.
  // Failed persistence cannot reset or authorize a later unrequested flash.
  for(const char *failure : {"open:/usb/FWUPD.UI.tmp", "open:/usb/FWUPD.TCL", "sync", "receipt-sync", "write", "close", "rename:/usb/FWUPD.CLN"}) {
   fresh(); put("/usb/FWUPD.RME"); fault=failure;
@@ -325,7 +329,17 @@ int main(int argc,char **argv) {
  }
  fresh(); put("/usb/FWUPD.RME"); fault="rename:/usb/FWUPD.UI";
  assert(flash("FWUPD.RME")); assert(exists("/usb/FWUPD.CLN"));
- armed=false; now_ms+=40000; poll(); assert(!exists("/usb/FWUPD.RME"));
+ armed=false; now_ms+=40000; poll(); assert(!exists("/usb/FWUPD.BBF"));
+ // A failed publish never resets, destroys another image or leaves a new
+ // discoverable BBF. A successful handoff protects the final BBF before reset.
+ for(const char *failure : {"rename:/usb/FWUPD.BBF", "stat:/usb/FWUPD.BBF"}) {
+  fresh(); put("/usb/FWUPD.RME"); fault=failure;
+  assert(!flash("FWUPD.RME")); assert(!armed && exists("/usb/FWUPD.RME"));
+  assert(!exists("/usb/FWUPD.BBF") && !exists("/usb/FWUPD.CLN") && !exists("/usb/FWUPD.UI"));
+ }
+ fresh(); put("/usb/FWUPD.RME"); put("/usb/FWUPD.BBF", "other image");
+ assert(!flash("FWUPD.RME")); assert(!armed && exists("/usb/FWUPD.RME"));
+ assert(exists("/usb/FWUPD.BBF"));
  // Picker replacement invalidates previous flash authorization and metadata.
  fresh(); put("/usb/FWUPD.UI"); put("/usb/FWUPD.CLN"); put("/usb/ORIGINAL.BBF");
  put("/usb/FWUPD.RME.rme-verified");

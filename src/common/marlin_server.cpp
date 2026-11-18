@@ -4273,7 +4273,7 @@ static void _server_update_vars() {
                 // the retained request still selects this exact candidate.
                 const bool handoff_authorized = (marker_present && S_ISREG(marker.st_mode))
                     || receipt == firmware_update_handoff::ReceiptState::valid;
-                if (handoff_authorized && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME"))) {
+                if (handoff_authorized && firmware_update_handoff::candidate_cleanup_allowed(data_exchange::is_reflash_bbf_sfn("FWUPD.RME") || data_exchange::is_reflash_bbf_sfn("FWUPD.BBF"))) {
                     // Keep the marker until the staged image is definitely gone.
                     errno = 0;
                     const bool safe_stage_removed = remove("/usb/FWUPD.RME") == 0 || errno == ENOENT;

@@ -4,6 +4,8 @@
 #include <common/sys.hpp>
 #include <string.h>
 #include <cstdio>
+#include <cerrno>
+#include <sys/stat.h>
 #include <unistd.h>
 #include "data_exchange.hpp"
 #include <firmware_cleanup_receipt.hpp>
@@ -33,23 +35,12 @@ static void update_main_board(bool update_older, const char *sfn) {
             SERIAL_ERROR_MSG("M997 could not clear prior cleanup authorization");
             return;
         }
-        // Preserve direct M998/legacy M997 compatibility while ensuring the
-        // bootloader cannot auto-discover the staged file on a later reboot.
-        if (strcasecmp(selected_sfn, "FWUPD.BBF") == 0) {
-            remove("/usb/FWUPD.RME");
-            remove("/usb/FWUPD.RME.rme-verified");
-            remove("/usb/FWUPD.RME.rme-verified-tmp");
-            if (rename("/usb/FWUPD.BBF", "/usb/FWUPD.RME") != 0) {
-                SERIAL_ERROR_MSG("M997 could not secure staged firmware");
-                return;
-            }
-            strlcpy(selected_sfn, "FWUPD.RME", sizeof(selected_sfn));
-        }
-        // FWUPD.RME is deliberately not a .BBF: the bootloader must only open
-        // it through this retained, explicitly selected one-shot request.
-        // Create the cleanup marker here, in the same operation that arms the
-        // reboot, rather than while a file is merely being staged.
-        if (strcasecmp(selected_sfn, "FWUPD.RME") == 0) {
+        // Uploads stay neutral until this explicit installation request.
+        // The final handoff must be a .BBF: after application flashing the
+        // resource/bootloader bootstrap also discovers its payload by suffix.
+        const bool managed_candidate = strcasecmp(selected_sfn, "FWUPD.RME") == 0
+            || strcasecmp(selected_sfn, "FWUPD.BBF") == 0;
+        if (managed_candidate) {
             static constexpr const char *marker_path = "/usb/FWUPD.UI";
             static constexpr const char *marker_temp_path = "/usb/FWUPD.UI.tmp";
             remove(marker_temp_path);
@@ -81,6 +72,26 @@ static void update_main_board(bool update_older, const char *sfn) {
                 SERIAL_ERROR_MSG("M997 could not persist cleanup receipt");
                 return;
             }
+            if (strcasecmp(selected_sfn, "FWUPD.RME") == 0) {
+                // Never overwrite another BBF. Keep the neutral request armed
+                // while publishing the final name so concurrent cleanup cannot
+                // remove either image before reset.
+                struct stat destination {};
+                errno = 0;
+                if (stat("/usb/FWUPD.BBF", &destination) == 0 || errno != ENOENT
+                    || rename("/usb/FWUPD.RME", "/usb/FWUPD.BBF") != 0) {
+                    // Only drop the RAM guard after durable authorization has
+                    // been cleared. An I/O failure must not authorize cleanup
+                    // of the still-staged candidate during this boot.
+                    if (firmware_update_handoff::clear_cleanup_authorization()) {
+                        data_exchange::clear_reflash_bbf_sfn();
+                    }
+                    SERIAL_ERROR_MSG("M997 could not publish firmware BBF");
+                    return;
+                }
+                strlcpy(selected_sfn, "FWUPD.BBF", sizeof(selected_sfn));
+                data_exchange::set_reflash_bbf_sfn(selected_sfn);
+            }
             if (rename(marker_temp_path, marker_path) != 0) {
                 // The independently committed receipt is sufficient. Do not
                 // report an aborted flash after publishing its authorization.
@@ -90,8 +101,8 @@ static void update_main_board(bool update_older, const char *sfn) {
         } else {
             data_exchange::set_reflash_bbf_sfn(selected_sfn);
         }
-        if (strcasecmp(selected_sfn, "FWUPD.RME") == 0 && serial_remote_control::session_active()) {
-            SERIAL_ECHOLNPGM("RME_FIRMWARE candidate=1 armed=1 state=restarting path=FWUPD.RME");
+        if (managed_candidate && serial_remote_control::session_active()) {
+            SERIAL_ECHOLNPGM("RME_FIRMWARE candidate=1 armed=1 state=restarting path=FWUPD.BBF");
         }
     } else {
         if (update_older) {
