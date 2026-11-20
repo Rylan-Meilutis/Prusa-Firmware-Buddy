@@ -1,0 +1,17 @@
+Completion lighting — 2026-11-20
+
+While the Finished result remains unacknowledged, status green follows the
+printer's existing activity policy: on while active, off in idle/deep idle,
+and on again when activity resumes. The result can remain on screen throughout.
+The old completion timer no longer suppresses green on an active Finished
+screen. A zero completion-hold setting still disables the green indication.
+The bounded timer remains a fallback for completion transitions outside Finished.
+
+Acknowledgement uses the existing post-print hold setting and its door
+close-after-open lifecycle, or closing the print-end screen. Merely opening
+the door does not acknowledge. No independent filtration door path bypasses
+the setting. New prints reset acknowledgement normally.
+
+Filtration keeps its steady progress tint; error/warning indications and
+print brightness overrides retain priority. No printer has been flashed or
+restarted as part of software validation.

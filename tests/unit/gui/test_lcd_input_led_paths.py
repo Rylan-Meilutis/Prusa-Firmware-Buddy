@@ -64,6 +64,7 @@ bool serial_print_active() {return serial_printing;}
 struct PrintState {
  marlin_server::State value=marlin_server::State::Printing;
  marlin_server::State get() const {return value;}
+ operator marlin_server::State() const {return value;}
 };
 struct Vars {PrintState print_state;} vars;
 Vars &marlin_vars() {return vars;}
@@ -105,7 +106,6 @@ namespace {
                  'void StatusLedsHandler::reload_colors()',
                  'void StatusLedsHandler::set_print_status_brightness(',
                  'void StatusLedsHandler::acknowledge_finished()',
-                 'void StatusLedsHandler::acknowledge_finished_on_door_open()',
                  'void StatusLedsHandler::activity_ping()')
                 if signature in status) + r'''
 enum class SideStripState {unknown,printing,active,custom_color,dimmed,idle,off};
@@ -124,17 +124,23 @@ struct SideStripHandler {
  LightState resolved_light_state=LightState::printing;
  bool screen_forced_off=false, startup_activity_active=false,host_idle_override=false;
  bool print_screen_brightness_overridden=false,screen_brightness_wake_from_print_override=false;
+ bool door_open_for_leds=false,post_print_hold=false,post_print_hold_enabled=true;
+ bool post_print_hold_dismissed=false,post_print_hold_seen_door_open=false,print_or_filter_active_prev=false;
+ uint16_t door_raw_data=0;
  uint8_t print_screen_brightness_override=100,screen_brightness_wake_percent=100;
  uint32_t active_timestamp_ms=1000,screen_brightness_wake_until_ms=0;
  struct Mode {bool invalidated=false; bool resume_on_activity() {bool r=invalidated;invalidated=false;return r;}} chamber_mode_state;
  struct Hold {void release_automatically() {}} rme_hold;
  static SideStripHandler &instance() {static SideStripHandler value;return value;}
  void activity_ping(); bool wake_screen_from_dim_idle();
+ void print_finished_ping(); void set_door_open(bool open,uint16_t raw_data);
  LightState current_light_state() const;
 };
 ''' + '\n'.join(
                     function(side, signature) for signature in
                     ('void SideStripHandler::activity_ping()',
+                     'void SideStripHandler::print_finished_ping()',
+                     'void SideStripHandler::set_door_open(',
                      'bool SideStripHandler::wake_screen_from_dim_idle()',
                      'LightState SideStripHandler::current_light_state() const'
                      )) + r'''
@@ -229,11 +235,10 @@ int main() {
  }
  assert(marlin_client::clicks>500 && marlin_client::moves>500);
  assert(Screens::Access()->Get()->window.events>1500);
- // Local input and host activity cannot indefinitely extend or resurrect
- // completion green, even if the result screen remains visible.
+ // Unacknowledged completion is green while active, even beyond the old
+ // timeout. Inactivity hides it without requiring result dismissal.
  marlin_server::serial_printing=false;
  vars.print_state.value=marlin_server::State::Finished;
- // The completion timeout must turn green off even before deep idle begins.
  status.set_idle_light_state(leds::LightState::active);
  status.update();
  for(int ping=0;ping<6;++ping) {
@@ -241,8 +246,28 @@ int main() {
  }
  clock_ms+=1000; status.update();
  clock_ms+=1000; status.update(); // Allow the native fade to Idle to complete.
+ assert(status.led_data()[1].g==255);
+ status.set_idle_light_state(leds::LightState::idle);
+ status.update(); clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
+ side.activity_ping();
+ status.set_idle_light_state(leds::LightState::active);
+ status.update(); clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==255);
+ for(int ping=0;ping<7;++ping) {
+  clock_ms+=5000; side.activity_ping();
+  status.set_idle_light_state(leds::LightState::active); status.update();
+ }
+ clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==255);
  status.set_idle_light_state(leds::LightState::deep_idle);
+ status.update(); clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==0);
+ status.set_idle_light_state(leds::LightState::active);
+ status.update(); clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==255);
+ status.set_idle_light_state(leds::LightState::deep_idle);
+ clock_ms+=31000; status.update();
  vars.print_state.value=marlin_server::State::Idle;
  status.update();
  for(int wake=0;wake<2;++wake) {
@@ -252,7 +277,7 @@ int main() {
   clock_ms+=31000; status.update();
   assert(status.led_data()[1].g==0);
  }
- status.acknowledge_finished_on_door_open();
+ status.acknowledge_finished();
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
@@ -265,13 +290,30 @@ int main() {
  vars.print_state.value=marlin_server::State::Finished;
  status.update();
  status.acknowledge_finished();
+ status.set_idle_light_state(leds::LightState::idle);
+ status.set_idle_light_state(leds::LightState::active);
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
- // A door already open when completion is first observed also acknowledges it.
+ // Opening alone never acknowledges. Honor the existing post-print hold
+ // setting and acknowledge only on closing after an opening.
  vars.print_state.value=marlin_server::State::Printing; status.update();
  vars.print_state.value=marlin_server::State::Finished;
- status.acknowledge_finished_on_door_open(); status.update();
+ for(bool enabled : {false,true}) {
+  side.post_print_hold_enabled=enabled;
+  side.print_finished_ping();
+  side.set_door_open(true,0);
+  assert(!side.post_print_hold_dismissed);
+  status.set_idle_light_state(leds::LightState::active);
+  status.update(); clock_ms+=1000; status.update();
+  assert(status.led_data()[1].g==255);
+  side.set_door_open(false,0);
+  assert(side.post_print_hold_dismissed==enabled);
+  if(side.post_print_hold_dismissed) status.acknowledge_finished();
+ }
+ status.update();
+ status.set_idle_light_state(leds::LightState::deep_idle);
+ status.set_idle_light_state(leds::LightState::active);
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
@@ -288,6 +330,8 @@ int main() {
  vars.print_state.value=marlin_server::State::Printing; status.update();
  vars.print_state.value=marlin_server::State::Finished; status.update();
  config.status_led_finished_hold_s.value=0;
+ status.set_idle_light_state(leds::LightState::idle);
+ status.set_idle_light_state(leds::LightState::active);
  side.activity_ping(); status.update();
  clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
@@ -317,6 +361,9 @@ int main() {
   clock_ms+=5000; side.activity_ping(); status.update();
  }
  clock_ms+=1000; status.update();
+ assert(status.led_data()[1].g==255);
+ status.set_idle_light_state(leds::LightState::idle);
+ status.update(); clock_ms+=1000; status.update();
  assert(status.led_data()[1].g==0);
 #endif
 }

@@ -8,6 +8,20 @@ SOURCE = (ROOT / "src/leds/side_strip_handler.cpp").read_text()
 
 class LightLifecycle(unittest.TestCase):
 
+    def test_completion_ack_uses_configured_door_cycle_not_opening(self):
+        manager = (ROOT / 'src/leds/led_manager.cpp').read_text()
+        self.assertNotIn('acknowledge_finished_on_door_open', manager)
+        self.assertNotIn('acknowledge_filtering_after_door_cycle', manager)
+        self.assertIn('if (side_strip_handler.post_print_status_dismissed())',
+                      manager)
+        self.assertIn('if (post_print_hold_enabled)', SOURCE)
+        self.assertIn('else if (was_open && post_print_hold_seen_door_open)',
+                      SOURCE)
+        server = (ROOT / 'src/common/marlin_server.cpp').read_text()
+        exit_path = server.split('void print_exit(void) {')[1].split(
+            'case State::Aborted:')[0]
+        self.assertIn('acknowledge_finished()', exit_path)
+
     def test_external_output_reported_on_standard_extension_too(self):
         report = SOURCE.split(
             "uint8_t SideStripHandler::current_chamber_brightness() const {"
