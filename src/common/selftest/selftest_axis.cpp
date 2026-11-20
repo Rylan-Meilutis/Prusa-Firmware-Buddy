@@ -88,8 +88,8 @@ LoopResult CSelftestPart_Axis::wait(int8_t dir) {
     report_current_position();
 
     // Tool offset was just trashed, moreover this home was not intended to be precise
-    axes_home_level[X_AXIS] = AxisHomeLevel::not_homed;
-    axes_home_level[Y_AXIS] = AxisHomeLevel::not_homed;
+    set_axis_is_not_at_home(X_AXIS);
+    set_axis_is_not_at_home(Y_AXIS);
 
     int32_t endPos_usteps = stepper.position((AxisEnum)config.axis);
     int32_t length_usteps = dir * (endPos_usteps - m_StartPos_usteps);

@@ -59,6 +59,10 @@
 #include <option/xbuddy_extension_variant.h>
 #include <pwm_utils.hpp>
 #include <algorithm_scale.hpp>
+#include <option/has_chamber_api.h>
+#if HAS_CHAMBER_API()
+    #include <feature/chamber/chamber.hpp>
+#endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
@@ -95,7 +99,11 @@ static void set_fan_speed(uint8_t fan, std::optional<PhysicalToolIndex> tool, ui
             scaled_speed = scale<uint32_t>(scaled_speed, 20 * 255 / 100, 100 * 255 / 100, 33 * 255 / 100, 60 * 255 / 100);
         }
 #endif
+#if HAS_CHAMBER_API()
+        buddy::chamber().set_print_fan_override(scaled_speed);
+#else
         thermalManager.set_print_fan_speed(scaled_speed);
+#endif
         return;
     }
 

@@ -1,0 +1,19 @@
+Unhomed operator movement
+
+Idle manual jogging is allowed without satisfying printing/calibration homing
+requirements. XY uses separate assumed manual references, never homed flags.
+CORE One INDX uses the safe manual X-max/Y-min boundaries. Rear-dock XL/iX
+models assume rear Y and prevent lateral movement until Y leaves the dock area.
+Other machines use their manual minimum boundaries. Travel, dock, cleaner and
+cold/no-tool extrusion guards remain authoritative. Z is never reset merely
+because another axis is unhomed: its retained counter, including service heights
+above normal Z-max, allows inward recovery but not travel farther outside limits.
+
+Touchscreen G123 and idle external G0/G1 use the same references and model ranges.
+References persist across successive jogs and reset when motors lose validity or
+real homing establishes position. Real printing retains its homing requirement;
+manual reference flags do not make unknown positions suitable for printing.
+
+An assumed reference is not a measurement. Bounds checks on assumed coordinates
+cannot prove the actual mechanical position or absence of obstacles. Operators
+must supervise unhomed motion; home for accurate positioning and before printing.

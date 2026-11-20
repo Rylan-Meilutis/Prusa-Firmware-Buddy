@@ -4142,7 +4142,7 @@ static void _server_update_vars() {
     marlin_vars().gqueue = queue.length;
     marlin_vars().inject_queue_empty = inject_queue.is_empty();
     marlin_vars().is_processing = is_processing();
-    marlin_vars().manual_homed_axes = uint8_t(0x07 & ~axes_need_homing(0x07, AxisHomeLevel::imprecise));
+    marlin_vars().manual_homed_axes = uint8_t(0x07 & ~axes_need_homing(0x07, AxisHomeLevel::imprecise)) | (manual_assumed_axes << 3);
 
     // Get native position
     {
@@ -4531,7 +4531,18 @@ static void _server_set_var(const Request &request) {
     }
     if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().print_fan_speed)) {
         marlin_vars().print_fan_speed = request.set_variable.uint32_value;
+#if HAS_CHAMBER_API()
+        buddy::chamber().set_print_fan_override(marlin_vars().print_fan_speed);
+#else
         thermalManager.set_print_fan_speed(marlin_vars().print_fan_speed);
+#endif
+        return;
+    }
+    if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().dock_fan_speed)) {
+#if HAS_INDX()
+        buddy::dock_cooldown::request_pwm(std::min<uint32_t>(request.set_variable.uint32_value, 255));
+        marlin_vars().dock_fan_speed = buddy::dock_cooldown::requested_pwm();
+#endif
         return;
     }
     if (variable_identifier == reinterpret_cast<uintptr_t>(&marlin_vars().print_speed)) {

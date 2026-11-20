@@ -140,7 +140,8 @@ void Chamber::step() {
         if (heating_assist_applied_print_fan_ != 0 && fan_pwm != heating_assist_applied_print_fan_) {
             heating_assist_previous_print_fan_ = fan_pwm;
         }
-        heating_assist_applied_print_fan_ = chamber_heating::assisted_output(heating_assist_previous_print_fan_, chamber_heating_print_fan_pwm);
+        heating_assist_applied_print_fan_ = heating_assist_print_fan_override_.value_or(
+            chamber_heating::assisted_output(heating_assist_previous_print_fan_, chamber_heating_print_fan_pwm));
         if (fan_pwm != heating_assist_applied_print_fan_) {
             thermalManager.set_print_fan_speed(heating_assist_applied_print_fan_);
         }
@@ -156,6 +157,7 @@ void Chamber::step() {
     #endif
         heating_assist_active_ = false;
         heating_assist_applied_print_fan_ = 0;
+        heating_assist_print_fan_override_.reset();
     }
 #endif
 
@@ -270,6 +272,17 @@ std::optional<Temperature> Chamber::effective_target_temperature() const {
     return capabilities_nolock().temperature_control_at_this_moment() ? target_temperature_ : std::nullopt;
 }
 
+void Chamber::set_print_fan_override(uint8_t pwm) {
+    debug_assert(marlin_server::is_marlin_server_thread());
+    std::lock_guard _lg(mutex_);
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    if (target_temperature_.value_or(0) > 0) {
+        heating_assist_print_fan_override_ = pwm;
+    }
+#endif
+    thermalManager.set_print_fan_speed(pwm);
+}
+
 std::optional<Temperature> Chamber::set_target_temperature(std::optional<Temperature> target) {
     debug_assert(marlin_server::is_marlin_server_thread());
 
@@ -303,6 +316,9 @@ void Chamber::bed_target_overridden() {
 void Chamber::reset() {
     std::lock_guard _lg(mutex_);
     target_temperature_ = std::nullopt;
+#if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
+    heating_assist_print_fan_override_.reset();
+#endif
 
 #if HAS_XBUDDY_EXTENSION()
     xbuddy_extension().set_fan_target_pwm(XBuddyExtension::Fan::cooling_fan_1, pwm_auto);

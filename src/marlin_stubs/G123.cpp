@@ -10,6 +10,7 @@
 #include <raii/scope_guard.hpp>
 #include <marlin_vars.hpp>
 #include <manual_motion_limits.hpp>
+#include <marlin_server.hpp>
 #include <config_store/store_c_api.h>
 
 #include <option/has_auto_retract.h>
@@ -41,6 +42,10 @@ void PrusaGcodeSuite::G123() {
         return;
     }
 
+    const bool idle_manual = !marlin_server::is_printing() && !marlin_server::serial_print_active();
+    if (idle_manual && (p.has_option('X') || p.has_option('Y'))) {
+        prepare_manual_motion_xy();
+    }
     xyze_float_t target_pos = current_position;
     p.store_option_if_present('X', target_pos.x);
     p.store_option_if_present('Y', target_pos.y);
@@ -59,7 +64,7 @@ void PrusaGcodeSuite::G123() {
     if (target_pos.z != current_position.z) {
         required_axes |= _BV(Z_AXIS);
     }
-    if (axis_unhomed_error(required_axes, AxisHomeLevel::imprecise)) {
+    if (!idle_manual && axis_unhomed_error(required_axes, AxisHomeLevel::imprecise)) {
         return;
     }
 
@@ -71,7 +76,7 @@ void PrusaGcodeSuite::G123() {
         SERIAL_ECHO_MSG("Manual move blocked by travel limits");
         return;
     }
-#if HAS_INDX() || PRINTER_IS_PRUSA_XL()
+#if HAS_INDX() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
     // No lateral sweep through docks, even while returning from service travel.
     const auto yr = y_range();
     if (target_pos.x != current_position.x && (current_position.y < yr.min || current_position.y > yr.max)) {

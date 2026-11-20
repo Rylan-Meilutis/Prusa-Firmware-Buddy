@@ -97,6 +97,7 @@
 
 #include <serial_logging_disabler.hpp>
 #include <raii/auto_restore.hpp>
+#include <manual_motion_limits.hpp>
 
 #define XYZ_CONSTS(T, NAME, OPT) const PROGMEM XYZval<T> NAME##_P = { X_##OPT, Y_##OPT, Z_##OPT }
 
@@ -108,6 +109,22 @@ XYZ_CONSTS(float, home_bump_mm,   HOME_BUMP_MM);
 XYZ_CONSTS(signed char, home_dir, HOME_DIR);
 
 AxesHomeLevel axes_home_level = AxesHomeLevel::no_axes_homed;
+uint8_t manual_assumed_axes = 0;
+
+void prepare_manual_motion_xy() {
+  const uint8_t unknown = axes_need_homing(_BV(X_AXIS) | _BV(Y_AXIS), AxisHomeLevel::imprecise);
+  manual_assumed_axes &= unknown;
+  const uint8_t rebase = unknown & ~manual_assumed_axes;
+  if (!rebase) return;
+  // Only called for idle operator movement. Finish already-planned moves
+  // before changing the reference; never invent a homed flag or reset Z.
+  planner.synchronize();
+  if (rebase & _BV(X_AXIS)) current_position.x = buddy::manual_motion_safety::assumed_x_position();
+  if (rebase & _BV(Y_AXIS)) current_position.y = buddy::manual_motion_safety::assumed_y_position();
+  manual_assumed_axes |= rebase;
+  sync_plan_position();
+  SERIAL_ECHO_MSG("Manual XY reference assumed; homing still required for printing");
+}
 
 // Relative Mode. Enable with G91, disable with G90.
 bool relative_mode; // = false;
@@ -977,6 +994,7 @@ void prepare_move_to(xyze_pos_t target, feedRate_t fr_mm_s, PrepareMoveHints hin
  * @param homing_z_with_probe false when sensorless homing was used instead of probe
  */
 void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, [[maybe_unused]] bool homing_z_with_probe) {
+  manual_assumed_axes &= ~_BV(axis);
   // ensure we're not within an aborted move: caller needs to check!
   debug_assert(!planner.draining());
 
@@ -1013,6 +1031,7 @@ void set_axis_is_at_home(const AxisEnum axis, AxisHomeLevel level, [[maybe_unuse
  * Set an axis' to be unhomed.
  */
 void set_axis_is_not_at_home(const AxisEnum axis) {
+  manual_assumed_axes &= ~_BV(axis);
   axes_home_level[axis] = AxisHomeLevel::not_homed;
 }
 
@@ -1084,7 +1103,7 @@ bool homeaxis(const AxisEnum axis, const feedRate_t fr_mm_s, bool invert_home_di
   void (*enable_wavetable)(AxisEnum), [[maybe_unused]] bool can_calibrate, bool homing_z_with_probe, bool throw_homing_failed) {
 
   // clear the axis state while running
-  axes_home_level[axis] = AxisHomeLevel::not_homed;
+  set_axis_is_not_at_home(axis);
 
   #if HAS_CRASH_DETECTION()
     crash_s.not_for_replay();

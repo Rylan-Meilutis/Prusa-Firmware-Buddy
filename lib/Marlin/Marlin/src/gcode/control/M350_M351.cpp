@@ -79,7 +79,7 @@ void GcodeSuite::M350() {
   #endif
 
   // Invalidate all homing
-  axes_home_level = AxesHomeLevel::no_axes_homed;
+  set_all_unhomed();
 }
 
 /** @}*/

@@ -95,6 +95,10 @@ public: // Temperature control
     /// finished, so M191 needs an explicit, narrowly scoped exception.
     void set_heating_wait_active(bool active);
 
+    /// Explicit operator/slicer print cooling wins over circulation assistance.
+    /// MARLIN THREAD ONLY; heater/heatbreak protections are independent.
+    void set_print_fan_override(uint8_t pwm);
+
     /// Explicit bed commands and safety shutdown revoke idle bed assistance.
     void bed_target_overridden();
 
@@ -129,6 +133,7 @@ private:
     bool heating_assist_active_ = false;
     uint8_t heating_assist_previous_print_fan_ = 0;
     uint8_t heating_assist_applied_print_fan_ = 0;
+    std::optional<uint8_t> heating_assist_print_fan_override_;
 #endif
 
 #if HAS_CHAMBER_VENTS()

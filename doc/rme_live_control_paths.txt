@@ -1,0 +1,31 @@
+Live operator control paths — 2026-11-20
+
+RME_MACHINE advertises live_controls=1 only with the implemented CONTROL SET
+dispatcher. It accepts one setting per command: bed=0..150, nozzle=0..500,
+fan=0..255, speed=10..300, flow=50..150. Optional tool=N addresses a direct
+physical nozzle or virtual flow slot. INDX only heats its mounted tool; zero
+may clear an inactive slot. Native thermal setters retain machine-specific
+limits and safety checks. No command selects, moves or homes a tool.
+
+INDX additionally advertises live_dock_fan=1 and accepts dock_fan=0..255.
+Both this service and the LCD variable mailbox call the native dock-cooldown
+controller on the Marlin task. Mandatory cooldown remains authoritative.
+
+HAS_CHAMBER_API builds advertise live_chamber=1. TEMPERATURE SET chamber=N
+uses the chamber API without entering another G-code parser or wait. A running
+M191 follows updated targets and exits when disabled. Positive targets still
+require usable temperature-control capabilities; zero can clear the request.
+
+Controls require an active session and unlocked printer. Duplicate, unknown,
+out-of-range or motion arguments are rejected before any mutation. Explicit
+operator controls bypass command waits; sliced file commands remain FIFO.
+The plugin discards cached optional capabilities on startup/fresh discovery,
+and uses native G-code if capability or lease negotiation is unavailable.
+
+Explicit print-fan targets during chamber assistance override its default
+30% circulation output, including Off. LCD, M106/M107 and CONTROL SET share
+this behavior. Ending the assist cycle retires its temporary override;
+heatbreak cooling and thermal protections are not changed.
+
+Software tests execute production parser/dispatch, fan arbitration, chamber
+target waits and manual-motion guards. Physical validation remains necessary.

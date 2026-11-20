@@ -129,6 +129,7 @@ int main() {
 #define HAS_CRASH_DETECTION() 0
 #define HAS_INDX() 0
 #define PRINTER_IS_PRUSA_XL() 0
+#define PRINTER_IS_PRUSA_iX() 0
 #define HAS_CANCEL_OBJECT() 0
 #define MOTION_CONDITIONS true
 #define EXTRUDERS 1
@@ -140,6 +141,12 @@ bool selected=false;
 int active_extruder=1;
 struct PhysicalToolIndex { static std::optional<int> currently_selected_opt() { return selected ? std::optional<int>(0) : std::nullopt; } };
 struct GCodeQueue { static bool current_command_from_serial() { return true; } };
+namespace marlin_server { bool is_printing() {return false;} bool serial_print_active() {return false;} }
+void prepare_manual_motion_xy() {}
+#include <manual_motion_safety.hpp>
+namespace buddy::manual_motion_safety { Range x_range() {return {-1,250};} Range y_range() {return {0,210};} }
+#define Z_MIN_POS 0
+unsigned get_z_max_pos_mm_rounded() {return 270;}
 struct { bool seen(char) { return false; } } parser;
 float feedrate_mm_s=178.49;
 int moves=0,errors=0;
@@ -162,6 +169,15 @@ int main() {
  assert(moves==1 && current_position.z==2.5f);
  selected=true; active_extruder=0; requested=current_position; requested.e-=6.5f; GcodeSuite::G0_G1();
  assert(moves==2 && current_position.e==211.549088f);
+ // Idle serial jogs retain Z=274 and can recover inward from above Z-max.
+ current_position.z=274; requested=current_position; requested.z=273;
+ GcodeSuite::G0_G1(); assert(moves==3 && current_position.z==273);
+ requested=current_position; requested.z=275;
+ GcodeSuite::G0_G1(); assert(moves==3 && current_position.z==273);
+ requested=current_position; requested.z=-1;
+ GcodeSuite::G0_G1(); assert(moves==3);
+ requested=current_position; requested.x=251;
+ GcodeSuite::G0_G1(); assert(moves==3);
 }
 '''
         self.run_cpp(code + handler + main)
