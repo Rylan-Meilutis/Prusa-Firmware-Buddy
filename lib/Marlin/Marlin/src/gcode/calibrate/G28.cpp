@@ -113,8 +113,8 @@ bool corexy_refine_during_G28(float fr_mm_s, const G28Flags &flags);
 #if ENABLED(QUICK_HOME)
 
   static void quick_home_xy() {
-    axes_home_level[X_AXIS] = AxisHomeLevel::not_homed;
-    axes_home_level[Y_AXIS] = AxisHomeLevel::not_homed;
+    set_axis_is_not_at_home(X_AXIS);
+    set_axis_is_not_at_home(Y_AXIS);
 
     {
         // Pretend the current position is 0,0

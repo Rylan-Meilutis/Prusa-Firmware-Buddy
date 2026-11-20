@@ -188,11 +188,9 @@ MI_DOCKFAN::MI_DOCKFAN()
         printfan_spin_config, _(label), &img::fan_16x16, is_enabled_t::yes, is_hidden_t::no) {
 }
 void MI_DOCKFAN::OnClick() {
-    // Route through marlin_server (gcode queue) instead of touching the fan
-    // controller directly — set_pwm is called from the same thread as M106 P6
-    // and never races with the 1 kHz Fans::tick() ISR.
-    marlin_client::gcode_printf("M106 P6 S%u",
-        val_mapping(true, static_cast<uint8_t>(value()), 100, 255));
+    // The existing variable mailbox is serviced during blocking waits. The
+    // Marlin task still owns the cooling policy and all physical fan writes.
+    marlin_client::set_dock_fan_speed(val_mapping(true, static_cast<uint8_t>(value()), 100, 255));
 }
 
 void MI_DOCKFAN::Loop() {

@@ -22,4 +22,22 @@ inline Range y_range() {
     return { Y_MIN_POS, Y_MAX_POS };
 #endif
 }
+
+// These are operator-jog references, NOT evidence of homing. INDX's unsafe
+// docks/cleaner are beyond the manual Y-min/X-max boundaries. Rear-dock
+// models start at the rear so X remains blocked until Y leaves the docks.
+inline float assumed_x_position() {
+#if HAS_INDX()
+    return x_range().max;
+#else
+    return x_range().min;
+#endif
+}
+inline float assumed_y_position() {
+#if PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
+    return Y_MAX_POS;
+#else
+    return y_range().min;
+#endif
+}
 } // namespace buddy::manual_motion_safety

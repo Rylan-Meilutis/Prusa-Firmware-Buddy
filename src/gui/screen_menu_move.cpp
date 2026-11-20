@@ -13,8 +13,24 @@
 #include <img_resources.hpp>
 #include <utils/string_builder.hpp>
 #include <bsod/bsod.h>
+#include <Configuration.h>
+#include <manual_motion_limits.hpp>
 
 using namespace screen_menu_move;
+
+static float manual_menu_position(uint8_t axis) {
+    const uint8_t refs = marlin_vars().manual_homed_axes.get();
+    if (!(refs & (1 << axis)) && !(refs & (1 << (axis + 3)))) {
+        if (axis == X_AXIS) {
+            return buddy::manual_motion_safety::assumed_x_position();
+        }
+        if (axis == Y_AXIS) {
+            return buddy::manual_motion_safety::assumed_y_position();
+        }
+    }
+    // Preserve the last Z counter, including service heights above print Z-max.
+    return marlin_vars().native_pos[axis].get();
+}
 
 static const NumericInputConfig &axis_ranges_spin_config(uint8_t axis) {
     // The array has to be static so that we can have references
@@ -33,8 +49,8 @@ static const NumericInputConfig &axis_ranges_spin_config(uint8_t axis) {
         // Ranges can change based on config_store, so udpate it each time
         const auto range = MenuVars::axis_range(axis);
         c = NumericInputConfig {
-            .min_value = static_cast<float>(range.first),
-            .max_value = static_cast<float>(range.second),
+            .min_value = std::min(static_cast<float>(range.first), manual_menu_position(axis)),
+            .max_value = std::max(static_cast<float>(range.second), manual_menu_position(axis)),
             .unit = Unit::millimeter,
         };
     }
@@ -119,9 +135,9 @@ bool ScreenMenuMove::try_init() {
     if (marlin_vars().is_processing.get() || IWindowMenuItem::edited_item() != nullptr) {
         return false;
     }
-    const float nx = marlin_vars().native_pos[X_AXIS].get();
-    const float ny = marlin_vars().native_pos[Y_AXIS].get();
-    const float nz = marlin_vars().native_pos[Z_AXIS].get();
+    const float nx = manual_menu_position(X_AXIS);
+    const float ny = manual_menu_position(Y_AXIS);
+    const float nz = manual_menu_position(Z_AXIS);
 
     Item<MI_AXIS_X>().set_value(nx);
     Item<MI_AXIS_Y>().set_value(ny);
@@ -157,17 +173,18 @@ void ScreenMenuMove::loop() {
         homed_axes = 0xff;
     }
     was_processing = processing;
-    if (homed_axes != valid_axes) {
+    if (homed_axes != valid_axes && IWindowMenuItem::edited_item() == nullptr) {
         homed_axes = valid_axes;
-        const bool xy_known = (homed_axes & 3) == 3;
-        const bool z_known = (homed_axes & 4) != 0;
-        Item<MI_AXIS_X>().set_enabled(xy_known);
-        Item<MI_AXIS_Y>().set_enabled(xy_known);
-        Item<MI_AXIS_Z>().set_enabled(z_known);
-        // Disabled unknown axes display zero, not a guessed home position.
-        Item<MI_AXIS_X>().set_value(xy_known ? marlin_vars().native_pos[X_AXIS].get() : 0);
-        Item<MI_AXIS_Y>().set_value(xy_known ? marlin_vars().native_pos[Y_AXIS].get() : 0);
-        Item<MI_AXIS_Z>().set_value(z_known ? marlin_vars().native_pos[Z_AXIS].get() : 0);
+        for (uint8_t axis = 0; axis < 3; ++axis) {
+            axis_ranges_spin_config(axis);
+        }
+        const float x = manual_menu_position(X_AXIS), y = manual_menu_position(Y_AXIS), z = manual_menu_position(Z_AXIS);
+        Item<MI_AXIS_X>().set_enabled(std::isfinite(x));
+        Item<MI_AXIS_Y>().set_enabled(std::isfinite(y));
+        Item<MI_AXIS_Z>().set_enabled(std::isfinite(z));
+        Item<MI_AXIS_X>().set_value(x);
+        Item<MI_AXIS_Y>().set_value(y);
+        Item<MI_AXIS_Z>().set_value(z);
         queued_pos = { { Item<MI_AXIS_X>().value(), Item<MI_AXIS_Y>().value(), Item<MI_AXIS_Z>().value(), e_axis_offset } };
     }
 
@@ -219,12 +236,7 @@ void ScreenMenuMove::plan_moves() {
 
     ArrayStringBuilder<MARLIN_MAX_REQUEST> gcode;
     gcode.append_string("G123");
-    if ((homed_axes & 3) == 3) {
-        gcode.append_printf(" X%f Y%f", (double)target_pos.x, (double)target_pos.y);
-    }
-    if (homed_axes & 4) {
-        gcode.append_printf(" Z%f", (double)target_pos.z);
-    }
+    gcode.append_printf(" X%f Y%f Z%f", (double)target_pos.x, (double)target_pos.y, (double)target_pos.z);
     if (PhysicalToolIndex::currently_selected_opt().has_value()) {
         gcode.append_printf(" E%f", (double)target_pos.e);
     }

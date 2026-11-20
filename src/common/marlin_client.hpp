@@ -91,6 +91,7 @@ void set_target_nozzle(int16_t val, PhysicalToolIndex hotend);
 
 void set_target_bed(int16_t val);
 void set_fan_speed(uint8_t val);
+void set_dock_fan_speed(uint8_t val);
 void set_print_speed(uint16_t val);
 
 void set_flow_factor(uint16_t val, VirtualToolIndex tool);

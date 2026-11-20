@@ -57,6 +57,10 @@
 #include <option/xbuddy_extension_variant.h>
 #include <pwm_utils.hpp>
 #include <algorithm_scale.hpp>
+#include <option/has_chamber_api.h>
+#if HAS_CHAMBER_API()
+    #include <feature/chamber/chamber.hpp>
+#endif
 
 #if XBUDDY_EXTENSION_VARIANT_IS_STANDARD()
     #include <feature/xbuddy_extension/xbuddy_extension.hpp>
@@ -259,7 +263,11 @@ void GcodeSuite::M106() {
             }
 #endif
 
+#if HAS_CHAMBER_API()
+            buddy::chamber().set_print_fan_override(s);
+#else
             thermalManager.set_print_fan_speed(s);
+#endif
         }
     }
 
@@ -309,7 +317,11 @@ void GcodeSuite::M107() {
     }
 
     if (p == 0 /* print fan */) {
+#if HAS_CHAMBER_API()
+        buddy::chamber().set_print_fan_override(0);
+#else
         thermalManager.set_print_fan_speed(0);
+#endif
     }
 }
 

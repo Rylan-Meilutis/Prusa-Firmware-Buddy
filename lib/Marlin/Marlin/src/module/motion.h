@@ -135,11 +135,14 @@ public:
 
 /// To what degree are the individual axes homed
 extern AxesHomeLevel axes_home_level;
+// Separate operator-jog references; never used to satisfy homing checks.
+extern uint8_t manual_assumed_axes;
+void prepare_manual_motion_xy();
 
 inline bool all_axes_homed(AxisHomeLevel required_level = AxisHomeLevel::imprecise) { return axes_home_level.is_homed(required_level); }
 inline bool all_axes_known(AxisHomeLevel required_level = AxisHomeLevel::imprecise) { return axes_home_level.is_homed(required_level); }
 
-inline void set_all_unhomed() { axes_home_level = AxesHomeLevel::no_axes_homed; }
+inline void set_all_unhomed() { axes_home_level = AxesHomeLevel::no_axes_homed; manual_assumed_axes = 0; }
 
 // Error margin to work around float imprecision
 constexpr float slop = 0.0001f;

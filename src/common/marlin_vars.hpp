@@ -311,7 +311,7 @@ public:
      * curr_pos is taken from Marlin's current_position variable which is the target of current move before MBL is compensated.
      */
     MarlinVariable<float> native_pos[4]; ///< immediate position XYZE (native coordinates) [mm]
-    MarlinVariable<uint8_t> manual_homed_axes; ///< XYZ validity for manual movement; never inferred from coordinates
+    MarlinVariable<uint8_t> manual_homed_axes; ///< Low XYZ bits: actual homing; upper XYZ bits: separate assumed manual references
     MarlinVariable<float> logical_pos[4]; ///< immediate position XYZE (logical coordinates) [mm]
     MarlinVariable<float> native_curr_pos[4]; ///< current position XYZE (native coordinates) [mm]
     MarlinVariable<float> logical_curr_pos[4]; ///< current position XYZE (logical coordinates) [mm]
@@ -372,6 +372,7 @@ public:
 
     // TODO: prints fans should be in extruder struct, but we are not able to control multiple print fans yet
     MarlinVariable<uint8_t> print_fan_speed; // print fan speed [0..255]
+    MarlinVariable<uint8_t> dock_fan_speed; // Auxiliary requested PWM, applied by Marlin task only
 
     // PER-Hotend variables (access via hotend(num) or active_hotend())
     struct HotendVars {

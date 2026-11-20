@@ -57,6 +57,7 @@ struct Chamber {
  std::optional<float> set_target_temperature(std::optional<float> t){target=t.value_or(0);return t;}
  void set_heating_wait_active(bool active){wait=active;}
  std::optional<float> current_temperature(){return current;}
+ std::optional<float> target_temperature(){return target>0?std::optional<float>(target):std::nullopt;}
 } chamber_instance;
 auto &chamber(){return chamber_instance;}
 namespace PrintStatusMessage {enum Type{waiting_for_chamber_temp};}
@@ -69,6 +70,8 @@ void idle(bool){
  if(mode==2){draining=true;return;}
  if(mode==3){now+=1800000;return;}
  auto &c=chamber_instance;
+ if(mode==4)c.target=30;
+ if(mode==5){c.target=0;return;}
  if(!c.current)c.current=20;
  else if(*c.current<c.target)*c.current+=10;
  else *c.current-=10;
@@ -93,6 +96,8 @@ int main(){
  reset();draining=true;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("cancelled");
  reset();tick_step=100;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");assert(events.size()==3);
  reset();now=0xfffffff0u;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");assert(events.size()==6);
+ reset();mode=4;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");assert(idles==1);
+ reset();mode=5;PrusaGcodeSuite::M141_no_parser({50,true,false});terminal("closed");assert(idles==1);assert(events.back().message=="Chamber temperature wait disabled");
 }
 '''
         with tempfile.TemporaryDirectory() as temp:

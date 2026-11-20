@@ -506,6 +506,9 @@ void set_target_bed(int16_t val) {
 void set_fan_speed(uint8_t val) {
     return marlin_set_variable(marlin_vars().print_fan_speed, val);
 }
+void set_dock_fan_speed(uint8_t val) {
+    return marlin_set_variable(marlin_vars().dock_fan_speed, val);
+}
 void set_print_speed(uint16_t val) {
     return marlin_set_variable(marlin_vars().print_speed, val);
 }

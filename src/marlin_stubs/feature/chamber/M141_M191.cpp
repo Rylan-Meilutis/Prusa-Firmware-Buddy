@@ -120,6 +120,16 @@ void PrusaGcodeSuite::M141_no_parser(const M141Args &args) {
             break;
         }
 
+        const auto live_target = chamber().target_temperature();
+        if (!live_target || *live_target == 0) {
+            wait_message = "Chamber temperature wait disabled";
+            break;
+        }
+        if (target != *live_target) {
+            target = *live_target;
+            warning_timeout_start = ticks_ms();
+            first_report = true;
+        }
         const auto current = chamber().current_temperature();
         static const Temperature tolerance = 3;
 

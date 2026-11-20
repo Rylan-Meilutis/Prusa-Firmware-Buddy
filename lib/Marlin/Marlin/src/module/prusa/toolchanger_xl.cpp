@@ -420,8 +420,8 @@ bool PrusaToolChanger::check_skipped_step() {
     #if HAS_CRASH_DETECTION()
     if (crash_s.get_state() == Crash_s::TRIGGERED_TOOLCRASH) {
         // Force rehome
-        axes_home_level[X_AXIS] = AxisHomeLevel::not_homed;
-        axes_home_level[Y_AXIS] = AxisHomeLevel::not_homed;
+        set_axis_is_not_at_home(X_AXIS);
+        set_axis_is_not_at_home(Y_AXIS);
         if (ensure_safe_move()) {
             crash_s.set_state(Crash_s::REPEAT_WAIT); // Has to go through WAIT to PRINTING
             crash_s.set_state(Crash_s::PRINTING);
@@ -796,7 +796,7 @@ bool PrusaToolChanger::align_locks() {
 
     // Bump right edge
     if (!do_homing_move(X_AXIS, 1.5f * max_length(X_AXIS), 0)) {
-        axes_home_level[X_AXIS] = AxisHomeLevel::not_homed; // Needs homing
+        set_axis_is_not_at_home(X_AXIS); // Needs homing
         return false; // Failed to bump right edge
     }
 

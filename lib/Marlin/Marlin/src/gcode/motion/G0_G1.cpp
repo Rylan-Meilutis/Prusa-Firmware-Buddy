@@ -26,6 +26,9 @@
 #include <option/has_crash_detection.h>
 #include <unknown_axis_motion.hpp>
 #include <indx_serial_motion_safety.hpp>
+#include <manual_motion_limits.hpp>
+#include <marlin_server.hpp>
+#include <config_store/store_c_api.h>
 #if HAS_INDX()
   #include <config_store/store_instance.hpp>
 #endif
@@ -96,17 +99,17 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
   const bool xy_move_requested = x_move_requested || parser.seen('Y');
 
   const bool external_move = GCodeQueue::current_command_from_serial();
+  const bool idle_manual = external_move && !marlin_server::is_printing() && !marlin_server::serial_print_active();
+  if (idle_manual && xy_move_requested) prepare_manual_motion_xy();
   #if HAS_INDX()
-    // INDX homes at X-min / Y-max. Never invent the opposite corner when
-    // motors time out and invalidate homing: that reverses allowed jog travel.
-    // Unknown XY cannot be checked against physical docks or the cleaner.
-    if (external_move && xy_move_requested && axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS))) {
+    // Assumed references are for idle operator jogs only, never printing.
+    if (external_move && !idle_manual && xy_move_requested && axis_unhomed_error(_BV(X_AXIS) | _BV(Y_AXIS))) {
       TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_IDLE));
       return;
     }
   #elif PRINTER_IS_PRUSA_XL()
   // Preserve the existing XL-specific unknown-Y behavior.
-  if (external_move) {
+  if (external_move && !idle_manual) {
     static bool unknown_y_rebased = false;
     if (axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise)) unknown_y_rebased = false;
     bool rebased = false;
@@ -121,6 +124,29 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
 
   get_destination_from_command();                 // Get X Y [Z[I[J[K]]]] [E] F (and set cutter power)
 
+  if (idle_manual) {
+    using namespace buddy::manual_motion_safety;
+    if (!axis_move_is_safe(current_position.x, destination.x, x_range())
+        || !axis_move_is_safe(current_position.y, destination.y, y_range())
+        || !axis_move_is_safe(current_position.z, destination.z, { Z_MIN_POS, float(get_z_max_pos_mm_rounded()) })) {
+      SERIAL_ERROR_MSG("Manual move blocked by travel limits");
+      return;
+    }
+    #if HAS_INDX() || PRINTER_IS_PRUSA_XL() || PRINTER_IS_PRUSA_iX()
+      const auto yr = y_range();
+      if (destination.x != current_position.x && (current_position.y < yr.min || current_position.y > yr.max)) {
+        SERIAL_ERROR_MSG("Manual move blocked by dock keep-out");
+        return;
+      }
+    #endif
+    #if HAS_INDX()
+      if (xy_move_requested && current_position.x > x_range().max) {
+        SERIAL_ERROR_MSG("Exit nozzle cleaner before manual XY move");
+        return;
+      }
+    #endif
+  }
+
   // A host cancel macro may arrive after firmware parked/released the tool.
   // Reject the entire command before changing position or entering the planner;
   // a user-supplied G-code is not an internal invariant violation / BSOD.
@@ -132,7 +158,7 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
 
   if (external_move) {
     #if HAS_INDX()
-      if (xy_move_requested && axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
+      if (!idle_manual && xy_move_requested && axes_home_level.is_homed({ X_AXIS, Y_AXIS }, AxisHomeLevel::imprecise)) {
         constexpr buddy::indx_serial_motion_safety::ServiceBoundary service_boundary {
           X_NOZZLE_CLEANER_ORIGIN - 10.35f, Y_DOCK_PARKING_MIN_SAFE_POS
         };
@@ -156,7 +182,7 @@ void GcodeSuite::G0_G1(TERN_(HAS_FAST_MOVES, const bool fast_move/*=false*/)) {
         }
       }
     #elif PRINTER_IS_PRUSA_XL()
-      if (!axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
+      if (!idle_manual && !axes_home_level.is_homed(Y_AXIS, AxisHomeLevel::imprecise))
         destination.y = buddy::unknown_axis_motion::constrain(destination.y, Y_MIN_POS, Y_MAX_POS);
     #endif
   }

@@ -335,8 +335,8 @@ void PrusaToolChanger::crash_deselect_tool() {
 #endif
 
 void PrusaToolChanger::invalidate_xy_homing() {
-    axes_home_level[X_AXIS] = AxisHomeLevel::not_homed;
-    axes_home_level[Y_AXIS] = AxisHomeLevel::not_homed;
+    set_axis_is_not_at_home(X_AXIS);
+    set_axis_is_not_at_home(Y_AXIS);
 }
 
 void PrusaToolChanger::ensure_tool_homeable(PhysicalToolIndex tool) {

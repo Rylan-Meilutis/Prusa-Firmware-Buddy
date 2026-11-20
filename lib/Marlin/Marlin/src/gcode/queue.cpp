@@ -49,6 +49,11 @@ static rme_tune::Delta tune_delta;
 #include <filament_preset_snapshot.hpp>
 #include <filament_manufacturer.hpp>
 #include <rme_protocol_parser.hpp>
+#include <rme_live_control.hpp>
+#include <option/has_chamber_api.h>
+#if HAS_LOADCELL()
+  #include <feature/extrusion_calibration.hpp>
+#endif
 #include <rme_mesh_area.hpp>
 #include <rme_active_tool.hpp>
 #include <rme_spool_join.hpp>
@@ -83,6 +88,7 @@ static rme_tune::Delta tune_delta;
   #define RME_HAS_INDX() 0
 #endif
 #if RME_HAS_INDX()
+  #include <feature/dock_cooldown/controller.hpp>
   #include <puppies/INDX.hpp>
   #include <common/marlin_server_types/fsm/nozzle_mismatch_phases.hpp>
   #include <feature/tool_offset_wizard/has_tool_offset_nozzle_cleaning_wizard.hpp>
@@ -1066,6 +1072,13 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
   SERIAL_ECHOPGM(" tune=1 tune_delta=1");
+  SERIAL_ECHOPGM(" live_controls=1");
+  #if HAS_CHAMBER_API()
+    SERIAL_ECHOPGM(" live_chamber=1");
+  #endif
+  #if RME_HAS_INDX()
+    SERIAL_ECHOPGM(" live_dock_fan=1");
+  #endif
   SERIAL_ECHOPGM(" dashboard_sensors=1");
   #if HAS_LOADCELL()
     SERIAL_ECHOPGM(" pa_temperature_plan=1 pa_temperature_points=8");
@@ -1799,6 +1812,86 @@ static bool handle_remote_progress_service(const std::string_view command) {
   #endif
 }
 
+static bool handle_remote_control_service(const std::string_view command) {
+  const bool chamber_command = command.starts_with("@RME TEMPERATURE ");
+  if (!chamber_command && !command.starts_with("@RME CONTROL ")) return false;
+  if (!serial_remote_control::session_active() || printer_lock::locked()) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=locked_or_no_session");
+    return true;
+  }
+  const std::string_view prefix = chamber_command ? "@RME TEMPERATURE SET " : "@RME CONTROL SET ";
+  const auto request = command.starts_with(prefix) ? rme_live_control::parse(command.substr(prefix.size()), chamber_command) : std::nullopt;
+  if (!request) {
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=invalid_argument");
+    return true;
+  }
+  using rme_live_control::Kind;
+  switch (request->kind) {
+  case Kind::bed:
+    marlin_server::set_target_bed(request->value);
+    break;
+  case Kind::nozzle: {
+    const auto selected = PhysicalToolIndex::currently_selected_opt();
+    const auto index = request->tool.value_or(selected ? selected->to_raw() : 255);
+    if (index >= PhysicalToolIndex::count || !PhysicalToolIndex::from_raw(index).is_enabled()
+        #if RME_HAS_INDX()
+        || (request->value > 0 && (!selected || selected->to_raw() != index))
+        #endif
+        ) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=inactive_or_invalid_tool");
+      return true;
+    }
+    const auto tool = PhysicalToolIndex::from_raw(index);
+    thermalManager.setTargetHotend(request->value, tool);
+    #if HAS_LOADCELL()
+      buddy::extrusion_calibration::apply_print_temperature(index, request->value);
+    #endif
+    break;
+  }
+  case Kind::fan:
+    #if HAS_CHAMBER_API()
+      buddy::chamber().set_print_fan_override(request->value);
+    #else
+      thermalManager.set_print_fan_speed(request->value);
+    #endif
+    break;
+  case Kind::dock_fan:
+    #if RME_HAS_INDX()
+      buddy::dock_cooldown::request_pwm(request->value);
+      break;
+    #else
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=unsupported_dock_fan");
+      return true;
+    #endif
+  case Kind::speed:
+    feedrate_percentage = request->value;
+    break;
+  case Kind::flow: {
+    const auto selected = VirtualToolIndex::currently_selected_opt();
+    const auto index = request->tool.value_or(selected ? selected->to_raw() : 255);
+    if (index >= VirtualToolIndex::count || !VirtualToolIndex::from_raw(index).is_enabled()) {
+      SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=invalid_tool");
+      return true;
+    }
+    const auto tool = VirtualToolIndex::from_raw(index);
+    planner.flow_percentage[tool] = request->value;
+    planner.refresh_e_factor(tool);
+    break;
+  }
+  case Kind::chamber:
+    #if HAS_CHAMBER_API()
+      if (request->value == 0 || buddy::chamber().capabilities().temperature_control()) {
+        buddy::chamber().set_target_temperature(request->value ? std::optional<buddy::Temperature>(request->value) : std::nullopt);
+        break;
+      }
+    #endif
+    SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=unsupported_chamber");
+    return true;
+  }
+  SERIAL_ECHOLNPGM("RME_CONTROL accepted=1");
+  return true;
+}
+
 static bool handle_remote_service_frame(const char *raw_command) {
   const char *payload = command_payload(raw_command);
   if (!rme_protocol::is_service_frame(raw_command)) return false;
@@ -1809,6 +1902,7 @@ static bool handle_remote_service_frame(const char *raw_command) {
       || handle_remote_theme_service(command)
       || handle_remote_light_service(command)
       || handle_remote_tune_service(command)
+      || handle_remote_control_service(command)
       || handle_remote_progress_service(command)
       || handle_remote_mesh_area(command)
       || handle_remote_filament_service(command)
