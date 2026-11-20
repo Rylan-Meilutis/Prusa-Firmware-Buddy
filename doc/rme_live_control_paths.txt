@@ -16,6 +16,10 @@ uses the chamber API without entering another G-code parser or wait. A running
 M191 follows updated targets and exits when disabled. Positive targets still
 require usable temperature-control capabilities; zero can clear the request.
 
+Flash-constrained MINI retains its existing native G-code control path. It
+does not advertise live_controls/live_chamber/live_dock_fan, and explicitly
+reports unsupported if a client sends the omitted optional service anyway.
+
 Controls require an active session and unlocked printer. Duplicate, unknown,
 out-of-range or motion arguments are rejected before any mutation. Explicit
 operator controls bypass command waits; sliced file commands remain FIFO.

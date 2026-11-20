@@ -1072,7 +1072,9 @@ static bool handle_remote_machine_service(const std::string_view command) {
   SERIAL_ECHOPGM(" logical_tools="); SERIAL_ECHO(get_num_of_enabled_tools());
   SERIAL_ECHOPGM(" tool_capacity="); SERIAL_ECHO(VirtualToolIndex::count);
   SERIAL_ECHOPGM(" tune=1 tune_delta=1");
-  SERIAL_ECHOPGM(" live_controls=1");
+  #if !PRINTER_IS_PRUSA_MINI()
+    SERIAL_ECHOPGM(" live_controls=1");
+  #endif
   #if HAS_CHAMBER_API()
     SERIAL_ECHOPGM(" live_chamber=1");
   #endif
@@ -1815,6 +1817,12 @@ static bool handle_remote_progress_service(const std::string_view command) {
 static bool handle_remote_control_service(const std::string_view command) {
   const bool chamber_command = command.starts_with("@RME TEMPERATURE ");
   if (!chamber_command && !command.starts_with("@RME CONTROL ")) return false;
+  #if PRINTER_IS_PRUSA_MINI()
+  // Keep the existing native controls on flash-constrained MINI; never
+  // advertise an omitted live service or consume its commands as successful.
+  SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=unsupported");
+  return true;
+  #else
   if (!serial_remote_control::session_active() || printer_lock::locked()) {
     SERIAL_ECHOLNPGM("echo:RME_ERROR workflow=control code=locked_or_no_session");
     return true;
@@ -1890,6 +1898,7 @@ static bool handle_remote_control_service(const std::string_view command) {
   }
   SERIAL_ECHOLNPGM("RME_CONTROL accepted=1");
   return true;
+  #endif
 }
 
 static bool handle_remote_service_frame(const char *raw_command) {

@@ -21,6 +21,7 @@ class LiveControls(unittest.TestCase):
 #define RME_HAS_INDX() 1
 #define HAS_CHAMBER_API() 1
 #define HAS_LOADCELL() 0
+#define PRINTER_IS_PRUSA_MINI() 0
 std::string message;
 #define SERIAL_ECHOLNPGM(s) (message=(s))
 bool lease=true,locked=false;
@@ -88,6 +89,14 @@ int main(){
 }
 '''
         self.run_cpp(code)
+        mini = code[:code.index('int main(){')].replace(
+            '#define PRINTER_IS_PRUSA_MINI() 0',
+            '#define PRINTER_IS_PRUSA_MINI() 1')
+        self.run_cpp(mini + '''int main(){
+            send("@RME CONTROL SET bed=110");
+            assert(writes==0 && message.find("unsupported")!=std::string::npos);
+            assert(!handle_remote_control_service("@RME FILE LIST path=/"));
+        }''')
 
     def test_manual_fan_can_override_heating_assist_below_thirty_percent(self):
         source = (ROOT / 'src/feature/chamber/chamber.cpp').read_text()
