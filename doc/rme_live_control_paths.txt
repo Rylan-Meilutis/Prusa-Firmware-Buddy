@@ -4,8 +4,9 @@ RME_MACHINE advertises live_controls=1 only with the implemented CONTROL SET
 dispatcher. It accepts one setting per command: bed=0..150, nozzle=0..500,
 fan=0..255, speed=10..300, flow=50..150. Optional tool=N addresses a direct
 physical nozzle or virtual flow slot. INDX only heats its mounted tool; zero
-may clear an inactive slot. Native thermal setters retain machine-specific
-limits and safety checks. No command selects, moves or homes a tool.
+may clear an inactive slot. MMU virtual nozzle slots address their one shared
+physical hotend zero. Native thermal setters retain machine-specific limits
+and safety checks. No command selects, moves or homes a tool.
 
 INDX additionally advertises live_dock_fan=1 and accepts dock_fan=0..255.
 Both this service and the LCD variable mailbox call the native dock-cooldown

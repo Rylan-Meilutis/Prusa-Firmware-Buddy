@@ -21,6 +21,7 @@ class LiveControls(unittest.TestCase):
 #define RME_HAS_INDX() 1
 #define HAS_CHAMBER_API() 1
 #define HAS_LOADCELL() 0
+#define HAS_MMU2() 0
 #define PRINTER_IS_PRUSA_MINI() 0
 std::string message;
 #define SERIAL_ECHOLNPGM(s) (message=(s))
@@ -89,6 +90,23 @@ int main(){
 }
 '''
         self.run_cpp(code)
+        mmu = code[:code.index('int main(){')].replace(
+            '#define HAS_MMU2() 0', '#define HAS_MMU2() 1').replace(
+                '#define RME_HAS_INDX() 1', '#define RME_HAS_INDX() 0'
+            ).replace(
+                'using PhysicalToolIndex=Tool;using VirtualToolIndex=Tool;',
+                '''
+struct PhysicalToolIndex:Tool {
+ static constexpr unsigned count=1;
+ static PhysicalToolIndex from_raw(unsigned i){assert(i==0);return {Tool{0}};}
+ static std::optional<PhysicalToolIndex> currently_selected_opt(){return PhysicalToolIndex{Tool{0}};}
+};using VirtualToolIndex=Tool;''')
+        self.run_cpp(mmu + '''int main(){
+            send("@RME CONTROL SET nozzle=215 tool=4");
+            assert(writes==1 && thermalManager.nozzle==215);
+            rejected("@RME CONTROL SET nozzle=215 tool=8");
+            rejected("@RME CONTROL SET nozzle=215 tool=7");
+        }''')
         mini = code[:code.index('int main(){')].replace(
             '#define PRINTER_IS_PRUSA_MINI() 0',
             '#define PRINTER_IS_PRUSA_MINI() 1')
