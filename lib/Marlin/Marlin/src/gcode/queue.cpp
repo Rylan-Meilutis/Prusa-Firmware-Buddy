@@ -1853,7 +1853,11 @@ static bool handle_remote_control_service(const std::string_view command) {
     break;
   case Kind::nozzle: {
     const auto selected = PhysicalToolIndex::currently_selected_opt();
-    const auto index = request->tool.value_or(selected ? selected->to_raw() : 255);
+    auto index = request->tool.value_or(selected ? selected->to_raw() : 255);
+    #if HAS_MMU2()
+    if (PhysicalToolIndex::count == 1 && index < VirtualToolIndex::count
+        && VirtualToolIndex::from_raw(index).is_enabled()) index = 0;
+    #endif
     if (index >= PhysicalToolIndex::count || !PhysicalToolIndex::from_raw(index).is_enabled()
         #if RME_HAS_INDX()
         || (request->value > 0 && (!selected || selected->to_raw() != index))
