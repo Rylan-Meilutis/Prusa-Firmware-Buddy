@@ -93,26 +93,6 @@ void acknowledge_aborted_after_door_cycle(bool door_open) {
     }
 }
 
-void acknowledge_filtering_after_door_cycle(bool door_open) {
-        #if HAS_CHAMBER_FILTRATION_API()
-    static bool filtering_seen_door_open = false;
-
-    if (marlin_vars().print_state != marlin_server::State::Finished
-        || buddy::chamber_filtration().output_pwm().value == 0) {
-        filtering_seen_door_open = false;
-        return;
-    }
-
-    if (door_open) {
-        filtering_seen_door_open = true;
-    } else if (filtering_seen_door_open) {
-        leds::StatusLedsHandler::instance().acknowledge_finished();
-        filtering_seen_door_open = false;
-    }
-        #else
-    static_cast<void>(door_open);
-        #endif
-}
     #endif
 
 } // namespace
@@ -258,12 +238,8 @@ void LEDManager::update() {
 #if HAS_SIDE_LEDS()
     auto &side_strip_handler = SideStripHandler::instance();
     side_strip_handler.set_door_open(chamber_door_state.open, chamber_door_state.raw_data);
-    if (chamber_door_state.open) {
-        status_leds_handler.acknowledge_finished_on_door_open();
-    }
     #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     acknowledge_aborted_after_door_cycle(chamber_door_state.open);
-    acknowledge_filtering_after_door_cycle(chamber_door_state.open);
     #endif
 
     side_strip_handler.update();

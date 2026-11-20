@@ -463,16 +463,6 @@ void StatusLedsHandler::activity_ping() {
     // otherwise keep extending green indefinitely, even after its first expiry.
 }
 
-void StatusLedsHandler::acknowledge_finished_on_door_open() {
-    std::lock_guard lock(mutex);
-    if (!print_active_for_status_override()
-        && (finished_pending || marlin_vars().print_state.get() == State::Finished || post_filter_active())) {
-        finished_acknowledged = true;
-        finished_pending = false;
-        finished_hold_until_ms = 0;
-    }
-}
-
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
 void StatusLedsHandler::acknowledge_aborted() {
     std::lock_guard lock(mutex);
@@ -545,11 +535,16 @@ void StatusLedsHandler::update() {
         state = StateAnimation::Idle;
     } else if (filtering && !finished_acknowledged) {
         state = StateAnimation::Filtering;
+    } else if (finished) {
+        // Keep the unacknowledged result available on every wake. Inactivity
+        // hides green without acknowledging it; only the configured door
+        // close-after-open policy or dismissal of the result retires it.
+        state = !finished_acknowledged && idle_light_state == LightState::active
+                && config_store().status_led_finished_hold_s.get() > 0
+            ? StateAnimation::Finishing
+            : StateAnimation::Idle;
     } else if (timed_finished_hold_active && !finished_acknowledged) {
         state = StateAnimation::Finishing;
-    } else if (finished) {
-        // Keep the result screen, but completion color has a fixed deadline.
-        state = StateAnimation::Idle;
     } else {
         state = marlin_to_anim_state();
     }

@@ -82,7 +82,6 @@ public:
     void set_idle_light_state(LightState state);
     void acknowledge_finished();
     void activity_ping();
-    void acknowledge_finished_on_door_open();
 #if PRINTER_IS_PRUSA_COREONE() || PRINTER_IS_PRUSA_COREONEL()
     void acknowledge_aborted();
 #endif
