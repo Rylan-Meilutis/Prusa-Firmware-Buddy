@@ -47,6 +47,9 @@ void stop_firmware_validation() {assert(held); ++validation_stops;}
 namespace firmware_update_handoff {
 bool clear_cleanup_authorization() { assert(held); ++invalidations; return clear_ok; }
 }
+namespace file_io {
+bool clear_cleanup() { return firmware_update_handoff::clear_cleanup_authorization(); }
+}
 bool begin_upload() {
  std::optional<std::array<char,256>> path=std::array<char,256>{};
  std::optional<unsigned> size=100;
