@@ -44,18 +44,18 @@ extern "C" const uint8_t __rme_application_end[];
 
 extern "C" bool buddy_rme_service_frame(const char *raw_command);
 
-intptr_t rme_file_io::run(const Operation operation, const uintptr_t a, const uintptr_t b, const uintptr_t c, const uintptr_t d) {
+intptr_t rme_file_io::run(const Operation operation, const uintptr_t a, const uintptr_t b, const uintptr_t c) {
     struct Request {
         Operation operation;
-        uintptr_t a, b, c, d;
+        uintptr_t a, b, c;
         intptr_t result;
         int error;
-    } request { operation, a, b, c, d, 0, errno };
+    } request { operation, a, b, c, 0, errno };
     AsyncJob job;
     job.issue([&request](AsyncJobExecutionControl &) {
         // newlib errno is task-local. Keep native ENOENT/error semantics.
         errno = request.error;
-        const auto a = request.a, b = request.b, c = request.c, d = request.d;
+        const auto a = request.a, b = request.b, c = request.c;
         switch (request.operation) {
         case Operation::open:
             request.result = reinterpret_cast<intptr_t>(::fopen(reinterpret_cast<const char *>(a), reinterpret_cast<const char *>(b)));
@@ -64,10 +64,10 @@ intptr_t rme_file_io::run(const Operation operation, const uintptr_t a, const ui
             request.result = ::fclose(reinterpret_cast<FILE *>(a));
             break;
         case Operation::read:
-            request.result = ::fread(reinterpret_cast<void *>(a), b, c, reinterpret_cast<FILE *>(d));
+            request.result = ::fread(reinterpret_cast<void *>(a), 1, b, reinterpret_cast<FILE *>(c));
             break;
         case Operation::write:
-            request.result = ::fwrite(reinterpret_cast<const void *>(a), b, c, reinterpret_cast<FILE *>(d));
+            request.result = ::fwrite(reinterpret_cast<const void *>(a), 1, b, reinterpret_cast<FILE *>(c));
             break;
         case Operation::seek:
             request.result = ::fseek(reinterpret_cast<FILE *>(a), static_cast<long>(b), static_cast<int>(c));
@@ -75,8 +75,11 @@ intptr_t rme_file_io::run(const Operation operation, const uintptr_t a, const ui
         case Operation::flush:
             request.result = ::fflush(reinterpret_cast<FILE *>(a));
             break;
-        case Operation::sync:
-            request.result = ::fsync(static_cast<int>(a));
+        case Operation::flush_sync:
+            request.result = ::fflush(reinterpret_cast<FILE *>(a));
+            if (request.result == 0) {
+                request.result = ::fsync(fileno(reinterpret_cast<FILE *>(a)));
+            }
             break;
         case Operation::stat:
             request.result = ::stat(reinterpret_cast<const char *>(a), reinterpret_cast<struct stat *>(b));
@@ -89,6 +92,55 @@ intptr_t rme_file_io::run(const Operation operation, const uintptr_t a, const ui
             break;
         case Operation::mkdir:
             request.result = ::mkdir(reinterpret_cast<const char *>(a), static_cast<mode_t>(b));
+            break;
+        case Operation::read_chunk: {
+            auto &chunk = *reinterpret_cast<ReadChunk *>(a);
+            struct stat st {};
+            request.result = -1;
+            if (::stat(chunk.path, &st) || !S_ISREG(st.st_mode) || st.st_size < 0 || static_cast<uint64_t>(st.st_size) > 1024U * 1024U * 1024U) {
+                break;
+            }
+            FILE *file = ::fopen(chunk.path, "rb");
+            if (!file) {
+                break;
+            }
+            setvbuf(file, nullptr, _IONBF, 0);
+            bool ok = ::fseek(file, chunk.offset, SEEK_SET) == 0;
+            if (ok) {
+                chunk.file_size = static_cast<uint32_t>(st.st_size);
+                chunk.count = ::fread(chunk.data, 1, chunk.length, file);
+                ok = !ferror(file);
+            }
+            request.result = ::fclose(file) == 0 && ok ? 0 : -1;
+            break;
+        }
+        case Operation::write_metadata: {
+            const auto &metadata = *reinterpret_cast<const MetadataWrite *>(a);
+            ::remove(metadata.temporary);
+            request.result = -1;
+            FILE *file = ::fopen(metadata.temporary, "wb");
+            if (!file) {
+                break;
+            }
+            setvbuf(file, nullptr, _IONBF, 0);
+            bool ok = ::fwrite(metadata.data, 1, metadata.length, file) == metadata.length
+                && ::fflush(file) == 0 && ::fsync(fileno(file)) == 0;
+            ok = ::fclose(file) == 0 && ok;
+            if (ok) {
+                ::remove(metadata.destination);
+                ok = ::rename(metadata.temporary, metadata.destination) == 0;
+            }
+            if (!ok) {
+                ::remove(metadata.temporary);
+            }
+            request.result = ok ? 0 : -1;
+            break;
+        }
+        case Operation::prepare_directory:
+            request.result = make_dirs(reinterpret_cast<const char *>(a)) ? 0 : -1;
+            break;
+        case Operation::clear_cleanup:
+            request.result = firmware_update_handoff::clear_cleanup_authorization() ? 0 : -1;
             break;
         }
         request.error = errno;
@@ -215,6 +267,28 @@ void report_error(const char *code) {
     SERIAL_ECHOLN(code);
 }
 
+[[gnu::noinline]] void report_upload_ready(const bool resumed) {
+    SERIAL_ECHOPGM("RME_FILE_");
+    SERIAL_ECHO(upload.binary ? "BINARY" : upload.bulk ? "BULK"
+                                                       : "WRITE");
+    SERIAL_ECHOPGM("_READY offset=");
+    SERIAL_ECHO(upload.received);
+    SERIAL_ECHOPGM(" chunk=");
+    SERIAL_ECHO(upload.binary ? binary_chunk_size : upload.bulk ? bulk_chunk_size
+                                                                : transfer_chunk_size);
+    if (upload.binary || upload.bulk) {
+        SERIAL_ECHOPGM(" window=");
+        SERIAL_ECHO(upload.binary ? binary_window_size : bulk_window_size);
+    }
+    if (upload.binary) {
+        SERIAL_ECHOPGM(" header=10 endian=little crc=crc32");
+    }
+    if (resumed) {
+        SERIAL_ECHOPGM(" resumed=1");
+    }
+    SERIAL_EOL();
+}
+
 struct ReadChunkResult {
     uint32_t file_size;
     size_t count;
@@ -223,21 +297,11 @@ struct ReadChunkResult {
 // Keep one implementation for both wire formats, including on flash-limited
 // MINI. The serialized reader reuses the same static upload/download buffer.
 [[gnu::noinline]] bool read_storage_chunk(const char *path, const uint32_t offset, const size_t length, ReadChunkResult &result) {
-    struct stat st {};
-    if (file_io::stat(path, &st) == 0 && S_ISREG(st.st_mode) && st.st_size >= 0 && static_cast<uint64_t>(st.st_size) <= maximum_file_size) {
-        if (FILE *file = file_io::fopen(path, "rb")) {
-            setvbuf(file, nullptr, _IONBF, 0);
-            bool ok = file_io::fseek(file, offset, SEEK_SET) == 0;
-            if (ok) {
-                result.file_size = static_cast<uint32_t>(st.st_size);
-                result.count = file_io::fread(binary_payload.data(), 1, length, file);
-                ok = !ferror(file);
-            }
-            ok = file_io::fclose(file) == 0 && ok;
-            if (ok) {
-                return true;
-            }
-        }
+    file_io::ReadChunk chunk { path, offset, binary_payload.data(), length };
+    if (file_io::read_chunk(chunk)) {
+        result.file_size = chunk.file_size;
+        result.count = chunk.count;
+        return true;
     }
     serial_remote_control::set_transfer(serial_remote_control::TransferKind::none);
     report_error("read_failed");
@@ -350,7 +414,7 @@ bool read_verified_firmware_metadata(const uint32_t candidate_size,
     }
     setvbuf(file, nullptr, _IONBF, 0);
     metadata = {};
-    const bool read = file_io::fread(&metadata, 1, sizeof(metadata), file) == sizeof(metadata);
+    const bool read = file_io::fread(&metadata, sizeof(metadata), file) == sizeof(metadata);
     file_io::fclose(file);
     if (!read || !rme_firmware_status::valid(metadata, candidate_size)) {
         return false;
@@ -364,21 +428,7 @@ bool write_verified_firmware_metadata(const uint32_t size, const std::array<uint
     rme_firmware_status::VerifiedMetadata metadata {};
     metadata.size = size;
     metadata.sha256 = sha256;
-    file_io::remove(firmware_verified_temp_path);
-    FILE *file = file_io::fopen(firmware_verified_temp_path, "wb");
-    if (!file) {
-        return false;
-    }
-    setvbuf(file, nullptr, _IONBF, 0);
-    bool ok = file_io::fwrite(&metadata, 1, sizeof(metadata), file) == sizeof(metadata)
-        && file_io::fflush(file) == 0 && file_io::fsync(fileno(file)) == 0;
-    ok = file_io::fclose(file) == 0 && ok;
-    if (ok) {
-        file_io::remove(firmware_verified_path);
-        ok = file_io::rename(firmware_verified_temp_path, firmware_verified_path) == 0;
-    }
-    if (!ok) {
-        file_io::remove(firmware_verified_temp_path);
+    if (!file_io::write_metadata(firmware_verified_temp_path, firmware_verified_path, &metadata, sizeof(metadata))) {
         return false;
     }
     verified_firmware_cache = metadata;
@@ -543,23 +593,7 @@ bool persist_upload_metadata() {
         >= static_cast<int>(metadata_temp_path.size())) {
         return false;
     }
-    file_io::remove(metadata_temp_path.data());
-    FILE *file = file_io::fopen(metadata_temp_path.data(), "wb");
-    if (!file) {
-        return false;
-    }
-    setvbuf(file, nullptr, _IONBF, 0);
-    bool ok = file_io::fwrite(&metadata_scratch, 1, sizeof(metadata_scratch), file) == sizeof(metadata_scratch)
-        && file_io::fflush(file) == 0 && file_io::fsync(fileno(file)) == 0;
-    ok = file_io::fclose(file) == 0 && ok;
-    if (ok) {
-        file_io::remove(upload.metadata_path.data());
-        ok = file_io::rename(metadata_temp_path.data(), upload.metadata_path.data()) == 0;
-    }
-    if (!ok) {
-        file_io::remove(metadata_temp_path.data());
-    }
-    return ok;
+    return file_io::write_metadata(metadata_temp_path.data(), upload.metadata_path.data(), &metadata_scratch, sizeof(metadata_scratch));
 }
 
 bool load_persistent_upload(const std::array<char, rme_path_buffer_size> &final_path,
@@ -577,7 +611,7 @@ bool load_persistent_upload(const std::array<char, rme_path_buffer_size> &final_
             return false;
         }
         setvbuf(file, nullptr, _IONBF, 0);
-        const bool read = file_io::fread(&metadata_scratch, 1, sizeof(metadata_scratch), file) == sizeof(metadata_scratch);
+        const bool read = file_io::fread(&metadata_scratch, sizeof(metadata_scratch), file) == sizeof(metadata_scratch);
         file_io::fclose(file);
         return read;
     };
@@ -657,7 +691,7 @@ bool resume_suspended_upload(const bool bulk, const bool binary) {
     upload.received = 0;
     while (upload.received < static_cast<uint32_t>(partial.st_size)) {
         const size_t wanted = std::min<size_t>(binary_payload.size(), static_cast<size_t>(partial.st_size) - upload.received);
-        const size_t count = file_io::fread(binary_payload.data(), 1, wanted, upload.file);
+        const size_t count = file_io::fread(binary_payload.data(), wanted, upload.file);
         if (count != wanted || mbedtls_sha256_update_ret(&upload.sha, binary_payload.data(), count)) {
             return false;
         }
@@ -731,7 +765,7 @@ bool finish_current_upload(const char *complete_prefix) {
         return false;
     }
     std::array<uint8_t, 32> actual {};
-    bool ok = file_io::fflush(upload.file) == 0 && file_io::fsync(fileno(upload.file)) == 0
+    bool ok = file_io::flush_sync(upload.file) == 0
         && mbedtls_sha256_finish_ret(&upload.sha, actual.data()) == 0 && actual == upload.expected_sha;
     file_io::fclose(upload.file);
     upload.file = nullptr;
@@ -788,7 +822,7 @@ extern "C" void buddy_rme_firmware_service_tick() {
     bool complete = false;
     bool failed = false;
     for (uint8_t chunk = 0; chunk < chunks_per_slice && !complete; ++chunk) {
-        const size_t count = file_io::fread(binary_payload.data(), 1, binary_payload.size(), firmware_validation.file);
+        const size_t count = file_io::fread(binary_payload.data(), binary_payload.size(), firmware_validation.file);
         if (count && mbedtls_sha256_update_ret(&firmware_validation.sha, binary_payload.data(), count) != 0) {
             failed = true;
             break;
@@ -967,7 +1001,7 @@ extern "C" void buddy_rme_binary_upload_byte(const uint8_t byte) {
         binary_receiver.recovering = true;
         return;
     }
-    if (file_io::fwrite(binary_payload.data(), 1, binary_receiver.payload_size, upload.file) != binary_receiver.payload_size) {
+    if (file_io::fwrite(binary_payload.data(), binary_receiver.payload_size, upload.file) != binary_receiver.payload_size) {
         suspend_upload(transfers::Monitor::Outcome::ErrorStorage);
         report_upload_error("disk_write_failed", true);
         return;
@@ -1203,7 +1237,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             }
             if (is_firmware_candidate(*path)) {
                 stop_firmware_validation();
-                if (!firmware_update_handoff::clear_cleanup_authorization()) {
+                if (!file_io::clear_cleanup()) {
                     release_upload_slot(transfers::Monitor::Outcome::ErrorStorage);
                     report_error("cleanup_authorization_failed");
                     return true;
@@ -1215,23 +1249,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 matching_resume = load_persistent_upload(*path, *size, requested_sha);
             }
             if (matching_resume && resume_suspended_upload(bulk, binary)) {
-                if (binary) {
-                    SERIAL_ECHOPGM("RME_FILE_BINARY_READY offset=");
-                    SERIAL_ECHO(upload.received);
-                    SERIAL_ECHOPGM(" chunk=");
-                    SERIAL_ECHO(binary_chunk_size);
-                    SERIAL_ECHOPGM(" window=");
-                    SERIAL_ECHO(binary_window_size);
-                    SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32 resumed=1");
-                } else if (bulk) {
-                    SERIAL_ECHOPGM("RME_FILE_BULK_READY offset=");
-                    SERIAL_ECHO(upload.received);
-                    SERIAL_ECHOLNPGM(" chunk=384 window=4 resumed=1");
-                } else {
-                    SERIAL_ECHOPGM("RME_FILE_WRITE_READY offset=");
-                    SERIAL_ECHO(upload.received);
-                    SERIAL_ECHOLNPGM(" chunk=48 resumed=1");
-                }
+                report_upload_ready(true);
                 return true;
             }
             if (matching_resume) {
@@ -1249,7 +1267,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             upload.final_path = *path;
             if (snprintf(upload.partial_path.data(), upload.partial_path.size(), "%s.rme-part", path->data()) >= static_cast<int>(upload.partial_path.size())
                 || snprintf(upload.metadata_path.data(), upload.metadata_path.size(), "%s.rme-meta", path->data()) >= static_cast<int>(upload.metadata_path.size())
-                || !parse_sha256(*sha, upload.expected_sha) || !make_dirs(upload.partial_path.data())
+                || !parse_sha256(*sha, upload.expected_sha) || !file_io::prepare_directory(upload.partial_path.data())
                 || !(upload.file = file_io::fopen(upload.partial_path.data(), "wb"))
                 || setvbuf(upload.file, upload_file_buffer.data(), _IOFBF, upload_file_buffer.size()) != 0) {
                 reset_upload(true);
@@ -1269,16 +1287,8 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 } else if (!persist_upload_metadata()) {
                     reset_upload(true);
                     report_error("metadata_write_failed");
-                } else if (binary) {
-                    SERIAL_ECHOPGM("RME_FILE_BINARY_READY offset=0 chunk=");
-                    SERIAL_ECHO(binary_chunk_size);
-                    SERIAL_ECHOPGM(" window=");
-                    SERIAL_ECHO(binary_window_size);
-                    SERIAL_ECHOLNPGM(" header=10 endian=little crc=crc32");
-                } else if (bulk) {
-                    SERIAL_ECHOLNPGM("RME_FILE_BULK_READY offset=0 chunk=384 window=4");
                 } else {
-                    SERIAL_ECHOLNPGM("RME_FILE_WRITE_READY offset=0 chunk=48");
+                    report_upload_ready(false);
                 }
                 // Time spent waiting on USB metadata is not host inactivity.
                 // Start that deadline only once BEGIN has finished its I/O.
@@ -1302,7 +1312,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
                 failure = "decode_failed";
             } else if (count > upload.expected_size - upload.received) {
                 failure = "size_exceeded";
-            } else if (file_io::fwrite(binary_payload.data(), 1, count, upload.file) != count) {
+            } else if (file_io::fwrite(binary_payload.data(), count, upload.file) != count) {
                 failure = "disk_write_failed";
             } else if (mbedtls_sha256_update_ret(&upload.sha, binary_payload.data(), count)) {
                 failure = "hash_failed";
@@ -1335,7 +1345,7 @@ extern "C" bool buddy_rme_file_service(const char *raw_command) {
             report_error("size_mismatch");
         } else {
             std::array<uint8_t, 32> actual {};
-            bool ok = file_io::fflush(upload.file) == 0 && file_io::fsync(fileno(upload.file)) == 0
+            bool ok = file_io::flush_sync(upload.file) == 0
                 && mbedtls_sha256_finish_ret(&upload.sha, actual.data()) == 0 && actual == upload.expected_sha;
             file_io::fclose(upload.file);
             upload.file = nullptr;

@@ -25,19 +25,23 @@ Translations::Translations()
 }
 
 bool Translations::RegisterProvider(uint16_t langCode, const ITranslationProvider *provider) {
-    // find the lang code in the table, update the provider
-    auto i = std::find_if(translations.begin(), translations.end(), [langCode](const TranRec &r) { return r.langCode == langCode; });
-    if (i == translations.end()) {
-        // could not find the lang code key - yet - find a free spot to place it into
-        i = std::find_if(translations.begin(), translations.end(), [](const TranRec &r) { return r.langCode == 0; });
-        if (i == translations.end()) {
-            // now we are out of space - couldn't register the provider anywhere
-            return false;
+    // This tiny table does not benefit from the four-way unrolled find_if.
+    // Keep the first free slot while searching for an existing registration.
+    TranRec *available = nullptr;
+    for (auto &record : translations) {
+        if (record.langCode == langCode) {
+            record.provider = provider;
+            return true;
         }
-        i->langCode = langCode;
-        // fallthrough and save also the provider when going out of this block
+        if (record.langCode == 0 && !available) {
+            available = &record;
+        }
     }
-    i->provider = provider;
+    if (!available) {
+        return false;
+    }
+    available->langCode = langCode;
+    available->provider = provider;
     return true;
 }
 
@@ -46,15 +50,20 @@ bool Translations::ChangeLanguage(uint16_t langCode) {
         return false; // requesting an invalid langCode to change to
     }
     // set current provider pointer to the one specified by lang code
-    auto i = std::find_if(translations.cbegin(), translations.cend(), [langCode](const TranRec &r) { return r.langCode == langCode; });
-    if (i != translations.cend()) {
-        currentProvider = i->provider;
-        return true;
+    for (const auto &record : translations) {
+        if (record.langCode == langCode) {
+            currentProvider = record.provider;
+            return true;
+        }
     }
     return false;
 }
 
 bool Translations::LangExists(uint16_t langCode) const {
-    auto i = std::find_if(translations.cbegin(), translations.cend(), [langCode](const TranRec &r) { return r.langCode == langCode; });
-    return i != translations.cend();
+    for (const auto &record : translations) {
+        if (record.langCode == langCode) {
+            return true;
+        }
+    }
+    return false;
 }

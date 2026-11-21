@@ -11,6 +11,41 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 
 class TransferIoTests(unittest.TestCase):
 
+    def test_compact_ready_records_preserve_all_wire_formats(self):
+        source = (ROOT / "src/marlin_stubs/rme_file_service.cpp").read_text()
+        start = source.index("[[gnu::noinline]] void report_upload_ready(")
+        ready = source[start:source.index("struct ReadChunkResult {", start)]
+        harness = r'''
+#include <cassert>
+#include <cstdint>
+#include <string>
+std::string wire;
+struct {bool binary=false,bulk=false; unsigned received=0;} upload;
+constexpr unsigned binary_chunk_size=512,bulk_chunk_size=384,transfer_chunk_size=48;
+constexpr uint8_t binary_window_size=3,bulk_window_size=4;
+void emit(const char *text){wire+=text;}
+template<class T> void emit(T value){wire+=std::to_string(value);}
+#define SERIAL_ECHOPGM(x) emit(x)
+#define SERIAL_ECHO(x) emit(x)
+#define SERIAL_EOL() emit("\n")
+''' + ready + r'''
+int main() {
+    for(bool resumed:{false,true}) for(unsigned mode=0;mode<3;++mode) {
+        upload.binary=mode==2; upload.bulk=mode==1; upload.received=resumed?123:0;
+        wire.clear(); report_upload_ready(resumed);
+        std::string expected="RME_FILE_";
+        expected+=mode==2?"BINARY":mode==1?"BULK":"WRITE";
+        expected+="_READY offset="+std::to_string(upload.received);
+        expected+=" chunk="+std::to_string(mode==2?512:mode==1?384:48);
+        if(mode) expected+=" window="+std::to_string(mode==2?3:4);
+        if(mode==2) expected+=" header=10 endian=little crc=crc32";
+        if(resumed) expected+=" resumed=1";
+        expected+="\n"; assert(wire==expected);
+    }
+}
+'''
+        self.compile_run(harness)
+
     def compile_run(self, source):
         compiler = shutil.which("g++")
         if not compiler:
@@ -55,6 +90,9 @@ class TransferIoTests(unittest.TestCase):
 #define SG14_INPLACE_FUNCTION_THROW(x) std::abort()
 #include "rme_file_io.hpp"
 struct AsyncJobExecutionControl {};
+bool cleanup_ok=true;
+namespace firmware_update_handoff {bool clear_cleanup_authorization(){return cleanup_ok;}}
+bool make_dirs(const char *){return true;}
 const auto marlin_thread = std::this_thread::get_id();
 class AsyncJob {
     std::thread worker;
@@ -84,17 +122,29 @@ int main(int argc, char **argv) {
     const auto missing=std::string(argv[1])+"/missing.bin";
     assert(rme_file_io::fopen(missing.c_str(),"rb")==nullptr && errno==ENOENT);
     assert(thermalManager.checks>100);
+    assert(rme_file_io::prepare_directory(argv[1]));
+    assert(rme_file_io::clear_cleanup()); cleanup_ok=false;
+    assert(!rme_file_io::clear_cleanup()); cleanup_ok=true;
     const std::string file=std::string(argv[1])+"/upload.bin";
     FILE *f=rme_file_io::fopen(file.c_str(),"wb"); assert(f);
-    assert(rme_file_io::fwrite(buffer,1,9,f)==9);
+    assert(rme_file_io::fwrite(buffer,9,f)==9);
     assert(rme_file_io::fflush(f)==0);
-    assert(rme_file_io::fsync(fileno(f))==0);
+    assert(rme_file_io::flush_sync(f)==0);
     assert(rme_file_io::fclose(f)==0);
     struct stat st{}; assert(rme_file_io::stat(file.c_str(),&st)==0 && st.st_size==9);
     f=rme_file_io::fopen(file.c_str(),"rb"); assert(f);
     assert(rme_file_io::fseek(f,0,SEEK_SET)==0);
-    char read[16]{}; assert(rme_file_io::fread(read,1,9,f)==9);
+    char read[16]{}; assert(rme_file_io::fread(read,9,f)==9);
     assert(strcmp(buffer,read)==0 && rme_file_io::fclose(f)==0);
+    const auto temporary=file+".meta.tmp", metadata=file+".meta";
+    assert(rme_file_io::write_metadata(temporary.c_str(),metadata.c_str(),buffer,9));
+    char chunk_data[16]{};
+    rme_file_io::ReadChunk chunk{metadata.c_str(),2,chunk_data,4};
+    assert(rme_file_io::read_chunk(chunk) && chunk.file_size==9 && chunk.count==4);
+    assert(strncmp(chunk_data,"mple",4)==0);
+    const auto invalid=file+"/missing/meta";
+    assert(!rme_file_io::write_metadata(temporary.c_str(),invalid.c_str(),buffer,9));
+    assert(::stat(temporary.c_str(),&st)!=0);
     const auto renamed=file+".renamed";
     assert(rme_file_io::rename(file.c_str(),renamed.c_str())==0);
     assert(rme_file_io::remove(renamed.c_str())==0);
@@ -111,6 +161,9 @@ int main(int argc, char **argv) {
         branch = source[source.index("\n", start) + 1:end]
         helper = source[source.index("struct ReadChunkResult {"):source.
                         index("void report_upload_error(")]
+        worker_start = source.index("intptr_t rme_file_io::run(")
+        worker = source[worker_start:source.index("\nnamespace {", worker_start
+                                                  )]
         harness = r'''
 #include <algorithm>
 #include <array>
@@ -122,9 +175,19 @@ int main(int argc, char **argv) {
 #include <string>
 #include <vector>
 #include <sys/stat.h>
-namespace file_io {
-using ::stat; using ::fopen; using ::fclose; using ::fseek; using ::fread;
-}
+#include <cerrno>
+#include "rme_file_io.hpp"
+namespace file_io=rme_file_io;
+struct AsyncJobExecutionControl{};
+namespace firmware_update_handoff {bool clear_cleanup_authorization(){return true;}}
+bool make_dirs(const char *){return true;}
+struct AsyncJob {
+    template<class F> void issue(F operation){AsyncJobExecutionControl control; operation(control);}
+    bool is_active() const {return false;}
+};
+struct {void manage_heater(){}} thermalManager;
+void osDelay(unsigned){}
+''' + worker + r'''
 namespace transfers { struct Monitor {
     static Monitor instance; bool busy=false;
     std::optional<int> id() { return busy ? std::optional<int>(1) : std::nullopt; }
@@ -227,6 +290,69 @@ int main() {
             re.search(
                 r"(?<![:\w])(fopen|fclose|fread|fwrite|fseek|fflush|fsync|stat|remove|rename|mkdir)\(",
                 source))
+
+    def test_compact_language_table_matches_original_lookup(self):
+        source = (ROOT / "src/lang/translator.cpp").read_text()
+        methods = source[source.index("bool Translations::RegisterProvider("):]
+        harness = r'''
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstdint>
+struct ITranslationProvider {unsigned id;};
+struct Record {
+    const ITranslationProvider *provider=nullptr;
+    uint16_t langCode=0;
+    bool operator==(const Record &) const = default;
+};
+struct Translations {
+    using TranRec=Record;
+    std::array<Record,4> translations{};
+    const ITranslationProvider *currentProvider=nullptr;
+    bool RegisterProvider(uint16_t,const ITranslationProvider *);
+    bool ChangeLanguage(uint16_t);
+    bool LangExists(uint16_t) const;
+};
+struct Reference: Translations {
+    bool RegisterProvider(uint16_t code,const ITranslationProvider *provider) {
+        auto i=std::find_if(translations.begin(),translations.end(),[&](auto&r){return r.langCode==code;});
+        if(i==translations.end()) {
+            i=std::find_if(translations.begin(),translations.end(),[](auto&r){return r.langCode==0;});
+            if(i==translations.end()) return false;
+            i->langCode=code;
+        }
+        i->provider=provider; return true;
+    }
+    bool ChangeLanguage(uint16_t code) {
+        if(!code)return false;
+        auto i=std::find_if(translations.begin(),translations.end(),[&](auto&r){return r.langCode==code;});
+        if(i==translations.end())return false;
+        currentProvider=i->provider; return true;
+    }
+    bool LangExists(uint16_t code) const {
+        return std::any_of(translations.begin(),translations.end(),[&](auto&r){return r.langCode==code;});
+    }
+};
+''' + methods + r'''
+int main() {
+    const std::array<ITranslationProvider,3> providers{{{1},{2},{3}}};
+    for(unsigned seed=1;seed<50;++seed) {
+        Translations actual; Reference expected; uint32_t random=seed;
+        for(unsigned n=0;n<2000;++n) {
+            random=random*1664525+1013904223;
+            uint16_t code=(random>>8)%7;
+            const auto *provider=&providers[(random>>16)%3];
+            if(random&1) assert(actual.RegisterProvider(code,provider)==expected.RegisterProvider(code,provider));
+            else assert(actual.ChangeLanguage(code)==expected.ChangeLanguage(code));
+            for(uint16_t probe=0;probe<8;++probe)
+                assert(actual.LangExists(probe)==expected.LangExists(probe));
+            assert(actual.translations==expected.translations);
+            assert(actual.currentProvider==expected.currentProvider);
+        }
+    }
+}
+'''
+        self.compile_run(harness)
 
 
 if __name__ == "__main__":
