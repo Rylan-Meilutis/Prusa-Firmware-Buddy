@@ -14,6 +14,9 @@ class FirmwareUnstageGuardTests(unittest.TestCase):
             self.skipTest("C++ compiler unavailable")
         root = pathlib.Path(__file__).resolve().parents[3]
         source = (root / "src/marlin_stubs/rme_file_service.cpp").read_text()
+        # Bind the production storage call to this guard's fake stat. The
+        # asynchronous worker/errno contract is exercised in test_rme_transfer_io.
+        source = source.replace("file_io::stat(", "stat(")
         start = source.index(
             '        const auto expected_sha = value(command, "sha256");')
         end = source.index("        stop_firmware_validation();", start)

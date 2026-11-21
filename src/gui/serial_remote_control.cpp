@@ -30,9 +30,9 @@ namespace {
     std::atomic<uint32_t> remote_transfer_expires_ms { 0 };
 } // namespace
 
-void set_transfer(const TransferKind kind, const uint32_t completed, const uint32_t total) {
+void set_transfer(const TransferKind kind, const uint32_t completed, const uint32_t total, const uint32_t lease_ms) {
     remote_transfer_progress.store(total ? static_cast<uint8_t>(std::min<uint32_t>(100, completed * 100ULL / total)) : 0, std::memory_order_release);
-    remote_transfer_expires_ms.store(kind != TransferKind::none && total == 0 ? ticks_ms() + 1000 : 0, std::memory_order_release);
+    remote_transfer_expires_ms.store(kind != TransferKind::none && (lease_ms || total == 0) ? ticks_ms() + (lease_ms ? lease_ms : 1000) : 0, std::memory_order_release);
     remote_transfer_kind.store(kind, std::memory_order_release);
 }
 
