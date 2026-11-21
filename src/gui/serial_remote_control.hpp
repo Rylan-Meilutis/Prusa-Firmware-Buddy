@@ -46,7 +46,7 @@ struct TransferStatus {
     TransferKind kind;
     uint8_t progress;
 };
-void set_transfer(TransferKind kind, uint32_t completed = 0, uint32_t total = 0);
+void set_transfer(TransferKind kind, uint32_t completed = 0, uint32_t total = 0, uint32_t lease_ms = 0);
 TransferStatus transfer_status();
 
 void set_enabled(bool enabled);

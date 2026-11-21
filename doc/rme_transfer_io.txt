@@ -1,0 +1,33 @@
+RME transfer progress / USB-storage watchdog fix — 2026-11-21
+
+DUMP_B1.BIN identifies COREONE_INDX 8.0.2-RME-ui2, source bc4e9d150.
+Using its archived ELF, the crash backtrace is iwdg_warning_cb -> crash dump.
+Marlin is waiting in persist_upload_metadata -> remove -> FatFs unlink ->
+USBH_exec -> BinarySemaphore::acquire. USBH_MSC_Worker is waiting for a USB
+write completion. The native watchdog warning interval is approximately 4s,
+shorter than a permitted slow USB operation. This is not a hash/BBF rejection.
+
+RME's potentially blocking stdio/stat/unlink/rename/mkdir/fsync operations now
+run on the existing AsyncJob worker. Marlin retains ownership of transfer
+state and waits for each operation to finish, servicing native manage_heater
+and yielding. It does NOT call idle/get_serial_commands recursively, discard
+a worker that references a stack buffer, directly pet/disable the watchdog,
+or bypass native temperature/USB timeout checks. Task-local errno is preserved
+across the worker boundary. BEGIN inactivity starts after metadata I/O finishes.
+
+Both text READ (used by the current OctoPrint plugin) and READ_BINARY report
+completed bytes and file size to the printer header. Text READ now recognizes
+EOF at an exact chunk boundary and checks read errors. Completion/error clears
+the indicator. A 15s refreshable lease clears interrupted downloads without
+applying that timeout to upload indicators. No protocol extension or new
+OctoPrint plugin version is necessary for these fixes. Flash-constrained MINI
+advertises binary_read=0 and retains the text READ path used by current hosts;
+the optional raw-read accelerator remains on the six larger builds. Binary
+uploads, durable resume, hashing and all thermal protection remain on MINI.
+
+Regression tests execute the production worker wait with a slow worker and
+caller-stack buffers, errno propagation, real stdio/rename/fsync, production
+text READ percentage/EOF/error behavior and UI timeout/rollover handling.
+Hardware USB-media validation is still needed. If an older image crashes
+during serial firmware staging, install this BBF from USB manually rather
+than depending on another upload through the affected firmware.
